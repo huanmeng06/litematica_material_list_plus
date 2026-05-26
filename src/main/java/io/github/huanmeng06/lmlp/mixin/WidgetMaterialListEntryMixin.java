@@ -11,6 +11,7 @@ import fi.dy.masa.malilib.gui.widgets.WidgetListEntrySortable;
 import fi.dy.masa.malilib.render.RenderUtils;
 import fi.dy.masa.malilib.util.GuiUtils;
 import fi.dy.masa.malilib.util.StringUtils;
+import io.github.huanmeng06.lmlp.access.WidgetListBoundsAccess;
 import io.github.huanmeng06.lmlp.gui.MaterialListPlusState;
 import io.github.huanmeng06.lmlp.gui.RecipeDetailScreen;
 import io.github.huanmeng06.lmlp.gui.RecipeInlineRenderer;
@@ -231,7 +232,7 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
             List<RecipeSummary> summaries = MaterialListPlusState.getSummaries(this.entry, this.materialList);
             int panelHeight = RecipeInlineRenderer.getHeight(summaries);
             int panelY = this.y + 23;
-            int visibleBottom = this.listWidget instanceof io.github.huanmeng06.lmlp.mixin.access.WidgetListBoundsAccess access ? access.lmlp$getVisibleBottom() : this.y + this.height;
+            int visibleBottom = this.listWidget instanceof WidgetListBoundsAccess access ? access.lmlp$getVisibleBottom() : this.y + this.height;
             if (panelY + panelHeight > visibleBottom) {
                 panelY = Math.max(this.y - panelHeight - 2, 24);
             }

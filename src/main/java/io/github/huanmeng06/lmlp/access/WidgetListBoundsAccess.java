@@ -1,4 +1,4 @@
-package io.github.huanmeng06.lmlp.mixin.access;
+package io.github.huanmeng06.lmlp.access;
 
 public interface WidgetListBoundsAccess {
     int lmlp$getVisibleBottom();
