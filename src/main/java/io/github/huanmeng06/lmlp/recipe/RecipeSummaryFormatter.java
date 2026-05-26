@@ -11,11 +11,19 @@ public final class RecipeSummaryFormatter {
     }
 
     public static String header(RecipeSummary summary, int index) {
-        String base = StringUtils.translate("lmlp.label.recipe.header", index, summary.category(), summary.outputCount(), summary.craftsTotal());
+        String base = StringUtils.translate("lmlp.label.recipe.header", index, summary.outputCount(), summary.craftsTotal());
         if (summary.craftsMissing() != summary.craftsTotal()) {
             return base + " / " + StringUtils.translate("lmlp.label.recipe.header.missing", summary.craftsMissing());
         }
         return base;
+    }
+
+    public static String recipeKind(RecipeSummary summary) {
+        if (summary.category().contains("crafting")) {
+            return StringUtils.translate(summary.shapeless() ? "lmlp.label.recipe.kind.crafting_shapeless" : "lmlp.label.recipe.kind.crafting");
+        }
+
+        return StringUtils.translate("lmlp.label.recipe.kind.generic");
     }
 
     public static String ingredientName(IngredientSummary ingredient) {

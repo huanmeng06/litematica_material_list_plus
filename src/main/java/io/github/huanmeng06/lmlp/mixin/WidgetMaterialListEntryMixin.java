@@ -138,8 +138,22 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
                     List<RecipeSummary> summaries = MaterialListPlusState.resolveFor(this.entry, this.materialList);
                     this.mc.method_1507(new RecipeDetailScreen(GuiUtils.getCurrentScreen(), this.entry.getStack(), MaterialCounts.total(this.entry, this.materialList), MaterialCounts.missing(this.entry, this.materialList), summaries));
                 } else {
-                    MaterialListPlusState.toggle(this.entry, this.materialList);
+                    boolean wasExpanded = MaterialListPlusState.isExpanded(this.entry);
+                    int scrollToIndex = this.getListIndex();
+                    boolean shouldScrollAfterExpand = false;
+                    if (wasExpanded) {
+                        MaterialListPlusState.clear();
+                    } else {
+                        MaterialListPlusState.open(this.entry, this.materialList);
+                        int visibleBottom = this.listWidget instanceof WidgetListBoundsAccess access ? access.lmlp$getVisibleBottom() : this.y + this.height;
+                        shouldScrollAfterExpand = this.y + 23 + RecipeInlineRenderer.getHeight(MaterialListPlusState.getCachedSummaries(this.entry)) > visibleBottom;
+                    }
+
                     this.listWidget.refreshEntries();
+                    if (shouldScrollAfterExpand) {
+                        this.listWidget.getScrollbar().setValue(Math.max(0, scrollToIndex - 1));
+                        this.listWidget.refreshEntries();
+                    }
                 }
                 return true;
             }
@@ -230,12 +244,7 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
 
         if (MaterialListPlusState.isExpanded(this.entry)) {
             List<RecipeSummary> summaries = MaterialListPlusState.getSummaries(this.entry, this.materialList);
-            int panelHeight = RecipeInlineRenderer.getHeight(summaries);
             int panelY = this.y + 23;
-            int visibleBottom = this.listWidget instanceof WidgetListBoundsAccess access ? access.lmlp$getVisibleBottom() : this.y + this.height;
-            if (panelY + panelHeight > visibleBottom) {
-                panelY = Math.max(this.y - panelHeight - 2, 24);
-            }
             RecipeInlineRenderer.render(this, drawContext, this.x + 28, panelY, Math.max(180, this.width - 64), summaries);
         }
 

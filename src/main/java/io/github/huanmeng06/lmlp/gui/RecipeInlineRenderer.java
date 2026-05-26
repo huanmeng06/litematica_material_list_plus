@@ -6,75 +6,74 @@ import fi.dy.masa.malilib.gui.GuiBase;
 import fi.dy.masa.malilib.gui.widgets.WidgetBase;
 import fi.dy.masa.malilib.render.RenderUtils;
 import fi.dy.masa.malilib.util.StringUtils;
+import io.github.huanmeng06.lmlp.material.ItemStackTexts;
 import io.github.huanmeng06.lmlp.recipe.IngredientSummary;
 import io.github.huanmeng06.lmlp.recipe.RecipeSummary;
 import io.github.huanmeng06.lmlp.recipe.RecipeSummaryFormatter;
 import net.minecraft.class_332;
 
 public final class RecipeInlineRenderer {
-    private static final int HEADER_HEIGHT = 14;
-    private static final int INGREDIENT_HEIGHT = 18;
-    private static final int PADDING = 6;
+    private static final int INGREDIENT_HEIGHT = 22;
+    private static final int PADDING = 8;
 
     private RecipeInlineRenderer() {
     }
 
     public static int getHeight(List<RecipeSummary> summaries) {
         if (summaries.isEmpty()) {
-            return 24;
+            return 48;
         }
 
-        int height = PADDING * 2;
-        for (RecipeSummary summary : summaries) {
-            height += HEADER_HEIGHT + 12 + summary.ingredients().size() * INGREDIENT_HEIGHT;
+        RecipeSummary summary = summaries.get(0);
+        int height = 82 + summary.ingredients().size() * INGREDIENT_HEIGHT;
+        if (summaries.size() > 1) {
+            height += 22;
         }
-        return Math.min(height, 220);
+        return height;
     }
 
     public static void render(WidgetBase widget, class_332 context, int x, int y, int width, List<RecipeSummary> summaries) {
         int height = getHeight(summaries);
         RenderUtils.drawOutlinedBox(x, y, Math.max(160, width), height, 0xDD000000, 0xFF777777);
 
+        int panelWidth = Math.max(160, width);
         int textX = x + PADDING;
-        int cursorY = y + PADDING;
 
         if (summaries.isEmpty()) {
-            widget.drawString(textX, cursorY + 4, 0xFFFF5555, StringUtils.translate("lmlp.label.recipe.none"), context);
+            widget.drawString(textX, y + 16, 0xFFFFCC66, StringUtils.translate("lmlp.label.recipe.none"), context);
             return;
         }
 
-        int recipeIndex = 1;
-        int bottom = y + height - PADDING;
-        for (RecipeSummary summary : summaries) {
-            if (cursorY + HEADER_HEIGHT >= bottom) {
-                widget.drawString(textX, cursorY, 0xFFAAAAAA, "...", context);
-                return;
+        RecipeSummary summary = summaries.get(0);
+        int cursorY = y + PADDING;
+        context.method_51427(summary.outputIcon(), textX, cursorY);
+        widget.drawString(textX + 24, cursorY + 1, 0xFFFFFFFF, GuiBase.TXT_BOLD + ItemStackTexts.name(summary.outputIcon()), context);
+        cursorY += 24;
+
+        widget.drawString(textX, cursorY, 0xFFFFFFFF, RecipeSummaryFormatter.header(summary, 1), context);
+        cursorY += 14;
+        widget.drawString(textX, cursorY, 0xFFAAAAAA, RecipeSummaryFormatter.recipeKind(summary), context);
+        cursorY += 18;
+
+        int ingredientBoxY = cursorY;
+        int ingredientBoxHeight = 18 + summary.ingredients().size() * INGREDIENT_HEIGHT;
+        RenderUtils.drawRect(textX - 2, ingredientBoxY - 2, panelWidth - PADDING * 2 + 4, ingredientBoxHeight, 0x66000000);
+        widget.drawString(textX, cursorY, 0xFFAAAAAA, StringUtils.translate("lmlp.label.recipe.ingredients_total"), context);
+        cursorY += 18;
+
+        for (IngredientSummary ingredient : summary.ingredients()) {
+            RenderUtils.drawRect(textX, cursorY - 3, 18, 18, 0x30FFFFFF);
+            context.method_51427(ingredient.icon(), textX + 1, cursorY - 2);
+            String line = RecipeSummaryFormatter.ingredientName(ingredient) + ": " + GuiBase.TXT_GOLD + RecipeSummaryFormatter.totalCount(ingredient);
+            if (ingredient.countMissing() != ingredient.countTotal()) {
+                line += GuiBase.TXT_RST + " / " + GuiBase.TXT_RED + RecipeSummaryFormatter.missingCount(ingredient);
             }
+            widget.drawString(textX + 26, cursorY + 2, 0xFFFFFFFF, line, context);
+            cursorY += INGREDIENT_HEIGHT;
+        }
 
-            context.method_51427(summary.outputIcon(), textX, cursorY - 3);
-            widget.drawString(textX + 20, cursorY, 0xFFFFFFFF, RecipeSummaryFormatter.header(summary, recipeIndex), context);
-            cursorY += HEADER_HEIGHT;
-
-            widget.drawString(textX + 20, cursorY, 0xFFAAAAAA, StringUtils.translate("lmlp.label.recipe.ingredients_total"), context);
-            cursorY += 12;
-
-            for (IngredientSummary ingredient : summary.ingredients()) {
-                if (cursorY + INGREDIENT_HEIGHT >= bottom) {
-                    widget.drawString(textX, cursorY, 0xFFAAAAAA, "...", context);
-                    return;
-                }
-
-                RenderUtils.drawRect(textX, cursorY - 3, 16, 16, 0x30FFFFFF);
-                context.method_51427(ingredient.icon(), textX, cursorY - 3);
-                String line = RecipeSummaryFormatter.ingredientName(ingredient) + ": " + GuiBase.TXT_GOLD + RecipeSummaryFormatter.totalCount(ingredient);
-                if (ingredient.countMissing() != ingredient.countTotal()) {
-                    line += GuiBase.TXT_RST + " / " + GuiBase.TXT_RED + RecipeSummaryFormatter.missingCount(ingredient);
-                }
-                widget.drawString(textX + 22, cursorY, 0xFFFFFFFF, line, context);
-                cursorY += INGREDIENT_HEIGHT;
-            }
-
-            recipeIndex++;
+        if (summaries.size() > 1) {
+            widget.drawString(textX, y + height - 16, 0xFFFFFFFF, GuiBase.TXT_GOLD + StringUtils.translate("lmlp.label.recipe.more_hint"), context);
         }
     }
 }

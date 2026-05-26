@@ -1,12 +1,18 @@
 {
   "lmlp.gui.recipe_detail.title": "Recipe Details",
-  "lmlp.label.recipe.none": "No REI recipe found.",
-  "lmlp.label.recipe.header": "Recipe %d: %s -> x%d, craft %d times",
+  "lmlp.label.recipe.none": "Base material or directly obtainable block; no crafting breakdown is needed.",
+  "lmlp.label.recipe.header": "Recipe %d: yields x%d each craft, craft %d times",
   "lmlp.label.recipe.header.missing": "missing craft %d times",
   "lmlp.label.recipe.ingredients_total": "Total ingredients",
   "lmlp.label.recipe.ingredients_missing": "Missing ingredients",
   "lmlp.label.recipe.any": "Any: %s",
   "lmlp.label.recipe.shapeless": "Shapeless",
-  "lmlp.label.recipe.back": "Esc: back",
-  "lmlp.label.recipe.shift_hint": "Shift-click: detail page"
+  "lmlp.label.recipe.kind.crafting": "Crafting table recipe",
+  "lmlp.label.recipe.kind.crafting_shapeless": "Shapeless crafting table recipe",
+  "lmlp.label.recipe.kind.generic": "Available recipe",
+  "lmlp.label.recipe.back": "Back (Esc)",
+  "lmlp.label.recipe.shift_hint": "Shift-click: detail page",
+  "lmlp.label.recipe.more_hint": "More recipes: Shift-left click for details",
+  "lmlp.label.recipe.total_short": "Total",
+  "lmlp.label.recipe.missing_short": "Missing"
 }
