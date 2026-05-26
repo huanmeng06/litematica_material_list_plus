@@ -12,8 +12,12 @@ public final class RecipeSummary {
     private final int craftsTotal;
     private final int craftsMissing;
     private final List<IngredientSummary> ingredients;
+    private final List<RecipeSlotSummary> inputSlots;
+    private final int gridWidth;
+    private final int gridHeight;
+    private final boolean shapeless;
 
-    public RecipeSummary(String category, String recipeId, class_1799 outputIcon, int outputCount, int craftsTotal, int craftsMissing, List<IngredientSummary> ingredients) {
+    public RecipeSummary(String category, String recipeId, class_1799 outputIcon, int outputCount, int craftsTotal, int craftsMissing, List<IngredientSummary> ingredients, List<RecipeSlotSummary> inputSlots, int gridWidth, int gridHeight, boolean shapeless) {
         this.category = category;
         this.recipeId = recipeId;
         this.outputIcon = outputIcon;
@@ -21,6 +25,10 @@ public final class RecipeSummary {
         this.craftsTotal = craftsTotal;
         this.craftsMissing = craftsMissing;
         this.ingredients = List.copyOf(ingredients);
+        this.inputSlots = List.copyOf(inputSlots);
+        this.gridWidth = gridWidth;
+        this.gridHeight = gridHeight;
+        this.shapeless = shapeless;
     }
 
     public String category() {
@@ -49,5 +57,21 @@ public final class RecipeSummary {
 
     public List<IngredientSummary> ingredients() {
         return this.ingredients;
+    }
+
+    public List<RecipeSlotSummary> inputSlots() {
+        return this.inputSlots;
+    }
+
+    public int gridWidth() {
+        return this.gridWidth;
+    }
+
+    public int gridHeight() {
+        return this.gridHeight;
+    }
+
+    public boolean shapeless() {
+        return this.shapeless;
     }
 }

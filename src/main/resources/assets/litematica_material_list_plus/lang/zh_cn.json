@@ -6,6 +6,7 @@
   "lmlp.label.recipe.ingredients_total": "总计子材料",
   "lmlp.label.recipe.ingredients_missing": "缺少子材料",
   "lmlp.label.recipe.any": "任一：%s",
+  "lmlp.label.recipe.shapeless": "无序配方",
   "lmlp.label.recipe.back": "Esc：返回",
   "lmlp.label.recipe.shift_hint": "Shift+单击：详情页"
 }

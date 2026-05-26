@@ -6,6 +6,7 @@
   "lmlp.label.recipe.ingredients_total": "Total ingredients",
   "lmlp.label.recipe.ingredients_missing": "Missing ingredients",
   "lmlp.label.recipe.any": "Any: %s",
+  "lmlp.label.recipe.shapeless": "Shapeless",
   "lmlp.label.recipe.back": "Esc: back",
   "lmlp.label.recipe.shift_hint": "Shift-click: detail page"
 }

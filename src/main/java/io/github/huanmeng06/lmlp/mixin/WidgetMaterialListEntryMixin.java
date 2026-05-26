@@ -28,6 +28,8 @@ import java.util.List;
 
 @Mixin(value = WidgetMaterialListEntry.class, remap = false)
 public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortable<MaterialListEntry> {
+    private static int lmlpMaxTotalDigits;
+    private static int lmlpMaxMissingDigits;
     @Shadow
     private static int maxNameLength;
     @Shadow
@@ -76,6 +78,15 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         maxCountLength1 = StringUtils.getStringWidth(GuiBase.TXT_BOLD + StringUtils.translate("litematica.gui.label.material_list.title.total") + GuiBase.TXT_RST);
         maxCountLength2 = StringUtils.getStringWidth(GuiBase.TXT_BOLD + StringUtils.translate("litematica.gui.label.material_list.title.missing") + GuiBase.TXT_RST);
         maxCountLength3 = StringUtils.getStringWidth(GuiBase.TXT_BOLD + StringUtils.translate("litematica.gui.label.material_list.title.available") + GuiBase.TXT_RST);
+        lmlpMaxTotalDigits = 1;
+        lmlpMaxMissingDigits = 1;
+
+        for (MaterialListEntry entry : entries) {
+            int total = entry.getCountTotal() * multiplier;
+            int missing = multiplier == 1 ? entry.getCountMissing() : total;
+            lmlpMaxTotalDigits = Math.max(lmlpMaxTotalDigits, Integer.toString(total).length());
+            lmlpMaxMissingDigits = Math.max(lmlpMaxMissingDigits, Integer.toString(missing).length());
+        }
 
         for (MaterialListEntry entry : entries) {
             int total = entry.getCountTotal() * multiplier;
@@ -83,8 +94,8 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
             class_1799 stack = entry.getStack();
 
             maxNameLength = Math.max(maxNameLength, StringUtils.getStringWidth(stack.method_7964().getString()));
-            maxCountLength1 = Math.max(maxCountLength1, StringUtils.getStringWidth(CountFormatter.format(stack, total)));
-            maxCountLength2 = Math.max(maxCountLength2, StringUtils.getStringWidth(CountFormatter.format(stack, missing)));
+            maxCountLength1 = Math.max(maxCountLength1, StringUtils.getStringWidth(CountFormatter.formatAligned(stack, total, lmlpMaxTotalDigits)));
+            maxCountLength2 = Math.max(maxCountLength2, StringUtils.getStringWidth(CountFormatter.formatAligned(stack, missing, lmlpMaxMissingDigits)));
             maxCountLength3 = Math.max(maxCountLength3, StringUtils.getStringWidth(Integer.toString(entry.getCountAvailable())));
         }
     }
@@ -203,8 +214,8 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         int available = this.entry.getCountAvailable();
 
         this.drawString(xItem + 20, yText, -1, stack.method_7964().getString(), drawContext);
-        this.drawString(xTotal, yText, -1, CountFormatter.format(stack, total), drawContext);
-        this.drawString(xMissing, yText, -1, missingColor(missing, available) + CountFormatter.format(stack, missing), drawContext);
+        this.drawString(xTotal, yText, -1, CountFormatter.formatAligned(stack, total, lmlpMaxTotalDigits), drawContext);
+        this.drawString(xMissing, yText, -1, missingColor(missing, available) + CountFormatter.formatAligned(stack, missing, lmlpMaxMissingDigits), drawContext);
         this.drawString(xAvailable, yText, -1, availableColor(available, missing) + available, drawContext);
 
         drawContext.method_51448().method_22903();
@@ -217,7 +228,14 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         drawContext.method_51448().method_22909();
 
         if (MaterialListPlusState.isExpanded(this.entry)) {
-            RecipeInlineRenderer.render(this, drawContext, this.x + 28, this.y + 23, Math.max(180, this.width - 64), MaterialListPlusState.getSummaries(this.entry, this.materialList));
+            List<RecipeSummary> summaries = MaterialListPlusState.getSummaries(this.entry, this.materialList);
+            int panelHeight = RecipeInlineRenderer.getHeight(summaries);
+            int panelY = this.y + 23;
+            int visibleBottom = this.listWidget instanceof io.github.huanmeng06.lmlp.mixin.access.WidgetListBoundsAccess access ? access.lmlp$getVisibleBottom() : this.y + this.height;
+            if (panelY + panelHeight > visibleBottom) {
+                panelY = Math.max(this.y - panelHeight - 2, 24);
+            }
+            RecipeInlineRenderer.render(this, drawContext, this.x + 28, panelY, Math.max(180, this.width - 64), summaries);
         }
 
         super.render(mouseX, mouseY, selected, drawContext);

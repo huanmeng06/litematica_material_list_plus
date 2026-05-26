@@ -9,11 +9,13 @@ import java.util.Optional;
 import io.github.huanmeng06.lmlp.material.ItemStackTexts;
 import io.github.huanmeng06.lmlp.recipe.IngredientSummary;
 import io.github.huanmeng06.lmlp.recipe.RecipeResolver;
+import io.github.huanmeng06.lmlp.recipe.RecipeSlotSummary;
 import io.github.huanmeng06.lmlp.recipe.RecipeSummary;
 import me.shedaniel.rei.api.client.registry.display.DisplayRegistry;
 import me.shedaniel.rei.api.common.display.Display;
 import me.shedaniel.rei.api.common.entry.EntryIngredient;
 import me.shedaniel.rei.api.common.entry.EntryStack;
+import me.shedaniel.rei.plugin.common.displays.crafting.DefaultCraftingDisplay;
 import net.minecraft.class_1799;
 import net.minecraft.class_2960;
 
@@ -25,7 +27,7 @@ public final class ReiRecipeResolver implements RecipeResolver {
 
         for (List<Display> displays : registry.getAll().values()) {
             for (Display display : displays) {
-                if (!registry.isDisplayVisible(display)) {
+                if (!registry.isDisplayVisible(display) || isTagDisplay(display)) {
                     continue;
                 }
 
@@ -44,11 +46,21 @@ public final class ReiRecipeResolver implements RecipeResolver {
                         outputCount,
                         craftsTotal,
                         craftsMissing,
-                        summarizeInputs(display, craftsTotal, craftsMissing)));
+                        summarizeInputs(display, craftsTotal, craftsMissing),
+                        summarizeSlots(display),
+                        3,
+                        3,
+                        display instanceof DefaultCraftingDisplay<?> craftingDisplay && craftingDisplay.isShapeless()));
             }
         }
 
         return summaries;
+    }
+
+    private static boolean isTagDisplay(Display display) {
+        String category = display.getCategoryIdentifier().getIdentifier().toString();
+        Optional<class_2960> location = display.getDisplayLocation();
+        return category.contains("/tag") || category.endsWith(":tag") || location.map(class_2960::toString).orElse("").contains("/tag");
     }
 
     private static class_1799 findMatchingOutput(Display display, class_1799 target) {
@@ -67,17 +79,14 @@ public final class ReiRecipeResolver implements RecipeResolver {
     private static List<IngredientSummary> summarizeInputs(Display display, int craftsTotal, int craftsMissing) {
         Map<String, IngredientAccumulator> ingredients = new LinkedHashMap<>();
 
-        for (EntryIngredient ingredient : display.getInputEntries()) {
-            List<class_1799> alternatives = collectAlternatives(ingredient);
-            if (alternatives.isEmpty()) {
+        for (RecipeSlotSummary slot : summarizeSlots(display)) {
+            if (slot.isEmpty()) {
                 continue;
             }
 
-            class_1799 first = alternatives.get(0);
-            int countPerSlot = Math.max(1, first.method_7947());
-            String key = keyFor(alternatives, countPerSlot);
-            IngredientAccumulator accumulator = ingredients.computeIfAbsent(key, ignored -> new IngredientAccumulator(first, alternatives, countPerSlot));
-            accumulator.addSlot(countPerSlot);
+            String key = keyFor(slot.alternatives(), slot.count());
+            IngredientAccumulator accumulator = ingredients.computeIfAbsent(key, ignored -> new IngredientAccumulator(slot.icon(), slot.alternatives()));
+            accumulator.addSlot(slot.count());
         }
 
         List<IngredientSummary> summaries = new ArrayList<>();
@@ -86,6 +95,48 @@ public final class ReiRecipeResolver implements RecipeResolver {
         }
 
         return summaries;
+    }
+
+    private static List<RecipeSlotSummary> summarizeSlots(Display display) {
+        List<EntryIngredient> inputs;
+        if (display instanceof DefaultCraftingDisplay<?> craftingDisplay) {
+            inputs = craftingDisplay.getOrganisedInputEntries(3, 3);
+        } else {
+            inputs = display.getInputEntries();
+        }
+
+        List<RecipeSlotSummary> slots = new ArrayList<>();
+        for (EntryIngredient input : inputs) {
+            slots.add(toSlot(input));
+        }
+
+        while (slots.size() < 9) {
+            slots.add(RecipeSlotSummary.EMPTY);
+        }
+
+        if (slots.size() > 9) {
+            return slots.subList(0, 9);
+        }
+
+        return slots;
+    }
+
+    private static RecipeSlotSummary toSlot(EntryIngredient ingredient) {
+        List<class_1799> alternatives = collectAlternatives(ingredient);
+        if (alternatives.isEmpty()) {
+            return RecipeSlotSummary.EMPTY;
+        }
+
+        class_1799 first = alternatives.get(0);
+        List<String> names = new ArrayList<>();
+        for (class_1799 alternative : alternatives) {
+            String name = ItemStackTexts.name(alternative);
+            if (!names.contains(name)) {
+                names.add(name);
+            }
+        }
+
+        return new RecipeSlotSummary(first.method_7972(), names, Math.max(1, first.method_7947()));
     }
 
     private static List<class_1799> collectAlternatives(EntryIngredient ingredient) {
@@ -108,13 +159,13 @@ public final class ReiRecipeResolver implements RecipeResolver {
         }
     }
 
-    private static String keyFor(List<class_1799> alternatives, int countPerSlot) {
+    private static String keyFor(List<String> alternatives, int countPerSlot) {
         StringBuilder builder = new StringBuilder();
-        for (class_1799 alternative : alternatives) {
+        for (String alternative : alternatives) {
             if (builder.length() > 0) {
                 builder.append('|');
             }
-            builder.append(ItemStackTexts.id(alternative));
+            builder.append(alternative);
         }
         builder.append('#').append(countPerSlot);
         return builder.toString();
@@ -129,11 +180,11 @@ public final class ReiRecipeResolver implements RecipeResolver {
 
     private static final class IngredientAccumulator {
         private final class_1799 icon;
-        private final List<class_1799> alternatives;
+        private final List<String> alternatives;
         private final int maxStackSize;
         private int countPerCraft;
 
-        private IngredientAccumulator(class_1799 icon, List<class_1799> alternatives, int countPerSlot) {
+        private IngredientAccumulator(class_1799 icon, List<String> alternatives) {
             this.icon = icon.method_7972();
             this.alternatives = List.copyOf(alternatives);
             this.maxStackSize = Math.max(1, icon.method_7914());
@@ -145,17 +196,9 @@ public final class ReiRecipeResolver implements RecipeResolver {
         }
 
         private IngredientSummary toSummary(int craftsTotal, int craftsMissing) {
-            List<String> names = new ArrayList<>();
-            for (class_1799 alternative : this.alternatives) {
-                String name = ItemStackTexts.name(alternative);
-                if (!names.contains(name)) {
-                    names.add(name);
-                }
-            }
-
             return new IngredientSummary(
                     this.icon,
-                    names,
+                    this.alternatives,
                     this.countPerCraft,
                     this.countPerCraft * craftsTotal,
                     this.countPerCraft * craftsMissing,
