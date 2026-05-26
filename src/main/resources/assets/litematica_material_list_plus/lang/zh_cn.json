@@ -1,0 +1,11 @@
+{
+  "lmlp.gui.recipe_detail.title": "配方详情",
+  "lmlp.label.recipe.none": "未找到 REI 配方。",
+  "lmlp.label.recipe.header": "配方 %d：%s -> x%d，合成 %d 次",
+  "lmlp.label.recipe.header.missing": "缺少合成 %d 次",
+  "lmlp.label.recipe.ingredients_total": "总计子材料",
+  "lmlp.label.recipe.ingredients_missing": "缺少子材料",
+  "lmlp.label.recipe.any": "任一：%s",
+  "lmlp.label.recipe.back": "Esc：返回",
+  "lmlp.label.recipe.shift_hint": "Shift+单击：详情页"
+}

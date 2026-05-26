@@ -1,0 +1,11 @@
+{
+  "lmlp.gui.recipe_detail.title": "Recipe Details",
+  "lmlp.label.recipe.none": "No REI recipe found.",
+  "lmlp.label.recipe.header": "Recipe %d: %s -> x%d, craft %d times",
+  "lmlp.label.recipe.header.missing": "missing craft %d times",
+  "lmlp.label.recipe.ingredients_total": "Total ingredients",
+  "lmlp.label.recipe.ingredients_missing": "Missing ingredients",
+  "lmlp.label.recipe.any": "Any: %s",
+  "lmlp.label.recipe.back": "Esc: back",
+  "lmlp.label.recipe.shift_hint": "Shift-click: detail page"
+}
