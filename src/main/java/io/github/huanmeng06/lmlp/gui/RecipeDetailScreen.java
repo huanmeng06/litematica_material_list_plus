@@ -2,6 +2,7 @@ package io.github.huanmeng06.lmlp.gui;
 
 import java.util.List;
 
+import fi.dy.masa.malilib.gui.button.ButtonGeneric;
 import fi.dy.masa.malilib.gui.GuiScrollBar;
 import fi.dy.masa.malilib.render.RenderUtils;
 import fi.dy.masa.malilib.util.StringUtils;
@@ -13,12 +14,16 @@ import io.github.huanmeng06.lmlp.recipe.RecipeSummary;
 import io.github.huanmeng06.lmlp.recipe.RecipeSummaryFormatter;
 import net.minecraft.class_1799;
 import net.minecraft.class_2561;
+import net.minecraft.class_2960;
 import net.minecraft.class_332;
 import net.minecraft.class_437;
 
 public class RecipeDetailScreen extends class_437 {
-    private static final int BACK_BUTTON_WIDTH = 104;
-    private static final int BACK_BUTTON_HEIGHT = 24;
+    private static final int BACK_BUTTON_WIDTH = 112;
+    private static final int BACK_BUTTON_HEIGHT = 20;
+    private static final int REI_PANEL_WIDTH = 254;
+    private static final int REI_PANEL_HEIGHT = 104;
+    private static final class_2960 REI_DISPLAY_TEXTURE = new class_2960("roughlyenoughitems", "textures/gui/display.png");
 
     private final class_437 parent;
     private final class_1799 target;
@@ -26,6 +31,10 @@ public class RecipeDetailScreen extends class_437 {
     private final int missingCount;
     private final List<RecipeSummary> summaries;
     private final GuiScrollBar scrollBar = new GuiScrollBar();
+    private final ButtonGeneric backButton = new ButtonGeneric(0, 0, BACK_BUTTON_WIDTH, BACK_BUTTON_HEIGHT, "");
+    private class_1799 hoveredStack = class_1799.field_8037;
+    private int clipTop;
+    private int clipBottom;
     private boolean draggingScrollbar;
 
     public RecipeDetailScreen(class_437 parent, class_1799 target, int totalCount, int missingCount, List<RecipeSummary> summaries) {
@@ -35,6 +44,9 @@ public class RecipeDetailScreen extends class_437 {
         this.totalCount = totalCount;
         this.missingCount = missingCount;
         this.summaries = List.copyOf(summaries);
+        this.backButton.setDisplayString(StringUtils.translate("lmlp.label.recipe.back"));
+        this.backButton.setTextCentered(true);
+        this.backButton.setActionListener((button, mouseButton) -> this.method_25419());
     }
 
     @Override
@@ -50,8 +62,7 @@ public class RecipeDetailScreen extends class_437 {
 
     @Override
     public boolean method_25402(double mouseX, double mouseY, int button) {
-        if (button == 0 && this.isOverBackButton(mouseX, mouseY)) {
-            this.method_25419();
+        if (button == 0 && this.backButton.onMouseClicked((int) mouseX, (int) mouseY, button)) {
             return true;
         }
 
@@ -95,10 +106,14 @@ public class RecipeDetailScreen extends class_437 {
         int contentBottom = this.field_22790 - 20;
         int viewportHeight = Math.max(0, contentBottom - contentTop);
 
+        this.hoveredStack = class_1799.field_8037;
+        this.clipTop = contentTop;
+        this.clipBottom = contentBottom;
         this.scrollBar.setMaxValue(Math.max(0, this.contentHeight() - viewportHeight));
+        this.updateBackButtonPosition();
 
         this.renderBackButton(context, mouseX, mouseY);
-        this.renderTargetHeader(context, left, headerTop, Math.min(width, 600), headerHeight);
+        this.renderTargetHeader(context, left, headerTop, Math.min(width, 600), headerHeight, mouseX, mouseY);
 
         int y = contentTop - this.scrollBar.getValue();
         context.method_44379(left, contentTop, left + width - 20, contentBottom);
@@ -109,7 +124,7 @@ public class RecipeDetailScreen extends class_437 {
             int index = 1;
             for (RecipeSummary summary : this.summaries) {
                 int boxHeight = recipeBoxHeight(summary);
-                this.renderRecipeBox(context, summary, index, left, y, width - 24, boxHeight);
+                this.renderRecipeBox(context, summary, index, left, y, width - 24, boxHeight, mouseX, mouseY);
                 y += boxHeight + 10;
                 index++;
             }
@@ -117,12 +132,17 @@ public class RecipeDetailScreen extends class_437 {
         context.method_44380();
 
         this.renderScrollbar(context, mouseX, mouseY, delta, contentTop, contentBottom);
+        if (!this.hoveredStack.method_7960()) {
+            context.method_51446(this.field_22793, this.hoveredStack, mouseX, mouseY);
+        }
     }
 
-    private void renderTargetHeader(class_332 context, int left, int top, int width, int height) {
+    private void renderTargetHeader(class_332 context, int left, int top, int width, int height, int mouseX, int mouseY) {
         RenderUtils.drawOutlinedBox(left, top, width, height, 0xDD000000, 0xFF888888);
         context.method_51427(this.target, left + 10, top + 9);
-        context.method_51431(this.field_22793, this.target, left + 10, top + 9);
+        if (isInside(mouseX, mouseY, left + 10, top + 9, 16, 16)) {
+            this.hoveredStack = this.target;
+        }
         context.method_51433(this.field_22793, ItemStackTexts.name(this.target), left + 36, top + 10, 0xFFFFFFFF, false);
         String counts = StringUtils.translate("lmlp.label.recipe.total_short") + ": " + CountFormatter.format(this.target, this.totalCount)
                 + "    " + StringUtils.translate("lmlp.label.recipe.missing_short") + ": " + CountFormatter.format(this.target, this.missingCount);
@@ -130,24 +150,19 @@ public class RecipeDetailScreen extends class_437 {
     }
 
     private void renderBackButton(class_332 context, int mouseX, int mouseY) {
-        int x = this.backButtonX();
-        int y = 10;
-        boolean hovered = this.isOverBackButton(mouseX, mouseY);
-        RenderUtils.drawOutlinedBox(x, y, BACK_BUTTON_WIDTH, BACK_BUTTON_HEIGHT, hovered ? 0xEE3A3A3A : 0xDD000000, hovered ? 0xFFFFFFFF : 0xFFAAAAAA);
-        context.method_51433(this.field_22793, StringUtils.translate("lmlp.label.recipe.back"), x + 11, y + 8, 0xFFFFFFFF, false);
+        this.backButton.render(mouseX, mouseY, false, context);
     }
 
-    private void renderRecipeBox(class_332 context, RecipeSummary summary, int index, int left, int y, int width, int boxHeight) {
+    private void renderRecipeBox(class_332 context, RecipeSummary summary, int index, int left, int y, int width, int boxHeight, int mouseX, int mouseY) {
         RenderUtils.drawOutlinedBox(left, y, width, boxHeight, 0xDD000000, 0xFF777777);
         context.method_51427(summary.outputIcon(), left + 10, y + 10);
         context.method_51433(this.field_22793, RecipeSummaryFormatter.header(summary, index), left + 34, y + 12, 0xFFFFFFFF, false);
-        context.method_51433(this.field_22793, RecipeSummaryFormatter.recipeKind(summary), left + 34, y + 27, 0xFFAAAAAA, false);
 
-        int gridX = left + 28;
-        int gridY = y + 50;
-        this.renderCraftingGrid(context, summary, gridX, gridY);
+        int panelX = left + Math.max(18, (width - REI_PANEL_WIDTH) / 2);
+        int panelY = y + 38;
+        this.renderCraftingGrid(context, summary, panelX, panelY, mouseX, mouseY);
 
-        int lineY = gridY + 96;
+        int lineY = panelY + REI_PANEL_HEIGHT + 16;
         context.method_51433(this.field_22793, StringUtils.translate("lmlp.label.recipe.ingredients_total"), left + 14, lineY, 0xFFAAAAAA, false);
         lineY += 18;
 
@@ -162,39 +177,46 @@ public class RecipeDetailScreen extends class_437 {
         }
     }
 
-    private void renderCraftingGrid(class_332 context, RecipeSummary summary, int x, int y) {
-        RenderUtils.drawOutlinedBox(x - 10, y - 10, 214, 86, 0xFFB8B8B8, 0xFF000000);
+    private void renderCraftingGrid(class_332 context, RecipeSummary summary, int x, int y, int mouseX, int mouseY) {
+        RenderUtils.drawRect(x, y, REI_PANEL_WIDTH, REI_PANEL_HEIGHT, 0xFFB8B8B8);
+        RenderUtils.drawOutlinedBox(x, y, REI_PANEL_WIDTH, REI_PANEL_HEIGHT, 0x00FFFFFF, 0xFF000000);
+        RenderUtils.drawRect(x + 2, y + 2, REI_PANEL_WIDTH - 4, 1, 0xFFFFFFFF);
+        RenderUtils.drawRect(x + 2, y + 2, 1, REI_PANEL_HEIGHT - 4, 0xFFFFFFFF);
 
         List<RecipeSlotSummary> slots = summary.inputSlots();
+        int gridX = x + 34;
+        int gridY = y + 24;
+        context.method_25290(REI_DISPLAY_TEXTURE, gridX, gridY, 0.0F, 0.0F, 54, 54, 256, 256);
         for (int row = 0; row < 3; row++) {
             for (int column = 0; column < 3; column++) {
                 int slotIndex = row * 3 + column;
-                int slotX = x + column * 19;
-                int slotY = y + row * 19;
-                drawSlot(context, slotX, slotY, slotIndex < slots.size() ? slots.get(slotIndex) : RecipeSlotSummary.EMPTY, true);
+                int slotX = gridX + column * 18;
+                int slotY = gridY + row * 18;
+                drawSlotItem(context, slotX + 1, slotY + 1, slotIndex < slots.size() ? slots.get(slotIndex) : RecipeSlotSummary.EMPTY, mouseX, mouseY, 18, 18);
             }
         }
 
-        context.method_51433(this.field_22793, "=>", x + 78, y + 24, 0xFF777777, false);
+        context.method_25290(REI_DISPLAY_TEXTURE, x + 122, y + 44, 60.0F, 18.0F, 24, 15, 256, 256);
 
-        int outputX = x + 122;
-        int outputY = y + 19;
-        drawSlot(context, outputX, outputY, new RecipeSlotSummary(summary.outputIcon(), List.of(ItemStackTexts.name(summary.outputIcon())), summary.outputCount()), false);
-        if (summary.outputCount() > 1) {
-            context.method_51433(this.field_22793, "x" + summary.outputCount(), outputX + 24, outputY + 6, 0xFFFFFFFF, false);
-        }
+        int outputX = x + 166;
+        int outputY = y + 35;
+        drawOutputSlot(context, outputX, outputY);
+        drawSlotItem(context, outputX + 5, outputY + 5, new RecipeSlotSummary(summary.outputIcon(), List.of(ItemStackTexts.name(summary.outputIcon())), summary.outputCount()), mouseX, mouseY, 26, 26);
     }
 
-    private void drawSlot(class_332 context, int x, int y, RecipeSlotSummary slot, boolean drawCountInside) {
-        context.method_25294(x, y, x + 18, y + 18, 0xFFE0E0E0);
-        context.method_25294(x + 1, y + 1, x + 17, y + 17, 0xFF8B8B8B);
+    private void drawOutputSlot(class_332 context, int x, int y) {
+        context.method_25294(x, y, x + 26, y + 26, 0xFFFFFFFF);
+        context.method_25294(x + 1, y + 1, x + 25, y + 25, 0xFFE0E0E0);
+        context.method_25294(x + 2, y + 2, x + 24, y + 24, 0xFFB8B8B8);
+    }
+
+    private void drawSlotItem(class_332 context, int x, int y, RecipeSlotSummary slot, int mouseX, int mouseY, int hoverWidth, int hoverHeight) {
         if (!slot.isEmpty()) {
             class_1799 icon = slot.icon().method_7972();
-            icon.method_7939(1);
+            icon.method_7939(Math.max(1, slot.count()));
             context.method_51427(icon, x + 1, y + 1);
-            if (drawCountInside && slot.count() > 1) {
-                context.method_51433(this.field_22793, Integer.toString(slot.count()), x + 11, y + 10, 0xFFFFFFFF, true);
-            }
+            context.method_51431(this.field_22793, icon, x + 1, y + 1);
+            this.captureHoveredStack(icon, mouseX, mouseY, x, y, hoverWidth, hoverHeight);
         }
     }
 
@@ -211,7 +233,7 @@ public class RecipeDetailScreen extends class_437 {
     }
 
     private static int recipeBoxHeight(RecipeSummary summary) {
-        return 160 + summary.ingredients().size() * 20;
+        return 176 + summary.ingredients().size() * 20;
     }
 
     private void renderScrollbar(class_332 context, int mouseX, int mouseY, float delta, int top, int bottom) {
@@ -222,16 +244,21 @@ public class RecipeDetailScreen extends class_437 {
         this.scrollBar.render(mouseX, mouseY, delta, this.scrollbarX(), top, 8, bottom - top, this.contentHeight());
     }
 
-    private boolean isOverBackButton(double mouseX, double mouseY) {
-        int x = this.backButtonX();
-        return mouseX >= x && mouseX <= x + BACK_BUTTON_WIDTH && mouseY >= 10 && mouseY <= 10 + BACK_BUTTON_HEIGHT;
+    private void captureHoveredStack(class_1799 stack, int mouseX, int mouseY, int x, int y, int width, int height) {
+        if (mouseY >= this.clipTop && mouseY <= this.clipBottom && isInside(mouseX, mouseY, x, y, width, height)) {
+            this.hoveredStack = stack;
+        }
     }
 
     private int scrollbarX() {
         return this.field_22789 - 18;
     }
 
-    private int backButtonX() {
-        return this.field_22789 - BACK_BUTTON_WIDTH - 16;
+    private void updateBackButtonPosition() {
+        this.backButton.setPosition(this.field_22789 - BACK_BUTTON_WIDTH - 24, 24);
+    }
+
+    private static boolean isInside(int mouseX, int mouseY, int x, int y, int width, int height) {
+        return mouseX >= x && mouseX < x + width && mouseY >= y && mouseY < y + height;
     }
 }

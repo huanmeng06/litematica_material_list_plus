@@ -25,7 +25,7 @@ public final class RecipeInlineRenderer {
         }
 
         RecipeSummary summary = summaries.get(0);
-        int height = 82 + summary.ingredients().size() * INGREDIENT_HEIGHT;
+        int height = 64 + summary.ingredients().size() * INGREDIENT_HEIGHT;
         if (summaries.size() > 1) {
             height += 22;
         }
@@ -46,13 +46,14 @@ public final class RecipeInlineRenderer {
 
         RecipeSummary summary = summaries.get(0);
         int cursorY = y + PADDING;
-        context.method_51427(summary.outputIcon(), textX, cursorY);
-        widget.drawString(textX + 24, cursorY + 1, 0xFFFFFFFF, GuiBase.TXT_BOLD + ItemStackTexts.name(summary.outputIcon()), context);
+        String itemName = GuiBase.TXT_BOLD + ItemStackTexts.name(summary.outputIcon());
+        int titleWidth = 16 + 8 + widget.getStringWidth(itemName);
+        int titleX = x + (panelWidth - titleWidth) / 2;
+        context.method_51427(summary.outputIcon(), titleX, cursorY);
+        widget.drawString(titleX + 24, cursorY + 1, 0xFFFFFFFF, itemName, context);
         cursorY += 24;
 
         widget.drawString(textX, cursorY, 0xFFFFFFFF, RecipeSummaryFormatter.header(summary, 1), context);
-        cursorY += 14;
-        widget.drawString(textX, cursorY, 0xFFAAAAAA, RecipeSummaryFormatter.recipeKind(summary), context);
         cursorY += 18;
 
         int ingredientBoxY = cursorY;

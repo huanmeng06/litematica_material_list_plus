@@ -18,14 +18,6 @@ public final class RecipeSummaryFormatter {
         return base;
     }
 
-    public static String recipeKind(RecipeSummary summary) {
-        if (summary.category().contains("crafting")) {
-            return StringUtils.translate(summary.shapeless() ? "lmlp.label.recipe.kind.crafting_shapeless" : "lmlp.label.recipe.kind.crafting");
-        }
-
-        return StringUtils.translate("lmlp.label.recipe.kind.generic");
-    }
-
     public static String ingredientName(IngredientSummary ingredient) {
         List<String> alternatives = ingredient.alternatives();
         if (alternatives.isEmpty()) {
