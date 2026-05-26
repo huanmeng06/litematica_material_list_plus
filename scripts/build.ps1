@@ -74,7 +74,7 @@ if ($LASTEXITCODE -ne 0) {
 
 Copy-Item -Path (Join-Path $RepoRoot "src\main\resources\*") -Destination $ResourcesDir -Recurse -Force
 
-$JarFile = Join-Path $LibsDir "litematica-material-list-plus-0.1.0+mc1.20.1.jar"
+$JarFile = Join-Path $LibsDir "litematica-material-list-plus-0.1.1+mc1.20.1.jar"
 jar --create --file $JarFile -C $ClassesDir . -C $ResourcesDir .
 if ($LASTEXITCODE -ne 0) {
     throw "jar failed with exit code $LASTEXITCODE"
