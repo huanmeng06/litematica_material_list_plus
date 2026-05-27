@@ -3,3 +3,10 @@ out/
 *.class
 *.jar
 !libs/*.jar
+.gradle/
+.idea/
+.vscode/
+*.iml
+*.log
+Thumbs.db
+.DS_Store

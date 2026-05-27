@@ -50,7 +50,8 @@ public final class ReiRecipeResolver implements RecipeResolver {
                         summarizeSlots(display),
                         3,
                         3,
-                        display instanceof DefaultCraftingDisplay<?> craftingDisplay && craftingDisplay.isShapeless()));
+                        display instanceof DefaultCraftingDisplay<?> craftingDisplay && craftingDisplay.isShapeless(),
+                        display));
             }
         }
 

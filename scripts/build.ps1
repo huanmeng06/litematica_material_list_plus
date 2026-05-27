@@ -50,6 +50,13 @@ Get-ChildItem -LiteralPath (Join-Path $Instance "mods") -Filter "*.jar" | ForEac
     $ClasspathJars.Add($_.FullName)
 }
 
+$ProcessedModsDir = Join-Path $Instance ".fabric\processedMods"
+if (Test-Path -LiteralPath $ProcessedModsDir) {
+    Get-ChildItem -LiteralPath $ProcessedModsDir -Recurse -Filter "*.jar" | ForEach-Object {
+        $ClasspathJars.Add($_.FullName)
+    }
+}
+
 $SourceFiles = Get-ChildItem -LiteralPath (Join-Path $RepoRoot "src\main\java") -Recurse -Filter "*.java" | ForEach-Object { $_.FullName }
 if ($SourceFiles.Count -eq 0) {
     throw "No Java source files found"
@@ -74,7 +81,8 @@ if ($LASTEXITCODE -ne 0) {
 
 Copy-Item -Path (Join-Path $RepoRoot "src\main\resources\*") -Destination $ResourcesDir -Recurse -Force
 
-$JarFile = Join-Path $LibsDir "litematica-material-list-plus-0.1.3+mc1.20.1.jar"
+$ModMetadata = Get-Content -Raw -LiteralPath (Join-Path $RepoRoot "src\main\resources\fabric.mod.json") | ConvertFrom-Json
+$JarFile = Join-Path $LibsDir "litematica-material-list-plus-$($ModMetadata.version).jar"
 jar --create --file $JarFile -C $ClassesDir . -C $ResourcesDir .
 if ($LASTEXITCODE -ne 0) {
     throw "jar failed with exit code $LASTEXITCODE"

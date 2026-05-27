@@ -22,7 +22,7 @@ public abstract class WidgetListBaseMixin implements WidgetListBoundsAccess {
     @Inject(method = "getBrowserEntryHeightFor", at = @At("HEAD"), cancellable = true)
     private void lmlp$getBrowserEntryHeightFor(Object entry, CallbackInfoReturnable<Integer> cir) {
         if ((Object) this instanceof WidgetListMaterialList && entry instanceof MaterialListEntry materialEntry && MaterialListPlusState.isExpanded(materialEntry)) {
-            cir.setReturnValue(22 + RecipeInlineRenderer.getHeight(MaterialListPlusState.getCachedSummaries(materialEntry)) + 4);
+            cir.setReturnValue(23 + RecipeInlineRenderer.getOuterHeight(MaterialListPlusState.getCachedSummaries(materialEntry)));
         }
     }
 

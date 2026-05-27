@@ -16,8 +16,13 @@ public final class RecipeSummary {
     private final int gridWidth;
     private final int gridHeight;
     private final boolean shapeless;
+    private final Object nativeDisplay;
 
     public RecipeSummary(String category, String recipeId, class_1799 outputIcon, int outputCount, int craftsTotal, int craftsMissing, List<IngredientSummary> ingredients, List<RecipeSlotSummary> inputSlots, int gridWidth, int gridHeight, boolean shapeless) {
+        this(category, recipeId, outputIcon, outputCount, craftsTotal, craftsMissing, ingredients, inputSlots, gridWidth, gridHeight, shapeless, null);
+    }
+
+    public RecipeSummary(String category, String recipeId, class_1799 outputIcon, int outputCount, int craftsTotal, int craftsMissing, List<IngredientSummary> ingredients, List<RecipeSlotSummary> inputSlots, int gridWidth, int gridHeight, boolean shapeless, Object nativeDisplay) {
         this.category = category;
         this.recipeId = recipeId;
         this.outputIcon = outputIcon;
@@ -29,6 +34,7 @@ public final class RecipeSummary {
         this.gridWidth = gridWidth;
         this.gridHeight = gridHeight;
         this.shapeless = shapeless;
+        this.nativeDisplay = nativeDisplay;
     }
 
     public String category() {
@@ -73,5 +79,9 @@ public final class RecipeSummary {
 
     public boolean shapeless() {
         return this.shapeless;
+    }
+
+    public Object nativeDisplay() {
+        return this.nativeDisplay;
     }
 }

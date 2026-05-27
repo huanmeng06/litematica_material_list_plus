@@ -146,7 +146,7 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
                     } else {
                         MaterialListPlusState.open(this.entry, this.materialList);
                         int visibleBottom = this.listWidget instanceof WidgetListBoundsAccess access ? access.lmlp$getVisibleBottom() : this.y + this.height;
-                        shouldScrollAfterExpand = this.y + 23 + RecipeInlineRenderer.getHeight(MaterialListPlusState.getCachedSummaries(this.entry)) > visibleBottom;
+                        shouldScrollAfterExpand = this.y + 23 + RecipeInlineRenderer.getOuterHeight(MaterialListPlusState.getCachedSummaries(this.entry)) > visibleBottom;
                     }
 
                     this.listWidget.refreshEntries();

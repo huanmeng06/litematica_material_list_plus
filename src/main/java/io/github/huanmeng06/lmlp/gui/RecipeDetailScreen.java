@@ -1,5 +1,6 @@
 package io.github.huanmeng06.lmlp.gui;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import fi.dy.masa.malilib.gui.button.ButtonGeneric;
@@ -23,6 +24,7 @@ public class RecipeDetailScreen extends class_437 {
     private static final int BACK_BUTTON_HEIGHT = 20;
     private static final int REI_PANEL_WIDTH = 254;
     private static final int REI_PANEL_HEIGHT = 104;
+    private static final int OUTLINE_CLIP_PADDING = 2;
     private static final class_2960 REI_DISPLAY_TEXTURE = new class_2960("roughlyenoughitems", "textures/gui/display.png");
 
     private final class_437 parent;
@@ -32,6 +34,9 @@ public class RecipeDetailScreen extends class_437 {
     private final List<RecipeSummary> summaries;
     private final GuiScrollBar scrollBar = new GuiScrollBar();
     private final ButtonGeneric backButton = new ButtonGeneric(0, 0, BACK_BUTTON_WIDTH, BACK_BUTTON_HEIGHT, "");
+    private final RecipeNativeDisplayBridge nativeDisplayBridge = createNativeDisplayBridge();
+    private final RecipeTooltipBridge tooltipBridge = createTooltipBridge();
+    private final List<NativeDisplayArea> nativeDisplayAreas = new ArrayList<>();
     private class_1799 hoveredStack = class_1799.field_8037;
     private int clipTop;
     private int clipBottom;
@@ -56,6 +61,11 @@ public class RecipeDetailScreen extends class_437 {
 
     @Override
     public boolean method_25401(double mouseX, double mouseY, double amount) {
+        NativeDisplayArea area = this.nativeDisplayAreaAt(mouseX, mouseY);
+        if (area != null && this.nativeDisplayBridge.mouseScrolled(area.summary(), mouseX, mouseY, amount)) {
+            return true;
+        }
+
         this.scrollBar.offsetValue(-(int) (amount * 24));
         return true;
     }
@@ -63,6 +73,11 @@ public class RecipeDetailScreen extends class_437 {
     @Override
     public boolean method_25402(double mouseX, double mouseY, int button) {
         if (button == 0 && this.backButton.onMouseClicked((int) mouseX, (int) mouseY, button)) {
+            return true;
+        }
+
+        NativeDisplayArea area = this.nativeDisplayAreaAt(mouseX, mouseY);
+        if (area != null && this.nativeDisplayBridge.mouseClicked(area.summary(), mouseX, mouseY, button)) {
             return true;
         }
 
@@ -81,6 +96,11 @@ public class RecipeDetailScreen extends class_437 {
             return true;
         }
 
+        NativeDisplayArea area = this.nativeDisplayAreaAt(mouseX, mouseY);
+        if (area != null && this.nativeDisplayBridge.mouseDragged(area.summary(), mouseX, mouseY, button, deltaX, deltaY)) {
+            return true;
+        }
+
         return super.method_25403(mouseX, mouseY, button, deltaX, deltaY);
     }
 
@@ -89,6 +109,11 @@ public class RecipeDetailScreen extends class_437 {
         if (button == 0) {
             this.scrollBar.setIsDragging(false);
             this.draggingScrollbar = false;
+        }
+
+        NativeDisplayArea area = this.nativeDisplayAreaAt(mouseX, mouseY);
+        if (area != null && this.nativeDisplayBridge.mouseReleased(area.summary(), mouseX, mouseY, button)) {
+            return true;
         }
 
         return super.method_25406(mouseX, mouseY, button);
@@ -109,6 +134,7 @@ public class RecipeDetailScreen extends class_437 {
         this.hoveredStack = class_1799.field_8037;
         this.clipTop = contentTop;
         this.clipBottom = contentBottom;
+        this.nativeDisplayAreas.clear();
         this.scrollBar.setMaxValue(Math.max(0, this.contentHeight() - viewportHeight));
         this.updateBackButtonPosition();
 
@@ -116,15 +142,15 @@ public class RecipeDetailScreen extends class_437 {
         this.renderTargetHeader(context, left, headerTop, Math.min(width, 600), headerHeight, mouseX, mouseY);
 
         int y = contentTop - this.scrollBar.getValue();
-        context.method_44379(left, contentTop, left + width - 20, contentBottom);
+        context.method_44379(left - OUTLINE_CLIP_PADDING, contentTop - OUTLINE_CLIP_PADDING, left + width - 20, contentBottom);
         if (this.summaries.isEmpty()) {
             RenderUtils.drawOutlinedBox(left, y, width - 24, 46, 0xDD000000, 0xFF777777);
             context.method_51433(this.field_22793, StringUtils.translate("lmlp.label.recipe.none"), left + 10, y + 17, 0xFFFFCC66, false);
         } else {
             int index = 1;
             for (RecipeSummary summary : this.summaries) {
-                int boxHeight = recipeBoxHeight(summary);
-                this.renderRecipeBox(context, summary, index, left, y, width - 24, boxHeight, mouseX, mouseY);
+                int boxHeight = this.recipeBoxHeight(summary);
+                this.renderRecipeBox(context, summary, index, left, y, width - 24, boxHeight, mouseX, mouseY, delta);
                 y += boxHeight + 10;
                 index++;
             }
@@ -132,8 +158,14 @@ public class RecipeDetailScreen extends class_437 {
         context.method_44380();
 
         this.renderScrollbar(context, mouseX, mouseY, delta, contentTop, contentBottom);
+        if (this.renderNativeTooltip(context, mouseX, mouseY)) {
+            return;
+        }
+
         if (!this.hoveredStack.method_7960()) {
-            context.method_51446(this.field_22793, this.hoveredStack, mouseX, mouseY);
+            if (!this.tooltipBridge.renderTooltip(context, this.field_22793, this.hoveredStack, mouseX, mouseY)) {
+                context.method_51446(this.field_22793, this.hoveredStack, mouseX, mouseY);
+            }
         }
     }
 
@@ -153,21 +185,27 @@ public class RecipeDetailScreen extends class_437 {
         this.backButton.render(mouseX, mouseY, false, context);
     }
 
-    private void renderRecipeBox(class_332 context, RecipeSummary summary, int index, int left, int y, int width, int boxHeight, int mouseX, int mouseY) {
+    private void renderRecipeBox(class_332 context, RecipeSummary summary, int index, int left, int y, int width, int boxHeight, int mouseX, int mouseY, float delta) {
         RenderUtils.drawOutlinedBox(left, y, width, boxHeight, 0xDD000000, 0xFF777777);
         context.method_51427(summary.outputIcon(), left + 10, y + 10);
+        this.captureHoveredStack(summary.outputIcon(), mouseX, mouseY, left + 10, y + 10, 16, 16);
         context.method_51433(this.field_22793, RecipeSummaryFormatter.header(summary, index), left + 34, y + 12, 0xFFFFFFFF, false);
 
-        int panelX = left + Math.max(18, (width - REI_PANEL_WIDTH) / 2);
+        int panelWidth = this.displayPanelWidth(summary, width - 36);
+        int panelHeight = this.displayPanelHeight(summary);
+        int panelX = left + 18;
         int panelY = y + 38;
-        this.renderCraftingGrid(context, summary, panelX, panelY, mouseX, mouseY);
+        if (!this.renderNativeDisplay(summary, context, panelX, panelY, panelWidth, panelHeight, mouseX, mouseY, delta)) {
+            this.renderCraftingGrid(context, summary, panelX, panelY, mouseX, mouseY);
+        }
 
-        int lineY = panelY + REI_PANEL_HEIGHT + 16;
+        int lineY = panelY + panelHeight + 16;
         context.method_51433(this.field_22793, StringUtils.translate("lmlp.label.recipe.ingredients_total"), left + 14, lineY, 0xFFAAAAAA, false);
         lineY += 18;
 
         for (IngredientSummary ingredient : summary.ingredients()) {
             context.method_51427(ingredient.icon(), left + 18, lineY - 5);
+            this.captureHoveredStack(ingredient.icon(), mouseX, mouseY, left + 18, lineY - 5, 16, 16);
             String line = RecipeSummaryFormatter.ingredientName(ingredient) + ": " + RecipeSummaryFormatter.totalCount(ingredient);
             if (ingredient.countMissing() != ingredient.countTotal()) {
                 line += " / " + RecipeSummaryFormatter.missingCount(ingredient);
@@ -227,13 +265,46 @@ public class RecipeDetailScreen extends class_437 {
 
         int height = 0;
         for (RecipeSummary summary : this.summaries) {
-            height += recipeBoxHeight(summary) + 10;
+            height += this.recipeBoxHeight(summary) + 10;
         }
         return height;
     }
 
-    private static int recipeBoxHeight(RecipeSummary summary) {
-        return 176 + summary.ingredients().size() * 20;
+    private int recipeBoxHeight(RecipeSummary summary) {
+        return 72 + this.displayPanelHeight(summary) + summary.ingredients().size() * 20;
+    }
+
+    private int displayPanelWidth(RecipeSummary summary, int maxWidth) {
+        int boundedMaxWidth = Math.max(1, maxWidth);
+        if (this.nativeDisplayBridge.canRender(summary)) {
+            int fallbackWidth = Math.min(REI_PANEL_WIDTH, boundedMaxWidth);
+            int nativeWidth = this.nativeDisplayBridge.getDisplayWidth(summary, fallbackWidth);
+            return Math.min(Math.max(1, nativeWidth), boundedMaxWidth);
+        }
+
+        return Math.min(REI_PANEL_WIDTH, boundedMaxWidth);
+    }
+
+    private int displayPanelHeight(RecipeSummary summary) {
+        if (this.nativeDisplayBridge.canRender(summary)) {
+            return Math.max(1, this.nativeDisplayBridge.getDisplayHeight(summary, REI_PANEL_HEIGHT));
+        }
+
+        return REI_PANEL_HEIGHT;
+    }
+
+    private boolean renderNativeDisplay(RecipeSummary summary, class_332 context, int x, int y, int width, int height, int mouseX, int mouseY, float delta) {
+        if (!this.nativeDisplayBridge.canRender(summary)) {
+            return false;
+        }
+
+        try {
+            this.nativeDisplayBridge.render(summary, context, x, y, width, height, mouseX, mouseY, delta);
+            this.nativeDisplayAreas.add(new NativeDisplayArea(summary, x, y, width, height));
+            return true;
+        } catch (Throwable throwable) {
+            return false;
+        }
     }
 
     private void renderScrollbar(class_332 context, int mouseX, int mouseY, float delta, int top, int bottom) {
@@ -250,15 +321,55 @@ public class RecipeDetailScreen extends class_437 {
         }
     }
 
+    private boolean renderNativeTooltip(class_332 context, int mouseX, int mouseY) {
+        NativeDisplayArea area = this.nativeDisplayAreaAt(mouseX, mouseY);
+        return area != null && this.nativeDisplayBridge.renderTooltip(area.summary(), context, this.field_22793, mouseX, mouseY);
+    }
+
     private int scrollbarX() {
         return this.field_22789 - 18;
     }
 
     private void updateBackButtonPosition() {
-        this.backButton.setPosition(this.field_22789 - BACK_BUTTON_WIDTH - 24, 24);
+        this.backButton.setPosition(this.field_22789 - 48 - BACK_BUTTON_WIDTH, 22);
+    }
+
+    private NativeDisplayArea nativeDisplayAreaAt(double mouseX, double mouseY) {
+        for (int i = this.nativeDisplayAreas.size() - 1; i >= 0; i--) {
+            NativeDisplayArea area = this.nativeDisplayAreas.get(i);
+            if (area.contains(mouseX, mouseY)) {
+                return area;
+            }
+        }
+
+        return null;
+    }
+
+    private static RecipeNativeDisplayBridge createNativeDisplayBridge() {
+        try {
+            Class<?> bridgeClass = Class.forName("io.github.huanmeng06.lmlp.recipe.rei.ReiNativeDisplayBridge");
+            return (RecipeNativeDisplayBridge) bridgeClass.getDeclaredConstructor().newInstance();
+        } catch (Throwable throwable) {
+            return RecipeNativeDisplayBridge.DISABLED;
+        }
+    }
+
+    private static RecipeTooltipBridge createTooltipBridge() {
+        try {
+            Class<?> bridgeClass = Class.forName("io.github.huanmeng06.lmlp.recipe.rei.ReiTooltipBridge");
+            return (RecipeTooltipBridge) bridgeClass.getDeclaredConstructor().newInstance();
+        } catch (Throwable throwable) {
+            return RecipeTooltipBridge.DISABLED;
+        }
     }
 
     private static boolean isInside(int mouseX, int mouseY, int x, int y, int width, int height) {
         return mouseX >= x && mouseX < x + width && mouseY >= y && mouseY < y + height;
+    }
+
+    private record NativeDisplayArea(RecipeSummary summary, int x, int y, int width, int height) {
+        private boolean contains(double mouseX, double mouseY) {
+            return mouseX >= this.x && mouseX < this.x + this.width && mouseY >= this.y && mouseY < this.y + this.height;
+        }
     }
 }

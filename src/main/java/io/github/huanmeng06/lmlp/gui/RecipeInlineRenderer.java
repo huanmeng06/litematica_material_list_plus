@@ -15,6 +15,8 @@ import net.minecraft.class_332;
 public final class RecipeInlineRenderer {
     private static final int INGREDIENT_HEIGHT = 22;
     private static final int PADDING = 8;
+    private static final int INNER_BOTTOM_PADDING = 4;
+    private static final int ENTRY_BOTTOM_GAP = 4;
 
     private RecipeInlineRenderer() {
     }
@@ -25,11 +27,15 @@ public final class RecipeInlineRenderer {
         }
 
         RecipeSummary summary = summaries.get(0);
-        int height = 64 + summary.ingredients().size() * INGREDIENT_HEIGHT;
+        int height = 64 + summary.ingredients().size() * INGREDIENT_HEIGHT + INNER_BOTTOM_PADDING;
         if (summaries.size() > 1) {
             height += 22;
         }
         return height;
+    }
+
+    public static int getOuterHeight(List<RecipeSummary> summaries) {
+        return getHeight(summaries) + ENTRY_BOTTOM_GAP;
     }
 
     public static void render(WidgetBase widget, class_332 context, int x, int y, int width, List<RecipeSummary> summaries) {
@@ -46,11 +52,10 @@ public final class RecipeInlineRenderer {
 
         RecipeSummary summary = summaries.get(0);
         int cursorY = y + PADDING;
-        String itemName = GuiBase.TXT_BOLD + ItemStackTexts.name(summary.outputIcon());
-        int titleWidth = 16 + 8 + widget.getStringWidth(itemName);
-        int titleX = x + (panelWidth - titleWidth) / 2;
+        String itemName = ItemStackTexts.name(summary.outputIcon());
+        int titleX = textX;
         context.method_51427(summary.outputIcon(), titleX, cursorY);
-        widget.drawString(titleX + 24, cursorY + 1, 0xFFFFFFFF, itemName, context);
+        widget.drawString(titleX + 24, cursorY + 4, 0xFFFFFFFF, GuiBase.TXT_BOLD + itemName, context);
         cursorY += 24;
 
         widget.drawString(textX, cursorY, 0xFFFFFFFF, RecipeSummaryFormatter.header(summary, 1), context);
