@@ -11,6 +11,7 @@ import io.github.huanmeng06.lmlp.gui.RecipeTooltipBridge;
 import net.minecraft.class_2561;
 import net.minecraft.class_327;
 import net.minecraft.class_1799;
+import net.minecraft.class_1792.class_9635;
 import net.minecraft.class_332;
 
 public final class ReiTooltipBridge implements RecipeTooltipBridge {
@@ -20,7 +21,7 @@ public final class ReiTooltipBridge implements RecipeTooltipBridge {
             return false;
         }
 
-        Tooltip tooltip = EntryStacks.of(stack).getTooltip(TooltipContext.of(new Point(mouseX, mouseY)), false);
+        Tooltip tooltip = EntryStacks.of(stack).getTooltip(TooltipContext.of(new Point(mouseX, mouseY), class_9635.field_51353), false);
         if (tooltip == null) {
             return false;
         }

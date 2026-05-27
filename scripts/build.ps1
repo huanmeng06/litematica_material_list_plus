@@ -1,5 +1,7 @@
 param(
-    [string] $InstanceDir = ""
+    [string] $InstanceDir = "",
+    [string] $JavaHome = "",
+    [int] $JavaRelease = 17
 )
 
 $ErrorActionPreference = "Stop"
@@ -66,15 +68,23 @@ $Classpath = [string]::Join([IO.Path]::PathSeparator, ($ClasspathJars | ForEach-
 $ArgFile = Join-Path $BuildDir "javac.args"
 $SourceArgs = $SourceFiles | ForEach-Object { "`"$($_.Replace('\', '/'))`"" }
 $ClassesDirForJavac = $ClassesDir.Replace('\', '/')
-@(
+$Javac = "javac"
+if (-not [string]::IsNullOrWhiteSpace($JavaHome)) {
+    $Javac = Join-Path $JavaHome "bin\javac.exe"
+    if (-not (Test-Path -LiteralPath $Javac)) {
+        throw "Unable to find javac.exe under JavaHome: $JavaHome"
+    }
+}
+
+$JavacArgs = @(
     "-encoding", "UTF-8",
-    "-source", "17",
-    "-target", "17",
+    "--release", "$JavaRelease",
     "-classpath", "`"$Classpath`"",
     "-d", "`"$ClassesDirForJavac`""
-) + $SourceArgs | Set-Content -LiteralPath $ArgFile -Encoding Default
+) + $SourceArgs
+[System.IO.File]::WriteAllLines($ArgFile, $JavacArgs, [System.Text.UTF8Encoding]::new($false))
 
-javac "@$ArgFile"
+& $Javac "@$ArgFile"
 if ($LASTEXITCODE -ne 0) {
     throw "javac failed with exit code $LASTEXITCODE"
 }
