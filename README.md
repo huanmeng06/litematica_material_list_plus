@@ -2,7 +2,7 @@
 
 Litematica Material List Plus 是一个用于 Minecraft 1.20.1 的 Fabric 客户端模组，用来增强 Litematica 材料列表的备料体验。
 
-当前版本：`1.0.0`
+当前版本：`1.0.1`
 
 ## 功能简介
 
