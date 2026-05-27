@@ -1,4 +1,4 @@
-<img width="2541" height="1440" alt="image" src="https://github.com/user-attachments/assets/efb04bcb-2545-4c7a-9fd7-85690ac07716" /># Litematica Material List Plus
+# Litematica Material List Plus
 
 Litematica Material List Plus 是一个用于 Minecraft 1.20.1 的 Fabric 客户端模组，用来增强 Litematica 材料列表的备料体验。
 
