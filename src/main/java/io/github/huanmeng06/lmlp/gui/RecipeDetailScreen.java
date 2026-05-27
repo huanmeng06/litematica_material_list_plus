@@ -25,6 +25,13 @@ public class RecipeDetailScreen extends class_437 {
     private static final int REI_PANEL_WIDTH = 254;
     private static final int REI_PANEL_HEIGHT = 104;
     private static final int OUTLINE_CLIP_PADDING = 2;
+    private static final int PAGE_MARGIN_X = 24;
+    private static final int PAGE_TOP = 22;
+    private static final int PAGE_BOTTOM_MARGIN = 20;
+    private static final int CONTENT_RIGHT_INSET = 24;
+    private static final int HEADER_MAX_WIDTH = 600;
+    private static final int HEADER_HEIGHT = 50;
+    private static final int HEADER_BUTTON_GAP = 8;
     private static final class_2960 REI_DISPLAY_TEXTURE = new class_2960("roughlyenoughitems", "textures/gui/display.png");
 
     private final class_437 parent;
@@ -123,12 +130,9 @@ public class RecipeDetailScreen extends class_437 {
     public void method_25394(class_332 context, int mouseX, int mouseY, float delta) {
         this.method_25420(context, mouseX, mouseY, delta);
 
-        int left = 24;
-        int headerTop = 22;
-        int width = this.field_22789 - 48;
-        int headerHeight = 50;
-        int contentTop = headerTop + headerHeight + 12;
-        int contentBottom = this.field_22790 - 20;
+        Layout layout = this.layout();
+        int contentTop = layout.headerTop() + HEADER_HEIGHT + 12;
+        int contentBottom = this.field_22790 - PAGE_BOTTOM_MARGIN;
         int viewportHeight = Math.max(0, contentBottom - contentTop);
 
         this.hoveredStack = class_1799.field_8037;
@@ -136,21 +140,21 @@ public class RecipeDetailScreen extends class_437 {
         this.clipBottom = contentBottom;
         this.nativeDisplayAreas.clear();
         this.scrollBar.setMaxValue(Math.max(0, this.contentHeight() - viewportHeight));
-        this.updateBackButtonPosition();
+        this.updateBackButtonPosition(layout);
 
         this.renderBackButton(context, mouseX, mouseY);
-        this.renderTargetHeader(context, left, headerTop, Math.min(width, 600), headerHeight, mouseX, mouseY);
+        this.renderTargetHeader(context, layout.left(), layout.headerTop(), layout.headerWidth(), HEADER_HEIGHT, mouseX, mouseY);
 
         int y = contentTop - this.scrollBar.getValue();
-        context.method_44379(left - OUTLINE_CLIP_PADDING, contentTop - OUTLINE_CLIP_PADDING, left + width - 20, contentBottom);
+        context.method_44379(layout.left() - OUTLINE_CLIP_PADDING, contentTop - OUTLINE_CLIP_PADDING, layout.left() + layout.contentWidth() + OUTLINE_CLIP_PADDING, contentBottom);
         if (this.summaries.isEmpty()) {
-            RenderUtils.drawOutlinedBox(left, y, width - 24, 46, 0xDD000000, 0xFF777777);
-            context.method_51433(this.field_22793, StringUtils.translate("lmlp.label.recipe.none"), left + 10, y + 17, 0xFFFFCC66, false);
+            RenderUtils.drawOutlinedBox(layout.left(), y, layout.contentWidth(), 46, 0xDD000000, 0xFF777777);
+            context.method_51433(this.field_22793, StringUtils.translate("lmlp.label.recipe.none"), layout.left() + 10, y + 17, 0xFFFFCC66, false);
         } else {
             int index = 1;
             for (RecipeSummary summary : this.summaries) {
                 int boxHeight = this.recipeBoxHeight(summary);
-                this.renderRecipeBox(context, summary, index, left, y, width - 24, boxHeight, mouseX, mouseY, delta);
+                this.renderRecipeBox(context, summary, index, layout.left(), y, layout.contentWidth(), boxHeight, mouseX, mouseY, delta);
                 y += boxHeight + 10;
                 index++;
             }
@@ -175,10 +179,21 @@ public class RecipeDetailScreen extends class_437 {
         if (isInside(mouseX, mouseY, left + 10, top + 9, 16, 16)) {
             this.hoveredStack = this.target;
         }
-        context.method_51433(this.field_22793, ItemStackTexts.name(this.target), left + 36, top + 10, 0xFFFFFFFF, false);
-        String counts = StringUtils.translate("lmlp.label.recipe.total_short") + ": " + CountFormatter.format(this.target, this.totalCount)
-                + "    " + StringUtils.translate("lmlp.label.recipe.missing_short") + ": " + CountFormatter.format(this.target, this.missingCount);
-        context.method_51433(this.field_22793, counts, left + 36, top + 28, 0xFFAAAAAA, false);
+        int textX = left + 36;
+        int textRight = Math.max(textX + 1, left + width - 6);
+        context.method_44379(textX, top + 4, textRight, top + height - 4);
+        context.method_51433(this.field_22793, ItemStackTexts.name(this.target), textX, top + 8, 0xFFFFFFFF, false);
+
+        String total = StringUtils.translate("lmlp.label.recipe.total_short") + ": " + CountFormatter.format(this.target, this.totalCount);
+        String missing = StringUtils.translate("lmlp.label.recipe.missing_short") + ": " + CountFormatter.format(this.target, this.missingCount);
+        String counts = total + "    " + missing;
+        if (this.field_22793.method_1727(counts) <= textRight - textX) {
+            context.method_51433(this.field_22793, counts, textX, top + 28, 0xFFAAAAAA, false);
+        } else {
+            context.method_51433(this.field_22793, total, textX, top + 23, 0xFFAAAAAA, false);
+            context.method_51433(this.field_22793, missing, textX, top + 35, 0xFFAAAAAA, false);
+        }
+        context.method_44380();
     }
 
     private void renderBackButton(class_332 context, int mouseX, int mouseY) {
@@ -330,8 +345,18 @@ public class RecipeDetailScreen extends class_437 {
         return this.field_22789 - 18;
     }
 
-    private void updateBackButtonPosition() {
-        this.backButton.setPosition(this.field_22789 - 48 - BACK_BUTTON_WIDTH, 22);
+    private Layout layout() {
+        int left = PAGE_MARGIN_X;
+        int availableWidth = Math.max(1, this.field_22789 - PAGE_MARGIN_X * 2);
+        int contentWidth = Math.max(1, availableWidth - CONTENT_RIGHT_INSET);
+        int contentRight = left + contentWidth;
+        int backButtonX = Math.max(left, contentRight - BACK_BUTTON_WIDTH);
+        int headerWidth = Math.min(HEADER_MAX_WIDTH, Math.max(1, backButtonX - left - HEADER_BUTTON_GAP));
+        return new Layout(left, PAGE_TOP, contentWidth, headerWidth, backButtonX);
+    }
+
+    private void updateBackButtonPosition(Layout layout) {
+        this.backButton.setPosition(layout.backButtonX(), layout.headerTop());
     }
 
     private NativeDisplayArea nativeDisplayAreaAt(double mouseX, double mouseY) {
@@ -371,5 +396,8 @@ public class RecipeDetailScreen extends class_437 {
         private boolean contains(double mouseX, double mouseY) {
             return mouseX >= this.x && mouseX < this.x + this.width && mouseY >= this.y && mouseY < this.y + this.height;
         }
+    }
+
+    private record Layout(int left, int headerTop, int contentWidth, int headerWidth, int backButtonX) {
     }
 }
