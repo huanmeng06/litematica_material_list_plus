@@ -29,7 +29,7 @@ Litematica Material List Plus 是一个用于 Minecraft 1.20.1 的 Fabric 客户
 
 ## 已知问题
 
-- 目前**仅针对 Minecraft 1.20.1、当前 Litematica 版本和当前 REI 版本**进行适配与测试。
+- 目前**仅针对 Minecraft 1.20.1、当前 Fabric 版本、当前 Litematica 版本和当前 REI 版本**进行适配与测试。
 - 其他 Minecraft / Litematica / REI 版本暂未测试，大概率存在兼容性问题。
 
 ## 安装方式
