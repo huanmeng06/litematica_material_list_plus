@@ -2,7 +2,7 @@
 
 Litematica Material List Plus 是一个用于 Minecraft Fabric 客户端的 Litematica 材料列表增强模组，用来改善备料统计和配方查看体验。
 
-当前版本：`1.0.0`，按 Minecraft 版本分别构建与发布。
+当前版本：`1.0.1`，按 Minecraft 版本分别构建与发布。
 
 ## 功能简介
 
@@ -31,6 +31,7 @@ Litematica Material List Plus 是一个用于 Minecraft Fabric 客户端的 Lite
 | :---: | :---: | :---: | :---: | :--- |
 | `1.20.1` | ✅ | `>=0.16.9` | `17` | Fabric API `0.92.9+1.20.1`<br>Litematica `0.15.4`<br>MaLiLib `0.16.3`<br>Roughly Enough Items / REI `12.1.785` |
 | `1.20.4` | ✅ | `0.19.2` | `17` | Fabric API `0.97.3+1.20.4`<br>Litematica `0.17.4`<br>MaLiLib `0.18.4-alpha.1`<br>Roughly Enough Items / REI `14.1.786` |
+| `1.20.6` | ✅ | `0.19.2` | `21` | Fabric API `0.100.8+1.20.6`<br>Litematica `0.18.3`<br>MaLiLib `0.19.2`<br>Roughly Enough Items / REI `15.0.787` |
 
 </div>
 
@@ -60,6 +61,12 @@ powershell -ExecutionPolicy Bypass -File .\scripts\build.ps1
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\build.ps1 -InstanceDir "D:\path\to\your\instance"
+```
+
+构建 Minecraft 1.20.6 版本时需要使用 Java 21：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\build.ps1 -InstanceDir "D:\path\to\your\1.20.6-instance" -JavaHome "C:\path\to\jdk-21" -JavaRelease 21
 ```
 
 构建产物会输出到：
