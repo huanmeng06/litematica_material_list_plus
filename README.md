@@ -1,8 +1,8 @@
 # Litematica Material List Plus
 
-Litematica Material List Plus 是一个用于 Minecraft 1.20.1 的 Fabric 客户端模组，用来增强 Litematica 材料列表的备料体验。
+Litematica Material List Plus 是一个用于 Minecraft Fabric 客户端的 Litematica 材料列表增强模组，用来改善备料统计和配方查看体验。
 
-当前版本：`1.0.0`
+当前版本：`1.0.0`，按 Minecraft 版本分别构建与发布。
 
 ## 功能简介
 
@@ -23,10 +23,11 @@ Litematica Material List Plus 是一个用于 Minecraft 1.20.1 的 Fabric 客户
 | Minecraft | 状态 | Fabric Loader | Java | 前置模组 |
 | :---: | :---: | :---: | :---: | :--- |
 | `1.20.1` | 已适配并测试 | `>=0.16.9` | `17` | Fabric API `0.92.9+1.20.1`<br>Litematica `0.15.4`<br>MaLiLib `0.16.3`<br>Roughly Enough Items / REI `12.1.785` |
+| `1.20.4` | 已适配并测试 | `0.19.2` | `17` | Fabric API `0.97.3+1.20.4`<br>Litematica `0.17.4`<br>MaLiLib `0.18.4-alpha.1`<br>Roughly Enough Items / REI `14.1.786` |
 
 </div>
 
-注意：REI 是必要前置。本模组的配方数据与配方界面依赖 REI。Architectury API 和 Cloth Config API 为 REI 相关前置，请按实际 REI 安装要求一并安装。
+注意：REI 是必要前置。本模组的配方数据与配方界面依赖 REI。Architectury API、Cloth Config API 和 Cloth Basic Math 等为 REI 相关前置，请按实际 REI 安装要求一并安装。
 
 ## 已知问题
 
