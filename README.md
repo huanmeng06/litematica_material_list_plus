@@ -12,7 +12,7 @@ Litematica Material List Plus 是一个用于 Minecraft 1.20.1 的 Fabric 客户
 - 配方详情页复用 REI 的原生配方显示和物品交互。
 - 保留 Litematica 原有材料统计、排序和导出行为。
 <img width="2541" height="1440" alt="image" src="https://github.com/user-attachments/assets/f22f42bb-e4ec-45e6-bd7d-18a6d9ba72c4" />
-<img width="2563" height="1776" alt="PixPin_2026-05-27_11-50-30" src="https://github.com/user-attachments/assets/ef9b9b39-1eda-4dd3-a4fc-bbf84ec27aa3" />
+<img width="2554" height="1436" alt="image" src="https://github.com/user-attachments/assets/c5d9d8bb-6999-48e5-9d46-e9eaa2d74d1b" />
 
 ## 安装环境
 
