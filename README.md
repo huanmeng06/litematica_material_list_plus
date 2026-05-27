@@ -14,23 +14,24 @@ Litematica Material List Plus 是一个用于 Minecraft 1.20.1 的 Fabric 客户
 <img width="2541" height="1440" alt="image" src="https://github.com/user-attachments/assets/f22f42bb-e4ec-45e6-bd7d-18a6d9ba72c4" />
 <img width="2554" height="1436" alt="image" src="https://github.com/user-attachments/assets/c5d9d8bb-6999-48e5-9d46-e9eaa2d74d1b" />
 
-## 安装环境
+## 兼容环境
 
-必须使用以下环境：
+本项目会按 Minecraft 版本逐步适配。当前已适配并测试的版本组合如下：
 
-- Minecraft `1.20.1`
-- Fabric Loader `>=0.16.9`
-- Java `17`
-- Litematica `>=0.15.4`
-- MaLiLib `>=0.16.3`
-- Roughly Enough Items / REI `12.x`
+<div align="center">
 
-注意：REI 是必要前置。本模组的配方数据与配方界面依赖 REI。
+| Minecraft | 状态 | Fabric Loader | Java | 前置模组 |
+| :---: | :---: | :---: | :---: | :--- |
+| `1.20.1` | 已适配并测试 | `>=0.16.9` | `17` | Fabric API `0.92.9+1.20.1`<br>Litematica `0.15.4`<br>MaLiLib `0.16.3`<br>Roughly Enough Items / REI `12.1.785` |
+
+</div>
+
+注意：REI 是必要前置。本模组的配方数据与配方界面依赖 REI。Architectury API 和 Cloth Config API 为 REI 相关前置，请按实际 REI 安装要求一并安装。
 
 ## 已知问题
 
-- 目前**仅针对 Minecraft 1.20.1、当前 Fabric 版本、当前 Litematica 版本和当前 REI 版本**进行适配与测试。
-- 其他 Minecraft / Litematica / REI 版本暂未测试，大概率存在兼容性问题。
+- 目前仅对上方兼容表中列出的版本组合进行适配与测试。
+- 其他 Minecraft 版本或前置模组版本正在进一步适配中，暂不保证兼容。
 
 ## 安装方式
 
