@@ -22,8 +22,8 @@ Litematica Material List Plus 是一个用于 Minecraft Fabric 客户端的 Lite
 
 | Minecraft | 状态 | Fabric Loader | Java | 前置模组 |
 | :---: | :---: | :---: | :---: | :--- |
-| `1.20.1` | 已适配并测试 | `>=0.16.9` | `17` | Fabric API `0.92.9+1.20.1`<br>Litematica `0.15.4`<br>MaLiLib `0.16.3`<br>Roughly Enough Items / REI `12.1.785` |
-| `1.20.4` | 已适配并测试 | `0.19.2` | `17` | Fabric API `0.97.3+1.20.4`<br>Litematica `0.17.4`<br>MaLiLib `0.18.4-alpha.1`<br>Roughly Enough Items / REI `14.1.786` |
+| `1.20.1` | ✅ | `>=0.16.9` | `17` | Fabric API `0.92.9+1.20.1`<br>Litematica `0.15.4`<br>MaLiLib `0.16.3`<br>Roughly Enough Items / REI `12.1.785` |
+| `1.20.4` | ✅ | `0.19.2` | `17` | Fabric API `0.97.3+1.20.4`<br>Litematica `0.17.4`<br>MaLiLib `0.18.4-alpha.1`<br>Roughly Enough Items / REI `14.1.786` |
 
 </div>
 
