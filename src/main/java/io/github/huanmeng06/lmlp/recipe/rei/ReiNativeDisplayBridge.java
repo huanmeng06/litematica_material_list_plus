@@ -118,7 +118,7 @@ public final class ReiNativeDisplayBridge implements RecipeNativeDisplayBridge {
 
     @Override
     public boolean mouseScrolled(RecipeSummary summary, double mouseX, double mouseY, double amount) {
-        return this.dispatch(summary, widget -> widget.method_25401(mouseX, mouseY, amount), mouseX, mouseY);
+        return this.dispatch(summary, widget -> widget.method_25401(mouseX, mouseY, 0.0D, amount), mouseX, mouseY);
     }
 
     private boolean dispatch(RecipeSummary summary, WidgetAction action, double mouseX, double mouseY) {

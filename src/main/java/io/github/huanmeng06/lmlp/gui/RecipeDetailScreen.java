@@ -60,13 +60,13 @@ public class RecipeDetailScreen extends class_437 {
     }
 
     @Override
-    public boolean method_25401(double mouseX, double mouseY, double amount) {
+    public boolean method_25401(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
         NativeDisplayArea area = this.nativeDisplayAreaAt(mouseX, mouseY);
-        if (area != null && this.nativeDisplayBridge.mouseScrolled(area.summary(), mouseX, mouseY, amount)) {
+        if (area != null && this.nativeDisplayBridge.mouseScrolled(area.summary(), mouseX, mouseY, verticalAmount)) {
             return true;
         }
 
-        this.scrollBar.offsetValue(-(int) (amount * 24));
+        this.scrollBar.offsetValue(-(int) (verticalAmount * 24));
         return true;
     }
 
@@ -121,7 +121,7 @@ public class RecipeDetailScreen extends class_437 {
 
     @Override
     public void method_25394(class_332 context, int mouseX, int mouseY, float delta) {
-        this.method_25420(context);
+        this.method_25420(context, mouseX, mouseY, delta);
 
         int left = 24;
         int headerTop = 22;
