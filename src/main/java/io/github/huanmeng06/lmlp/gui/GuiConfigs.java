@@ -41,7 +41,7 @@ public class GuiConfigs extends GuiConfigsBase {
 
     @Override
     protected boolean useKeybindSearch() {
-        return currentTab == ConfigGuiTab.HOTKEYS;
+        return true;
     }
 
     @Override
