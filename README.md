@@ -12,20 +12,13 @@ Litematica Material List Plus, 简称 LMLP, 是一个面向 Minecraft Fabric 客
 
 ## 预览
 
-> 图片占位符：材料列表内嵌配方树  
-> 建议替换为展示“材料行展开后出现子材料和继续展开箭头”的截图。
+> 材料列表单击显示配方摘要 
 
-![材料列表内嵌配方树占位图](docs/images/material-tree-placeholder.svg)
+![配方摘要](PixPin_2026-05-28_21-35-28.png)
 
-> 图片占位符：配方详情页  
-> 建议替换为展示“Shift + 单击打开详情页，并显示 REI 原生配方布局”的截图。
+> 配方详情页  
 
-![配方详情页占位图](docs/images/recipe-detail-placeholder.svg)
-
-> 图片占位符：MaLiLib 配置菜单  
-> 建议替换为展示“通用 / 热键”两个分类，以及停止拆分列表和热键配置的截图。
-
-![配置菜单占位图](docs/images/config-placeholder.svg)
+![配方详情页](PixPin_2026-05-28_21-36-28.png)
 
 ## 核心功能
 
