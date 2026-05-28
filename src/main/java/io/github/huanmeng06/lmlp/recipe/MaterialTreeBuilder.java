@@ -27,6 +27,10 @@ public final class MaterialTreeBuilder {
         return build(stack, name, totalCount, missingCount, "root", 0, new HashSet<>());
     }
 
+    public static MaterialTreeNode build(class_1799 stack, String name, int totalCount, int missingCount, String path) {
+        return build(stack, name, totalCount, missingCount, path, 0, new HashSet<>());
+    }
+
     private static MaterialTreeNode build(class_1799 stack, String name, int totalCount, int missingCount, String path, int depth, Set<String> seenItems) {
         class_1799 icon = stack.method_7972();
         String itemId = ItemStackTexts.id(icon);

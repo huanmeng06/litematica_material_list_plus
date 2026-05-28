@@ -22,9 +22,6 @@ public final class MaterialListPlusState {
     private static MaterialListEntry expandedEntry;
     private static String expandedKey = "";
     private static List<RecipeSummary> expandedSummaries = Collections.emptyList();
-    private static MaterialListEntry treeEntry;
-    private static String treeOwnerKey = "";
-    private static MaterialTreeNode treeRoot;
     private static final Set<String> expandedTreeNodes = new HashSet<>();
     private static final Map<String, Boolean> treeSupportCache = new HashMap<>();
     private static final Map<String, MaterialTreeNode> treeCache = new HashMap<>();
@@ -33,15 +30,11 @@ public final class MaterialListPlusState {
     }
 
     public static boolean isExpanded(MaterialListEntry entry) {
-        return isRecipeExpanded(entry) || isTreeExpanded(entry);
+        return isRecipeExpanded(entry);
     }
 
     public static boolean isRecipeExpanded(MaterialListEntry entry) {
         return expandedEntry != null && expandedEntry.equals(entry);
-    }
-
-    public static boolean isTreeExpanded(MaterialListEntry entry) {
-        return treeEntry != null && treeEntry.equals(entry);
     }
 
     public static void toggle(MaterialListEntry entry, MaterialListBase materialList) {
@@ -53,7 +46,7 @@ public final class MaterialListPlusState {
     }
 
     public static void open(MaterialListEntry entry, MaterialListBase materialList) {
-        clearTree();
+        clearIngredientTrees();
         expandedEntry = entry;
         expandedKey = key(entry, materialList);
         expandedSummaries = RecipeResolvers.findRecipes(entry.getStack(), MaterialCounts.total(entry, materialList), MaterialCounts.missing(entry, materialList));
@@ -61,7 +54,7 @@ public final class MaterialListPlusState {
 
     public static void clear() {
         clearRecipe();
-        clearTree();
+        clearIngredientTrees();
     }
 
     public static boolean hasTree(IngredientSummary ingredient) {
@@ -76,45 +69,28 @@ public final class MaterialListPlusState {
         return supported;
     }
 
-    public static void openTree(MaterialListEntry entry, MaterialListBase materialList, IngredientSummary ingredient) {
-        String ownerKey = key(entry, materialList);
-        String key = key(ingredient);
-        MaterialTreeNode root = treeCache.computeIfAbsent(key, ignored -> MaterialTreeBuilder.build(ingredient.icon(), RecipeSummaryFormatter.ingredientName(ingredient), ingredient.countTotal(), ingredient.countMissing()));
+    public static void toggleIngredientTree(IngredientSummary ingredient) {
+        MaterialTreeNode root = treeFor(ingredient);
         if (!root.hasChildren()) {
-            treeSupportCache.put(key, false);
-            clearTree();
+            treeSupportCache.put(key(ingredient), false);
             return;
         }
 
-        clearRecipe();
-        treeSupportCache.put(key, true);
-        treeEntry = entry;
-        treeOwnerKey = ownerKey;
-        treeRoot = root;
-        expandedTreeNodes.clear();
-        expandedTreeNodes.add(root.path());
+        treeSupportCache.put(key(ingredient), true);
+        if (expandedTreeNodes.contains(root.path())) {
+            collapseTreeNode(root.path());
+        } else {
+            expandedTreeNodes.add(root.path());
+        }
     }
 
-    public static MaterialTreeNode getTreeRoot(MaterialListEntry entry, MaterialListBase materialList) {
-        if (!isTreeExpanded(entry)) {
+    public static MaterialTreeNode getExpandedIngredientTree(IngredientSummary ingredient) {
+        MaterialTreeNode root = treeCache.get(key(ingredient));
+        if (root == null || !expandedTreeNodes.contains(root.path())) {
             return null;
         }
 
-        String ownerKey = key(entry, materialList);
-        if (!ownerKey.equals(treeOwnerKey)) {
-            clearTree();
-            return null;
-        }
-
-        return treeRoot;
-    }
-
-    public static MaterialTreeNode getCachedTreeRoot(MaterialListEntry entry) {
-        if (!isTreeExpanded(entry)) {
-            return null;
-        }
-
-        return treeRoot;
+        return root;
     }
 
     public static Set<String> getExpandedTreeNodes() {
@@ -123,7 +99,7 @@ public final class MaterialListPlusState {
 
     public static void toggleTreeNode(String path) {
         if (expandedTreeNodes.contains(path)) {
-            expandedTreeNodes.remove(path);
+            collapseTreeNode(path);
         } else {
             expandedTreeNodes.add(path);
         }
@@ -135,11 +111,22 @@ public final class MaterialListPlusState {
         expandedSummaries = Collections.emptyList();
     }
 
-    private static void clearTree() {
-        treeEntry = null;
-        treeOwnerKey = "";
-        treeRoot = null;
+    private static void clearIngredientTrees() {
         expandedTreeNodes.clear();
+    }
+
+    private static MaterialTreeNode treeFor(IngredientSummary ingredient) {
+        String key = key(ingredient);
+        return treeCache.computeIfAbsent(key, ignored -> MaterialTreeBuilder.build(
+                ingredient.icon(),
+                RecipeSummaryFormatter.ingredientName(ingredient),
+                ingredient.countTotal(),
+                ingredient.countMissing(),
+                "ingredient:" + key));
+    }
+
+    private static void collapseTreeNode(String path) {
+        expandedTreeNodes.removeIf(expandedPath -> expandedPath.equals(path) || expandedPath.startsWith(path + "/"));
     }
 
     public static List<RecipeSummary> getSummaries(MaterialListEntry entry, MaterialListBase materialList) {
