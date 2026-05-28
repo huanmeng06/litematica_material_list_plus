@@ -35,6 +35,9 @@ public class RecipeDetailScreen extends class_437 {
     private static final int BACK_BUTTON_HEIGHT = 20;
     private static final int REI_PANEL_WIDTH = 254;
     private static final int REI_PANEL_HEIGHT = 104;
+    private static final int INGREDIENT_TEXT_COLOR = 0xFFFFFFFF;
+    private static final int INGREDIENT_TOTAL_COLOR = 0xFFFFAA00;
+    private static final int INGREDIENT_MISSING_COLOR = 0xFFFF5555;
     private static final int NATIVE_RENDER_CLIP_PADDING = 24;
     private static final int MAX_NATIVE_DISPLAYS_PER_FRAME = 8;
     private static final int MAX_NATIVE_DISPLAY_DEPTH = 2;
@@ -312,11 +315,17 @@ public class RecipeDetailScreen extends class_437 {
         context.method_51427(icon, iconX, y - 5);
         this.captureHoveredStack(icon, mouseX, mouseY, iconX, y - 5, 16, 16);
 
-        String line = name + ": " + totalText;
+        int textX = rowX + INGREDIENT_ICON_OFFSET + 24;
+        String prefix = name + ": ";
+        context.method_51433(this.field_22793, prefix, textX, y, INGREDIENT_TEXT_COLOR, false);
+        textX += this.field_22793.method_1727(prefix);
+        context.method_51433(this.field_22793, totalText, textX, y, INGREDIENT_TOTAL_COLOR, false);
+        textX += this.field_22793.method_1727(totalText);
         if (showMissing) {
-            line += " / " + missingText;
+            context.method_51433(this.field_22793, " / ", textX, y, INGREDIENT_TEXT_COLOR, false);
+            textX += this.field_22793.method_1727(" / ");
+            context.method_51433(this.field_22793, missingText, textX, y, INGREDIENT_MISSING_COLOR, false);
         }
-        context.method_51433(this.field_22793, line, rowX + INGREDIENT_ICON_OFFSET + 24, y, 0xFFFFFFFF, false);
     }
 
     private void renderCraftingGrid(class_332 context, RecipeSummary summary, int x, int y, int mouseX, int mouseY) {
