@@ -7,6 +7,14 @@ import fi.dy.masa.malilib.hotkeys.KeybindSettings;
 import java.util.List;
 
 public final class Hotkeys {
+    public static final ConfigHotkey OPEN_CONFIG_GUI = new ConfigHotkey(
+            "openConfigGui",
+            "M,EQUAL",
+            KeybindSettings.RELEASE_EXCLUSIVE,
+            "Open the Litematica Material List Plus config screen.",
+            "lmlp.config.name.open_config_gui"
+    );
+
     public static final ConfigHotkey SHOW_HOVER_DETAILS = new ConfigHotkey(
             "showHoverDetails",
             "LEFT_ALT",
@@ -16,6 +24,7 @@ public final class Hotkeys {
     );
 
     public static final List<ConfigHotkey> HOTKEY_LIST = ImmutableList.of(
+            OPEN_CONFIG_GUI,
             SHOW_HOVER_DETAILS
     );
 

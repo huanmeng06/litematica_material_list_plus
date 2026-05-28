@@ -9,6 +9,7 @@ import java.util.Set;
 
 import fi.dy.masa.litematica.materials.MaterialListBase;
 import fi.dy.masa.litematica.materials.MaterialListEntry;
+import io.github.huanmeng06.lmlp.config.Configs;
 import io.github.huanmeng06.lmlp.material.ItemStackTexts;
 import io.github.huanmeng06.lmlp.material.MaterialCounts;
 import io.github.huanmeng06.lmlp.recipe.IngredientSummary;
@@ -59,6 +60,13 @@ public final class MaterialListPlusState {
 
     public static boolean hasTree(IngredientSummary ingredient) {
         String key = key(ingredient);
+        if (Configs.shouldStopRecipeDecomposition(ItemStackTexts.id(ingredient.icon()))) {
+            treeSupportCache.put(key, false);
+            treeCache.remove(key);
+            collapseTreeNode("ingredient:" + key);
+            return false;
+        }
+
         Boolean cached = treeSupportCache.get(key);
         if (cached != null) {
             return cached;
@@ -123,6 +131,11 @@ public final class MaterialListPlusState {
 
     private static MaterialTreeNode treeFor(IngredientSummary ingredient) {
         String key = key(ingredient);
+        if (Configs.shouldStopRecipeDecomposition(ItemStackTexts.id(ingredient.icon()))) {
+            treeSupportCache.put(key, false);
+            treeCache.remove(key);
+        }
+
         return treeCache.computeIfAbsent(key, ignored -> MaterialTreeBuilder.build(
                 ingredient.icon(),
                 RecipeSummaryFormatter.ingredientName(ingredient),
