@@ -31,6 +31,10 @@ import java.util.List;
 public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortable<MaterialListEntry> {
     private static final int BASE_ENTRY_HEIGHT = 23;
     private static final int EXPANDED_PANEL_BOTTOM_PADDING = 8;
+    private static final int FIXED_TOOLTIP_TOP = 14;
+    private static final int FIXED_TOOLTIP_RIGHT_MARGIN = 226;
+    private static final int FIXED_TOOLTIP_MIN_WIDTH = 420;
+    private static final int FIXED_TOOLTIP_HEIGHT = 60;
     private static int lmlpMaxTotalDigits;
     private static int lmlpMaxMissingDigits;
     @Shadow
@@ -254,6 +258,62 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         }
 
         super.render(mouseX, mouseY, selected, drawContext);
+    }
+
+    /**
+     * @author Huan_meeng
+     * @reason Pin material hover details to the top-right HUD area instead of following the mouse.
+     */
+    @Overwrite
+    public void postRenderHovered(int mouseX, int mouseY, boolean selected, class_332 drawContext) {
+        if (this.entry == null) {
+            return;
+        }
+
+        this.renderFixedHoverPanel(drawContext);
+    }
+
+    private void renderFixedHoverPanel(class_332 drawContext) {
+        class_1799 stack = this.entry.getStack();
+        String itemLabel = GuiBase.TXT_BOLD + StringUtils.translate("litematica.gui.label.material_list.title.item") + GuiBase.TXT_RST;
+        String totalLabel = GuiBase.TXT_BOLD + StringUtils.translate("litematica.gui.label.material_list.title.total") + GuiBase.TXT_RST;
+        String missingLabel = GuiBase.TXT_BOLD + StringUtils.translate("litematica.gui.label.material_list.title.missing") + GuiBase.TXT_RST;
+        String itemText = stack.method_7964().getString();
+        String totalText = CountFormatter.format(stack, MaterialCounts.total(this.entry, this.materialList));
+        String missingText = CountFormatter.format(stack, MaterialCounts.missing(this.entry, this.materialList));
+
+        int labelWidth = Math.max(this.getStringWidth(itemLabel), Math.max(this.getStringWidth(totalLabel), this.getStringWidth(missingLabel)));
+        int valueWidth = Math.max(this.getStringWidth(itemText) + 20, Math.max(this.getStringWidth(totalText), this.getStringWidth(missingText)));
+        int panelWidth = Math.max(FIXED_TOOLTIP_MIN_WIDTH, labelWidth + valueWidth + 60);
+        int maxPanelWidth = Math.max(FIXED_TOOLTIP_MIN_WIDTH, this.mc.method_22683().method_4486() - FIXED_TOOLTIP_RIGHT_MARGIN - 20);
+        panelWidth = Math.min(panelWidth, maxPanelWidth);
+
+        int panelX = Math.max(20, this.mc.method_22683().method_4486() - FIXED_TOOLTIP_RIGHT_MARGIN - panelWidth);
+        int panelY = FIXED_TOOLTIP_TOP;
+        int labelX = panelX + 10;
+        int valueX = labelX + labelWidth + 20;
+        int lineY = panelY + 10;
+
+        drawContext.method_51448().method_22903();
+        drawContext.method_51448().method_46416(0.0F, 0.0F, 200.0F);
+        RenderUtils.drawOutlinedBox(panelX, panelY, panelWidth, FIXED_TOOLTIP_HEIGHT, 0xF0000000, 0xFF999999);
+
+        this.drawString(labelX, lineY, 0xFFFFFFFF, itemLabel, drawContext);
+        RenderUtils.drawRect(valueX, lineY - 4, 16, 16, 0x20FFFFFF);
+        RenderUtils.enableDiffuseLightingGui3D();
+        drawContext.method_51427(stack, valueX, lineY - 4);
+        RenderUtils.disableDiffuseLighting();
+        this.drawString(valueX + 24, lineY, 0xFFFFFFFF, itemText, drawContext);
+
+        lineY += 16;
+        this.drawString(labelX, lineY, 0xFFFFFFFF, totalLabel, drawContext);
+        this.drawString(valueX, lineY, 0xFFFFFFFF, totalText, drawContext);
+
+        lineY += 16;
+        this.drawString(labelX, lineY, 0xFFFFFFFF, missingLabel, drawContext);
+        this.drawString(valueX, lineY, 0xFFFFFFFF, missingText, drawContext);
+
+        drawContext.method_51448().method_22909();
     }
 
     private boolean handleRecipePanelClick(int mouseX, int mouseY) {
