@@ -226,7 +226,7 @@ public final class ReiNativeDisplayBridge implements RecipeNativeDisplayBridge {
     private static Rectangle workstationSlotBounds(Rectangle bounds) {
         return new Rectangle(
                 bounds.x + WORKSTATION_SLOT_MARGIN,
-                bounds.y + (bounds.height - WORKSTATION_SLOT_SIZE) / 2,
+                bounds.y + bounds.height - WORKSTATION_SLOT_SIZE - WORKSTATION_SLOT_MARGIN,
                 WORKSTATION_SLOT_SIZE,
                 WORKSTATION_SLOT_SIZE);
     }

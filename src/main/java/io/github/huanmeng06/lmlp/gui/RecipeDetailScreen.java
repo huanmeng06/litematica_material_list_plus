@@ -39,8 +39,8 @@ public class RecipeDetailScreen extends class_437 {
     private static final int INGREDIENT_TOTAL_COLOR = 0xFFFFAA00;
     private static final int INGREDIENT_MISSING_COLOR = 0xFFFF5555;
     private static final int NATIVE_RENDER_CLIP_PADDING = 24;
-    private static final int MAX_NATIVE_DISPLAYS_PER_FRAME = 8;
-    private static final int MAX_NATIVE_DISPLAY_DEPTH = 2;
+    private static final int MAX_NATIVE_DISPLAYS_PER_FRAME = 64;
+    private static final int MAX_NATIVE_DISPLAY_DEPTH = 3;
     private static final int OUTLINE_CLIP_PADDING = 2;
     private static final int PAGE_MARGIN_X = 24;
     private static final int PAGE_TOP = 22;
