@@ -33,7 +33,6 @@ import net.minecraft.class_2960;
 import net.minecraft.class_332;
 import net.minecraft.class_437;
 import net.minecraft.class_465;
-import net.minecraft.class_5632;
 import me.shedaniel.math.Rectangle;
 import me.shedaniel.rei.api.client.gui.widgets.Button;
 import me.shedaniel.rei.api.client.gui.widgets.Tooltip;
@@ -563,20 +562,17 @@ public class RecipeDetailScreen extends class_437 {
         }
 
         List<class_2561> lines = new ArrayList<>();
-        class_5632 component = null;
         for (Tooltip.Entry entry : this.hoveredTransferTooltip) {
             if (entry.isText()) {
                 lines.add(entry.getAsText());
-            } else if (entry.isTooltipComponent() && component == null) {
-                component = entry.getAsTooltipComponent();
             }
         }
 
-        if (lines.isEmpty() && component == null) {
+        if (lines.isEmpty()) {
             return false;
         }
 
-        context.method_51437(this.field_22793, lines, Optional.ofNullable(component), mouseX, mouseY);
+        context.method_51434(this.field_22793, lines, mouseX, mouseY);
         return true;
     }
 
