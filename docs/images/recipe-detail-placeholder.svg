@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" role="img" aria-label="Recipe detail screenshot placeholder">
+  <rect width="1280" height="720" fill="#1b202b"/>
+  <rect x="70" y="60" width="1140" height="600" rx="8" fill="#050607" opacity="0.88" stroke="#8a8f98" stroke-width="3"/>
+  <text x="110" y="130" fill="#f2f4f8" font-family="Segoe UI, Arial, sans-serif" font-size="42" font-weight="700">配方详情页截图占位</text>
+  <text x="110" y="198" fill="#c8d0da" font-family="Segoe UI, Arial, sans-serif" font-size="28">展示 Shift + 单击后的 REI 原生配方布局和子材料递归配方</text>
+  <rect x="130" y="260" width="430" height="190" fill="#b9b9b9" stroke="#111" stroke-width="4"/>
+  <g fill="#8d8d8d" stroke="#4d4d4d" stroke-width="3">
+    <rect x="175" y="300" width="55" height="55"/>
+    <rect x="235" y="300" width="55" height="55"/>
+    <rect x="295" y="300" width="55" height="55"/>
+    <rect x="175" y="360" width="55" height="55"/>
+    <rect x="235" y="360" width="55" height="55"/>
+    <rect x="295" y="360" width="55" height="55"/>
+  </g>
+  <path d="M385 355h80" stroke="#8a8a8a" stroke-width="14"/>
+  <path d="M455 325l45 30-45 30z" fill="#8a8a8a"/>
+  <rect x="650" y="270" width="460" height="280" fill="#0d1016" stroke="#5d6673" stroke-width="2"/>
+  <text x="690" y="330" fill="#ffffff" font-family="Segoe UI, Arial, sans-serif" font-size="30">总计子材料</text>
+  <text x="690" y="390" fill="#ffb000" font-family="Segoe UI, Arial, sans-serif" font-size="28">圆石：301 = 4 组 + 45 个</text>
+  <text x="690" y="445" fill="#ff5555" font-family="Segoe UI, Arial, sans-serif" font-size="28">红石粉：43</text>
+  <text x="110" y="620" fill="#7f8b9a" font-family="Segoe UI, Arial, sans-serif" font-size="22">替换此文件：docs/images/recipe-detail-placeholder.svg</text>
+</svg>

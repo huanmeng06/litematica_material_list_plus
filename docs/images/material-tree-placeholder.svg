@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" role="img" aria-label="Material tree screenshot placeholder">
+  <rect width="1280" height="720" fill="#182233"/>
+  <rect x="80" y="80" width="1120" height="560" rx="8" fill="#050607" opacity="0.86" stroke="#8a8f98" stroke-width="3"/>
+  <text x="120" y="150" fill="#f2f4f8" font-family="Segoe UI, Arial, sans-serif" font-size="42" font-weight="700">材料列表内嵌配方树截图占位</text>
+  <text x="120" y="220" fill="#c8d0da" font-family="Segoe UI, Arial, sans-serif" font-size="28">展示材料行展开、子材料数量、继续展开箭头</text>
+  <rect x="120" y="290" width="1040" height="72" fill="#2d3542" opacity="0.95"/>
+  <circle cx="160" cy="326" r="22" fill="#d9dde4"/>
+  <text x="210" y="338" fill="#ffffff" font-family="Segoe UI, Arial, sans-serif" font-size="30">铁块</text>
+  <text x="720" y="338" fill="#ffb000" font-family="Segoe UI, Arial, sans-serif" font-size="30">493 = 7 组 + 45 个</text>
+  <rect x="180" y="390" width="920" height="150" fill="#0b0d11" opacity="0.92" stroke="#5d6673" stroke-width="2"/>
+  <polygon points="220,455 220,495 250,475" fill="#dfe6ef"/>
+  <circle cx="300" cy="475" r="20" fill="#cfd5dc"/>
+  <text x="350" y="486" fill="#ffffff" font-family="Segoe UI, Arial, sans-serif" font-size="28">铁锭：4437 = 2 盒 + 15 组 + 21 个</text>
+  <text x="120" y="610" fill="#7f8b9a" font-family="Segoe UI, Arial, sans-serif" font-size="22">替换此文件：docs/images/material-tree-placeholder.svg</text>
+</svg>

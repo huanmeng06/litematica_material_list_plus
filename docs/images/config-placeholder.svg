@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" role="img" aria-label="Config screen screenshot placeholder">
+  <rect width="1280" height="720" fill="#243147"/>
+  <text x="90" y="86" fill="#ffffff" font-family="Segoe UI, Arial, sans-serif" font-size="40" font-weight="700">Litematica Material List Plus 配置 - 1.2.0+mc1.20.6</text>
+  <rect x="90" y="130" width="100" height="56" fill="#8b8b8b" stroke="#111" stroke-width="4"/>
+  <text x="116" y="168" fill="#f5f5f5" font-family="Segoe UI, Arial, sans-serif" font-size="28">通用</text>
+  <rect x="205" y="130" width="100" height="56" fill="#595959" stroke="#111" stroke-width="4"/>
+  <text x="231" y="168" fill="#d8d8d8" font-family="Segoe UI, Arial, sans-serif" font-size="28">热键</text>
+  <text x="105" y="260" fill="#ffffff" font-family="Segoe UI, Arial, sans-serif" font-size="30">启用 LMLP 悬停浮窗</text>
+  <rect x="430" y="222" width="420" height="56" fill="#999" stroke="#111" stroke-width="4"/>
+  <text x="610" y="260" fill="#00aa00" font-family="Segoe UI, Arial, sans-serif" font-size="30">true</text>
+  <text x="105" y="350" fill="#ffffff" font-family="Segoe UI, Arial, sans-serif" font-size="30">配方停止拆分物品</text>
+  <rect x="430" y="312" width="560" height="56" fill="#999" stroke="#111" stroke-width="4"/>
+  <text x="456" y="350" fill="#eeeeee" font-family="Segoe UI, Arial, sans-serif" font-size="26">[ minecraft:redstone, ... ]</text>
+  <text x="90" y="620" fill="#c7d1dc" font-family="Segoe UI, Arial, sans-serif" font-size="24">替换此文件：docs/images/config-placeholder.svg</text>
+</svg>
