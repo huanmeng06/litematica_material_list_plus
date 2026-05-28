@@ -252,7 +252,7 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         if (MaterialListPlusState.isRecipeExpanded(this.entry)) {
             List<RecipeSummary> summaries = MaterialListPlusState.getSummaries(this.entry, this.materialList);
             int panelY = this.y + 23;
-            RecipeInlineRenderer.render(this, drawContext, this.x + 28, panelY, Math.max(180, this.width - 64), summaries);
+            RecipeInlineRenderer.render(this, drawContext, this.x + 28, panelY, Math.max(180, this.width - 64), summaries, mouseX, mouseY);
         }
 
         super.render(mouseX, mouseY, selected, drawContext);

@@ -3,6 +3,8 @@ package io.github.huanmeng06.lmlp.gui;
 import java.util.List;
 import java.util.Set;
 
+import org.joml.Quaternionf;
+
 import fi.dy.masa.malilib.gui.GuiBase;
 import fi.dy.masa.malilib.gui.widgets.WidgetBase;
 import fi.dy.masa.malilib.render.RenderUtils;
@@ -25,9 +27,11 @@ public final class RecipeInlineRenderer {
     private static final int INGREDIENT_TOGGLE_WIDTH = 18;
     private static final int INGREDIENT_ICON_OFFSET = 20;
     private static final int TREE_INDENT_WIDTH = 18;
-    private static final int TOGGLE_ICON_SIZE = 12;
-    private static final class_2960 TOGGLE_COLLAPSED_TEXTURE = new class_2960("minecraft", "recipe_book/page_forward");
-    private static final class_2960 TOGGLE_EXPANDED_TEXTURE = new class_2960("minecraft", "statistics/sort_down");
+    private static final int TOGGLE_ICON_WIDTH = 16;
+    private static final int TOGGLE_ICON_HEIGHT = 10;
+    private static final float TOGGLE_EXPANDED_ROTATION = (float) (Math.PI / 2.0D);
+    private static final class_2960 TOGGLE_TEXTURE = new class_2960("minecraft", "widget/page_forward");
+    private static final class_2960 TOGGLE_HIGHLIGHTED_TEXTURE = new class_2960("minecraft", "widget/page_forward_highlighted");
 
     private RecipeInlineRenderer() {
     }
@@ -58,7 +62,7 @@ public final class RecipeInlineRenderer {
         return getHeight(summaries) + ENTRY_BOTTOM_GAP;
     }
 
-    public static void render(WidgetBase widget, class_332 context, int x, int y, int width, List<RecipeSummary> summaries) {
+    public static void render(WidgetBase widget, class_332 context, int x, int y, int width, List<RecipeSummary> summaries, int mouseX, int mouseY) {
         int height = getHeight(summaries);
         RenderUtils.drawOutlinedBox(x, y, Math.max(160, width), height, 0xDD000000, 0xFF777777);
 
@@ -87,12 +91,12 @@ public final class RecipeInlineRenderer {
         cursorY += 18;
 
         for (IngredientSummary ingredient : summary.ingredients()) {
-            renderIngredient(widget, context, textX, cursorY, ingredient);
+            renderIngredient(widget, context, textX, cursorY, ingredient, mouseX, mouseY);
             cursorY += INGREDIENT_HEIGHT;
 
             MaterialTreeNode root = MaterialListPlusState.getExpandedIngredientTree(ingredient);
             if (root != null) {
-                cursorY = renderChildren(widget, context, textX, cursorY, root.children(), MaterialListPlusState.getExpandedTreeNodes(), 1);
+                cursorY = renderChildren(widget, context, textX, cursorY, root.children(), MaterialListPlusState.getExpandedTreeNodes(), 1, mouseX, mouseY);
             }
         }
 
@@ -130,29 +134,30 @@ public final class RecipeInlineRenderer {
         return ToggleTarget.NONE;
     }
 
-    private static void renderIngredient(WidgetBase widget, class_332 context, int textX, int y, IngredientSummary ingredient) {
+    private static void renderIngredient(WidgetBase widget, class_332 context, int textX, int y, IngredientSummary ingredient, int mouseX, int mouseY) {
         boolean hasTree = MaterialListPlusState.hasTree(ingredient);
         boolean expanded = MaterialListPlusState.getExpandedIngredientTree(ingredient) != null;
-        renderRow(widget, context, textX, y, 0, hasTree, expanded, AlternativeItemDisplay.icon(ingredient), RecipeSummaryFormatter.ingredientName(ingredient), ingredient.countTotal(), ingredient.countMissing(), ingredient.maxStackSize());
+        renderRow(widget, context, textX, y, 0, hasTree, expanded, AlternativeItemDisplay.icon(ingredient), RecipeSummaryFormatter.ingredientName(ingredient), ingredient.countTotal(), ingredient.countMissing(), ingredient.maxStackSize(), mouseX, mouseY);
     }
 
-    private static int renderChildren(WidgetBase widget, class_332 context, int textX, int y, List<MaterialTreeNode> nodes, Set<String> expandedNodes, int depth) {
+    private static int renderChildren(WidgetBase widget, class_332 context, int textX, int y, List<MaterialTreeNode> nodes, Set<String> expandedNodes, int depth, int mouseX, int mouseY) {
         int cursorY = y;
         for (MaterialTreeNode node : nodes) {
             boolean expanded = expandedNodes.contains(node.path());
-            renderRow(widget, context, textX, cursorY, depth, node.hasChildren(), expanded, AlternativeItemDisplay.icon(node), node.name(), node.totalCount(), node.missingCount(), node.maxStackSize());
+            renderRow(widget, context, textX, cursorY, depth, node.hasChildren(), expanded, AlternativeItemDisplay.icon(node), node.name(), node.totalCount(), node.missingCount(), node.maxStackSize(), mouseX, mouseY);
             cursorY += INGREDIENT_HEIGHT;
             if (node.hasChildren() && expanded) {
-                cursorY = renderChildren(widget, context, textX, cursorY, node.children(), expandedNodes, depth + 1);
+                cursorY = renderChildren(widget, context, textX, cursorY, node.children(), expandedNodes, depth + 1, mouseX, mouseY);
             }
         }
         return cursorY;
     }
 
-    private static void renderRow(WidgetBase widget, class_332 context, int textX, int y, int depth, boolean hasTree, boolean expanded, net.minecraft.class_1799 icon, String name, int totalCount, int missingCount, int maxStackSize) {
+    private static void renderRow(WidgetBase widget, class_332 context, int textX, int y, int depth, boolean hasTree, boolean expanded, net.minecraft.class_1799 icon, String name, int totalCount, int missingCount, int maxStackSize, int mouseX, int mouseY) {
         int rowX = textX + depth * TREE_INDENT_WIDTH;
         if (hasTree) {
-            renderToggleIcon(context, rowX + 2, y + 2, expanded);
+            boolean hovered = isToggleHit(textX, y, depth, mouseX, mouseY);
+            renderToggleIcon(context, rowX, y - 2, INGREDIENT_TOGGLE_WIDTH, INGREDIENT_HEIGHT, expanded, hovered);
         }
 
         int iconX = rowX + INGREDIENT_ICON_OFFSET;
@@ -166,8 +171,22 @@ public final class RecipeInlineRenderer {
         widget.drawString(rowX + INGREDIENT_ICON_OFFSET + 26, y + 2, 0xFFFFFFFF, line, context);
     }
 
-    private static void renderToggleIcon(class_332 context, int x, int y, boolean expanded) {
-        context.method_52706(expanded ? TOGGLE_EXPANDED_TEXTURE : TOGGLE_COLLAPSED_TEXTURE, x, y, TOGGLE_ICON_SIZE, TOGGLE_ICON_SIZE);
+    private static void renderToggleIcon(class_332 context, int x, int y, int width, int height, boolean expanded, boolean hovered) {
+        class_2960 texture = hovered ? TOGGLE_HIGHLIGHTED_TEXTURE : TOGGLE_TEXTURE;
+        int iconX = x + (width - TOGGLE_ICON_WIDTH) / 2;
+        int iconY = y + (height - TOGGLE_ICON_HEIGHT) / 2;
+        if (!expanded) {
+            context.method_52706(texture, iconX, iconY, TOGGLE_ICON_WIDTH, TOGGLE_ICON_HEIGHT);
+            return;
+        }
+
+        int centerX = iconX + TOGGLE_ICON_WIDTH / 2;
+        int centerY = iconY + TOGGLE_ICON_HEIGHT / 2;
+        context.method_51448().method_22903();
+        context.method_51448().method_22904(centerX, centerY, 0.0D);
+        context.method_51448().method_22907(new Quaternionf().rotateZ(TOGGLE_EXPANDED_ROTATION));
+        context.method_52706(texture, -TOGGLE_ICON_WIDTH / 2, -TOGGLE_ICON_HEIGHT / 2, TOGGLE_ICON_WIDTH, TOGGLE_ICON_HEIGHT);
+        context.method_51448().method_22909();
     }
 
     private static int visibleIngredientRows(RecipeSummary summary) {

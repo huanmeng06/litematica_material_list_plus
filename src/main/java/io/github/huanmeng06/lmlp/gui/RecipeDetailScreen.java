@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.joml.Quaternionf;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,7 +42,9 @@ public class RecipeDetailScreen extends class_437 {
     private static final int NATIVE_RENDER_CLIP_PADDING = 24;
     private static final int MAX_NATIVE_DISPLAYS_PER_FRAME = 8;
     private static final int MAX_NATIVE_DISPLAY_DEPTH = 2;
-    private static final int TOGGLE_ICON_SIZE = 12;
+    private static final int TOGGLE_ICON_WIDTH = 16;
+    private static final int TOGGLE_ICON_HEIGHT = 10;
+    private static final float TOGGLE_EXPANDED_ROTATION = (float) (Math.PI / 2.0D);
     private static final int OUTLINE_CLIP_PADDING = 2;
     private static final int PAGE_MARGIN_X = 24;
     private static final int PAGE_TOP = 22;
@@ -58,8 +61,8 @@ public class RecipeDetailScreen extends class_437 {
     private static final int NESTED_RECIPE_INDENT = 24;
     private static final int MAX_NESTED_DEPTH = 3;
     private static final class_2960 REI_DISPLAY_TEXTURE = new class_2960("roughlyenoughitems", "textures/gui/display.png");
-    private static final class_2960 TOGGLE_COLLAPSED_TEXTURE = new class_2960("minecraft", "recipe_book/page_forward");
-    private static final class_2960 TOGGLE_EXPANDED_TEXTURE = new class_2960("minecraft", "statistics/sort_down");
+    private static final class_2960 TOGGLE_TEXTURE = new class_2960("minecraft", "widget/page_forward");
+    private static final class_2960 TOGGLE_HIGHLIGHTED_TEXTURE = new class_2960("minecraft", "widget/page_forward_highlighted");
 
     private final class_437 parent;
     private final class_1799 target;
@@ -310,7 +313,8 @@ public class RecipeDetailScreen extends class_437 {
     private void renderMaterialLine(class_332 context, int left, int y, int depth, String path, boolean hasRecipes, boolean expanded, class_1799 icon, String name, String totalText, String missingText, boolean showMissing, int mouseX, int mouseY) {
         int rowX = left + depth * INGREDIENT_TREE_INDENT_WIDTH;
         if (hasRecipes) {
-            renderToggleIcon(context, rowX + 2, y - 1, expanded);
+            boolean hovered = isInside(mouseX, mouseY, rowX, y - 2, INGREDIENT_TOGGLE_WIDTH, INGREDIENT_ROW_HEIGHT);
+            renderToggleIcon(context, rowX, y - 2, INGREDIENT_TOGGLE_WIDTH, INGREDIENT_ROW_HEIGHT, expanded, hovered);
             this.toggleAreas.add(new ToggleArea(path, rowX, y - 2, INGREDIENT_TOGGLE_WIDTH, INGREDIENT_ROW_HEIGHT));
         }
 
@@ -331,8 +335,22 @@ public class RecipeDetailScreen extends class_437 {
         }
     }
 
-    private static void renderToggleIcon(class_332 context, int x, int y, boolean expanded) {
-        context.method_52706(expanded ? TOGGLE_EXPANDED_TEXTURE : TOGGLE_COLLAPSED_TEXTURE, x, y, TOGGLE_ICON_SIZE, TOGGLE_ICON_SIZE);
+    private static void renderToggleIcon(class_332 context, int x, int y, int width, int height, boolean expanded, boolean hovered) {
+        class_2960 texture = hovered ? TOGGLE_HIGHLIGHTED_TEXTURE : TOGGLE_TEXTURE;
+        int iconX = x + (width - TOGGLE_ICON_WIDTH) / 2;
+        int iconY = y + (height - TOGGLE_ICON_HEIGHT) / 2;
+        if (!expanded) {
+            context.method_52706(texture, iconX, iconY, TOGGLE_ICON_WIDTH, TOGGLE_ICON_HEIGHT);
+            return;
+        }
+
+        int centerX = iconX + TOGGLE_ICON_WIDTH / 2;
+        int centerY = iconY + TOGGLE_ICON_HEIGHT / 2;
+        context.method_51448().method_22903();
+        context.method_51448().method_22904(centerX, centerY, 0.0D);
+        context.method_51448().method_22907(new Quaternionf().rotateZ(TOGGLE_EXPANDED_ROTATION));
+        context.method_52706(texture, -TOGGLE_ICON_WIDTH / 2, -TOGGLE_ICON_HEIGHT / 2, TOGGLE_ICON_WIDTH, TOGGLE_ICON_HEIGHT);
+        context.method_51448().method_22909();
     }
 
     private void renderCraftingGrid(class_332 context, RecipeSummary summary, int x, int y, int mouseX, int mouseY) {
