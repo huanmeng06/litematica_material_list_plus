@@ -36,5 +36,11 @@
   "lmlp.label.recipe.any.terracotta": "Any terracotta",
   "lmlp.label.recipe.any.glazed_terracotta": "Any glazed terracotta",
   "lmlp.label.recipe.any.concrete": "Any concrete",
-  "lmlp.label.recipe.any.concrete_powder": "Any concrete powder"
+  "lmlp.label.recipe.any.concrete_powder": "Any concrete powder",
+  "lmlp.label.hover.detail_hint": "Hold %s for details",
+  "lmlp.label.hover.detail_key_unbound": "unbound key",
+  "lmlp.gui.title.configs": "Litematica Material List Plus Configs (%s)",
+  "lmlp.hotkeys.category.material_list": "Material List",
+  "lmlp.config.name.show_hover_details": "Show hover details",
+  "config.comment.showhoverdetails": "Hold this key while hovering a material list entry to show total, missing and available counts in the detailed tooltip."
 }

@@ -12,6 +12,7 @@ import fi.dy.masa.malilib.render.RenderUtils;
 import fi.dy.masa.malilib.util.GuiUtils;
 import fi.dy.masa.malilib.util.StringUtils;
 import io.github.huanmeng06.lmlp.access.WidgetListBoundsAccess;
+import io.github.huanmeng06.lmlp.config.Hotkeys;
 import io.github.huanmeng06.lmlp.gui.MaterialListPlusState;
 import io.github.huanmeng06.lmlp.gui.RecipeDetailScreen;
 import io.github.huanmeng06.lmlp.gui.RecipeInlineRenderer;
@@ -31,12 +32,13 @@ import java.util.List;
 public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortable<MaterialListEntry> {
     private static final int BASE_ENTRY_HEIGHT = 23;
     private static final int EXPANDED_PANEL_BOTTOM_PADDING = 8;
-    private static final int FIXED_TOOLTIP_MARGIN = 8;
-    private static final int FIXED_TOOLTIP_RIGHT_CONTROLS_WIDTH = 72;
-    private static final int FIXED_TOOLTIP_HORIZONTAL_PADDING = 12;
-    private static final int FIXED_TOOLTIP_LABEL_VALUE_GAP = 16;
-    private static final int FIXED_TOOLTIP_HEIGHT = 50;
-    private static final int FIXED_TOOLTIP_LINE_HEIGHT = 14;
+    private static final int HOVER_TOOLTIP_MARGIN = 8;
+    private static final int HOVER_TOOLTIP_CURSOR_OFFSET = 12;
+    private static final int HOVER_TOOLTIP_PADDING = 6;
+    private static final int HOVER_TOOLTIP_LINE_HEIGHT = 12;
+    private static final int HOVER_TOOLTIP_HEADER_GAP = 3;
+    private static final int HOVER_TOOLTIP_ICON_GAP = 6;
+    private static final int HOVER_TOOLTIP_ICON_SIZE = 16;
     private static int lmlpMaxTotalDigits;
     private static int lmlpMaxMissingDigits;
     @Shadow
@@ -266,7 +268,7 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
 
     /**
      * @author Huan_meeng
-     * @reason Pin material hover details to the top-right HUD area instead of following the mouse.
+     * @reason Split material hover details into a compact mouse-following preview and an Alt-held detail view.
      */
     @Overwrite
     public void postRenderHovered(int mouseX, int mouseY, boolean selected, class_332 drawContext) {
@@ -274,72 +276,123 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
             return;
         }
 
-        this.renderFixedHoverPanel(drawContext);
+        this.renderMaterialHoverTooltip(drawContext, mouseX, mouseY, this.isDetailHoverKeyDown());
     }
 
-    private void renderFixedHoverPanel(class_332 drawContext) {
+    private void renderMaterialHoverTooltip(class_332 drawContext, int mouseX, int mouseY, boolean detailed) {
         class_1799 stack = this.entry.getStack();
-        String itemLabel = GuiBase.TXT_BOLD + StringUtils.translate("litematica.gui.label.material_list.title.item") + GuiBase.TXT_RST;
-        String totalLabel = GuiBase.TXT_BOLD + StringUtils.translate("litematica.gui.label.material_list.title.total") + GuiBase.TXT_RST;
-        String missingLabel = GuiBase.TXT_BOLD + StringUtils.translate("litematica.gui.label.material_list.title.missing") + GuiBase.TXT_RST;
+        String totalLabel = StringUtils.translate(detailed ? "litematica.gui.label.material_list.title.total" : "lmlp.label.recipe.total_short");
+        String missingLabel = StringUtils.translate(detailed ? "litematica.gui.label.material_list.title.missing" : "lmlp.label.recipe.missing_short");
+        String availableLabel = StringUtils.translate("litematica.gui.label.material_list.title.available");
         String itemText = stack.method_7964().getString();
-        String totalText = CountFormatter.format(stack, MaterialCounts.total(this.entry, this.materialList));
-        String missingText = CountFormatter.format(stack, MaterialCounts.missing(this.entry, this.materialList));
+        int total = MaterialCounts.total(this.entry, this.materialList);
+        int missing = MaterialCounts.missing(this.entry, this.materialList);
+        int available = this.entry.getCountAvailable();
+        int maxPanelWidth = Math.max(80, this.mc.method_22683().method_4486() - HOVER_TOOLTIP_MARGIN * 2);
+        int maxTextWidth = Math.max(40, maxPanelWidth - HOVER_TOOLTIP_PADDING * 2);
+        int maxHeaderTextWidth = Math.max(20, maxTextWidth - HOVER_TOOLTIP_ICON_SIZE - HOVER_TOOLTIP_ICON_GAP);
+        String headerText = this.truncateToWidth(itemText, maxHeaderTextWidth);
+        String totalText = detailed ? CountFormatter.format(stack, total) : Integer.toString(total);
+        String missingText = detailed ? CountFormatter.format(stack, missing) : Integer.toString(missing);
+        String availableText = Integer.toString(available);
+        String countLine = missingLabel + ": " + missingText + " / " + availableLabel + ": " + availableText;
+        String availableLine = availableLabel + ": " + available;
+        String hintLine = detailed ? "" : GuiBase.TXT_YELLOW + GuiBase.TXT_ITALIC + StringUtils.translate("lmlp.label.hover.detail_hint", this.detailHoverKeyDisplayName()) + GuiBase.TXT_RST;
 
-        int labelWidth = Math.max(this.getStringWidth(itemLabel), Math.max(this.getStringWidth(totalLabel), this.getStringWidth(missingLabel)));
-        int valueWidth = Math.max(this.getStringWidth(itemText) + 24, Math.max(this.getStringWidth(totalText), this.getStringWidth(missingText)));
-        int panelWidth = labelWidth + valueWidth + FIXED_TOOLTIP_LABEL_VALUE_GAP + FIXED_TOOLTIP_HORIZONTAL_PADDING * 2;
-        int maxPanelWidth = Math.max(1, this.mc.method_22683().method_4486() - FIXED_TOOLTIP_RIGHT_CONTROLS_WIDTH - FIXED_TOOLTIP_MARGIN * 2);
-        panelWidth = Math.min(panelWidth, maxPanelWidth);
+        if (detailed) {
+            countLine = totalLabel + ": " + totalText;
+        }
 
-        PanelBounds bounds = this.fixedHoverPanelBounds(panelWidth, FIXED_TOOLTIP_HEIGHT);
+        countLine = this.truncateToWidth(countLine, maxTextWidth);
+        availableLine = this.truncateToWidth(availableLine, maxTextWidth);
+        hintLine = this.truncateToWidth(hintLine, maxTextWidth);
+        String missingLine = this.truncateToWidth(missingLabel + ": " + missingText, maxTextWidth);
+        int headerWidth = HOVER_TOOLTIP_ICON_SIZE + HOVER_TOOLTIP_ICON_GAP + this.getStringWidth(headerText);
+        int countWidth = this.getStringWidth(countLine);
+        int missingWidth = detailed ? this.getStringWidth(missingLine) : 0;
+        int availableWidth = detailed ? this.getStringWidth(availableLine) : 0;
+        int hintWidth = detailed ? 0 : this.getStringWidth(hintLine);
+        int panelWidth = Math.min(maxPanelWidth, Math.max(headerWidth, Math.max(countWidth, Math.max(missingWidth, Math.max(availableWidth, hintWidth)))) + HOVER_TOOLTIP_PADDING * 2);
+        int lineCount = detailed ? 4 : 3;
+        int panelHeight = HOVER_TOOLTIP_PADDING * 2 + Math.max(HOVER_TOOLTIP_ICON_SIZE, HOVER_TOOLTIP_LINE_HEIGHT) + HOVER_TOOLTIP_HEADER_GAP + (lineCount - 1) * HOVER_TOOLTIP_LINE_HEIGHT;
+
+        PanelBounds bounds = this.hoverTooltipBounds(mouseX, mouseY, panelWidth, panelHeight);
         int panelX = bounds.x();
         int panelY = bounds.y();
-        int labelX = panelX + FIXED_TOOLTIP_HORIZONTAL_PADDING;
-        int valueX = labelX + labelWidth + FIXED_TOOLTIP_LABEL_VALUE_GAP;
-        int lineY = panelY + 8;
+        int lineX = panelX + HOVER_TOOLTIP_PADDING;
+        int lineY = panelY + HOVER_TOOLTIP_PADDING + 4;
 
         drawContext.method_51448().method_22903();
         drawContext.method_51448().method_46416(0.0F, 0.0F, 200.0F);
-        RenderUtils.drawOutlinedBox(panelX, panelY, panelWidth, FIXED_TOOLTIP_HEIGHT, 0xF0000000, 0xFF999999);
+        RenderUtils.drawOutlinedBox(panelX, panelY, panelWidth, panelHeight, 0xF0000000, 0xFF999999);
 
-        this.drawString(labelX, lineY, 0xFFFFFFFF, itemLabel, drawContext);
-        RenderUtils.drawRect(valueX, lineY - 4, 16, 16, 0x20FFFFFF);
+        RenderUtils.drawRect(lineX, lineY - 4, HOVER_TOOLTIP_ICON_SIZE, HOVER_TOOLTIP_ICON_SIZE, 0x20FFFFFF);
         RenderUtils.enableDiffuseLightingGui3D();
-        drawContext.method_51427(stack, valueX, lineY - 4);
+        drawContext.method_51427(stack, lineX, lineY - 4);
         RenderUtils.disableDiffuseLighting();
-        this.drawString(valueX + 24, lineY, 0xFFFFFFFF, itemText, drawContext);
+        this.drawString(lineX + HOVER_TOOLTIP_ICON_SIZE + HOVER_TOOLTIP_ICON_GAP, lineY, 0xFFFFFFFF, headerText, drawContext);
 
-        lineY += FIXED_TOOLTIP_LINE_HEIGHT;
-        this.drawString(labelX, lineY, 0xFFFFFFFF, totalLabel, drawContext);
-        this.drawString(valueX, lineY, 0xFFFFFFFF, totalText, drawContext);
+        lineY += HOVER_TOOLTIP_LINE_HEIGHT + HOVER_TOOLTIP_HEADER_GAP;
+        this.drawString(lineX, lineY, detailed ? 0xFFFFFFFF : missingColorInt(missing, available), countLine, drawContext);
 
-        lineY += FIXED_TOOLTIP_LINE_HEIGHT;
-        this.drawString(labelX, lineY, 0xFFFFFFFF, missingLabel, drawContext);
-        this.drawString(valueX, lineY, 0xFFFFFFFF, missingText, drawContext);
+        if (detailed) {
+            lineY += HOVER_TOOLTIP_LINE_HEIGHT;
+            this.drawString(lineX, lineY, missingColorInt(missing, available), missingLine, drawContext);
+
+            lineY += HOVER_TOOLTIP_LINE_HEIGHT;
+            this.drawString(lineX, lineY, availableColorInt(available, missing), availableLine, drawContext);
+        } else {
+            lineY += HOVER_TOOLTIP_LINE_HEIGHT;
+            this.drawString(lineX, lineY, 0xFFFFFFFF, hintLine, drawContext);
+        }
 
         drawContext.method_51448().method_22909();
     }
 
-    private PanelBounds fixedHoverPanelBounds(int panelWidth, int panelHeight) {
+    private boolean isDetailHoverKeyDown() {
+        return Hotkeys.SHOW_HOVER_DETAILS.getKeybind().isKeybindHeld();
+    }
+
+    private String detailHoverKeyDisplayName() {
+        String keyName = Hotkeys.SHOW_HOVER_DETAILS.getKeybind().getKeysDisplayString();
+        return keyName.isEmpty() ? StringUtils.translate("lmlp.label.hover.detail_key_unbound") : keyName;
+    }
+
+    private PanelBounds hoverTooltipBounds(int mouseX, int mouseY, int panelWidth, int panelHeight) {
         int screenWidth = this.mc.method_22683().method_4486();
         int screenHeight = this.mc.method_22683().method_4502();
-        int rightLimit = screenWidth - FIXED_TOOLTIP_RIGHT_CONTROLS_WIDTH - FIXED_TOOLTIP_MARGIN;
-        int minX = FIXED_TOOLTIP_MARGIN;
-        int maxX = Math.max(minX, screenWidth - panelWidth - FIXED_TOOLTIP_MARGIN);
-        int x = clamp(rightLimit - panelWidth, minX, maxX);
+        int minX = HOVER_TOOLTIP_MARGIN;
+        int minY = HOVER_TOOLTIP_MARGIN;
+        int maxX = Math.max(minX, screenWidth - panelWidth - HOVER_TOOLTIP_MARGIN);
+        int maxY = Math.max(minY, screenHeight - panelHeight - HOVER_TOOLTIP_MARGIN);
+        int x = mouseX + HOVER_TOOLTIP_CURSOR_OFFSET;
+        int y = mouseY + HOVER_TOOLTIP_CURSOR_OFFSET;
 
-        int topLimit = FIXED_TOOLTIP_MARGIN;
-        int bottomLimit = screenHeight - FIXED_TOOLTIP_MARGIN;
-        if (this.listWidget instanceof WidgetListBoundsAccess access) {
-            bottomLimit = Math.min(bottomLimit, access.lmlp$getVisibleTop() - FIXED_TOOLTIP_MARGIN);
+        if (x > maxX) {
+            x = mouseX - HOVER_TOOLTIP_CURSOR_OFFSET - panelWidth;
+        }
+        if (y > maxY) {
+            y = mouseY - HOVER_TOOLTIP_CURSOR_OFFSET - panelHeight;
         }
 
-        int maxY = Math.max(topLimit, bottomLimit - panelHeight);
-        int topGapHeight = Math.max(0, bottomLimit - topLimit);
-        int centeredY = topLimit + Math.max(0, (topGapHeight - panelHeight) / 2);
-        int y = clamp(centeredY, topLimit, maxY);
+        x = clamp(x, minX, maxX);
+        y = clamp(y, minY, maxY);
         return new PanelBounds(x, y);
+    }
+
+    private String truncateToWidth(String text, int maxWidth) {
+        if (this.getStringWidth(text) <= maxWidth) {
+            return text;
+        }
+
+        String suffix = "...";
+        int suffixWidth = this.getStringWidth(suffix);
+        int end = text.length();
+        while (end > 0 && this.getStringWidth(text.substring(0, end)) + suffixWidth > maxWidth) {
+            end--;
+        }
+
+        return end > 0 ? text.substring(0, end) + suffix : suffix;
     }
 
     private static int clamp(int value, int min, int max) {
@@ -403,6 +456,23 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
             return GuiBase.TXT_GREEN;
         }
         return GuiBase.TXT_RED;
+    }
+
+    private static int missingColorInt(int missing, int available) {
+        if (missing == 0) {
+            return 0xFF55FF55;
+        }
+        if (available >= missing) {
+            return 0xFFFFAA00;
+        }
+        return 0xFFFF5555;
+    }
+
+    private static int availableColorInt(int available, int missing) {
+        if (available >= missing) {
+            return 0xFF55FF55;
+        }
+        return 0xFFFF5555;
     }
 
     private record PanelBounds(int x, int y) {
