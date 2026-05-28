@@ -32,8 +32,9 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
     private static final int BASE_ENTRY_HEIGHT = 23;
     private static final int EXPANDED_PANEL_BOTTOM_PADDING = 8;
     private static final int FIXED_TOOLTIP_MARGIN = 8;
-    private static final int FIXED_TOOLTIP_RIGHT_CONTROLS_WIDTH = 176;
-    private static final int FIXED_TOOLTIP_MIN_WIDTH = 300;
+    private static final int FIXED_TOOLTIP_RIGHT_CONTROLS_WIDTH = 72;
+    private static final int FIXED_TOOLTIP_HORIZONTAL_PADDING = 12;
+    private static final int FIXED_TOOLTIP_LABEL_VALUE_GAP = 16;
     private static final int FIXED_TOOLTIP_HEIGHT = 50;
     private static final int FIXED_TOOLTIP_LINE_HEIGHT = 14;
     private static int lmlpMaxTotalDigits;
@@ -286,16 +287,16 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         String missingText = CountFormatter.format(stack, MaterialCounts.missing(this.entry, this.materialList));
 
         int labelWidth = Math.max(this.getStringWidth(itemLabel), Math.max(this.getStringWidth(totalLabel), this.getStringWidth(missingLabel)));
-        int valueWidth = Math.max(this.getStringWidth(itemText) + 20, Math.max(this.getStringWidth(totalText), this.getStringWidth(missingText)));
-        int panelWidth = Math.max(FIXED_TOOLTIP_MIN_WIDTH, labelWidth + valueWidth + 44);
-        int maxPanelWidth = Math.max(FIXED_TOOLTIP_MIN_WIDTH, this.mc.method_22683().method_4486() - FIXED_TOOLTIP_RIGHT_CONTROLS_WIDTH - FIXED_TOOLTIP_MARGIN * 2);
+        int valueWidth = Math.max(this.getStringWidth(itemText) + 24, Math.max(this.getStringWidth(totalText), this.getStringWidth(missingText)));
+        int panelWidth = labelWidth + valueWidth + FIXED_TOOLTIP_LABEL_VALUE_GAP + FIXED_TOOLTIP_HORIZONTAL_PADDING * 2;
+        int maxPanelWidth = Math.max(1, this.mc.method_22683().method_4486() - FIXED_TOOLTIP_RIGHT_CONTROLS_WIDTH - FIXED_TOOLTIP_MARGIN * 2);
         panelWidth = Math.min(panelWidth, maxPanelWidth);
 
         PanelBounds bounds = this.fixedHoverPanelBounds(panelWidth, FIXED_TOOLTIP_HEIGHT);
         int panelX = bounds.x();
         int panelY = bounds.y();
-        int labelX = panelX + 10;
-        int valueX = labelX + labelWidth + 20;
+        int labelX = panelX + FIXED_TOOLTIP_HORIZONTAL_PADDING;
+        int valueX = labelX + labelWidth + FIXED_TOOLTIP_LABEL_VALUE_GAP;
         int lineY = panelY + 8;
 
         drawContext.method_51448().method_22903();
