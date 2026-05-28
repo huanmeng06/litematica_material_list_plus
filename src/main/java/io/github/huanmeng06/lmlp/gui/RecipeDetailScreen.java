@@ -598,7 +598,7 @@ public class RecipeDetailScreen extends class_437 {
         }
 
         for (class_2960 id : display.provideInternalDisplayIds()) {
-            tooltip.add(Tooltip.entry(class_2561.method_43470(StringUtils.translate("lmlp.label.recipe.recipe_id") + ": " + id)));
+            tooltip.add(Tooltip.entry(class_2561.method_43470(StringUtils.translate("lmlp.label.recipe.recipe_id") + ": " + id).method_27692(class_124.field_1080)));
         }
     }
 
