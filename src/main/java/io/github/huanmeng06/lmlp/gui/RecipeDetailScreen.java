@@ -431,15 +431,36 @@ public class RecipeDetailScreen extends class_437 {
     }
 
     private int displayPanelWidth(RecipeSummary summary, int maxWidth) {
-        return Math.min(REI_PANEL_WIDTH, Math.max(1, maxWidth));
+        int boundedMaxWidth = Math.max(1, maxWidth);
+        if (this.nativeDisplayBridge.canRender(summary)) {
+            int fallbackWidth = Math.min(REI_PANEL_WIDTH, boundedMaxWidth);
+            int nativeWidth = this.nativeDisplayBridge.getDisplayWidth(summary, fallbackWidth);
+            return Math.min(Math.max(1, nativeWidth), boundedMaxWidth);
+        }
+
+        return Math.min(REI_PANEL_WIDTH, boundedMaxWidth);
     }
 
     private int displayPanelHeight(RecipeSummary summary) {
+        if (this.nativeDisplayBridge.canRender(summary)) {
+            return Math.max(1, this.nativeDisplayBridge.getDisplayHeight(summary, REI_PANEL_HEIGHT));
+        }
+
         return REI_PANEL_HEIGHT;
     }
 
     private boolean renderNativeDisplay(RecipeSummary summary, class_332 context, int x, int y, int width, int height, int mouseX, int mouseY, float delta) {
-        return false;
+        if (!this.nativeDisplayBridge.canRender(summary)) {
+            return false;
+        }
+
+        try {
+            this.nativeDisplayBridge.render(summary, context, x, y, width, height, mouseX, mouseY, delta);
+            this.nativeDisplayAreas.add(new NativeDisplayArea(summary, x, y, width, height));
+            return true;
+        } catch (Throwable throwable) {
+            return false;
+        }
     }
 
     private void renderScrollbar(class_332 context, int mouseX, int mouseY, float delta, int top, int bottom) {
