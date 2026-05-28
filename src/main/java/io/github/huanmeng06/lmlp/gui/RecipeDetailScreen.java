@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import org.slf4j.Logger;
@@ -26,6 +27,7 @@ import io.github.huanmeng06.lmlp.recipe.RecipeSlotSummary;
 import io.github.huanmeng06.lmlp.recipe.RecipeSummary;
 import io.github.huanmeng06.lmlp.recipe.RecipeSummaryFormatter;
 import net.minecraft.class_1799;
+import net.minecraft.class_124;
 import net.minecraft.class_2561;
 import net.minecraft.class_2960;
 import net.minecraft.class_332;
@@ -33,9 +35,16 @@ import net.minecraft.class_437;
 import net.minecraft.class_465;
 import me.shedaniel.math.Rectangle;
 import me.shedaniel.rei.api.client.gui.widgets.Button;
+import me.shedaniel.rei.api.client.gui.widgets.Tooltip;
+import me.shedaniel.rei.api.client.gui.widgets.Widget;
 import me.shedaniel.rei.api.client.gui.widgets.Widgets;
+import me.shedaniel.rei.api.client.registry.category.ButtonArea;
+import me.shedaniel.rei.api.client.registry.category.CategoryRegistry;
+import me.shedaniel.rei.api.client.registry.display.DisplayCategory;
 import me.shedaniel.rei.api.client.registry.transfer.TransferHandler;
 import me.shedaniel.rei.api.client.registry.transfer.TransferHandlerRegistry;
+import me.shedaniel.rei.api.client.registry.transfer.TransferHandlerRenderer;
+import me.shedaniel.rei.api.common.category.CategoryIdentifier;
 import me.shedaniel.rei.api.common.display.Display;
 
 public class RecipeDetailScreen extends class_437 {
@@ -65,8 +74,6 @@ public class RecipeDetailScreen extends class_437 {
     private static final int NESTED_RECIPE_GAP = 8;
     private static final int NESTED_RECIPE_INDENT = 24;
     private static final int MAX_NESTED_DEPTH = 3;
-    private static final int TRANSFER_BUTTON_SIZE = 16;
-    private static final int TRANSFER_BUTTON_INSET = 2;
     private static final class_2960 REI_DISPLAY_TEXTURE = new class_2960("roughlyenoughitems", "textures/gui/display.png");
 
     private final class_437 parent;
@@ -79,7 +86,7 @@ public class RecipeDetailScreen extends class_437 {
     private final RecipeNativeDisplayBridge nativeDisplayBridge = createNativeDisplayBridge();
     private final RecipeTooltipBridge tooltipBridge = createTooltipBridge();
     private final List<NativeDisplayArea> nativeDisplayAreas = new ArrayList<>();
-    private final List<Button> transferButtons = new ArrayList<>();
+    private final List<TransferButtonEntry> transferButtons = new ArrayList<>();
     private final List<ToggleArea> toggleAreas = new ArrayList<>();
     private final Map<String, List<RecipeSummary>> nestedRecipeCache = new HashMap<>();
     private final Set<String> expandedNestedRecipes = new HashSet<>();
@@ -407,8 +414,8 @@ public class RecipeDetailScreen extends class_437 {
 
     private boolean handleTransferButtonClick(double mouseX, double mouseY) {
         for (int i = this.transferButtons.size() - 1; i >= 0; i--) {
-            Button button = this.transferButtons.get(i);
-            if (button.method_25402(mouseX, mouseY, 0)) {
+            TransferButtonEntry entry = this.transferButtons.get(i);
+            if (entry.button().method_25402(mouseX, mouseY, 0)) {
                 return true;
             }
         }
@@ -421,17 +428,36 @@ public class RecipeDetailScreen extends class_437 {
             return;
         }
 
-        int x = panelX + panelWidth - TRANSFER_BUTTON_SIZE - TRANSFER_BUTTON_INSET;
-        int y = panelY + panelHeight - TRANSFER_BUTTON_SIZE - TRANSFER_BUTTON_INSET;
-        if (y + TRANSFER_BUTTON_SIZE < this.clipTop || y > this.clipBottom) {
+        Display display = displayFor(summary);
+        Rectangle displayBounds = new Rectangle(panelX, panelY, panelWidth, panelHeight);
+        Optional<ButtonArea> buttonArea = this.transferButtonArea(display);
+        if (buttonArea.isEmpty()) {
             return;
         }
 
-        Button button = Widgets.createButton(new Rectangle(x, y, TRANSFER_BUTTON_SIZE, TRANSFER_BUTTON_SIZE), class_2561.method_43470("+"))
-                .tooltipLines(class_2561.method_43471("text.auto_craft.move_items"), class_2561.method_43471("text.auto_craft.move_items.tooltip"))
+        Rectangle buttonBounds = buttonArea.get().get(displayBounds);
+        if (buttonBounds.getMaxY() < this.clipTop || buttonBounds.y > this.clipBottom) {
+            return;
+        }
+
+        AutoCraftingState state = this.evaluateTransfer(display, false, false);
+        Button button = Widgets.createButton(buttonBounds, state.hasApplicable() ? class_2561.method_43470(buttonArea.get().getButtonText()) : class_2561.method_43470("!"))
+                .focusable(false)
                 .onClick(ignored -> this.transferRecipe(summary, GuiBase.isShiftDown()));
+        button.setEnabled(state.successful());
+        button.setTint(state.tint());
+
+        if (state.hasApplicable()
+                && state.renderer() != null
+                && (isInside(mouseX, mouseY, buttonBounds.x, buttonBounds.y, buttonBounds.width, buttonBounds.height) || button.method_25370())) {
+            state.renderer().render(context, mouseX, mouseY, delta, this.setupDisplayWidgets(display, displayBounds), displayBounds, display);
+        }
+
         button.method_25394(context, mouseX, mouseY, delta);
-        this.transferButtons.add(button);
+        if (isInside(mouseX, mouseY, buttonBounds.x, buttonBounds.y, buttonBounds.width, buttonBounds.height) && !button.method_25370()) {
+            Tooltip.from(new me.shedaniel.math.Point(mouseX, mouseY), state.tooltip()).queue();
+        }
+        this.transferButtons.add(new TransferButtonEntry(button, state));
     }
 
     private boolean canTransfer(RecipeSummary summary) {
@@ -444,23 +470,116 @@ public class RecipeDetailScreen extends class_437 {
             return;
         }
 
-        TransferHandler.Context context = TransferHandler.Context.create(true, stackedCrafting, this.transferContainerScreen, display);
+        AutoCraftingState state = this.evaluateTransfer(display, true, stackedCrafting);
+        if (state.successful()) {
+            this.field_22787.method_1507(this.transferContainerScreen);
+        }
+    }
+
+    private AutoCraftingState evaluateTransfer(Display display, boolean actuallyCrafting, boolean stackedCrafting) {
+        List<TransferHandler.Result> errors = new ArrayList<>();
+        List<Tooltip.Entry> tooltip = new ArrayList<>();
+        TransferHandler.Result successfulResult = null;
+        boolean successful = false;
+        boolean hasApplicable = false;
+        int tint = 0;
+        TransferHandlerRenderer renderer = null;
+        TransferHandler.Context context = TransferHandler.Context.create(actuallyCrafting, stackedCrafting, this.transferContainerScreen, display);
+
         for (TransferHandler handler : TransferHandlerRegistry.getInstance()) {
-            TransferHandler.ApplicabilityResult applicability = handler.checkApplicable(context);
-            if (!applicability.isApplicable()) {
+            TransferHandler.Result result;
+            try {
+                TransferHandler.ApplicabilityResult applicability = handler.checkApplicable(context);
+                if (!applicability.isApplicable()) {
+                    continue;
+                }
+
+                result = applicability.isSuccessful() ? handler.handle(context) : applicability.getError();
+            } catch (Throwable throwable) {
+                LOGGER.warn("REI transfer evaluation failed for display {}.", display.getDisplayLocation().map(class_2960::toString).orElse("<unknown>"), throwable);
                 continue;
             }
 
-            TransferHandler.Result result = applicability.isSuccessful() ? handler.handle(context) : applicability.getError();
-            if (result != null && result.isSuccessful()) {
-                this.field_22787.method_1507(this.transferContainerScreen);
-                return;
+            if (result == null) {
+                continue;
             }
 
-            if (result != null && result.isBlocking()) {
-                LOGGER.warn("REI transfer failed for recipe {}: {}", summary.recipeId(), result.getError());
-                return;
+            if (result.isBlocking() && actuallyCrafting) {
+                if (result.isReturningToScreen()) {
+                    this.field_22787.method_1507(this.transferContainerScreen);
+                }
+                break;
             }
+
+            if (result.isApplicable()) {
+                hasApplicable = true;
+                tint = result.getColor();
+                TransferHandlerRenderer resultRenderer = result.getRenderer(handler, context);
+                if (resultRenderer != null) {
+                    renderer = resultRenderer;
+                }
+
+                if (result.isSuccessful()) {
+                    successful = true;
+                    successfulResult = result;
+                    errors.clear();
+                    break;
+                }
+
+                errors.add(result);
+                if (result.isBlocking()) {
+                    break;
+                }
+            }
+        }
+
+        if (!hasApplicable) {
+            tooltip.add(Tooltip.entry(class_2561.method_43471("error.rei.not.supported.move.items").method_27692(class_124.field_1061)));
+        } else if (errors.isEmpty()) {
+            tooltip.add(Tooltip.entry(class_2561.method_43471("text.auto_craft.move_items")));
+            if (successfulResult != null) {
+                successfulResult.fillTooltip(tooltip);
+            }
+        } else {
+            for (TransferHandler.Result error : errors) {
+                error.fillTooltip(tooltip);
+            }
+        }
+
+        this.addRecipeIdTooltip(display, tooltip);
+        return new AutoCraftingState(successful, hasApplicable, tint, renderer, tooltip);
+    }
+
+    private void addRecipeIdTooltip(Display display, List<Tooltip.Entry> tooltip) {
+        if (this.field_22787 == null || this.field_22787.field_1690 == null || !this.field_22787.field_1690.field_1827) {
+            return;
+        }
+
+        for (class_2960 id : display.provideInternalDisplayIds()) {
+            tooltip.add(Tooltip.entry(class_2561.method_43469("text.rei.recipe_id",
+                    class_2561.method_43470(id.method_12836()).method_27692(class_124.field_1080),
+                    class_2561.method_43470(id.method_12832()).method_27692(class_124.field_1080))));
+        }
+    }
+
+    private Optional<ButtonArea> transferButtonArea(Display display) {
+        try {
+            CategoryIdentifier<?> categoryId = display.getCategoryIdentifier();
+            return CategoryRegistry.getInstance().tryGet(categoryId.cast())
+                    .flatMap(CategoryRegistry.CategoryConfiguration::getPlusButtonArea)
+                    .or(() -> Optional.of(ButtonArea.defaultArea()));
+        } catch (Throwable throwable) {
+            return Optional.of(ButtonArea.defaultArea());
+        }
+    }
+
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    private List<Widget> setupDisplayWidgets(Display display, Rectangle displayBounds) {
+        try {
+            DisplayCategory category = CategoryRegistry.getInstance().get(display.getCategoryIdentifier().cast()).getCategory();
+            return category.setupDisplay(display, displayBounds);
+        } catch (Throwable throwable) {
+            return List.of();
         }
     }
 
@@ -759,6 +878,12 @@ public class RecipeDetailScreen extends class_437 {
         private boolean contains(double mouseX, double mouseY) {
             return mouseX >= this.x && mouseX < this.x + this.width && mouseY >= this.y && mouseY < this.y + this.height;
         }
+    }
+
+    private record TransferButtonEntry(Button button, AutoCraftingState state) {
+    }
+
+    private record AutoCraftingState(boolean successful, boolean hasApplicable, int tint, TransferHandlerRenderer renderer, List<Tooltip.Entry> tooltip) {
     }
     @FunctionalInterface
     private interface NativeDisplayAction {
