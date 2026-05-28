@@ -1,7 +1,11 @@
 package io.github.huanmeng06.lmlp.gui;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import fi.dy.masa.malilib.gui.button.ButtonGeneric;
 import fi.dy.masa.malilib.gui.GuiScrollBar;
@@ -10,6 +14,8 @@ import fi.dy.masa.malilib.util.StringUtils;
 import io.github.huanmeng06.lmlp.material.CountFormatter;
 import io.github.huanmeng06.lmlp.material.ItemStackTexts;
 import io.github.huanmeng06.lmlp.recipe.IngredientSummary;
+import io.github.huanmeng06.lmlp.recipe.MaterialTreeBuilder;
+import io.github.huanmeng06.lmlp.recipe.MaterialTreeNode;
 import io.github.huanmeng06.lmlp.recipe.RecipeSlotSummary;
 import io.github.huanmeng06.lmlp.recipe.RecipeSummary;
 import io.github.huanmeng06.lmlp.recipe.RecipeSummaryFormatter;
@@ -32,6 +38,10 @@ public class RecipeDetailScreen extends class_437 {
     private static final int HEADER_MAX_WIDTH = 600;
     private static final int HEADER_HEIGHT = 50;
     private static final int HEADER_BUTTON_GAP = 8;
+    private static final int INGREDIENT_ROW_HEIGHT = 20;
+    private static final int INGREDIENT_TREE_INDENT_WIDTH = 18;
+    private static final int INGREDIENT_TOGGLE_WIDTH = 10;
+    private static final int INGREDIENT_ICON_OFFSET = 14;
     private static final class_2960 REI_DISPLAY_TEXTURE = new class_2960("roughlyenoughitems", "textures/gui/display.png");
 
     private final class_437 parent;
@@ -44,6 +54,9 @@ public class RecipeDetailScreen extends class_437 {
     private final RecipeNativeDisplayBridge nativeDisplayBridge = createNativeDisplayBridge();
     private final RecipeTooltipBridge tooltipBridge = createTooltipBridge();
     private final List<NativeDisplayArea> nativeDisplayAreas = new ArrayList<>();
+    private final Map<String, Boolean> treeSupportCache = new HashMap<>();
+    private final Map<String, MaterialTreeNode> treeCache = new HashMap<>();
+    private final Set<String> expandedTreeNodes = new HashSet<>();
     private class_1799 hoveredStack = class_1799.field_8037;
     private int clipTop;
     private int clipBottom;
@@ -85,6 +98,10 @@ public class RecipeDetailScreen extends class_437 {
 
         NativeDisplayArea area = this.nativeDisplayAreaAt(mouseX, mouseY);
         if (area != null && this.nativeDisplayBridge.mouseClicked(area.summary(), mouseX, mouseY, button)) {
+            return true;
+        }
+
+        if (button == 0 && this.handleIngredientTreeClick(mouseX, mouseY)) {
             return true;
         }
 
@@ -219,15 +236,76 @@ public class RecipeDetailScreen extends class_437 {
         lineY += 18;
 
         for (IngredientSummary ingredient : summary.ingredients()) {
-            context.method_51427(ingredient.icon(), left + 18, lineY - 5);
-            this.captureHoveredStack(ingredient.icon(), mouseX, mouseY, left + 18, lineY - 5, 16, 16);
-            String line = RecipeSummaryFormatter.ingredientName(ingredient) + ": " + RecipeSummaryFormatter.totalCount(ingredient);
-            if (ingredient.countMissing() != ingredient.countTotal()) {
-                line += " / " + RecipeSummaryFormatter.missingCount(ingredient);
+            this.renderIngredientLine(context, left + 14, lineY, 0, ingredient, mouseX, mouseY);
+            lineY += INGREDIENT_ROW_HEIGHT;
+
+            MaterialTreeNode root = this.expandedTree(ingredient);
+            if (root != null) {
+                lineY = this.renderIngredientChildren(context, left + 14, lineY, root.children(), 1, mouseX, mouseY);
             }
-            context.method_51433(this.field_22793, line, left + 42, lineY, 0xFFFFFFFF, false);
-            lineY += 20;
         }
+    }
+
+    private void renderIngredientLine(class_332 context, int left, int y, int depth, IngredientSummary ingredient, int mouseX, int mouseY) {
+        MaterialTreeNode root = this.expandedTree(ingredient);
+        this.renderMaterialLine(
+                context,
+                left,
+                y,
+                depth,
+                this.hasTree(ingredient),
+                root != null,
+                ingredient.icon(),
+                RecipeSummaryFormatter.ingredientName(ingredient),
+                RecipeSummaryFormatter.totalCount(ingredient),
+                RecipeSummaryFormatter.missingCount(ingredient),
+                ingredient.countMissing() != ingredient.countTotal(),
+                mouseX,
+                mouseY);
+    }
+
+    private int renderIngredientChildren(class_332 context, int left, int y, List<MaterialTreeNode> nodes, int depth, int mouseX, int mouseY) {
+        int lineY = y;
+        for (MaterialTreeNode node : nodes) {
+            boolean expanded = this.expandedTreeNodes.contains(node.path());
+            this.renderMaterialLine(
+                    context,
+                    left,
+                    lineY,
+                    depth,
+                    node.hasChildren(),
+                    expanded,
+                    node.icon(),
+                    node.name(),
+                    CountFormatter.format(node.totalCount(), node.maxStackSize()),
+                    CountFormatter.format(node.missingCount(), node.maxStackSize()),
+                    node.missingCount() != node.totalCount(),
+                    mouseX,
+                    mouseY);
+            lineY += INGREDIENT_ROW_HEIGHT;
+            if (node.hasChildren() && expanded) {
+                lineY = this.renderIngredientChildren(context, left, lineY, node.children(), depth + 1, mouseX, mouseY);
+            }
+        }
+
+        return lineY;
+    }
+
+    private void renderMaterialLine(class_332 context, int left, int y, int depth, boolean hasTree, boolean expanded, class_1799 icon, String name, String totalText, String missingText, boolean showMissing, int mouseX, int mouseY) {
+        int rowX = left + depth * INGREDIENT_TREE_INDENT_WIDTH;
+        if (hasTree) {
+            context.method_51433(this.field_22793, expanded ? "v" : ">", rowX + 2, y, 0xFFFFFFFF, false);
+        }
+
+        int iconX = rowX + INGREDIENT_ICON_OFFSET;
+        context.method_51427(icon, iconX, y - 5);
+        this.captureHoveredStack(icon, mouseX, mouseY, iconX, y - 5, 16, 16);
+
+        String line = name + ": " + totalText;
+        if (showMissing) {
+            line += " / " + missingText;
+        }
+        context.method_51433(this.field_22793, line, rowX + INGREDIENT_ICON_OFFSET + 24, y, 0xFFFFFFFF, false);
     }
 
     private void renderCraftingGrid(class_332 context, RecipeSummary summary, int x, int y, int mouseX, int mouseY) {
@@ -273,6 +351,75 @@ public class RecipeDetailScreen extends class_437 {
         }
     }
 
+    private boolean handleIngredientTreeClick(double mouseX, double mouseY) {
+        Layout layout = this.layout();
+        int contentTop = layout.headerTop() + HEADER_HEIGHT + 12;
+        int contentBottom = this.field_22790 - PAGE_BOTTOM_MARGIN;
+        if (mouseY < contentTop || mouseY >= contentBottom) {
+            return false;
+        }
+
+        int y = contentTop - this.scrollBar.getValue();
+        for (RecipeSummary summary : this.summaries) {
+            int boxHeight = this.recipeBoxHeight(summary);
+            ToggleTarget target = this.toggleTargetAt(summary, layout.left(), y, (int) mouseX, (int) mouseY);
+            if (!target.isNone()) {
+                if (target.ingredient() != null) {
+                    this.toggleIngredientTree(target.ingredient());
+                } else {
+                    this.toggleTreeNode(target.nodePath());
+                }
+                return true;
+            }
+            y += boxHeight + 10;
+        }
+
+        return false;
+    }
+
+    private ToggleTarget toggleTargetAt(RecipeSummary summary, int left, int boxY, int mouseX, int mouseY) {
+        int panelHeight = this.displayPanelHeight(summary);
+        int lineY = boxY + 38 + panelHeight + 16 + 18;
+
+        for (IngredientSummary ingredient : summary.ingredients()) {
+            if (this.hasTree(ingredient) && isToggleHit(left + 14, lineY, 0, mouseX, mouseY)) {
+                return ToggleTarget.ingredient(ingredient);
+            }
+            lineY += INGREDIENT_ROW_HEIGHT;
+
+            MaterialTreeNode root = this.expandedTree(ingredient);
+            if (root != null) {
+                ToggleScan scan = this.scanChildren(root.children(), left + 14, lineY, 1, mouseX, mouseY);
+                if (!scan.target().isNone()) {
+                    return scan.target();
+                }
+                lineY = scan.nextY();
+            }
+        }
+
+        return ToggleTarget.NONE;
+    }
+
+    private ToggleScan scanChildren(List<MaterialTreeNode> nodes, int left, int y, int depth, int mouseX, int mouseY) {
+        int lineY = y;
+        for (MaterialTreeNode node : nodes) {
+            if (node.hasChildren() && isToggleHit(left, lineY, depth, mouseX, mouseY)) {
+                return new ToggleScan(ToggleTarget.node(node.path()), lineY + INGREDIENT_ROW_HEIGHT);
+            }
+
+            lineY += INGREDIENT_ROW_HEIGHT;
+            if (node.hasChildren() && this.expandedTreeNodes.contains(node.path())) {
+                ToggleScan scan = this.scanChildren(node.children(), left, lineY, depth + 1, mouseX, mouseY);
+                if (!scan.target().isNone()) {
+                    return scan;
+                }
+                lineY = scan.nextY();
+            }
+        }
+
+        return new ToggleScan(ToggleTarget.NONE, lineY);
+    }
+
     private int contentHeight() {
         if (this.summaries.isEmpty()) {
             return 48;
@@ -286,7 +433,107 @@ public class RecipeDetailScreen extends class_437 {
     }
 
     private int recipeBoxHeight(RecipeSummary summary) {
-        return 72 + this.displayPanelHeight(summary) + summary.ingredients().size() * 20;
+        return 72 + this.displayPanelHeight(summary) + this.visibleIngredientRows(summary) * INGREDIENT_ROW_HEIGHT;
+    }
+
+    private int visibleIngredientRows(RecipeSummary summary) {
+        int rows = 0;
+        for (IngredientSummary ingredient : summary.ingredients()) {
+            rows++;
+            MaterialTreeNode root = this.expandedTree(ingredient);
+            if (root != null) {
+                rows += this.visibleChildRows(root);
+            }
+        }
+
+        return rows;
+    }
+
+    private int visibleChildRows(MaterialTreeNode root) {
+        if (!this.expandedTreeNodes.contains(root.path())) {
+            return 0;
+        }
+
+        return this.visibleNodeRows(root.children());
+    }
+
+    private int visibleNodeRows(List<MaterialTreeNode> nodes) {
+        int rows = 0;
+        for (MaterialTreeNode node : nodes) {
+            rows++;
+            if (node.hasChildren() && this.expandedTreeNodes.contains(node.path())) {
+                rows += this.visibleNodeRows(node.children());
+            }
+        }
+
+        return rows;
+    }
+
+    private boolean hasTree(IngredientSummary ingredient) {
+        String key = key(ingredient);
+        Boolean cached = this.treeSupportCache.get(key);
+        if (cached != null) {
+            return cached;
+        }
+
+        boolean supported = MaterialTreeBuilder.hasChildren(ingredient.icon(), ingredient.countTotal(), ingredient.countMissing());
+        this.treeSupportCache.put(key, supported);
+        return supported;
+    }
+
+    private void toggleIngredientTree(IngredientSummary ingredient) {
+        MaterialTreeNode root = this.treeFor(ingredient);
+        if (!root.hasChildren()) {
+            this.treeSupportCache.put(key(ingredient), false);
+            return;
+        }
+
+        this.treeSupportCache.put(key(ingredient), true);
+        if (this.expandedTreeNodes.contains(root.path())) {
+            this.collapseTreeNode(root.path());
+        } else {
+            this.expandedTreeNodes.add(root.path());
+        }
+    }
+
+    private MaterialTreeNode expandedTree(IngredientSummary ingredient) {
+        MaterialTreeNode root = this.treeCache.get(key(ingredient));
+        if (root == null || !this.expandedTreeNodes.contains(root.path())) {
+            return null;
+        }
+
+        return root;
+    }
+
+    private MaterialTreeNode treeFor(IngredientSummary ingredient) {
+        String key = key(ingredient);
+        return this.treeCache.computeIfAbsent(key, ignored -> MaterialTreeBuilder.build(
+                ingredient.icon(),
+                RecipeSummaryFormatter.ingredientName(ingredient),
+                ingredient.countTotal(),
+                ingredient.countMissing(),
+                "detail:" + key));
+    }
+
+    private void toggleTreeNode(String path) {
+        if (this.expandedTreeNodes.contains(path)) {
+            this.collapseTreeNode(path);
+        } else {
+            this.expandedTreeNodes.add(path);
+        }
+    }
+
+    private void collapseTreeNode(String path) {
+        this.expandedTreeNodes.removeIf(expandedPath -> expandedPath.equals(path) || expandedPath.startsWith(path + "/"));
+    }
+
+    private static boolean isToggleHit(int left, int y, int depth, int mouseX, int mouseY) {
+        int toggleX = left + depth * INGREDIENT_TREE_INDENT_WIDTH;
+        return mouseX >= toggleX && mouseX < toggleX + INGREDIENT_TOGGLE_WIDTH && mouseY >= y - 2 && mouseY < y + INGREDIENT_ROW_HEIGHT - 2;
+    }
+
+    private static String key(IngredientSummary ingredient) {
+        return ItemStackTexts.id(ingredient.icon()) + "|" + ingredient.countTotal() + "|" + ingredient.countMissing();
     }
 
     private int displayPanelWidth(RecipeSummary summary, int maxWidth) {
@@ -390,6 +637,25 @@ public class RecipeDetailScreen extends class_437 {
 
     private static boolean isInside(int mouseX, int mouseY, int x, int y, int width, int height) {
         return mouseX >= x && mouseX < x + width && mouseY >= y && mouseY < y + height;
+    }
+
+    private record ToggleTarget(IngredientSummary ingredient, String nodePath) {
+        private static final ToggleTarget NONE = new ToggleTarget(null, null);
+
+        private static ToggleTarget ingredient(IngredientSummary ingredient) {
+            return new ToggleTarget(ingredient, null);
+        }
+
+        private static ToggleTarget node(String nodePath) {
+            return new ToggleTarget(null, nodePath);
+        }
+
+        private boolean isNone() {
+            return this.ingredient == null && this.nodePath == null;
+        }
+    }
+
+    private record ToggleScan(ToggleTarget target, int nextY) {
     }
 
     private record NativeDisplayArea(RecipeSummary summary, int x, int y, int width, int height) {
