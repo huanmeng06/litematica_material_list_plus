@@ -17,6 +17,8 @@ public final class RecipeInlineRenderer {
     private static final int PADDING = 8;
     private static final int INNER_BOTTOM_PADDING = 4;
     private static final int ENTRY_BOTTOM_GAP = 4;
+    private static final int INGREDIENT_TOGGLE_WIDTH = 10;
+    private static final int INGREDIENT_ICON_OFFSET = 14;
 
     private RecipeInlineRenderer() {
     }
@@ -68,18 +70,47 @@ public final class RecipeInlineRenderer {
         cursorY += 18;
 
         for (IngredientSummary ingredient : summary.ingredients()) {
-            RenderUtils.drawRect(textX, cursorY - 3, 18, 18, 0x30FFFFFF);
-            context.method_51427(ingredient.icon(), textX + 1, cursorY - 2);
+            if (MaterialListPlusState.hasTree(ingredient)) {
+                widget.drawString(textX + 2, cursorY + 2, 0xFFFFFFFF, ">", context);
+            }
+
+            int iconX = textX + INGREDIENT_ICON_OFFSET;
+            RenderUtils.drawRect(iconX, cursorY - 3, 18, 18, 0x30FFFFFF);
+            context.method_51427(ingredient.icon(), iconX + 1, cursorY - 2);
             String line = RecipeSummaryFormatter.ingredientName(ingredient) + ": " + GuiBase.TXT_GOLD + RecipeSummaryFormatter.totalCount(ingredient);
             if (ingredient.countMissing() != ingredient.countTotal()) {
                 line += GuiBase.TXT_RST + " / " + GuiBase.TXT_RED + RecipeSummaryFormatter.missingCount(ingredient);
             }
-            widget.drawString(textX + 26, cursorY + 2, 0xFFFFFFFF, line, context);
+            widget.drawString(textX + INGREDIENT_ICON_OFFSET + 26, cursorY + 2, 0xFFFFFFFF, line, context);
             cursorY += INGREDIENT_HEIGHT;
         }
 
         if (summaries.size() > 1) {
             widget.drawString(textX, y + height - 16, 0xFFFFFFFF, GuiBase.TXT_GOLD + StringUtils.translate("lmlp.label.recipe.more_hint"), context);
         }
+    }
+
+    public static IngredientSummary ingredientToggleAt(List<RecipeSummary> summaries, int x, int y, int width, int mouseX, int mouseY) {
+        int panelWidth = Math.max(160, width);
+        int height = getHeight(summaries);
+        if (mouseX < x || mouseX >= x + panelWidth || mouseY < y || mouseY >= y + height || summaries.isEmpty()) {
+            return null;
+        }
+
+        RecipeSummary summary = summaries.get(0);
+        int textX = x + PADDING;
+        int cursorY = y + PADDING + 24 + 18 + 18;
+        for (IngredientSummary ingredient : summary.ingredients()) {
+            if (MaterialListPlusState.hasTree(ingredient)
+                    && mouseX >= textX
+                    && mouseX < textX + INGREDIENT_TOGGLE_WIDTH
+                    && mouseY >= cursorY - 2
+                    && mouseY < cursorY + INGREDIENT_HEIGHT - 2) {
+                return ingredient;
+            }
+            cursorY += INGREDIENT_HEIGHT;
+        }
+
+        return null;
     }
 }

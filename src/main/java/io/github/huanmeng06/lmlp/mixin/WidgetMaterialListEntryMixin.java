@@ -13,10 +13,13 @@ import fi.dy.masa.malilib.util.GuiUtils;
 import fi.dy.masa.malilib.util.StringUtils;
 import io.github.huanmeng06.lmlp.access.WidgetListBoundsAccess;
 import io.github.huanmeng06.lmlp.gui.MaterialListPlusState;
+import io.github.huanmeng06.lmlp.gui.NestedMaterialTreeRenderer;
 import io.github.huanmeng06.lmlp.gui.RecipeDetailScreen;
 import io.github.huanmeng06.lmlp.gui.RecipeInlineRenderer;
 import io.github.huanmeng06.lmlp.material.CountFormatter;
 import io.github.huanmeng06.lmlp.material.MaterialCounts;
+import io.github.huanmeng06.lmlp.recipe.IngredientSummary;
+import io.github.huanmeng06.lmlp.recipe.MaterialTreeNode;
 import io.github.huanmeng06.lmlp.recipe.RecipeSummary;
 import net.minecraft.class_1799;
 import net.minecraft.class_332;
@@ -134,11 +137,21 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
 
         if (this.entry != null) {
             if (mouseButton == 0 && this.isMouseOver(mouseX, mouseY)) {
+                if (!GuiBase.isShiftDown()) {
+                    if (this.handleTreePanelClick(mouseX, mouseY)) {
+                        return true;
+                    }
+
+                    if (this.handleRecipePanelClick(mouseX, mouseY)) {
+                        return true;
+                    }
+                }
+
                 if (GuiBase.isShiftDown()) {
                     List<RecipeSummary> summaries = MaterialListPlusState.resolveFor(this.entry, this.materialList);
                     this.mc.method_1507(new RecipeDetailScreen(GuiUtils.getCurrentScreen(), this.entry.getStack(), MaterialCounts.total(this.entry, this.materialList), MaterialCounts.missing(this.entry, this.materialList), summaries));
                 } else {
-                    boolean wasExpanded = MaterialListPlusState.isExpanded(this.entry);
+                    boolean wasExpanded = MaterialListPlusState.isRecipeExpanded(this.entry);
                     int scrollToIndex = this.getListIndex();
                     boolean shouldScrollAfterExpand = false;
                     if (wasExpanded) {
@@ -228,6 +241,7 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         int missing = MaterialCounts.missing(this.entry, this.materialList);
         int available = this.entry.getCountAvailable();
 
+        int iconX = xItem;
         this.drawString(xItem + 20, yText, -1, stack.method_7964().getString(), drawContext);
         this.drawString(xTotal, yText, -1, CountFormatter.formatAligned(stack, total, lmlpMaxTotalDigits), drawContext);
         this.drawString(xMissing, yText, -1, missingColor(missing, available) + CountFormatter.formatAligned(stack, missing, lmlpMaxMissingDigits), drawContext);
@@ -236,19 +250,79 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         drawContext.method_51448().method_22903();
         RenderUtils.enableDiffuseLightingGui3D();
         int iconY = this.y + 3;
-        RenderUtils.drawRect(xItem, iconY, 16, 16, 0x20FFFFFF);
-        drawContext.method_51427(stack, xItem, iconY);
+        RenderUtils.drawRect(iconX, iconY, 16, 16, 0x20FFFFFF);
+        drawContext.method_51427(stack, iconX, iconY);
         RenderSystem.disableBlend();
         RenderUtils.disableDiffuseLighting();
         drawContext.method_51448().method_22909();
 
-        if (MaterialListPlusState.isExpanded(this.entry)) {
+        if (MaterialListPlusState.isRecipeExpanded(this.entry)) {
             List<RecipeSummary> summaries = MaterialListPlusState.getSummaries(this.entry, this.materialList);
             int panelY = this.y + 23;
             RecipeInlineRenderer.render(this, drawContext, this.x + 28, panelY, Math.max(180, this.width - 64), summaries);
+        } else if (MaterialListPlusState.isTreeExpanded(this.entry)) {
+            MaterialTreeNode root = MaterialListPlusState.getTreeRoot(this.entry, this.materialList);
+            if (root != null) {
+                int panelY = this.y + 23;
+                NestedMaterialTreeRenderer.render(this, drawContext, this.x + 28, panelY, Math.max(220, this.width - 64), root, MaterialListPlusState.getExpandedTreeNodes());
+            }
         }
 
         super.render(mouseX, mouseY, selected, drawContext);
+    }
+
+    private boolean handleTreePanelClick(int mouseX, int mouseY) {
+        if (!MaterialListPlusState.isTreeExpanded(this.entry)) {
+            return false;
+        }
+
+        MaterialTreeNode root = MaterialListPlusState.getTreeRoot(this.entry, this.materialList);
+        if (root == null) {
+            return false;
+        }
+
+        int panelX = this.x + 28;
+        int panelY = this.y + 23;
+        int panelWidth = Math.max(220, this.width - 64);
+        String nodePath = NestedMaterialTreeRenderer.nodeToggleAt(root, MaterialListPlusState.getExpandedTreeNodes(), panelX, panelY, panelWidth, mouseX, mouseY);
+        if (nodePath != null) {
+            MaterialListPlusState.toggleTreeNode(nodePath);
+            this.listWidget.refreshEntries();
+            return true;
+        }
+
+        int panelHeight = NestedMaterialTreeRenderer.getHeight(root, MaterialListPlusState.getExpandedTreeNodes());
+        return mouseX >= panelX && mouseX < panelX + panelWidth && mouseY >= panelY && mouseY < panelY + panelHeight;
+    }
+
+    private boolean handleRecipePanelClick(int mouseX, int mouseY) {
+        if (!MaterialListPlusState.isRecipeExpanded(this.entry)) {
+            return false;
+        }
+
+        List<RecipeSummary> summaries = MaterialListPlusState.getSummaries(this.entry, this.materialList);
+        int panelX = this.x + 28;
+        int panelY = this.y + 23;
+        int panelWidth = Math.max(180, this.width - 64);
+        IngredientSummary ingredient = RecipeInlineRenderer.ingredientToggleAt(summaries, panelX, panelY, panelWidth, mouseX, mouseY);
+        if (ingredient == null) {
+            return false;
+        }
+
+        MaterialListPlusState.openTree(this.entry, this.materialList, ingredient);
+        MaterialTreeNode root = MaterialListPlusState.getCachedTreeRoot(this.entry);
+        boolean shouldScrollAfterExpand = false;
+        if (root != null) {
+            int visibleBottom = this.listWidget instanceof WidgetListBoundsAccess access ? access.lmlp$getVisibleBottom() : this.y + this.height;
+            shouldScrollAfterExpand = this.y + 23 + NestedMaterialTreeRenderer.getOuterHeight(root, MaterialListPlusState.getExpandedTreeNodes()) > visibleBottom;
+        }
+
+        this.listWidget.refreshEntries();
+        if (shouldScrollAfterExpand) {
+            this.listWidget.getScrollbar().setValue(Math.max(0, this.getListIndex() - 1));
+            this.listWidget.refreshEntries();
+        }
+        return true;
     }
 
     private static String missingColor(int missing, int available) {
