@@ -7,6 +7,7 @@ import fi.dy.masa.litematica.schematic.placement.SchematicPlacement;
 import fi.dy.masa.malilib.gui.GuiBase;
 import fi.dy.masa.malilib.gui.Message.MessageType;
 import fi.dy.masa.malilib.util.InfoUtils;
+import net.minecraft.class_465;
 
 public final class MaterialListOpener {
     private MaterialListOpener() {
@@ -20,6 +21,20 @@ public final class MaterialListOpener {
         }
 
         GuiBase.openGui(new GuiMaterialList(materialList));
+        return true;
+    }
+
+    public static boolean openFromHandledScreen(class_465<?> parent) {
+        MaterialListBase materialList = getOrCreateMaterialList();
+
+        if (materialList == null) {
+            return true;
+        }
+
+        GuiMaterialList gui = new GuiMaterialList(materialList);
+        gui.setParent(parent);
+        HandledScreenMaterialListBridge.preserveOnce(parent);
+        GuiBase.openGui(gui);
         return true;
     }
 
