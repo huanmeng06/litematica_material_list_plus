@@ -3,8 +3,6 @@ package io.github.huanmeng06.lmlp.gui;
 import java.util.List;
 import java.util.Set;
 
-import org.joml.Quaternionf;
-
 import fi.dy.masa.malilib.gui.GuiBase;
 import fi.dy.masa.malilib.gui.widgets.WidgetBase;
 import fi.dy.masa.malilib.render.RenderUtils;
@@ -16,7 +14,6 @@ import io.github.huanmeng06.lmlp.recipe.IngredientSummary;
 import io.github.huanmeng06.lmlp.recipe.MaterialTreeNode;
 import io.github.huanmeng06.lmlp.recipe.RecipeSummary;
 import io.github.huanmeng06.lmlp.recipe.RecipeSummaryFormatter;
-import net.minecraft.class_2960;
 import net.minecraft.class_332;
 
 public final class RecipeInlineRenderer {
@@ -27,12 +24,6 @@ public final class RecipeInlineRenderer {
     private static final int INGREDIENT_TOGGLE_WIDTH = 18;
     private static final int INGREDIENT_ICON_OFFSET = 20;
     private static final int TREE_INDENT_WIDTH = 18;
-    private static final int TOGGLE_ICON_WIDTH = 12;
-    private static final int TOGGLE_ICON_HEIGHT = 17;
-    private static final int TOGGLE_EXPANDED_Y_OFFSET = -6;
-    private static final float TOGGLE_EXPANDED_ROTATION = (float) (Math.PI / 2.0D);
-    private static final class_2960 TOGGLE_TEXTURE = new class_2960("minecraft", "recipe_book/page_forward");
-    private static final class_2960 TOGGLE_HIGHLIGHTED_TEXTURE = new class_2960("minecraft", "recipe_book/page_forward_highlighted");
 
     private RecipeInlineRenderer() {
     }
@@ -156,38 +147,21 @@ public final class RecipeInlineRenderer {
 
     private static void renderRow(WidgetBase widget, class_332 context, int textX, int y, int depth, boolean hasTree, boolean expanded, net.minecraft.class_1799 icon, String name, int totalCount, int missingCount, int maxStackSize, int mouseX, int mouseY) {
         int rowX = textX + depth * TREE_INDENT_WIDTH;
+        int iconX = rowX + INGREDIENT_ICON_OFFSET;
+        int iconY = y - 2;
         if (hasTree) {
             boolean hovered = isToggleHit(textX, y, depth, mouseX, mouseY);
-            renderToggleIcon(context, rowX, y - 2, INGREDIENT_TOGGLE_WIDTH, INGREDIENT_HEIGHT, expanded, hovered);
+            ToggleArrowRenderer.render(context, rowX, INGREDIENT_TOGGLE_WIDTH, iconY + 8, expanded, hovered);
         }
 
-        int iconX = rowX + INGREDIENT_ICON_OFFSET;
         RenderUtils.drawRect(iconX, y - 3, 18, 18, 0x30FFFFFF);
-        context.method_51427(icon, iconX + 1, y - 2);
+        context.method_51427(icon, iconX + 1, iconY);
 
         String line = name + ": " + GuiBase.TXT_GOLD + CountFormatter.format(totalCount, maxStackSize);
         if (missingCount != totalCount) {
             line += GuiBase.TXT_RST + " / " + GuiBase.TXT_RED + CountFormatter.format(missingCount, maxStackSize);
         }
         widget.drawString(rowX + INGREDIENT_ICON_OFFSET + 26, y + 2, 0xFFFFFFFF, line, context);
-    }
-
-    private static void renderToggleIcon(class_332 context, int x, int y, int width, int height, boolean expanded, boolean hovered) {
-        class_2960 texture = hovered ? TOGGLE_HIGHLIGHTED_TEXTURE : TOGGLE_TEXTURE;
-        int iconX = x + (width - TOGGLE_ICON_WIDTH) / 2;
-        int iconY = y + (height - TOGGLE_ICON_HEIGHT) / 2;
-        if (!expanded) {
-            context.method_52706(texture, iconX, iconY, TOGGLE_ICON_WIDTH, TOGGLE_ICON_HEIGHT);
-            return;
-        }
-
-        int centerX = iconX + TOGGLE_ICON_WIDTH / 2;
-        int centerY = iconY + TOGGLE_ICON_HEIGHT / 2 + TOGGLE_EXPANDED_Y_OFFSET;
-        context.method_51448().method_22903();
-        context.method_51448().method_22904(centerX, centerY, 0.0D);
-        context.method_51448().method_22907(new Quaternionf().rotateZ(TOGGLE_EXPANDED_ROTATION));
-        context.method_52706(texture, -TOGGLE_ICON_WIDTH / 2, -TOGGLE_ICON_HEIGHT / 2, TOGGLE_ICON_WIDTH, TOGGLE_ICON_HEIGHT);
-        context.method_51448().method_22909();
     }
 
     private static int visibleIngredientRows(RecipeSummary summary) {

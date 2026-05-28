@@ -26,7 +26,6 @@ import net.minecraft.class_332;
 
 public final class ReiNativeDisplayBridge implements RecipeNativeDisplayBridge {
     private static final int WORKSTATION_SLOT_SIZE = 18;
-    private static final int WORKSTATION_ICON_SIZE = 16;
     private static final int WORKSTATION_SLOT_MARGIN = 4;
 
     private final Map<Display, Layout> layouts = new IdentityHashMap<>();
@@ -226,8 +225,8 @@ public final class ReiNativeDisplayBridge implements RecipeNativeDisplayBridge {
 
     private static Rectangle workstationSlotBounds(Rectangle bounds) {
         return new Rectangle(
-                bounds.x + bounds.width - WORKSTATION_SLOT_SIZE - WORKSTATION_SLOT_MARGIN,
-                bounds.y + bounds.height - WORKSTATION_SLOT_SIZE - WORKSTATION_SLOT_MARGIN,
+                bounds.x + WORKSTATION_SLOT_MARGIN,
+                bounds.y + (bounds.height - WORKSTATION_SLOT_SIZE) / 2,
                 WORKSTATION_SLOT_SIZE,
                 WORKSTATION_SLOT_SIZE);
     }
