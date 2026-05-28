@@ -13,6 +13,7 @@ import fi.dy.masa.malilib.render.RenderUtils;
 import fi.dy.masa.malilib.util.StringUtils;
 import io.github.huanmeng06.lmlp.material.CountFormatter;
 import io.github.huanmeng06.lmlp.material.ItemStackTexts;
+import io.github.huanmeng06.lmlp.recipe.AlternativeItemDisplay;
 import io.github.huanmeng06.lmlp.recipe.IngredientSummary;
 import io.github.huanmeng06.lmlp.recipe.MaterialTreeBuilder;
 import io.github.huanmeng06.lmlp.recipe.MaterialTreeNode;
@@ -255,7 +256,7 @@ public class RecipeDetailScreen extends class_437 {
                 depth,
                 this.hasTree(ingredient),
                 root != null,
-                ingredient.icon(),
+                AlternativeItemDisplay.icon(ingredient),
                 RecipeSummaryFormatter.ingredientName(ingredient),
                 RecipeSummaryFormatter.totalCount(ingredient),
                 RecipeSummaryFormatter.missingCount(ingredient),
@@ -275,7 +276,7 @@ public class RecipeDetailScreen extends class_437 {
                     depth,
                     node.hasChildren(),
                     expanded,
-                    node.icon(),
+                    AlternativeItemDisplay.icon(node),
                     node.name(),
                     CountFormatter.format(node.totalCount(), node.maxStackSize()),
                     CountFormatter.format(node.missingCount(), node.maxStackSize()),
@@ -343,7 +344,7 @@ public class RecipeDetailScreen extends class_437 {
 
     private void drawSlotItem(class_332 context, int x, int y, RecipeSlotSummary slot, int mouseX, int mouseY, int hoverWidth, int hoverHeight) {
         if (!slot.isEmpty()) {
-            class_1799 icon = slot.icon().method_7972();
+            class_1799 icon = AlternativeItemDisplay.icon(slot).method_7972();
             icon.method_7939(Math.max(1, slot.count()));
             context.method_51427(icon, x + 1, y + 1);
             context.method_51431(this.field_22793, icon, x + 1, y + 1);

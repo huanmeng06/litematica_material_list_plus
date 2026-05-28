@@ -9,6 +9,7 @@ import fi.dy.masa.malilib.render.RenderUtils;
 import fi.dy.masa.malilib.util.StringUtils;
 import io.github.huanmeng06.lmlp.material.CountFormatter;
 import io.github.huanmeng06.lmlp.material.ItemStackTexts;
+import io.github.huanmeng06.lmlp.recipe.AlternativeItemDisplay;
 import io.github.huanmeng06.lmlp.recipe.IngredientSummary;
 import io.github.huanmeng06.lmlp.recipe.MaterialTreeNode;
 import io.github.huanmeng06.lmlp.recipe.RecipeSummary;
@@ -128,14 +129,14 @@ public final class RecipeInlineRenderer {
     private static void renderIngredient(WidgetBase widget, class_332 context, int textX, int y, IngredientSummary ingredient) {
         boolean hasTree = MaterialListPlusState.hasTree(ingredient);
         boolean expanded = MaterialListPlusState.getExpandedIngredientTree(ingredient) != null;
-        renderRow(widget, context, textX, y, 0, hasTree, expanded, ingredient.icon(), RecipeSummaryFormatter.ingredientName(ingredient), ingredient.countTotal(), ingredient.countMissing(), ingredient.maxStackSize());
+        renderRow(widget, context, textX, y, 0, hasTree, expanded, AlternativeItemDisplay.icon(ingredient), RecipeSummaryFormatter.ingredientName(ingredient), ingredient.countTotal(), ingredient.countMissing(), ingredient.maxStackSize());
     }
 
     private static int renderChildren(WidgetBase widget, class_332 context, int textX, int y, List<MaterialTreeNode> nodes, Set<String> expandedNodes, int depth) {
         int cursorY = y;
         for (MaterialTreeNode node : nodes) {
             boolean expanded = expandedNodes.contains(node.path());
-            renderRow(widget, context, textX, cursorY, depth, node.hasChildren(), expanded, node.icon(), node.name(), node.totalCount(), node.missingCount(), node.maxStackSize());
+            renderRow(widget, context, textX, cursorY, depth, node.hasChildren(), expanded, AlternativeItemDisplay.icon(node), node.name(), node.totalCount(), node.missingCount(), node.maxStackSize());
             cursorY += INGREDIENT_HEIGHT;
             if (node.hasChildren() && expanded) {
                 cursorY = renderChildren(widget, context, textX, cursorY, node.children(), expandedNodes, depth + 1);

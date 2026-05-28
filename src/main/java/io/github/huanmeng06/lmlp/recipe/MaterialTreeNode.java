@@ -7,6 +7,7 @@ import net.minecraft.class_1799;
 public final class MaterialTreeNode {
     private final String path;
     private final class_1799 icon;
+    private final List<class_1799> icons;
     private final String name;
     private final int totalCount;
     private final int missingCount;
@@ -15,8 +16,13 @@ public final class MaterialTreeNode {
     private final List<MaterialTreeNode> children;
 
     public MaterialTreeNode(String path, class_1799 icon, String name, int totalCount, int missingCount, int maxStackSize, int depth, List<MaterialTreeNode> children) {
+        this(path, icon, List.of(icon), name, totalCount, missingCount, maxStackSize, depth, children);
+    }
+
+    public MaterialTreeNode(String path, class_1799 icon, List<class_1799> icons, String name, int totalCount, int missingCount, int maxStackSize, int depth, List<MaterialTreeNode> children) {
         this.path = path;
         this.icon = icon;
+        this.icons = copyIcons(icons);
         this.name = name;
         this.totalCount = totalCount;
         this.missingCount = missingCount;
@@ -31,6 +37,10 @@ public final class MaterialTreeNode {
 
     public class_1799 icon() {
         return this.icon;
+    }
+
+    public List<class_1799> icons() {
+        return this.icons;
     }
 
     public String name() {
@@ -59,5 +69,16 @@ public final class MaterialTreeNode {
 
     public boolean hasChildren() {
         return !this.children.isEmpty();
+    }
+
+    private static List<class_1799> copyIcons(List<class_1799> icons) {
+        if (icons.isEmpty()) {
+            return List.of();
+        }
+
+        return icons.stream()
+                .filter(icon -> !icon.method_7960())
+                .map(class_1799::method_7972)
+                .toList();
     }
 }

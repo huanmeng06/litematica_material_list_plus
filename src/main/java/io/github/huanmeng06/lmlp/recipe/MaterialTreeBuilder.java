@@ -28,10 +28,14 @@ public final class MaterialTreeBuilder {
     }
 
     public static MaterialTreeNode build(class_1799 stack, String name, int totalCount, int missingCount, String path) {
-        return build(stack, name, totalCount, missingCount, path, 0, new HashSet<>());
+        return build(stack, List.of(stack), name, totalCount, missingCount, path, 0, new HashSet<>());
     }
 
     private static MaterialTreeNode build(class_1799 stack, String name, int totalCount, int missingCount, String path, int depth, Set<String> seenItems) {
+        return build(stack, List.of(stack), name, totalCount, missingCount, path, depth, seenItems);
+    }
+
+    private static MaterialTreeNode build(class_1799 stack, List<class_1799> icons, String name, int totalCount, int missingCount, String path, int depth, Set<String> seenItems) {
         class_1799 icon = stack.method_7972();
         String itemId = ItemStackTexts.id(icon);
         List<MaterialTreeNode> children = List.of();
@@ -46,7 +50,7 @@ public final class MaterialTreeBuilder {
             }
         }
 
-        return new MaterialTreeNode(path, icon, name, totalCount, missingCount, Math.max(1, icon.method_7914()), depth, children);
+        return new MaterialTreeNode(path, icon, icons, name, totalCount, missingCount, Math.max(1, icon.method_7914()), depth, children);
     }
 
     private static List<MaterialTreeNode> buildChildren(RecipeSummary summary, String parentPath, int depth, Set<String> seenItems) {
@@ -61,6 +65,7 @@ public final class MaterialTreeBuilder {
             String path = parentPath + "/" + index + ":" + ItemStackTexts.id(icon);
             children.add(build(
                     icon,
+                    ingredient.icons(),
                     RecipeSummaryFormatter.ingredientName(ingredient),
                     ingredient.countTotal(),
                     ingredient.countMissing(),
