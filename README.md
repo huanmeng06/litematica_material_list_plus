@@ -6,7 +6,7 @@ Litematica Material List Plus, 简称 LMLP, 是一个面向 Minecraft Fabric 客
 
 当前发布版本：`v1.2.0`
 
-当前构建：`1.2.0+mc1.20.6`
+当前构建：`1.2.1+mc1.20.6`
 
 适配目标：Minecraft `1.20.6` / Fabric / Litematica / MaLiLib / REI
 
@@ -150,7 +150,7 @@ LMLP 提供和 Litematica 风格一致的配置界面，包含：
 
 ## 依赖
 
-当前 `1.2.0+mc1.20.6` 构建面向以下环境：
+当前 `1.2.1+mc1.20.6` 构建面向以下环境：
 
 | 项目 | 版本 |
 | --- | --- |
@@ -197,6 +197,11 @@ build\libs\
 ```
 
 ## 版本说明
+
+### v1.2.1
+
+- 修复在工作台、高炉、切石机等加工容器界面中，Litematica 材料列表热键无法打开材料列表的问题。
+- 该入口直接打开 Litematica 原生材料列表，LMLP 的材料展开和配方详情功能会继续生效。
 
 ### v1.2.0
 
