@@ -31,10 +31,11 @@ import java.util.List;
 public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortable<MaterialListEntry> {
     private static final int BASE_ENTRY_HEIGHT = 23;
     private static final int EXPANDED_PANEL_BOTTOM_PADDING = 8;
-    private static final int FIXED_TOOLTIP_TOP = 14;
+    private static final int FIXED_TOOLTIP_TOP = 4;
     private static final int FIXED_TOOLTIP_RIGHT_MARGIN = 226;
-    private static final int FIXED_TOOLTIP_MIN_WIDTH = 420;
-    private static final int FIXED_TOOLTIP_HEIGHT = 60;
+    private static final int FIXED_TOOLTIP_MIN_WIDTH = 300;
+    private static final int FIXED_TOOLTIP_HEIGHT = 50;
+    private static final int FIXED_TOOLTIP_LINE_HEIGHT = 14;
     private static int lmlpMaxTotalDigits;
     private static int lmlpMaxMissingDigits;
     @Shadow
@@ -284,7 +285,7 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
 
         int labelWidth = Math.max(this.getStringWidth(itemLabel), Math.max(this.getStringWidth(totalLabel), this.getStringWidth(missingLabel)));
         int valueWidth = Math.max(this.getStringWidth(itemText) + 20, Math.max(this.getStringWidth(totalText), this.getStringWidth(missingText)));
-        int panelWidth = Math.max(FIXED_TOOLTIP_MIN_WIDTH, labelWidth + valueWidth + 60);
+        int panelWidth = Math.max(FIXED_TOOLTIP_MIN_WIDTH, labelWidth + valueWidth + 44);
         int maxPanelWidth = Math.max(FIXED_TOOLTIP_MIN_WIDTH, this.mc.method_22683().method_4486() - FIXED_TOOLTIP_RIGHT_MARGIN - 20);
         panelWidth = Math.min(panelWidth, maxPanelWidth);
 
@@ -292,7 +293,7 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         int panelY = FIXED_TOOLTIP_TOP;
         int labelX = panelX + 10;
         int valueX = labelX + labelWidth + 20;
-        int lineY = panelY + 10;
+        int lineY = panelY + 8;
 
         drawContext.method_51448().method_22903();
         drawContext.method_51448().method_46416(0.0F, 0.0F, 200.0F);
@@ -305,11 +306,11 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         RenderUtils.disableDiffuseLighting();
         this.drawString(valueX + 24, lineY, 0xFFFFFFFF, itemText, drawContext);
 
-        lineY += 16;
+        lineY += FIXED_TOOLTIP_LINE_HEIGHT;
         this.drawString(labelX, lineY, 0xFFFFFFFF, totalLabel, drawContext);
         this.drawString(valueX, lineY, 0xFFFFFFFF, totalText, drawContext);
 
-        lineY += 16;
+        lineY += FIXED_TOOLTIP_LINE_HEIGHT;
         this.drawString(labelX, lineY, 0xFFFFFFFF, missingLabel, drawContext);
         this.drawString(valueX, lineY, 0xFFFFFFFF, missingText, drawContext);
 
