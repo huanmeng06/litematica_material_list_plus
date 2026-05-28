@@ -15,6 +15,7 @@ import fi.dy.masa.malilib.gui.GuiScrollBar;
 import fi.dy.masa.malilib.render.RenderUtils;
 import fi.dy.masa.malilib.util.StringUtils;
 import io.github.huanmeng06.lmlp.LitematicaMaterialListPlus;
+import io.github.huanmeng06.lmlp.config.Configs;
 import io.github.huanmeng06.lmlp.material.CountFormatter;
 import io.github.huanmeng06.lmlp.material.ItemStackTexts;
 import io.github.huanmeng06.lmlp.recipe.AlternativeItemDisplay;
@@ -430,10 +431,18 @@ public class RecipeDetailScreen extends class_437 {
     }
 
     private boolean hasRecipes(IngredientSummary ingredient) {
+        if (Configs.shouldStopRecipeDecomposition(ItemStackTexts.id(ingredient.icon()))) {
+            return false;
+        }
+
         return !this.recipesFor(ingredient).isEmpty();
     }
 
     private List<RecipeSummary> recipesFor(IngredientSummary ingredient) {
+        if (Configs.shouldStopRecipeDecomposition(ItemStackTexts.id(ingredient.icon()))) {
+            return List.of();
+        }
+
         String key = key(ingredient);
         return this.nestedRecipeCache.computeIfAbsent(key, ignored -> RecipeResolvers.findRecipes(ingredient.icon(), ingredient.countTotal(), ingredient.countMissing()));
     }

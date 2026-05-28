@@ -40,8 +40,12 @@
   "lmlp.label.hover.detail_hint": "按住%s查看详情",
   "lmlp.label.hover.detail_key_unbound": "未绑定按键",
   "lmlp.gui.title.configs": "Litematica Material List Plus 配置 - %s",
+  "lmlp.gui.button.config_gui.generic": "通用",
   "lmlp.gui.button.config_gui.hotkeys": "热键",
   "lmlp.hotkeys.category.material_list": "材料列表",
+  "recipeStopItems": "配方停止拆分物品",
+  "lmlp.config.name.recipeStopItems": "配方停止拆分物品",
   "lmlp.config.name.show_hover_details": "显示详细浮窗",
+  "config.comment.recipestopitems": "列表中的物品 ID 会被当作基础材料，不会在嵌套配方视图里继续向下拆分。没有命名空间的条目默认使用 minecraft:，例如 redstone 等同于 minecraft:redstone。",
   "config.comment.showhoverdetails": "悬浮在材料列表条目上时，按住此按键显示包含总数、缺少和可用数量的详细浮窗。"
 }

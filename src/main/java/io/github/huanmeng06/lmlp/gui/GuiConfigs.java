@@ -7,13 +7,14 @@ import fi.dy.masa.malilib.gui.button.ButtonGeneric;
 import fi.dy.masa.malilib.gui.button.IButtonActionListener;
 import fi.dy.masa.malilib.util.StringUtils;
 import io.github.huanmeng06.lmlp.LitematicaMaterialListPlus;
+import io.github.huanmeng06.lmlp.config.Configs;
 import io.github.huanmeng06.lmlp.config.Hotkeys;
 
 import java.util.Collection;
 import java.util.List;
 
 public class GuiConfigs extends GuiConfigsBase {
-    private static ConfigGuiTab currentTab = ConfigGuiTab.HOTKEYS;
+    private static ConfigGuiTab currentTab = ConfigGuiTab.GENERIC;
 
     public GuiConfigs() {
         super(
@@ -44,8 +45,18 @@ public class GuiConfigs extends GuiConfigsBase {
     }
 
     @Override
+    protected int getConfigWidth() {
+        if (currentTab == ConfigGuiTab.GENERIC) {
+            return 150;
+        }
+
+        return super.getConfigWidth();
+    }
+
+    @Override
     public List<ConfigOptionWrapper> getConfigs() {
         Collection<? extends IConfigBase> configs = switch (currentTab) {
+            case GENERIC -> Configs.Generic.OPTIONS;
             case HOTKEYS -> Hotkeys.HOTKEY_LIST;
         };
         return ConfigOptionWrapper.createFor(configs);
@@ -59,6 +70,7 @@ public class GuiConfigs extends GuiConfigsBase {
     }
 
     private enum ConfigGuiTab {
+        GENERIC("lmlp.gui.button.config_gui.generic"),
         HOTKEYS("lmlp.gui.button.config_gui.hotkeys");
 
         private final String translationKey;

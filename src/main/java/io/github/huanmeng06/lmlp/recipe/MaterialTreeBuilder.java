@@ -5,6 +5,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import io.github.huanmeng06.lmlp.config.Configs;
 import io.github.huanmeng06.lmlp.material.ItemStackTexts;
 import net.minecraft.class_1799;
 
@@ -15,6 +16,10 @@ public final class MaterialTreeBuilder {
     }
 
     public static boolean hasChildren(class_1799 stack, int totalCount, int missingCount) {
+        if (Configs.shouldStopRecipeDecomposition(ItemStackTexts.id(stack))) {
+            return false;
+        }
+
         List<RecipeSummary> summaries = RecipeResolvers.findRecipes(stack, totalCount, missingCount);
         return !summaries.isEmpty() && !summaries.get(0).ingredients().isEmpty();
     }
@@ -40,7 +45,7 @@ public final class MaterialTreeBuilder {
         String itemId = ItemStackTexts.id(icon);
         List<MaterialTreeNode> children = List.of();
 
-        if (depth < MAX_DEPTH && !seenItems.contains(itemId)) {
+        if (depth < MAX_DEPTH && !seenItems.contains(itemId) && !Configs.shouldStopRecipeDecomposition(itemId)) {
             Set<String> childSeenItems = new HashSet<>(seenItems);
             childSeenItems.add(itemId);
 

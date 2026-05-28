@@ -115,6 +115,12 @@ public final class MaterialListPlusState {
         expandedTreeNodes.clear();
     }
 
+    public static void clearRecipeCaches() {
+        clearIngredientTrees();
+        treeSupportCache.clear();
+        treeCache.clear();
+    }
+
     private static MaterialTreeNode treeFor(IngredientSummary ingredient) {
         String key = key(ingredient);
         return treeCache.computeIfAbsent(key, ignored -> MaterialTreeBuilder.build(

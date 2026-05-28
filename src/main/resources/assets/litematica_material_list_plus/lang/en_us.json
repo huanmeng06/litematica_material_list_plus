@@ -40,8 +40,12 @@
   "lmlp.label.hover.detail_hint": "Hold %s for details",
   "lmlp.label.hover.detail_key_unbound": "unbound key",
   "lmlp.gui.title.configs": "Litematica Material List Plus Configs - %s",
+  "lmlp.gui.button.config_gui.generic": "Generic",
   "lmlp.gui.button.config_gui.hotkeys": "Hotkeys",
   "lmlp.hotkeys.category.material_list": "Material List",
+  "recipeStopItems": "Recipe stop items",
+  "lmlp.config.name.recipeStopItems": "Recipe stop items",
   "lmlp.config.name.show_hover_details": "Show hover details",
+  "config.comment.recipestopitems": "Item ids in this list are treated as base materials and won't be recursively decomposed in nested recipe views. Entries without a namespace use minecraft:, for example redstone equals minecraft:redstone.",
   "config.comment.showhoverdetails": "Hold this key while hovering a material list entry to show total, missing and available counts in the detailed tooltip."
 }
