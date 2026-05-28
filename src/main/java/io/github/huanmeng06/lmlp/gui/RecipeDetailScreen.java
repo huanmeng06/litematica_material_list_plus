@@ -31,6 +31,9 @@ import net.minecraft.class_2960;
 import net.minecraft.class_332;
 import net.minecraft.class_437;
 import net.minecraft.class_465;
+import me.shedaniel.math.Rectangle;
+import me.shedaniel.rei.api.client.gui.widgets.Button;
+import me.shedaniel.rei.api.client.gui.widgets.Widgets;
 import me.shedaniel.rei.api.client.registry.transfer.TransferHandler;
 import me.shedaniel.rei.api.client.registry.transfer.TransferHandlerRegistry;
 import me.shedaniel.rei.api.common.display.Display;
@@ -63,7 +66,7 @@ public class RecipeDetailScreen extends class_437 {
     private static final int NESTED_RECIPE_INDENT = 24;
     private static final int MAX_NESTED_DEPTH = 3;
     private static final int TRANSFER_BUTTON_SIZE = 16;
-    private static final int TRANSFER_BUTTON_MARGIN = 4;
+    private static final int TRANSFER_BUTTON_INSET = 2;
     private static final class_2960 REI_DISPLAY_TEXTURE = new class_2960("roughlyenoughitems", "textures/gui/display.png");
 
     private final class_437 parent;
@@ -76,7 +79,7 @@ public class RecipeDetailScreen extends class_437 {
     private final RecipeNativeDisplayBridge nativeDisplayBridge = createNativeDisplayBridge();
     private final RecipeTooltipBridge tooltipBridge = createTooltipBridge();
     private final List<NativeDisplayArea> nativeDisplayAreas = new ArrayList<>();
-    private final List<TransferButtonArea> transferButtonAreas = new ArrayList<>();
+    private final List<Button> transferButtons = new ArrayList<>();
     private final List<ToggleArea> toggleAreas = new ArrayList<>();
     private final Map<String, List<RecipeSummary>> nestedRecipeCache = new HashMap<>();
     private final Set<String> expandedNestedRecipes = new HashSet<>();
@@ -190,7 +193,7 @@ public class RecipeDetailScreen extends class_437 {
         this.nativeDisplaysRenderedThisFrame = 0;
         this.nativeDisplayLimitLoggedThisFrame = false;
         this.nativeDisplayAreas.clear();
-        this.transferButtonAreas.clear();
+        this.transferButtons.clear();
         this.toggleAreas.clear();
         this.scrollBar.setMaxValue(Math.max(0, this.contentHeight() - viewportHeight));
         this.updateBackButtonPosition(layout);
@@ -267,7 +270,7 @@ public class RecipeDetailScreen extends class_437 {
         if (this.isDisplayPanelVisible(panelY, panelHeight) && !this.renderNativeDisplay(summary, context, panelX, panelY, panelWidth, panelHeight, mouseX, mouseY, delta, path, depth)) {
             this.renderCraftingGrid(context, summary, panelX, panelY, mouseX, mouseY);
         }
-        this.renderTransferButton(context, summary, panelX, panelY, panelWidth, panelHeight, mouseX, mouseY);
+        this.renderTransferButton(context, summary, panelX, panelY, panelWidth, panelHeight, mouseX, mouseY, delta);
 
         int lineY = panelY + panelHeight + 16;
         context.method_51433(this.field_22793, StringUtils.translate("lmlp.label.recipe.ingredients_total"), left + 14, lineY, 0xFFAAAAAA, false);
@@ -403,10 +406,9 @@ public class RecipeDetailScreen extends class_437 {
     }
 
     private boolean handleTransferButtonClick(double mouseX, double mouseY) {
-        for (int i = this.transferButtonAreas.size() - 1; i >= 0; i--) {
-            TransferButtonArea area = this.transferButtonAreas.get(i);
-            if (area.contains(mouseX, mouseY)) {
-                this.transferRecipe(area.summary(), GuiBase.isShiftDown());
+        for (int i = this.transferButtons.size() - 1; i >= 0; i--) {
+            Button button = this.transferButtons.get(i);
+            if (button.method_25402(mouseX, mouseY, 0)) {
                 return true;
             }
         }
@@ -414,22 +416,22 @@ public class RecipeDetailScreen extends class_437 {
         return false;
     }
 
-    private void renderTransferButton(class_332 context, RecipeSummary summary, int panelX, int panelY, int panelWidth, int panelHeight, int mouseX, int mouseY) {
+    private void renderTransferButton(class_332 context, RecipeSummary summary, int panelX, int panelY, int panelWidth, int panelHeight, int mouseX, int mouseY, float delta) {
         if (!this.canTransfer(summary)) {
             return;
         }
 
-        int x = panelX + panelWidth - TRANSFER_BUTTON_SIZE - TRANSFER_BUTTON_MARGIN;
-        int y = panelY + panelHeight - TRANSFER_BUTTON_SIZE - TRANSFER_BUTTON_MARGIN;
+        int x = panelX + panelWidth - TRANSFER_BUTTON_SIZE - TRANSFER_BUTTON_INSET;
+        int y = panelY + panelHeight - TRANSFER_BUTTON_SIZE - TRANSFER_BUTTON_INSET;
         if (y + TRANSFER_BUTTON_SIZE < this.clipTop || y > this.clipBottom) {
             return;
         }
 
-        boolean hovered = isInside(mouseX, mouseY, x, y, TRANSFER_BUTTON_SIZE, TRANSFER_BUTTON_SIZE);
-        int fill = hovered ? 0xFFE0E0E0 : 0xFFC6C6C6;
-        RenderUtils.drawOutlinedBox(x, y, TRANSFER_BUTTON_SIZE, TRANSFER_BUTTON_SIZE, fill, 0xFF404040);
-        context.method_51433(this.field_22793, "+", x + 5, y + 4, 0xFF202020, false);
-        this.transferButtonAreas.add(new TransferButtonArea(summary, x, y, TRANSFER_BUTTON_SIZE, TRANSFER_BUTTON_SIZE));
+        Button button = Widgets.createButton(new Rectangle(x, y, TRANSFER_BUTTON_SIZE, TRANSFER_BUTTON_SIZE), class_2561.method_43470("+"))
+                .tooltipLines(class_2561.method_43471("text.auto_craft.move_items"), class_2561.method_43471("text.auto_craft.move_items.tooltip"))
+                .onClick(ignored -> this.transferRecipe(summary, GuiBase.isShiftDown()));
+        button.method_25394(context, mouseX, mouseY, delta);
+        this.transferButtons.add(button);
     }
 
     private boolean canTransfer(RecipeSummary summary) {
@@ -758,13 +760,6 @@ public class RecipeDetailScreen extends class_437 {
             return mouseX >= this.x && mouseX < this.x + this.width && mouseY >= this.y && mouseY < this.y + this.height;
         }
     }
-
-    private record TransferButtonArea(RecipeSummary summary, int x, int y, int width, int height) {
-        private boolean contains(double mouseX, double mouseY) {
-            return mouseX >= this.x && mouseX < this.x + this.width && mouseY >= this.y && mouseY < this.y + this.height;
-        }
-    }
-
     @FunctionalInterface
     private interface NativeDisplayAction {
         boolean apply(RecipeSummary summary);
