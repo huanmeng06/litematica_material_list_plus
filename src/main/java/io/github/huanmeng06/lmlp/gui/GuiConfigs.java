@@ -46,8 +46,8 @@ public class GuiConfigs extends GuiConfigsBase {
 
     @Override
     protected int getConfigWidth() {
-        if (currentTab == ConfigGuiTab.GENERIC) {
-            return 150;
+        if (currentTab == ConfigGuiTab.GENERIC || currentTab == ConfigGuiTab.HOTKEYS) {
+            return 140;
         }
 
         return super.getConfigWidth();
