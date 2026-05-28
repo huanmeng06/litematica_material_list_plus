@@ -14,6 +14,7 @@ import io.github.huanmeng06.lmlp.recipe.IngredientSummary;
 import io.github.huanmeng06.lmlp.recipe.MaterialTreeNode;
 import io.github.huanmeng06.lmlp.recipe.RecipeSummary;
 import io.github.huanmeng06.lmlp.recipe.RecipeSummaryFormatter;
+import net.minecraft.class_2960;
 import net.minecraft.class_332;
 
 public final class RecipeInlineRenderer {
@@ -21,9 +22,12 @@ public final class RecipeInlineRenderer {
     private static final int PADDING = 8;
     private static final int INNER_BOTTOM_PADDING = 4;
     private static final int ENTRY_BOTTOM_GAP = 4;
-    private static final int INGREDIENT_TOGGLE_WIDTH = 10;
-    private static final int INGREDIENT_ICON_OFFSET = 14;
+    private static final int INGREDIENT_TOGGLE_WIDTH = 18;
+    private static final int INGREDIENT_ICON_OFFSET = 20;
     private static final int TREE_INDENT_WIDTH = 18;
+    private static final int TOGGLE_ICON_SIZE = 12;
+    private static final class_2960 TOGGLE_COLLAPSED_TEXTURE = new class_2960("minecraft", "recipe_book/page_forward");
+    private static final class_2960 TOGGLE_EXPANDED_TEXTURE = new class_2960("minecraft", "statistics/sort_down");
 
     private RecipeInlineRenderer() {
     }
@@ -148,7 +152,7 @@ public final class RecipeInlineRenderer {
     private static void renderRow(WidgetBase widget, class_332 context, int textX, int y, int depth, boolean hasTree, boolean expanded, net.minecraft.class_1799 icon, String name, int totalCount, int missingCount, int maxStackSize) {
         int rowX = textX + depth * TREE_INDENT_WIDTH;
         if (hasTree) {
-            widget.drawString(rowX + 2, y + 2, 0xFFFFFFFF, expanded ? "v" : ">", context);
+            renderToggleIcon(context, rowX + 2, y + 2, expanded);
         }
 
         int iconX = rowX + INGREDIENT_ICON_OFFSET;
@@ -160,6 +164,10 @@ public final class RecipeInlineRenderer {
             line += GuiBase.TXT_RST + " / " + GuiBase.TXT_RED + CountFormatter.format(missingCount, maxStackSize);
         }
         widget.drawString(rowX + INGREDIENT_ICON_OFFSET + 26, y + 2, 0xFFFFFFFF, line, context);
+    }
+
+    private static void renderToggleIcon(class_332 context, int x, int y, boolean expanded) {
+        context.method_52706(expanded ? TOGGLE_EXPANDED_TEXTURE : TOGGLE_COLLAPSED_TEXTURE, x, y, TOGGLE_ICON_SIZE, TOGGLE_ICON_SIZE);
     }
 
     private static int visibleIngredientRows(RecipeSummary summary) {
