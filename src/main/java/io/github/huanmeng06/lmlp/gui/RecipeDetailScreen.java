@@ -588,7 +588,8 @@ public class RecipeDetailScreen extends class_437 {
         }
 
         String text = entry.getAsText().getString();
-        return text.contains("加入收藏") || text.contains("收藏夹") || text.toLowerCase(java.util.Locale.ROOT).contains("favorite");
+        String lowerText = text.toLowerCase(java.util.Locale.ROOT);
+        return text.contains("收藏") || lowerText.contains("favorite") || lowerText.contains("save it for later");
     }
 
     private void addRecipeIdTooltip(Display display, List<Tooltip.Entry> tooltip) {
@@ -597,9 +598,7 @@ public class RecipeDetailScreen extends class_437 {
         }
 
         for (class_2960 id : display.provideInternalDisplayIds()) {
-            tooltip.add(Tooltip.entry(class_2561.method_43469("text.rei.recipe_id",
-                    class_2561.method_43470(id.method_12836()).method_27692(class_124.field_1080),
-                    class_2561.method_43470(id.method_12832()).method_27692(class_124.field_1080))));
+            tooltip.add(Tooltip.entry(class_2561.method_43470(StringUtils.translate("lmlp.label.recipe.recipe_id") + ": " + id)));
         }
     }
 

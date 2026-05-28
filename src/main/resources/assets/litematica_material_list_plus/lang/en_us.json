@@ -37,6 +37,7 @@
   "lmlp.label.recipe.any.glazed_terracotta": "Any glazed terracotta",
   "lmlp.label.recipe.any.concrete": "Any concrete",
   "lmlp.label.recipe.any.concrete_powder": "Any concrete powder",
+  "lmlp.label.recipe.recipe_id": "Recipe ID",
   "lmlp.label.hover.detail_hint": "Hold %s for details",
   "lmlp.label.hover.detail_key_unbound": "unbound key",
   "lmlp.gui.title.configs": "Litematica Material List Plus Configs - %s",

@@ -6,7 +6,7 @@ Litematica Material List Plus, 简称 LMLP, 是一个面向 Minecraft Fabric 客
 
 当前发布版本：`v1.2.0`
 
-当前构建：`1.2.8+mc1.20.6`
+当前构建：`1.2.9+mc1.20.6`
 
 适配目标：Minecraft `1.20.6` / Fabric / Litematica / MaLiLib / REI
 
@@ -150,7 +150,7 @@ LMLP 提供和 Litematica 风格一致的配置界面，包含：
 
 ## 依赖
 
-当前 `1.2.8+mc1.20.6` 构建面向以下环境：
+当前 `1.2.9+mc1.20.6` 构建面向以下环境：
 
 | 项目 | 版本 |
 | --- | --- |
@@ -197,6 +197,11 @@ build\libs\
 ```
 
 ## 版本说明
+
+### v1.2.9
+
+- 修复移动物品按钮 tooltip 中配方 ID 显示异常的问题，改为使用 LMLP 自己的本地化文本显示完整配方 ID。
+- 加强收藏提示过滤，避免 REI 收藏说明混入移动物品按钮 tooltip。
 
 ### v1.2.8
 

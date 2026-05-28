@@ -37,6 +37,7 @@
   "lmlp.label.recipe.any.glazed_terracotta": "任意带釉陶瓦",
   "lmlp.label.recipe.any.concrete": "任意混凝土",
   "lmlp.label.recipe.any.concrete_powder": "任意混凝土粉末",
+  "lmlp.label.recipe.recipe_id": "配方 ID",
   "lmlp.label.hover.detail_hint": "按住%s查看详情",
   "lmlp.label.hover.detail_key_unbound": "未绑定按键",
   "lmlp.gui.title.configs": "Litematica Material List Plus 配置 - %s",
