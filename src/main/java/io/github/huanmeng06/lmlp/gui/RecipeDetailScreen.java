@@ -10,6 +10,7 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import fi.dy.masa.malilib.gui.GuiBase;
 import fi.dy.masa.malilib.gui.button.ButtonGeneric;
 import fi.dy.masa.malilib.gui.GuiScrollBar;
 import fi.dy.masa.malilib.render.RenderUtils;
@@ -29,6 +30,10 @@ import net.minecraft.class_2561;
 import net.minecraft.class_2960;
 import net.minecraft.class_332;
 import net.minecraft.class_437;
+import net.minecraft.class_465;
+import me.shedaniel.rei.api.client.registry.transfer.TransferHandler;
+import me.shedaniel.rei.api.client.registry.transfer.TransferHandlerRegistry;
+import me.shedaniel.rei.api.common.display.Display;
 
 public class RecipeDetailScreen extends class_437 {
     private static final Logger LOGGER = LoggerFactory.getLogger(LitematicaMaterialListPlus.MOD_ID);
@@ -57,6 +62,8 @@ public class RecipeDetailScreen extends class_437 {
     private static final int NESTED_RECIPE_GAP = 8;
     private static final int NESTED_RECIPE_INDENT = 24;
     private static final int MAX_NESTED_DEPTH = 3;
+    private static final int TRANSFER_BUTTON_SIZE = 16;
+    private static final int TRANSFER_BUTTON_MARGIN = 4;
     private static final class_2960 REI_DISPLAY_TEXTURE = new class_2960("roughlyenoughitems", "textures/gui/display.png");
 
     private final class_437 parent;
@@ -69,6 +76,7 @@ public class RecipeDetailScreen extends class_437 {
     private final RecipeNativeDisplayBridge nativeDisplayBridge = createNativeDisplayBridge();
     private final RecipeTooltipBridge tooltipBridge = createTooltipBridge();
     private final List<NativeDisplayArea> nativeDisplayAreas = new ArrayList<>();
+    private final List<TransferButtonArea> transferButtonAreas = new ArrayList<>();
     private final List<ToggleArea> toggleAreas = new ArrayList<>();
     private final Map<String, List<RecipeSummary>> nestedRecipeCache = new HashMap<>();
     private final Set<String> expandedNestedRecipes = new HashSet<>();
@@ -79,10 +87,12 @@ public class RecipeDetailScreen extends class_437 {
     private int nativeDisplaysRenderedThisFrame;
     private boolean nativeDisplayLimitLoggedThisFrame;
     private boolean draggingScrollbar;
+    private final class_465<?> transferContainerScreen;
 
     public RecipeDetailScreen(class_437 parent, class_1799 target, int totalCount, int missingCount, List<RecipeSummary> summaries) {
         super(class_2561.method_43470("lmlp.gui.recipe_detail.title"));
         this.parent = parent;
+        this.transferContainerScreen = findHandledParent(parent);
         this.target = target.method_7972();
         this.totalCount = totalCount;
         this.missingCount = missingCount;
@@ -111,6 +121,10 @@ public class RecipeDetailScreen extends class_437 {
     @Override
     public boolean method_25402(double mouseX, double mouseY, int button) {
         if (button == 0 && this.backButton.onMouseClicked((int) mouseX, (int) mouseY, button)) {
+            return true;
+        }
+
+        if (button == 0 && this.handleTransferButtonClick(mouseX, mouseY)) {
             return true;
         }
 
@@ -176,6 +190,7 @@ public class RecipeDetailScreen extends class_437 {
         this.nativeDisplaysRenderedThisFrame = 0;
         this.nativeDisplayLimitLoggedThisFrame = false;
         this.nativeDisplayAreas.clear();
+        this.transferButtonAreas.clear();
         this.toggleAreas.clear();
         this.scrollBar.setMaxValue(Math.max(0, this.contentHeight() - viewportHeight));
         this.updateBackButtonPosition(layout);
@@ -252,6 +267,7 @@ public class RecipeDetailScreen extends class_437 {
         if (this.isDisplayPanelVisible(panelY, panelHeight) && !this.renderNativeDisplay(summary, context, panelX, panelY, panelWidth, panelHeight, mouseX, mouseY, delta, path, depth)) {
             this.renderCraftingGrid(context, summary, panelX, panelY, mouseX, mouseY);
         }
+        this.renderTransferButton(context, summary, panelX, panelY, panelWidth, panelHeight, mouseX, mouseY);
 
         int lineY = panelY + panelHeight + 16;
         context.method_51433(this.field_22793, StringUtils.translate("lmlp.label.recipe.ingredients_total"), left + 14, lineY, 0xFFAAAAAA, false);
@@ -384,6 +400,66 @@ public class RecipeDetailScreen extends class_437 {
         }
 
         return false;
+    }
+
+    private boolean handleTransferButtonClick(double mouseX, double mouseY) {
+        for (int i = this.transferButtonAreas.size() - 1; i >= 0; i--) {
+            TransferButtonArea area = this.transferButtonAreas.get(i);
+            if (area.contains(mouseX, mouseY)) {
+                this.transferRecipe(area.summary(), GuiBase.isShiftDown());
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private void renderTransferButton(class_332 context, RecipeSummary summary, int panelX, int panelY, int panelWidth, int panelHeight, int mouseX, int mouseY) {
+        if (!this.canTransfer(summary)) {
+            return;
+        }
+
+        int x = panelX + panelWidth - TRANSFER_BUTTON_SIZE - TRANSFER_BUTTON_MARGIN;
+        int y = panelY + panelHeight - TRANSFER_BUTTON_SIZE - TRANSFER_BUTTON_MARGIN;
+        if (y + TRANSFER_BUTTON_SIZE < this.clipTop || y > this.clipBottom) {
+            return;
+        }
+
+        boolean hovered = isInside(mouseX, mouseY, x, y, TRANSFER_BUTTON_SIZE, TRANSFER_BUTTON_SIZE);
+        int fill = hovered ? 0xFFE0E0E0 : 0xFFC6C6C6;
+        RenderUtils.drawOutlinedBox(x, y, TRANSFER_BUTTON_SIZE, TRANSFER_BUTTON_SIZE, fill, 0xFF404040);
+        context.method_51433(this.field_22793, "+", x + 5, y + 4, 0xFF202020, false);
+        this.transferButtonAreas.add(new TransferButtonArea(summary, x, y, TRANSFER_BUTTON_SIZE, TRANSFER_BUTTON_SIZE));
+    }
+
+    private boolean canTransfer(RecipeSummary summary) {
+        return this.transferContainerScreen != null && displayFor(summary) != null;
+    }
+
+    private void transferRecipe(RecipeSummary summary, boolean stackedCrafting) {
+        Display display = displayFor(summary);
+        if (display == null || this.transferContainerScreen == null) {
+            return;
+        }
+
+        TransferHandler.Context context = TransferHandler.Context.create(true, stackedCrafting, this.transferContainerScreen, display);
+        for (TransferHandler handler : TransferHandlerRegistry.getInstance()) {
+            TransferHandler.ApplicabilityResult applicability = handler.checkApplicable(context);
+            if (!applicability.isApplicable()) {
+                continue;
+            }
+
+            TransferHandler.Result result = applicability.isSuccessful() ? handler.handle(context) : applicability.getError();
+            if (result != null && result.isSuccessful()) {
+                this.field_22787.method_1507(this.transferContainerScreen);
+                return;
+            }
+
+            if (result != null && result.isBlocking()) {
+                LOGGER.warn("REI transfer failed for recipe {}: {}", summary.recipeId(), result.getError());
+                return;
+            }
+        }
     }
 
     private int contentHeight() {
@@ -598,6 +674,11 @@ public class RecipeDetailScreen extends class_437 {
         return summary.category() == null ? "<unknown>" : summary.category();
     }
 
+    private static Display displayFor(RecipeSummary summary) {
+        Object nativeDisplay = summary.nativeDisplay();
+        return nativeDisplay instanceof Display display ? display : null;
+    }
+
     private int scrollbarX() {
         return this.field_22789 - 18;
     }
@@ -649,6 +730,23 @@ public class RecipeDetailScreen extends class_437 {
         return mouseX >= x && mouseX < x + width && mouseY >= y && mouseY < y + height;
     }
 
+    private static class_465<?> findHandledParent(class_437 screen) {
+        class_437 current = screen;
+        while (current != null) {
+            if (current instanceof class_465<?> handledScreen) {
+                return handledScreen;
+            }
+
+            if (current instanceof GuiBase gui) {
+                current = gui.getParent();
+            } else {
+                return null;
+            }
+        }
+
+        return null;
+    }
+
     private record ToggleArea(String path, int x, int y, int width, int height) {
         private boolean contains(double mouseX, double mouseY) {
             return mouseX >= this.x && mouseX < this.x + this.width && mouseY >= this.y && mouseY < this.y + this.height;
@@ -656,6 +754,12 @@ public class RecipeDetailScreen extends class_437 {
     }
 
     private record NativeDisplayArea(RecipeSummary summary, int x, int y, int width, int height) {
+        private boolean contains(double mouseX, double mouseY) {
+            return mouseX >= this.x && mouseX < this.x + this.width && mouseY >= this.y && mouseY < this.y + this.height;
+        }
+    }
+
+    private record TransferButtonArea(RecipeSummary summary, int x, int y, int width, int height) {
         private boolean contains(double mouseX, double mouseY) {
             return mouseX >= this.x && mouseX < this.x + this.width && mouseY >= this.y && mouseY < this.y + this.height;
         }
