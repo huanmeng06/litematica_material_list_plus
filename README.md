@@ -2,15 +2,15 @@
 
 Litematica Material List Plus 是一个用于 Minecraft 1.20.6 的 Fabric 客户端模组，用来增强 Litematica 材料列表的备料体验。
 
-当前版本：`1.1.6+mc1.20.6`
+当前版本：`1.1.7+mc1.20.6`
 
 ## 功能简介
 
 - 在材料列表中显示更易读的数量格式，例如 `9 盒 + 16 组 + 13 个`。
 - 单击材料行可展开配方摘要。
 - `Shift + 单击`材料行可打开配方详情页。
-- 配方详情页复用 REI 的原生配方显示和物品交互。
-- 配方详情页的子材料可继续展开为 REI 原生配方框。
+- 配方详情页使用内置稳定配方显示，并保留 REI 配方数据解析。
+- 配方详情页的子材料可继续展开为内置配方框。
 - 保留 Litematica 原有材料统计、排序和导出行为。
 <img width="2541" height="1440" alt="image" src="https://github.com/user-attachments/assets/f22f42bb-e4ec-45e6-bd7d-18a6d9ba72c4" />
 <img width="2554" height="1436" alt="image" src="https://github.com/user-attachments/assets/c5d9d8bb-6999-48e5-9d46-e9eaa2d74d1b" />
