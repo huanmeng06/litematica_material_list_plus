@@ -33,6 +33,7 @@ import net.minecraft.class_2960;
 import net.minecraft.class_332;
 import net.minecraft.class_437;
 import net.minecraft.class_465;
+import net.minecraft.class_5632;
 import me.shedaniel.math.Rectangle;
 import me.shedaniel.rei.api.client.gui.widgets.Button;
 import me.shedaniel.rei.api.client.gui.widgets.Tooltip;
@@ -98,6 +99,7 @@ public class RecipeDetailScreen extends class_437 {
     private boolean nativeDisplayLimitLoggedThisFrame;
     private boolean draggingScrollbar;
     private final class_465<?> transferContainerScreen;
+    private List<Tooltip.Entry> hoveredTransferTooltip = List.of();
 
     public RecipeDetailScreen(class_437 parent, class_1799 target, int totalCount, int missingCount, List<RecipeSummary> summaries) {
         super(class_2561.method_43470("lmlp.gui.recipe_detail.title"));
@@ -195,6 +197,7 @@ public class RecipeDetailScreen extends class_437 {
         int viewportHeight = Math.max(0, contentBottom - contentTop);
 
         this.hoveredStack = class_1799.field_8037;
+        this.hoveredTransferTooltip = List.of();
         this.clipTop = contentTop;
         this.clipBottom = contentBottom;
         this.nativeDisplaysRenderedThisFrame = 0;
@@ -226,6 +229,10 @@ public class RecipeDetailScreen extends class_437 {
         context.method_44380();
 
         this.renderScrollbar(context, mouseX, mouseY, delta, contentTop, contentBottom);
+        if (this.renderTransferTooltip(context, mouseX, mouseY)) {
+            return;
+        }
+
         if (this.renderNativeTooltip(context, mouseX, mouseY)) {
             return;
         }
@@ -455,7 +462,7 @@ public class RecipeDetailScreen extends class_437 {
 
         button.method_25394(context, mouseX, mouseY, delta);
         if (isInside(mouseX, mouseY, buttonBounds.x, buttonBounds.y, buttonBounds.width, buttonBounds.height) && !button.method_25370()) {
-            Tooltip.from(new me.shedaniel.math.Point(mouseX, mouseY), state.tooltip()).queue();
+            this.hoveredTransferTooltip = state.tooltip();
         }
         this.transferButtons.add(new TransferButtonEntry(button, state));
     }
@@ -547,7 +554,45 @@ public class RecipeDetailScreen extends class_437 {
         }
 
         this.addRecipeIdTooltip(display, tooltip);
-        return new AutoCraftingState(successful, hasApplicable, tint, renderer, tooltip);
+        return new AutoCraftingState(successful, hasApplicable, tint, renderer, filterTransferTooltip(tooltip));
+    }
+
+    private boolean renderTransferTooltip(class_332 context, int mouseX, int mouseY) {
+        if (this.hoveredTransferTooltip.isEmpty()) {
+            return false;
+        }
+
+        List<class_2561> lines = new ArrayList<>();
+        class_5632 component = null;
+        for (Tooltip.Entry entry : this.hoveredTransferTooltip) {
+            if (entry.isText()) {
+                lines.add(entry.getAsText());
+            } else if (entry.isTooltipComponent() && component == null) {
+                component = entry.getAsTooltipComponent();
+            }
+        }
+
+        if (lines.isEmpty() && component == null) {
+            return false;
+        }
+
+        context.method_51437(this.field_22793, lines, Optional.ofNullable(component), mouseX, mouseY);
+        return true;
+    }
+
+    private static List<Tooltip.Entry> filterTransferTooltip(List<Tooltip.Entry> tooltip) {
+        return tooltip.stream()
+                .filter(entry -> !isFavoriteHint(entry))
+                .toList();
+    }
+
+    private static boolean isFavoriteHint(Tooltip.Entry entry) {
+        if (!entry.isText()) {
+            return false;
+        }
+
+        String text = entry.getAsText().getString();
+        return text.contains("加入收藏") || text.contains("收藏夹") || text.toLowerCase(java.util.Locale.ROOT).contains("favorite");
     }
 
     private void addRecipeIdTooltip(Display display, List<Tooltip.Entry> tooltip) {
