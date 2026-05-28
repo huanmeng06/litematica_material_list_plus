@@ -13,20 +13,30 @@ public final class MaterialListOpener {
     }
 
     public static boolean open() {
+        MaterialListBase materialList = getOrCreateMaterialList();
+
+        if (materialList == null) {
+            return true;
+        }
+
+        GuiBase.openGui(new GuiMaterialList(materialList));
+        return true;
+    }
+
+    public static MaterialListBase getOrCreateMaterialList() {
         MaterialListBase materialList = DataManager.getMaterialList();
 
         if (materialList == null) {
             SchematicPlacement placement = DataManager.getSchematicPlacementManager().getSelectedSchematicPlacement();
             if (placement == null) {
                 InfoUtils.showGuiOrInGameMessage(MessageType.ERROR, "litematica.message.error.no_placement_selected");
-                return true;
+                return null;
             }
 
             materialList = placement.getMaterialList();
             materialList.reCreateMaterialList();
         }
 
-        GuiBase.openGui(new GuiMaterialList(materialList));
-        return true;
+        return materialList;
     }
 }
