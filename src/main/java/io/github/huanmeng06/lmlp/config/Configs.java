@@ -6,6 +6,7 @@ import com.google.gson.JsonObject;
 import fi.dy.masa.malilib.config.ConfigUtils;
 import fi.dy.masa.malilib.config.IConfigBase;
 import fi.dy.masa.malilib.config.IConfigHandler;
+import fi.dy.masa.malilib.config.options.ConfigBoolean;
 import fi.dy.masa.malilib.config.options.ConfigStringList;
 import fi.dy.masa.malilib.util.FileUtils;
 import fi.dy.masa.malilib.util.JsonUtils;
@@ -22,6 +23,13 @@ public class Configs implements IConfigHandler {
     private static final String HOTKEYS = "Hotkeys";
 
     public static final class Generic {
+        public static final ConfigBoolean ENABLE_LMLP_HOVER_TOOLTIP = new ConfigBoolean(
+                "enableLmlpHoverTooltip",
+                true,
+                "Use the LMLP compact/detail material hover tooltip. Disable to use the original Litematica hover tooltip.",
+                "lmlp.config.name.enable_lmlp_hover_tooltip"
+        );
+
         public static final ConfigStringList RECIPE_STOP_ITEMS = new ConfigStringList(
                 "recipeStopItems",
                 ImmutableList.of("minecraft:redstone"),
@@ -29,6 +37,7 @@ public class Configs implements IConfigHandler {
         );
 
         public static final List<IConfigBase> OPTIONS = ImmutableList.of(
+                ENABLE_LMLP_HOVER_TOOLTIP,
                 RECIPE_STOP_ITEMS
         );
 

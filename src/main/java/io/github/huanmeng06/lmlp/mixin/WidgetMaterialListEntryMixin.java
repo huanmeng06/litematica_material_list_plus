@@ -12,6 +12,7 @@ import fi.dy.masa.malilib.render.RenderUtils;
 import fi.dy.masa.malilib.util.GuiUtils;
 import fi.dy.masa.malilib.util.StringUtils;
 import io.github.huanmeng06.lmlp.access.WidgetListBoundsAccess;
+import io.github.huanmeng06.lmlp.config.Configs;
 import io.github.huanmeng06.lmlp.config.Hotkeys;
 import io.github.huanmeng06.lmlp.gui.MaterialListPlusState;
 import io.github.huanmeng06.lmlp.gui.RecipeDetailScreen;
@@ -39,6 +40,11 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
     private static final int HOVER_TOOLTIP_HEADER_GAP = 3;
     private static final int HOVER_TOOLTIP_ICON_GAP = 6;
     private static final int HOVER_TOOLTIP_ICON_SIZE = 16;
+    private static final int VANILLA_TOOLTIP_HEIGHT = 60;
+    private static final int VANILLA_TOOLTIP_MARGIN = 10;
+    private static final int VANILLA_TOOLTIP_LABEL_VALUE_GAP = 20;
+    private static final int VANILLA_TOOLTIP_PADDING_EXTRA = 60;
+    private static final int VANILLA_TOOLTIP_LINE_HEIGHT = 16;
     private static int lmlpMaxTotalDigits;
     private static int lmlpMaxMissingDigits;
     @Shadow
@@ -276,7 +282,11 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
             return;
         }
 
-        this.renderMaterialHoverTooltip(drawContext, mouseX, mouseY, this.isDetailHoverKeyDown());
+        if (Configs.Generic.ENABLE_LMLP_HOVER_TOOLTIP.getBooleanValue()) {
+            this.renderMaterialHoverTooltip(drawContext, mouseX, mouseY, this.isDetailHoverKeyDown());
+        } else {
+            this.renderVanillaMaterialHoverTooltip(drawContext, mouseX, mouseY);
+        }
     }
 
     private void renderMaterialHoverTooltip(class_332 drawContext, int mouseX, int mouseY, boolean detailed) {
@@ -349,6 +359,55 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         drawContext.method_51448().method_22909();
     }
 
+    private void renderVanillaMaterialHoverTooltip(class_332 drawContext, int mouseX, int mouseY) {
+        class_1799 stack = this.entry.getStack();
+        String itemLabel = GuiBase.TXT_BOLD + StringUtils.translate("litematica.gui.label.material_list.title.item");
+        String totalLabel = GuiBase.TXT_BOLD + StringUtils.translate("litematica.gui.label.material_list.title.total");
+        String missingLabel = GuiBase.TXT_BOLD + StringUtils.translate("litematica.gui.label.material_list.title.missing");
+        String itemText = stack.method_7964().getString();
+        int multiplier = this.materialList.getMultiplier();
+        int total = this.entry.getCountTotal() * multiplier;
+        int missing = multiplier == 1 ? this.entry.getCountMissing() : total;
+        String totalText = this.formatVanillaCount(total, stack.method_7914());
+        String missingText = this.formatVanillaCount(missing, stack.method_7914());
+        int labelWidth = Math.max(this.getStringWidth(itemLabel), Math.max(this.getStringWidth(totalLabel), this.getStringWidth(missingLabel)));
+        int valueWidth = Math.max(this.getStringWidth(itemText) + 20, Math.max(this.getStringWidth(totalText), this.getStringWidth(missingText)));
+        int panelWidth = labelWidth + valueWidth + VANILLA_TOOLTIP_LABEL_VALUE_GAP + VANILLA_TOOLTIP_PADDING_EXTRA;
+        int panelX = mouseX + VANILLA_TOOLTIP_MARGIN;
+        int panelY = mouseY - VANILLA_TOOLTIP_MARGIN;
+
+        if (panelX + panelWidth - 20 >= this.width) {
+            panelX -= panelWidth + 20;
+        }
+
+        int labelX = panelX + VANILLA_TOOLTIP_MARGIN;
+        int valueX = labelX + labelWidth + VANILLA_TOOLTIP_LABEL_VALUE_GAP;
+        int lineY = panelY + 6;
+        int iconY = lineY;
+
+        drawContext.method_51448().method_22903();
+        drawContext.method_51448().method_46416(0.0F, 0.0F, 200.0F);
+        RenderUtils.drawOutlinedBox(panelX, panelY, panelWidth, VANILLA_TOOLTIP_HEIGHT, 0xFF000000, 0xFF999999);
+
+        lineY += 4;
+        this.drawString(labelX, lineY, 0xFFFFFFFF, itemLabel, drawContext);
+        this.drawString(valueX + 20, lineY, 0xFFFFFFFF, itemText, drawContext);
+
+        lineY += VANILLA_TOOLTIP_LINE_HEIGHT;
+        this.drawString(labelX, lineY, 0xFFFFFFFF, totalLabel, drawContext);
+        this.drawString(valueX, lineY, 0xFFFFFFFF, totalText, drawContext);
+
+        lineY += VANILLA_TOOLTIP_LINE_HEIGHT;
+        this.drawString(labelX, lineY, 0xFFFFFFFF, missingLabel, drawContext);
+        this.drawString(valueX, lineY, 0xFFFFFFFF, missingText, drawContext);
+
+        RenderUtils.drawRect(valueX, iconY, 16, 16, 0x20FFFFFF);
+        RenderUtils.enableDiffuseLightingGui3D();
+        drawContext.method_51427(stack, valueX, iconY);
+        RenderUtils.disableDiffuseLighting();
+        drawContext.method_51448().method_22909();
+    }
+
     private boolean isDetailHoverKeyDown() {
         return Hotkeys.SHOW_HOVER_DETAILS.getKeybind().isKeybindHeld();
     }
@@ -356,6 +415,27 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
     private String detailHoverKeyDisplayName() {
         String keyName = Hotkeys.SHOW_HOVER_DETAILS.getKeybind().getKeysDisplayString();
         return keyName.isEmpty() ? StringUtils.translate("lmlp.label.hover.detail_key_unbound") : keyName;
+    }
+
+    private String formatVanillaCount(int count, int maxStackSize) {
+        int stacks = count / maxStackSize;
+        int remainder = count % maxStackSize;
+        double shulkerBoxes = count / (27.0D * maxStackSize);
+        String shulkerBoxAbbr = StringUtils.translate("litematica.gui.label.material_list.abbr.shulker_box");
+
+        if (count > maxStackSize) {
+            if (maxStackSize > 1) {
+                if (remainder > 0) {
+                    return String.format("%d = %d x %d + %d = %.2f %s", count, stacks, maxStackSize, remainder, shulkerBoxes, shulkerBoxAbbr);
+                }
+
+                return String.format("%d = %d x %d = %.2f %s", count, stacks, maxStackSize, shulkerBoxes, shulkerBoxAbbr);
+            }
+
+            return String.format("%d = %.2f %s", count, shulkerBoxes, shulkerBoxAbbr);
+        }
+
+        return String.format("%d", count);
     }
 
     private PanelBounds hoverTooltipBounds(int mouseX, int mouseY, int panelWidth, int panelHeight) {
