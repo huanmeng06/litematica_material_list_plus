@@ -60,8 +60,13 @@ public abstract class WidgetListBaseMixin implements WidgetListBoundsAccess {
     }
 
     @Override
+    public int lmlp$getVisibleTop() {
+        return this.browserEntriesStartY + this.browserEntriesOffsetY;
+    }
+
+    @Override
     public int lmlp$getVisibleBottom() {
-        return this.browserEntriesStartY + this.browserEntriesOffsetY + Math.max(0, this.browserHeight - this.browserPaddingY - this.browserEntriesOffsetY);
+        return this.lmlp$getVisibleTop() + Math.max(0, this.browserHeight - this.browserPaddingY - this.browserEntriesOffsetY);
     }
 
     private int lmlp$getDynamicScrollbarMaxValue() {

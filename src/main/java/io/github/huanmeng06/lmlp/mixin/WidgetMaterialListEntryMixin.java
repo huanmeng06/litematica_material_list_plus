@@ -31,8 +31,8 @@ import java.util.List;
 public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortable<MaterialListEntry> {
     private static final int BASE_ENTRY_HEIGHT = 23;
     private static final int EXPANDED_PANEL_BOTTOM_PADDING = 8;
-    private static final int FIXED_TOOLTIP_TOP = 4;
-    private static final int FIXED_TOOLTIP_RIGHT_MARGIN = 226;
+    private static final int FIXED_TOOLTIP_MARGIN = 8;
+    private static final int FIXED_TOOLTIP_RIGHT_CONTROLS_WIDTH = 176;
     private static final int FIXED_TOOLTIP_MIN_WIDTH = 300;
     private static final int FIXED_TOOLTIP_HEIGHT = 50;
     private static final int FIXED_TOOLTIP_LINE_HEIGHT = 14;
@@ -135,54 +135,58 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
      */
     @Overwrite
     protected boolean onMouseClickedImpl(int mouseX, int mouseY, int mouseButton) {
+        if (this.entry == null) {
+            if (this.header1 != null && this.listWidget.getSearchBarWidget().isSearchOpen()) {
+                return false;
+            }
+
+            int column = this.getMouseOverColumn(mouseX, mouseY);
+            switch (column) {
+                case 0 -> this.materialList.setSortCriteria(MaterialListBase.SortCriteria.NAME);
+                case 1 -> this.materialList.setSortCriteria(MaterialListBase.SortCriteria.COUNT_TOTAL);
+                case 2 -> this.materialList.setSortCriteria(MaterialListBase.SortCriteria.COUNT_MISSING);
+                case 3 -> this.materialList.setSortCriteria(MaterialListBase.SortCriteria.COUNT_AVAILABLE);
+                default -> {
+                    return false;
+                }
+            }
+
+            this.listWidget.refreshEntries();
+            return true;
+        }
+
         if (super.onMouseClickedImpl(mouseX, mouseY, mouseButton)) {
             return true;
         }
 
-        if (this.entry != null) {
-            if (mouseButton == 0 && this.isMouseOver(mouseX, mouseY)) {
-                if (!GuiBase.isShiftDown()) {
-                    if (this.handleRecipePanelClick(mouseX, mouseY)) {
-                        return true;
-                    }
+        if (mouseButton == 0 && this.isMouseOver(mouseX, mouseY)) {
+            if (!GuiBase.isShiftDown()) {
+                if (this.handleRecipePanelClick(mouseX, mouseY)) {
+                    return true;
                 }
+            }
 
-                if (GuiBase.isShiftDown()) {
-                    List<RecipeSummary> summaries = MaterialListPlusState.resolveFor(this.entry, this.materialList);
-                    this.mc.method_1507(new RecipeDetailScreen(GuiUtils.getCurrentScreen(), this.entry.getStack(), MaterialCounts.total(this.entry, this.materialList), MaterialCounts.missing(this.entry, this.materialList), summaries));
+            if (GuiBase.isShiftDown()) {
+                List<RecipeSummary> summaries = MaterialListPlusState.resolveFor(this.entry, this.materialList);
+                this.mc.method_1507(new RecipeDetailScreen(GuiUtils.getCurrentScreen(), this.entry.getStack(), MaterialCounts.total(this.entry, this.materialList), MaterialCounts.missing(this.entry, this.materialList), summaries));
+            } else {
+                boolean wasExpanded = MaterialListPlusState.isRecipeExpanded(this.entry);
+                int rowTopY = this.y;
+                if (wasExpanded) {
+                    MaterialListPlusState.clear();
                 } else {
-                    boolean wasExpanded = MaterialListPlusState.isRecipeExpanded(this.entry);
-                    int rowTopY = this.y;
-                    if (wasExpanded) {
-                        MaterialListPlusState.clear();
-                    } else {
-                        MaterialListPlusState.open(this.entry, this.materialList);
-                    }
-
-                    this.listWidget.refreshEntries();
-                    if (!wasExpanded) {
-                        this.scrollExpandedEntryIntoView(rowTopY);
-                    }
+                    MaterialListPlusState.open(this.entry, this.materialList);
                 }
-                return true;
-            }
 
-            return false;
+                this.listWidget.refreshEntries();
+                if (!wasExpanded) {
+                    this.scrollExpandedEntryIntoView(rowTopY);
+                }
+            }
+            return true;
         }
 
-        int column = this.getMouseOverColumn(mouseX, mouseY);
-        switch (column) {
-            case 0 -> this.materialList.setSortCriteria(MaterialListBase.SortCriteria.NAME);
-            case 1 -> this.materialList.setSortCriteria(MaterialListBase.SortCriteria.COUNT_TOTAL);
-            case 2 -> this.materialList.setSortCriteria(MaterialListBase.SortCriteria.COUNT_MISSING);
-            case 3 -> this.materialList.setSortCriteria(MaterialListBase.SortCriteria.COUNT_AVAILABLE);
-            default -> {
-                return false;
-            }
-        }
-
-        this.listWidget.refreshEntries();
-        return true;
+        return false;
     }
 
     /**
@@ -223,12 +227,10 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
                 this.renderColumnHeader(mouseX, mouseY, Icons.ARROW_DOWN, Icons.ARROW_UP);
             }
 
-            super.render(mouseX, mouseY, selected, drawContext);
             return;
         }
 
         if (this.entry == null) {
-            super.render(mouseX, mouseY, selected, drawContext);
             return;
         }
 
@@ -286,11 +288,12 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         int labelWidth = Math.max(this.getStringWidth(itemLabel), Math.max(this.getStringWidth(totalLabel), this.getStringWidth(missingLabel)));
         int valueWidth = Math.max(this.getStringWidth(itemText) + 20, Math.max(this.getStringWidth(totalText), this.getStringWidth(missingText)));
         int panelWidth = Math.max(FIXED_TOOLTIP_MIN_WIDTH, labelWidth + valueWidth + 44);
-        int maxPanelWidth = Math.max(FIXED_TOOLTIP_MIN_WIDTH, this.mc.method_22683().method_4486() - FIXED_TOOLTIP_RIGHT_MARGIN - 20);
+        int maxPanelWidth = Math.max(FIXED_TOOLTIP_MIN_WIDTH, this.mc.method_22683().method_4486() - FIXED_TOOLTIP_RIGHT_CONTROLS_WIDTH - FIXED_TOOLTIP_MARGIN * 2);
         panelWidth = Math.min(panelWidth, maxPanelWidth);
 
-        int panelX = Math.max(20, this.mc.method_22683().method_4486() - FIXED_TOOLTIP_RIGHT_MARGIN - panelWidth);
-        int panelY = FIXED_TOOLTIP_TOP;
+        PanelBounds bounds = this.fixedHoverPanelBounds(panelWidth, FIXED_TOOLTIP_HEIGHT);
+        int panelX = bounds.x();
+        int panelY = bounds.y();
         int labelX = panelX + 10;
         int valueX = labelX + labelWidth + 20;
         int lineY = panelY + 8;
@@ -315,6 +318,31 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         this.drawString(valueX, lineY, 0xFFFFFFFF, missingText, drawContext);
 
         drawContext.method_51448().method_22909();
+    }
+
+    private PanelBounds fixedHoverPanelBounds(int panelWidth, int panelHeight) {
+        int screenWidth = this.mc.method_22683().method_4486();
+        int screenHeight = this.mc.method_22683().method_4502();
+        int rightLimit = screenWidth - FIXED_TOOLTIP_RIGHT_CONTROLS_WIDTH - FIXED_TOOLTIP_MARGIN;
+        int minX = FIXED_TOOLTIP_MARGIN;
+        int maxX = Math.max(minX, screenWidth - panelWidth - FIXED_TOOLTIP_MARGIN);
+        int x = clamp(rightLimit - panelWidth, minX, maxX);
+
+        int topLimit = FIXED_TOOLTIP_MARGIN;
+        int bottomLimit = screenHeight - FIXED_TOOLTIP_MARGIN;
+        if (this.listWidget instanceof WidgetListBoundsAccess access) {
+            bottomLimit = Math.min(bottomLimit, access.lmlp$getVisibleTop() - FIXED_TOOLTIP_MARGIN);
+        }
+
+        int maxY = Math.max(topLimit, bottomLimit - panelHeight);
+        int topGapHeight = Math.max(0, bottomLimit - topLimit);
+        int centeredY = topLimit + Math.max(0, (topGapHeight - panelHeight) / 2);
+        int y = clamp(centeredY, topLimit, maxY);
+        return new PanelBounds(x, y);
+    }
+
+    private static int clamp(int value, int min, int max) {
+        return Math.max(min, Math.min(max, value));
     }
 
     private boolean handleRecipePanelClick(int mouseX, int mouseY) {
@@ -374,5 +402,8 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
             return GuiBase.TXT_GREEN;
         }
         return GuiBase.TXT_RED;
+    }
+
+    private record PanelBounds(int x, int y) {
     }
 }
