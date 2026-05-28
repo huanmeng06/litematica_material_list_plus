@@ -22,7 +22,7 @@ public class GuiConfigs extends GuiConfigsBase {
                 LitematicaMaterialListPlus.MOD_ID,
                 null,
                 "lmlp.gui.title.configs",
-                LitematicaMaterialListPlus.MOD_VERSION
+                String.format("%s", LitematicaMaterialListPlus.MOD_VERSION)
         );
     }
 
@@ -52,7 +52,7 @@ public class GuiConfigs extends GuiConfigsBase {
     }
 
     private int createButton(int x, int y, int width, ConfigGuiTab tab) {
-        ButtonGeneric button = new ButtonGeneric(x, y, width, 20, tab.getDisplayName());
+        ButtonGeneric button = new ButtonGeneric(x, y, width, 20, tab.getDisplayName(), new String[0]);
         button.setEnabled(currentTab != tab);
         this.addButton(button, new ButtonListener(tab, this));
         return button.getWidth() + 2;

@@ -39,7 +39,7 @@
   "lmlp.label.recipe.any.concrete_powder": "任意混凝土粉末",
   "lmlp.label.hover.detail_hint": "按住%s查看详情",
   "lmlp.label.hover.detail_key_unbound": "未绑定按键",
-  "lmlp.gui.title.configs": "Litematica Material List Plus 配置 (%s)",
+  "lmlp.gui.title.configs": "Litematica Material List Plus 配置 - %s",
   "lmlp.gui.button.config_gui.hotkeys": "热键",
   "lmlp.hotkeys.category.material_list": "材料列表",
   "lmlp.config.name.show_hover_details": "显示详细浮窗",

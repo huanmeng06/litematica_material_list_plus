@@ -39,7 +39,7 @@
   "lmlp.label.recipe.any.concrete_powder": "Any concrete powder",
   "lmlp.label.hover.detail_hint": "Hold %s for details",
   "lmlp.label.hover.detail_key_unbound": "unbound key",
-  "lmlp.gui.title.configs": "Litematica Material List Plus Configs (%s)",
+  "lmlp.gui.title.configs": "Litematica Material List Plus Configs - %s",
   "lmlp.gui.button.config_gui.hotkeys": "Hotkeys",
   "lmlp.hotkeys.category.material_list": "Material List",
   "lmlp.config.name.show_hover_details": "Show hover details",
