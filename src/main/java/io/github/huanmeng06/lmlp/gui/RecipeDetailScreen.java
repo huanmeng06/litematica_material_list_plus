@@ -44,6 +44,7 @@ public class RecipeDetailScreen extends class_437 {
     private static final int MAX_NATIVE_DISPLAY_DEPTH = 2;
     private static final int TOGGLE_ICON_WIDTH = 12;
     private static final int TOGGLE_ICON_HEIGHT = 17;
+    private static final int TOGGLE_EXPANDED_Y_OFFSET = -2;
     private static final float TOGGLE_EXPANDED_ROTATION = (float) (Math.PI / 2.0D);
     private static final int OUTLINE_CLIP_PADDING = 2;
     private static final int PAGE_MARGIN_X = 24;
@@ -345,7 +346,7 @@ public class RecipeDetailScreen extends class_437 {
         }
 
         int centerX = iconX + TOGGLE_ICON_WIDTH / 2;
-        int centerY = iconY + TOGGLE_ICON_HEIGHT / 2;
+        int centerY = iconY + TOGGLE_ICON_HEIGHT / 2 + TOGGLE_EXPANDED_Y_OFFSET;
         context.method_51448().method_22903();
         context.method_51448().method_22904(centerX, centerY, 0.0D);
         context.method_51448().method_22907(new Quaternionf().rotateZ(TOGGLE_EXPANDED_ROTATION));

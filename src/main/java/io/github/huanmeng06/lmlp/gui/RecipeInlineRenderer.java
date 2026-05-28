@@ -29,6 +29,7 @@ public final class RecipeInlineRenderer {
     private static final int TREE_INDENT_WIDTH = 18;
     private static final int TOGGLE_ICON_WIDTH = 12;
     private static final int TOGGLE_ICON_HEIGHT = 17;
+    private static final int TOGGLE_EXPANDED_Y_OFFSET = -2;
     private static final float TOGGLE_EXPANDED_ROTATION = (float) (Math.PI / 2.0D);
     private static final class_2960 TOGGLE_TEXTURE = new class_2960("minecraft", "recipe_book/page_forward");
     private static final class_2960 TOGGLE_HIGHLIGHTED_TEXTURE = new class_2960("minecraft", "recipe_book/page_forward_highlighted");
@@ -181,7 +182,7 @@ public final class RecipeInlineRenderer {
         }
 
         int centerX = iconX + TOGGLE_ICON_WIDTH / 2;
-        int centerY = iconY + TOGGLE_ICON_HEIGHT / 2;
+        int centerY = iconY + TOGGLE_ICON_HEIGHT / 2 + TOGGLE_EXPANDED_Y_OFFSET;
         context.method_51448().method_22903();
         context.method_51448().method_22904(centerX, centerY, 0.0D);
         context.method_51448().method_22907(new Quaternionf().rotateZ(TOGGLE_EXPANDED_ROTATION));
