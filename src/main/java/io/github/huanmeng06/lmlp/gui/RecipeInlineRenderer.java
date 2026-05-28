@@ -30,8 +30,8 @@ public final class RecipeInlineRenderer {
     private static final int TOGGLE_ICON_WIDTH = 16;
     private static final int TOGGLE_ICON_HEIGHT = 10;
     private static final float TOGGLE_EXPANDED_ROTATION = (float) (Math.PI / 2.0D);
-    private static final class_2960 TOGGLE_TEXTURE = new class_2960("minecraft", "widget/page_forward");
-    private static final class_2960 TOGGLE_HIGHLIGHTED_TEXTURE = new class_2960("minecraft", "widget/page_forward_highlighted");
+    private static final class_2960 TOGGLE_TEXTURE = new class_2960("minecraft", "recipe_book/page_forward");
+    private static final class_2960 TOGGLE_HIGHLIGHTED_TEXTURE = new class_2960("minecraft", "recipe_book/page_forward_highlighted");
 
     private RecipeInlineRenderer() {
     }

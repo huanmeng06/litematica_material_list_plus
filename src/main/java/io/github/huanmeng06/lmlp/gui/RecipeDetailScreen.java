@@ -61,8 +61,8 @@ public class RecipeDetailScreen extends class_437 {
     private static final int NESTED_RECIPE_INDENT = 24;
     private static final int MAX_NESTED_DEPTH = 3;
     private static final class_2960 REI_DISPLAY_TEXTURE = new class_2960("roughlyenoughitems", "textures/gui/display.png");
-    private static final class_2960 TOGGLE_TEXTURE = new class_2960("minecraft", "widget/page_forward");
-    private static final class_2960 TOGGLE_HIGHLIGHTED_TEXTURE = new class_2960("minecraft", "widget/page_forward_highlighted");
+    private static final class_2960 TOGGLE_TEXTURE = new class_2960("minecraft", "recipe_book/page_forward");
+    private static final class_2960 TOGGLE_HIGHLIGHTED_TEXTURE = new class_2960("minecraft", "recipe_book/page_forward_highlighted");
 
     private final class_437 parent;
     private final class_1799 target;
