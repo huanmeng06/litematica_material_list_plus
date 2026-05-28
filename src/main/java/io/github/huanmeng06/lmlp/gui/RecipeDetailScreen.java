@@ -15,8 +15,7 @@ import io.github.huanmeng06.lmlp.material.CountFormatter;
 import io.github.huanmeng06.lmlp.material.ItemStackTexts;
 import io.github.huanmeng06.lmlp.recipe.AlternativeItemDisplay;
 import io.github.huanmeng06.lmlp.recipe.IngredientSummary;
-import io.github.huanmeng06.lmlp.recipe.MaterialTreeBuilder;
-import io.github.huanmeng06.lmlp.recipe.MaterialTreeNode;
+import io.github.huanmeng06.lmlp.recipe.RecipeResolvers;
 import io.github.huanmeng06.lmlp.recipe.RecipeSlotSummary;
 import io.github.huanmeng06.lmlp.recipe.RecipeSummary;
 import io.github.huanmeng06.lmlp.recipe.RecipeSummaryFormatter;
@@ -43,6 +42,9 @@ public class RecipeDetailScreen extends class_437 {
     private static final int INGREDIENT_TREE_INDENT_WIDTH = 18;
     private static final int INGREDIENT_TOGGLE_WIDTH = 10;
     private static final int INGREDIENT_ICON_OFFSET = 14;
+    private static final int NESTED_RECIPE_GAP = 8;
+    private static final int NESTED_RECIPE_INDENT = 24;
+    private static final int MAX_NESTED_DEPTH = 3;
     private static final class_2960 REI_DISPLAY_TEXTURE = new class_2960("roughlyenoughitems", "textures/gui/display.png");
 
     private final class_437 parent;
@@ -55,9 +57,9 @@ public class RecipeDetailScreen extends class_437 {
     private final RecipeNativeDisplayBridge nativeDisplayBridge = createNativeDisplayBridge();
     private final RecipeTooltipBridge tooltipBridge = createTooltipBridge();
     private final List<NativeDisplayArea> nativeDisplayAreas = new ArrayList<>();
-    private final Map<String, Boolean> treeSupportCache = new HashMap<>();
-    private final Map<String, MaterialTreeNode> treeCache = new HashMap<>();
-    private final Set<String> expandedTreeNodes = new HashSet<>();
+    private final List<ToggleArea> toggleAreas = new ArrayList<>();
+    private final Map<String, List<RecipeSummary>> nestedRecipeCache = new HashMap<>();
+    private final Set<String> expandedNestedRecipes = new HashSet<>();
     private class_1799 hoveredStack = class_1799.field_8037;
     private int clipTop;
     private int clipBottom;
@@ -157,6 +159,7 @@ public class RecipeDetailScreen extends class_437 {
         this.clipTop = contentTop;
         this.clipBottom = contentBottom;
         this.nativeDisplayAreas.clear();
+        this.toggleAreas.clear();
         this.scrollBar.setMaxValue(Math.max(0, this.contentHeight() - viewportHeight));
         this.updateBackButtonPosition(layout);
 
@@ -171,8 +174,9 @@ public class RecipeDetailScreen extends class_437 {
         } else {
             int index = 1;
             for (RecipeSummary summary : this.summaries) {
-                int boxHeight = this.recipeBoxHeight(summary);
-                this.renderRecipeBox(context, summary, index, layout.left(), y, layout.contentWidth(), boxHeight, mouseX, mouseY, delta);
+                String path = "recipe/" + index + ":" + summary.recipeId();
+                int boxHeight = this.recipeBoxHeight(summary, path, 0);
+                this.renderRecipeBox(context, summary, index, path, 0, layout.left(), y, layout.contentWidth(), boxHeight, mouseX, mouseY, delta);
                 y += boxHeight + 10;
                 index++;
             }
@@ -218,7 +222,7 @@ public class RecipeDetailScreen extends class_437 {
         this.backButton.render(mouseX, mouseY, false, context);
     }
 
-    private void renderRecipeBox(class_332 context, RecipeSummary summary, int index, int left, int y, int width, int boxHeight, int mouseX, int mouseY, float delta) {
+    private void renderRecipeBox(class_332 context, RecipeSummary summary, int index, String path, int depth, int left, int y, int width, int boxHeight, int mouseX, int mouseY, float delta) {
         RenderUtils.drawOutlinedBox(left, y, width, boxHeight, 0xDD000000, 0xFF777777);
         context.method_51427(summary.outputIcon(), left + 10, y + 10);
         this.captureHoveredStack(summary.outputIcon(), mouseX, mouseY, left + 10, y + 10, 16, 16);
@@ -236,26 +240,29 @@ public class RecipeDetailScreen extends class_437 {
         context.method_51433(this.field_22793, StringUtils.translate("lmlp.label.recipe.ingredients_total"), left + 14, lineY, 0xFFAAAAAA, false);
         lineY += 18;
 
-        for (IngredientSummary ingredient : summary.ingredients()) {
-            this.renderIngredientLine(context, left + 14, lineY, 0, ingredient, mouseX, mouseY);
+        for (int ingredientIndex = 0; ingredientIndex < summary.ingredients().size(); ingredientIndex++) {
+            IngredientSummary ingredient = summary.ingredients().get(ingredientIndex);
+            String ingredientPath = path + "/ingredient/" + ingredientIndex + ":" + key(ingredient);
+            this.renderIngredientLine(context, left + 14, lineY, depth, ingredientPath, ingredient, mouseX, mouseY);
             lineY += INGREDIENT_ROW_HEIGHT;
 
-            MaterialTreeNode root = this.expandedTree(ingredient);
-            if (root != null) {
-                lineY = this.renderIngredientChildren(context, left + 14, lineY, root.children(), 1, mouseX, mouseY);
+            if (this.expandedNestedRecipes.contains(ingredientPath)) {
+                lineY = this.renderNestedRecipes(context, ingredient, ingredientPath, depth + 1, left + 14, lineY, width - 28, mouseX, mouseY, delta);
             }
         }
     }
 
-    private void renderIngredientLine(class_332 context, int left, int y, int depth, IngredientSummary ingredient, int mouseX, int mouseY) {
-        MaterialTreeNode root = this.expandedTree(ingredient);
+    private void renderIngredientLine(class_332 context, int left, int y, int depth, String path, IngredientSummary ingredient, int mouseX, int mouseY) {
+        boolean hasRecipes = depth < MAX_NESTED_DEPTH && this.hasRecipes(ingredient);
+        boolean expanded = this.expandedNestedRecipes.contains(path);
         this.renderMaterialLine(
                 context,
                 left,
                 y,
-                depth,
-                this.hasTree(ingredient),
-                root != null,
+                0,
+                path,
+                hasRecipes,
+                expanded,
                 AlternativeItemDisplay.icon(ingredient),
                 RecipeSummaryFormatter.ingredientName(ingredient),
                 RecipeSummaryFormatter.totalCount(ingredient),
@@ -265,37 +272,27 @@ public class RecipeDetailScreen extends class_437 {
                 mouseY);
     }
 
-    private int renderIngredientChildren(class_332 context, int left, int y, List<MaterialTreeNode> nodes, int depth, int mouseX, int mouseY) {
+    private int renderNestedRecipes(class_332 context, IngredientSummary ingredient, String parentPath, int depth, int left, int y, int width, int mouseX, int mouseY, float delta) {
         int lineY = y;
-        for (MaterialTreeNode node : nodes) {
-            boolean expanded = this.expandedTreeNodes.contains(node.path());
-            this.renderMaterialLine(
-                    context,
-                    left,
-                    lineY,
-                    depth,
-                    node.hasChildren(),
-                    expanded,
-                    AlternativeItemDisplay.icon(node),
-                    node.name(),
-                    CountFormatter.format(node.totalCount(), node.maxStackSize()),
-                    CountFormatter.format(node.missingCount(), node.maxStackSize()),
-                    node.missingCount() != node.totalCount(),
-                    mouseX,
-                    mouseY);
-            lineY += INGREDIENT_ROW_HEIGHT;
-            if (node.hasChildren() && expanded) {
-                lineY = this.renderIngredientChildren(context, left, lineY, node.children(), depth + 1, mouseX, mouseY);
-            }
+        List<RecipeSummary> recipes = this.recipesFor(ingredient);
+        int nestedLeft = left + NESTED_RECIPE_INDENT;
+        int nestedWidth = Math.max(180, width - NESTED_RECIPE_INDENT);
+        for (int recipeIndex = 0; recipeIndex < recipes.size(); recipeIndex++) {
+            RecipeSummary recipe = recipes.get(recipeIndex);
+            String path = parentPath + "/recipe/" + (recipeIndex + 1) + ":" + recipe.recipeId();
+            int height = this.recipeBoxHeight(recipe, path, depth);
+            this.renderRecipeBox(context, recipe, recipeIndex + 1, path, depth, nestedLeft, lineY, nestedWidth, height, mouseX, mouseY, delta);
+            lineY += height + NESTED_RECIPE_GAP;
         }
 
         return lineY;
     }
 
-    private void renderMaterialLine(class_332 context, int left, int y, int depth, boolean hasTree, boolean expanded, class_1799 icon, String name, String totalText, String missingText, boolean showMissing, int mouseX, int mouseY) {
+    private void renderMaterialLine(class_332 context, int left, int y, int depth, String path, boolean hasRecipes, boolean expanded, class_1799 icon, String name, String totalText, String missingText, boolean showMissing, int mouseX, int mouseY) {
         int rowX = left + depth * INGREDIENT_TREE_INDENT_WIDTH;
-        if (hasTree) {
+        if (hasRecipes) {
             context.method_51433(this.field_22793, expanded ? "v" : ">", rowX + 2, y, 0xFFFFFFFF, false);
+            this.toggleAreas.add(new ToggleArea(path, rowX, y - 2, INGREDIENT_TOGGLE_WIDTH, INGREDIENT_ROW_HEIGHT));
         }
 
         int iconX = rowX + INGREDIENT_ICON_OFFSET;
@@ -353,72 +350,15 @@ public class RecipeDetailScreen extends class_437 {
     }
 
     private boolean handleIngredientTreeClick(double mouseX, double mouseY) {
-        Layout layout = this.layout();
-        int contentTop = layout.headerTop() + HEADER_HEIGHT + 12;
-        int contentBottom = this.field_22790 - PAGE_BOTTOM_MARGIN;
-        if (mouseY < contentTop || mouseY >= contentBottom) {
-            return false;
-        }
-
-        int y = contentTop - this.scrollBar.getValue();
-        for (RecipeSummary summary : this.summaries) {
-            int boxHeight = this.recipeBoxHeight(summary);
-            ToggleTarget target = this.toggleTargetAt(summary, layout.left(), y, (int) mouseX, (int) mouseY);
-            if (!target.isNone()) {
-                if (target.ingredient() != null) {
-                    this.toggleIngredientTree(target.ingredient());
-                } else {
-                    this.toggleTreeNode(target.nodePath());
-                }
+        for (int i = this.toggleAreas.size() - 1; i >= 0; i--) {
+            ToggleArea area = this.toggleAreas.get(i);
+            if (area.contains(mouseX, mouseY)) {
+                this.toggleNestedRecipes(area.path());
                 return true;
             }
-            y += boxHeight + 10;
         }
 
         return false;
-    }
-
-    private ToggleTarget toggleTargetAt(RecipeSummary summary, int left, int boxY, int mouseX, int mouseY) {
-        int panelHeight = this.displayPanelHeight(summary);
-        int lineY = boxY + 38 + panelHeight + 16 + 18;
-
-        for (IngredientSummary ingredient : summary.ingredients()) {
-            if (this.hasTree(ingredient) && isToggleHit(left + 14, lineY, 0, mouseX, mouseY)) {
-                return ToggleTarget.ingredient(ingredient);
-            }
-            lineY += INGREDIENT_ROW_HEIGHT;
-
-            MaterialTreeNode root = this.expandedTree(ingredient);
-            if (root != null) {
-                ToggleScan scan = this.scanChildren(root.children(), left + 14, lineY, 1, mouseX, mouseY);
-                if (!scan.target().isNone()) {
-                    return scan.target();
-                }
-                lineY = scan.nextY();
-            }
-        }
-
-        return ToggleTarget.NONE;
-    }
-
-    private ToggleScan scanChildren(List<MaterialTreeNode> nodes, int left, int y, int depth, int mouseX, int mouseY) {
-        int lineY = y;
-        for (MaterialTreeNode node : nodes) {
-            if (node.hasChildren() && isToggleHit(left, lineY, depth, mouseX, mouseY)) {
-                return new ToggleScan(ToggleTarget.node(node.path()), lineY + INGREDIENT_ROW_HEIGHT);
-            }
-
-            lineY += INGREDIENT_ROW_HEIGHT;
-            if (node.hasChildren() && this.expandedTreeNodes.contains(node.path())) {
-                ToggleScan scan = this.scanChildren(node.children(), left, lineY, depth + 1, mouseX, mouseY);
-                if (!scan.target().isNone()) {
-                    return scan;
-                }
-                lineY = scan.nextY();
-            }
-        }
-
-        return new ToggleScan(ToggleTarget.NONE, lineY);
     }
 
     private int contentHeight() {
@@ -427,110 +367,63 @@ public class RecipeDetailScreen extends class_437 {
         }
 
         int height = 0;
+        int index = 1;
         for (RecipeSummary summary : this.summaries) {
-            height += this.recipeBoxHeight(summary) + 10;
+            height += this.recipeBoxHeight(summary, "recipe/" + index + ":" + summary.recipeId(), 0) + 10;
+            index++;
         }
         return height;
     }
 
-    private int recipeBoxHeight(RecipeSummary summary) {
-        return 72 + this.displayPanelHeight(summary) + this.visibleIngredientRows(summary) * INGREDIENT_ROW_HEIGHT;
+    private int recipeBoxHeight(RecipeSummary summary, String path, int depth) {
+        return 72 + this.displayPanelHeight(summary) + this.ingredientsHeight(summary, path, depth);
     }
 
-    private int visibleIngredientRows(RecipeSummary summary) {
-        int rows = 0;
-        for (IngredientSummary ingredient : summary.ingredients()) {
-            rows++;
-            MaterialTreeNode root = this.expandedTree(ingredient);
-            if (root != null) {
-                rows += this.visibleChildRows(root);
+    private int ingredientsHeight(RecipeSummary summary, String path, int depth) {
+        int height = 0;
+        for (int ingredientIndex = 0; ingredientIndex < summary.ingredients().size(); ingredientIndex++) {
+            IngredientSummary ingredient = summary.ingredients().get(ingredientIndex);
+            String ingredientPath = path + "/ingredient/" + ingredientIndex + ":" + key(ingredient);
+            height += INGREDIENT_ROW_HEIGHT;
+            if (this.expandedNestedRecipes.contains(ingredientPath)) {
+                height += this.nestedRecipesHeight(ingredient, ingredientPath, depth + 1);
             }
         }
 
-        return rows;
+        return height;
     }
 
-    private int visibleChildRows(MaterialTreeNode root) {
-        if (!this.expandedTreeNodes.contains(root.path())) {
-            return 0;
+    private int nestedRecipesHeight(IngredientSummary ingredient, String parentPath, int depth) {
+        int height = 0;
+        List<RecipeSummary> recipes = this.recipesFor(ingredient);
+        for (int recipeIndex = 0; recipeIndex < recipes.size(); recipeIndex++) {
+            RecipeSummary recipe = recipes.get(recipeIndex);
+            String path = parentPath + "/recipe/" + (recipeIndex + 1) + ":" + recipe.recipeId();
+            height += this.recipeBoxHeight(recipe, path, depth) + NESTED_RECIPE_GAP;
         }
 
-        return this.visibleNodeRows(root.children());
+        return height;
     }
 
-    private int visibleNodeRows(List<MaterialTreeNode> nodes) {
-        int rows = 0;
-        for (MaterialTreeNode node : nodes) {
-            rows++;
-            if (node.hasChildren() && this.expandedTreeNodes.contains(node.path())) {
-                rows += this.visibleNodeRows(node.children());
-            }
-        }
-
-        return rows;
+    private boolean hasRecipes(IngredientSummary ingredient) {
+        return !this.recipesFor(ingredient).isEmpty();
     }
 
-    private boolean hasTree(IngredientSummary ingredient) {
+    private List<RecipeSummary> recipesFor(IngredientSummary ingredient) {
         String key = key(ingredient);
-        Boolean cached = this.treeSupportCache.get(key);
-        if (cached != null) {
-            return cached;
-        }
-
-        boolean supported = MaterialTreeBuilder.hasChildren(ingredient.icon(), ingredient.countTotal(), ingredient.countMissing());
-        this.treeSupportCache.put(key, supported);
-        return supported;
+        return this.nestedRecipeCache.computeIfAbsent(key, ignored -> RecipeResolvers.findRecipes(ingredient.icon(), ingredient.countTotal(), ingredient.countMissing()));
     }
 
-    private void toggleIngredientTree(IngredientSummary ingredient) {
-        MaterialTreeNode root = this.treeFor(ingredient);
-        if (!root.hasChildren()) {
-            this.treeSupportCache.put(key(ingredient), false);
-            return;
-        }
-
-        this.treeSupportCache.put(key(ingredient), true);
-        if (this.expandedTreeNodes.contains(root.path())) {
-            this.collapseTreeNode(root.path());
+    private void toggleNestedRecipes(String path) {
+        if (this.expandedNestedRecipes.contains(path)) {
+            this.collapseNestedRecipes(path);
         } else {
-            this.expandedTreeNodes.add(root.path());
+            this.expandedNestedRecipes.add(path);
         }
     }
 
-    private MaterialTreeNode expandedTree(IngredientSummary ingredient) {
-        MaterialTreeNode root = this.treeCache.get(key(ingredient));
-        if (root == null || !this.expandedTreeNodes.contains(root.path())) {
-            return null;
-        }
-
-        return root;
-    }
-
-    private MaterialTreeNode treeFor(IngredientSummary ingredient) {
-        String key = key(ingredient);
-        return this.treeCache.computeIfAbsent(key, ignored -> MaterialTreeBuilder.build(
-                ingredient.icon(),
-                RecipeSummaryFormatter.ingredientName(ingredient),
-                ingredient.countTotal(),
-                ingredient.countMissing(),
-                "detail:" + key));
-    }
-
-    private void toggleTreeNode(String path) {
-        if (this.expandedTreeNodes.contains(path)) {
-            this.collapseTreeNode(path);
-        } else {
-            this.expandedTreeNodes.add(path);
-        }
-    }
-
-    private void collapseTreeNode(String path) {
-        this.expandedTreeNodes.removeIf(expandedPath -> expandedPath.equals(path) || expandedPath.startsWith(path + "/"));
-    }
-
-    private static boolean isToggleHit(int left, int y, int depth, int mouseX, int mouseY) {
-        int toggleX = left + depth * INGREDIENT_TREE_INDENT_WIDTH;
-        return mouseX >= toggleX && mouseX < toggleX + INGREDIENT_TOGGLE_WIDTH && mouseY >= y - 2 && mouseY < y + INGREDIENT_ROW_HEIGHT - 2;
+    private void collapseNestedRecipes(String path) {
+        this.expandedNestedRecipes.removeIf(expandedPath -> expandedPath.equals(path) || expandedPath.startsWith(path + "/"));
     }
 
     private static String key(IngredientSummary ingredient) {
@@ -640,23 +533,10 @@ public class RecipeDetailScreen extends class_437 {
         return mouseX >= x && mouseX < x + width && mouseY >= y && mouseY < y + height;
     }
 
-    private record ToggleTarget(IngredientSummary ingredient, String nodePath) {
-        private static final ToggleTarget NONE = new ToggleTarget(null, null);
-
-        private static ToggleTarget ingredient(IngredientSummary ingredient) {
-            return new ToggleTarget(ingredient, null);
+    private record ToggleArea(String path, int x, int y, int width, int height) {
+        private boolean contains(double mouseX, double mouseY) {
+            return mouseX >= this.x && mouseX < this.x + this.width && mouseY >= this.y && mouseY < this.y + this.height;
         }
-
-        private static ToggleTarget node(String nodePath) {
-            return new ToggleTarget(null, nodePath);
-        }
-
-        private boolean isNone() {
-            return this.ingredient == null && this.nodePath == null;
-        }
-    }
-
-    private record ToggleScan(ToggleTarget target, int nextY) {
     }
 
     private record NativeDisplayArea(RecipeSummary summary, int x, int y, int width, int height) {
