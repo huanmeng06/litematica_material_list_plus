@@ -10,7 +10,7 @@ public final class Hotkeys {
     public static final ConfigHotkey OPEN_CONFIG_GUI = new ConfigHotkey(
             "openConfigGui",
             "M,EQUAL",
-            KeybindSettings.RELEASE_EXCLUSIVE,
+            KeybindSettings.EXCLUSIVE,
             "Open the Litematica Material List Plus config screen.",
             "lmlp.config.name.open_config_gui"
     );

@@ -24,10 +24,10 @@ public class Configs implements IConfigHandler {
 
     public static final class Generic {
         public static final ConfigOptionList HOVER_TOOLTIP_MODE = new ConfigOptionList(
-                "hoverTooltipMode",
+                "enableLmlpHoverTooltip",
                 HoverTooltipMode.LMLP,
                 "Choose which material hover tooltip to show.",
-                "lmlp.config.name.hover_tooltip_mode"
+                "lmlp.config.name.enable_lmlp_hover_tooltip"
         );
 
         public static final ConfigStringList RECIPE_STOP_ITEMS = new ConfigStringList(
@@ -57,7 +57,7 @@ public class Configs implements IConfigHandler {
                 JsonObject root = element.getAsJsonObject();
                 ConfigUtils.readConfigBase(root, GENERIC, Generic.OPTIONS);
                 ConfigUtils.readConfigBase(root, HOTKEYS, Hotkeys.HOTKEY_LIST);
-                migrateLegacyHoverTooltipConfig(root);
+                migrateHoverTooltipModeConfig(root);
             }
         }
     }
@@ -92,19 +92,19 @@ public class Configs implements IConfigHandler {
         return "minecraft:" + trimmed;
     }
 
-    private static void migrateLegacyHoverTooltipConfig(JsonObject root) {
+    private static void migrateHoverTooltipModeConfig(JsonObject root) {
         if (!root.has(GENERIC) || !root.get(GENERIC).isJsonObject()) {
             return;
         }
 
         JsonObject generic = root.getAsJsonObject(GENERIC);
-        if (generic.has("hoverTooltipMode") || !generic.has("enableLmlpHoverTooltip")) {
+        if (generic.has("enableLmlpHoverTooltip") || !generic.has("hoverTooltipMode")) {
             return;
         }
 
-        JsonElement legacyValue = generic.get("enableLmlpHoverTooltip");
-        if (legacyValue.isJsonPrimitive() && legacyValue.getAsJsonPrimitive().isBoolean()) {
-            Generic.HOVER_TOOLTIP_MODE.setOptionListValue(legacyValue.getAsBoolean() ? HoverTooltipMode.LMLP : HoverTooltipMode.LITEMATICA);
+        JsonElement previousValue = generic.get("hoverTooltipMode");
+        if (previousValue.isJsonPrimitive()) {
+            Generic.HOVER_TOOLTIP_MODE.setOptionListValue(HoverTooltipMode.LMLP.fromString(previousValue.getAsString()));
         }
     }
 

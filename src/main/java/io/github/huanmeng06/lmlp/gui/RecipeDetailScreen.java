@@ -78,6 +78,7 @@ public class RecipeDetailScreen extends class_437 {
     private static final int NESTED_RECIPE_GAP = 8;
     private static final int NESTED_RECIPE_INDENT = 24;
     private static final int MAX_NESTED_DEPTH = 3;
+    private static final long EXPAND_ANIMATION_DURATION_MS = 150L;
     private static final class_2960 REI_DISPLAY_TEXTURE = new class_2960("roughlyenoughitems", "textures/gui/display.png");
 
     private final class_437 parent;
@@ -94,10 +95,14 @@ public class RecipeDetailScreen extends class_437 {
     private final List<ToggleArea> toggleAreas = new ArrayList<>();
     private final Map<String, List<RecipeSummary>> nestedRecipeCache = new HashMap<>();
     private final Set<String> expandedNestedRecipes = new HashSet<>();
+    private final Map<String, ExpandAnimation> nestedRecipeAnimations = new HashMap<>();
     private final Set<String> disabledNativeDisplayCategories = new HashSet<>();
     private class_1799 hoveredStack = class_1799.field_8037;
     private int clipTop;
     private int clipBottom;
+    private int activeClipTop = Integer.MIN_VALUE;
+    private int activeClipBottom = Integer.MAX_VALUE;
+    private long animationTimeMs;
     private int nativeDisplaysRenderedThisFrame;
     private boolean nativeDisplayLimitLoggedThisFrame;
     private boolean draggingScrollbar;
@@ -210,6 +215,8 @@ public class RecipeDetailScreen extends class_437 {
     @Override
     public void method_25394(class_332 context, int mouseX, int mouseY, float delta) {
         this.method_25420(context, mouseX, mouseY, delta);
+        this.animationTimeMs = System.currentTimeMillis();
+        this.pruneFinishedAnimations();
 
         Layout layout = this.layout();
         int contentTop = layout.headerTop() + HEADER_HEIGHT + 12;
@@ -220,6 +227,8 @@ public class RecipeDetailScreen extends class_437 {
         this.hoveredTransferTooltip = List.of();
         this.clipTop = contentTop;
         this.clipBottom = contentBottom;
+        this.activeClipTop = contentTop;
+        this.activeClipBottom = contentBottom;
         this.nativeDisplaysRenderedThisFrame = 0;
         this.nativeDisplayLimitLoggedThisFrame = false;
         this.nativeDisplayAreas.clear();
@@ -327,8 +336,22 @@ public class RecipeDetailScreen extends class_437 {
             this.renderIngredientLine(context, left + 14, lineY, depth, ingredientPath, ingredient, mouseX, mouseY);
             lineY += INGREDIENT_ROW_HEIGHT;
 
-            if (this.expandedNestedRecipes.contains(ingredientPath)) {
-                lineY = this.renderNestedRecipes(context, ingredient, ingredientPath, depth + 1, left + 14, lineY, width - 28, mouseX, mouseY, delta);
+            float expandProgress = this.expandProgress(ingredientPath);
+            if (expandProgress > 0.0F) {
+                int fullHeight = this.nestedRecipesHeight(ingredient, ingredientPath, depth + 1);
+                int visibleHeight = Math.min(fullHeight, Math.round(fullHeight * expandProgress));
+                if (visibleHeight > 0) {
+                    int previousClipTop = this.activeClipTop;
+                    int previousClipBottom = this.activeClipBottom;
+                    this.activeClipTop = Math.max(this.activeClipTop, lineY);
+                    this.activeClipBottom = Math.min(this.activeClipBottom, lineY + visibleHeight);
+                    context.method_44379(left + 14, lineY, left + width - 14, lineY + visibleHeight);
+                    this.renderNestedRecipes(context, ingredient, ingredientPath, depth + 1, left + 14, lineY, width - 28, mouseX, mouseY, delta);
+                    context.method_44380();
+                    this.activeClipTop = previousClipTop;
+                    this.activeClipBottom = previousClipBottom;
+                }
+                lineY += visibleHeight;
             }
         }
     }
@@ -376,7 +399,9 @@ public class RecipeDetailScreen extends class_437 {
         if (hasRecipes) {
             boolean hovered = isInside(mouseX, mouseY, rowX, y - 2, INGREDIENT_TOGGLE_WIDTH, INGREDIENT_ROW_HEIGHT);
             ToggleArrowRenderer.render(context, rowX, INGREDIENT_TOGGLE_WIDTH, iconY + 8, expanded, hovered);
-            this.toggleAreas.add(new ToggleArea(path, rowX, y - 2, INGREDIENT_TOGGLE_WIDTH, INGREDIENT_ROW_HEIGHT));
+            if (this.isVisibleInActiveClip(y - 2, INGREDIENT_ROW_HEIGHT)) {
+                this.toggleAreas.add(new ToggleArea(path, rowX, y - 2, INGREDIENT_TOGGLE_WIDTH, INGREDIENT_ROW_HEIGHT));
+            }
         }
 
         context.method_51427(icon, iconX, iconY);
@@ -453,7 +478,7 @@ public class RecipeDetailScreen extends class_437 {
     private boolean handleTransferButtonClick(double mouseX, double mouseY) {
         for (int i = this.transferButtons.size() - 1; i >= 0; i--) {
             TransferButtonEntry entry = this.transferButtons.get(i);
-            if (entry.button().method_25402(mouseX, mouseY, 0)) {
+            if (entry.contains(mouseX, mouseY) && entry.button().method_25402(mouseX, mouseY, 0)) {
                 return true;
             }
         }
@@ -474,7 +499,7 @@ public class RecipeDetailScreen extends class_437 {
         }
 
         Rectangle buttonBounds = buttonArea.get().get(displayBounds);
-        if (buttonBounds.getMaxY() < this.clipTop || buttonBounds.y > this.clipBottom) {
+        if (!this.isVisibleInActiveClip(buttonBounds.y, buttonBounds.height)) {
             return;
         }
 
@@ -485,17 +510,21 @@ public class RecipeDetailScreen extends class_437 {
         button.setEnabled(state.successful());
         button.setTint(state.tint());
 
+        int visibleTop = Math.max(buttonBounds.y, this.activeClipTop);
+        int visibleBottom = Math.min(buttonBounds.getMaxY(), this.activeClipBottom);
+        boolean mouseInVisibleButton = isInside(mouseX, mouseY, buttonBounds.x, visibleTop, buttonBounds.width, visibleBottom - visibleTop);
+
         if (state.hasApplicable()
                 && state.renderer() != null
-                && (isInside(mouseX, mouseY, buttonBounds.x, buttonBounds.y, buttonBounds.width, buttonBounds.height) || button.method_25370())) {
+                && (mouseInVisibleButton || button.method_25370())) {
             state.renderer().render(context, mouseX, mouseY, delta, this.setupDisplayWidgets(display, displayBounds), displayBounds, display);
         }
 
         button.method_25394(context, mouseX, mouseY, delta);
-        if (isInside(mouseX, mouseY, buttonBounds.x, buttonBounds.y, buttonBounds.width, buttonBounds.height) && !button.method_25370()) {
+        if (mouseInVisibleButton && !button.method_25370()) {
             this.hoveredTransferTooltip = state.tooltip();
         }
-        this.transferButtons.add(new TransferButtonEntry(button, state));
+        this.transferButtons.add(new TransferButtonEntry(button, state, buttonBounds.x, visibleTop, buttonBounds.width, visibleBottom - visibleTop));
     }
 
     private boolean canTransfer(RecipeSummary summary) {
@@ -679,8 +708,9 @@ public class RecipeDetailScreen extends class_437 {
             IngredientSummary ingredient = summary.ingredients().get(ingredientIndex);
             String ingredientPath = path + "/ingredient/" + ingredientIndex + ":" + key(ingredient);
             height += INGREDIENT_ROW_HEIGHT;
-            if (this.expandedNestedRecipes.contains(ingredientPath)) {
-                height += this.nestedRecipesHeight(ingredient, ingredientPath, depth + 1);
+            float expandProgress = this.expandProgress(ingredientPath);
+            if (expandProgress > 0.0F) {
+                height += Math.round(this.nestedRecipesHeight(ingredient, ingredientPath, depth + 1) * expandProgress);
             }
         }
 
@@ -717,15 +747,20 @@ public class RecipeDetailScreen extends class_437 {
     }
 
     private void toggleNestedRecipes(String path) {
+        this.animationTimeMs = System.currentTimeMillis();
+        float startProgress = this.expandProgress(path);
         if (this.expandedNestedRecipes.contains(path)) {
             this.collapseNestedRecipes(path);
+            this.startExpandAnimation(path, startProgress, 0.0F);
         } else {
             this.expandedNestedRecipes.add(path);
+            this.startExpandAnimation(path, startProgress, 1.0F);
         }
     }
 
     private void collapseNestedRecipes(String path) {
         this.expandedNestedRecipes.removeIf(expandedPath -> expandedPath.equals(path) || expandedPath.startsWith(path + "/"));
+        this.nestedRecipeAnimations.keySet().removeIf(animatedPath -> animatedPath.startsWith(path + "/"));
     }
 
     private static String key(IngredientSummary ingredient) {
@@ -779,7 +814,11 @@ public class RecipeDetailScreen extends class_437 {
         try {
             this.nativeDisplayBridge.render(summary, context, x, y, width, height, mouseX, mouseY, delta);
             this.nativeDisplaysRenderedThisFrame = displayIndex;
-            this.nativeDisplayAreas.add(new NativeDisplayArea(summary, x, y, width, height));
+            int visibleTop = Math.max(y, this.activeClipTop);
+            int visibleBottom = Math.min(y + height, this.activeClipBottom);
+            if (visibleBottom > visibleTop) {
+                this.nativeDisplayAreas.add(new NativeDisplayArea(summary, x, visibleTop, width, visibleBottom - visibleTop));
+            }
             return true;
         } catch (Throwable throwable) {
             this.disableNativeDisplay(summary, "render", throwable);
@@ -796,7 +835,7 @@ public class RecipeDetailScreen extends class_437 {
     }
 
     private void captureHoveredStack(class_1799 stack, int mouseX, int mouseY, int x, int y, int width, int height) {
-        if (mouseY >= this.clipTop && mouseY <= this.clipBottom && isInside(mouseX, mouseY, x, y, width, height)) {
+        if (mouseY >= this.activeClipTop && mouseY <= this.activeClipBottom && isInside(mouseX, mouseY, x, y, width, height)) {
             this.hoveredStack = stack;
         }
     }
@@ -836,7 +875,39 @@ public class RecipeDetailScreen extends class_437 {
     }
 
     private boolean isDisplayPanelVisible(int y, int height) {
-        return y + height >= this.clipTop - NATIVE_RENDER_CLIP_PADDING && y <= this.clipBottom + NATIVE_RENDER_CLIP_PADDING;
+        return y + height >= this.activeClipTop - NATIVE_RENDER_CLIP_PADDING && y <= this.activeClipBottom + NATIVE_RENDER_CLIP_PADDING;
+    }
+
+    private boolean isVisibleInActiveClip(int y, int height) {
+        return y + height > this.activeClipTop && y < this.activeClipBottom;
+    }
+
+    private float expandProgress(String path) {
+        ExpandAnimation animation = this.nestedRecipeAnimations.get(path);
+        if (animation != null) {
+            return animation.progress(this.animationTimeMs);
+        }
+
+        return this.expandedNestedRecipes.contains(path) ? 1.0F : 0.0F;
+    }
+
+    private void startExpandAnimation(String path, float startProgress, float targetProgress) {
+        if (Math.abs(startProgress - targetProgress) < 0.001F) {
+            this.nestedRecipeAnimations.remove(path);
+            return;
+        }
+
+        this.nestedRecipeAnimations.put(path, new ExpandAnimation(this.animationTimeMs, startProgress, targetProgress));
+    }
+
+    private void pruneFinishedAnimations() {
+        this.nestedRecipeAnimations.entrySet().removeIf(entry -> entry.getValue().isFinished(this.animationTimeMs));
+    }
+
+    private static float easeOutCubic(float progress) {
+        float clamped = Math.max(0.0F, Math.min(1.0F, progress));
+        float inverted = 1.0F - clamped;
+        return 1.0F - inverted * inverted * inverted;
     }
 
     private boolean dispatchNativeDisplay(NativeDisplayArea area, String action, NativeDisplayAction displayAction) {
@@ -952,10 +1023,28 @@ public class RecipeDetailScreen extends class_437 {
         }
     }
 
-    private record TransferButtonEntry(Button button, AutoCraftingState state) {
+    private record TransferButtonEntry(Button button, AutoCraftingState state, int x, int y, int width, int height) {
+        private boolean contains(double mouseX, double mouseY) {
+            return mouseX >= this.x && mouseX < this.x + this.width && mouseY >= this.y && mouseY < this.y + this.height;
+        }
     }
 
     private record AutoCraftingState(boolean successful, boolean hasApplicable, int tint, TransferHandlerRenderer renderer, List<Tooltip.Entry> tooltip) {
+    }
+
+    private record ExpandAnimation(long startTimeMs, float startProgress, float targetProgress) {
+        private float progress(long nowMs) {
+            if (nowMs <= this.startTimeMs) {
+                return this.startProgress;
+            }
+
+            float elapsed = (float) (nowMs - this.startTimeMs) / (float) EXPAND_ANIMATION_DURATION_MS;
+            return this.startProgress + (this.targetProgress - this.startProgress) * easeOutCubic(elapsed);
+        }
+
+        private boolean isFinished(long nowMs) {
+            return nowMs - this.startTimeMs >= EXPAND_ANIMATION_DURATION_MS;
+        }
     }
     @FunctionalInterface
     private interface NativeDisplayAction {

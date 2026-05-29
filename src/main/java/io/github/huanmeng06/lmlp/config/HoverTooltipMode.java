@@ -35,6 +35,13 @@ public enum HoverTooltipMode implements IConfigOptionListEntry {
 
     @Override
     public IConfigOptionListEntry fromString(String value) {
+        if ("true".equalsIgnoreCase(value)) {
+            return LMLP;
+        }
+        if ("false".equalsIgnoreCase(value)) {
+            return LITEMATICA;
+        }
+
         for (HoverTooltipMode mode : values()) {
             if (mode.value.equalsIgnoreCase(value)) {
                 return mode;
