@@ -33,7 +33,7 @@ public class Configs implements IConfigHandler {
         public static final ConfigStringList RECIPE_STOP_ITEMS = new ConfigStringList(
                 "recipeStopItems",
                 ImmutableList.of("minecraft:redstone"),
-                "Item ids that should be treated as base materials and not recursively decomposed into recipes."
+                "Items in this list are treated as base materials."
         );
 
         public static final List<IConfigBase> OPTIONS = ImmutableList.of(

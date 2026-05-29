@@ -58,6 +58,6 @@
   "config.name.showhoverdetails": "Show hover details",
   "config.comment.enablelmlphovertooltip": "Use the compact/detail material hover tooltip from LMLP. Disable this to use Litematica's original hover tooltip.",
   "config.comment.openconfiggui": "Open the Litematica Material List Plus configuration screen.",
-  "config.comment.recipestopitems": "Item IDs in this list are treated as base materials and will not be recursively decomposed in nested recipe views. Entries without a namespace use minecraft:, for example redstone equals minecraft:redstone.",
+  "config.comment.recipestopitems": "Items in this list are treated as base materials.",
   "config.comment.showhoverdetails": "Hold this key while hovering a material list entry to show total, missing and available counts in the detailed tooltip."
 }
