@@ -1,82 +1,163 @@
 # Litematica Material List Plus
 
-Litematica Material List Plus 是一个用于 Minecraft Fabric 客户端的 Litematica 材料列表增强模组，用来改善备料统计、材料拆解和配方查看体验。
+Litematica Material List Plus, 简称 LMLP, 是一个面向 Minecraft Fabric 客户端的 Litematica 材料清单增强模组。
 
-当前正式版本：`1.1.0`
+它让材料列表不只告诉你“还缺多少”，还尽量告诉你“这些东西继续往下拆以后，到底需要准备哪些基础材料”。同时，它保留 Litematica 原本的列表、排序、忽略、导出和热键习惯，只在备料、查配方和看数量这些地方补上更顺手的体验。
 
-当前最新发布构建：`1.1.0+mc1.20.6`
+最新正式版：`v1.3.0`
 
-## 功能简介
+当前主要发布构建：`1.3.0+mc1.20.6`
 
-- 在材料列表中显示更易读的数量格式，例如 `9 盒 + 16 组 + 13 个`。
-- 单击材料行可在列表内展开配方摘要，并继续展开子材料。
-- `Shift + 单击`材料行可打开配方详情页。
-- 配方详情页复用 REI 的原生配方显示、物品交互和 tooltip。
-- 详情页的子材料可以继续展开为完整 REI 配方框。
-- 可识别并简化替代材料显示，例如“任意木板”，并循环展示可替代图标。
-- 将材料悬浮信息固定到右上方空白区域，减少鼠标附近 tooltip 遮挡。
-- 保留 Litematica 原有材料统计、排序、忽略和导出行为。
+适配方向：Minecraft / Fabric / Litematica / MaLiLib / REI
 
-<img width="2541" height="1440" alt="image" src="https://github.com/user-attachments/assets/f22f42bb-e4ec-45e6-bd7d-18a6d9ba72c4" />
-<img width="2554" height="1436" alt="image" src="https://github.com/user-attachments/assets/c5d9d8bb-6999-48e5-9d46-e9eaa2d74d1b" />
+## 预览
 
-## 1.1.0 新功能
+> 材料列表内嵌配方摘要
 
-- 新增“套娃式”材料展开：例如粘性活塞可以展开为活塞和粘液球，活塞还能继续展开为木板、圆石、铁锭和红石粉。
-- 摘要页支持内联树形展开，展开后不会让同级材料消失。
-- 详情页支持对子材料继续展开，并直接显示 REI 原生配方界面。
-- 详情页会为同一材料显示 REI 返回的多个配方来源。
-- 切石机、高炉等非工作台配方会保留 REI 风格的工作站小图标。
-- 展开箭头改用 Minecraft 原版 `minecraft:recipe_book/page_forward` 资源，并支持资源包替换。
-- 优化底部材料展开后的滚动范围，减少列表最底部内容看不全的问题。
-- 将材料信息 tooltip 改为固定小面板，避免跟随鼠标遮挡视野。
-- 新增 Minecraft `1.20.6`、Java `21` 和 REI `15.0.787` 适配。
+<img width="2541" height="1440" alt="材料列表配方摘要" src="https://github.com/user-attachments/assets/f22f42bb-e4ec-45e6-bd7d-18a6d9ba72c4" />
 
-## 与 1.0.1 相比
+> 配方详情页
 
-| 项目 | 1.0.1 | 1.1.0 |
-| :--- | :--- | :--- |
-| Minecraft 版本 | 主要面向 1.20.1 / 1.20.4 | 新增 1.20.6 发布构建 |
-| 材料展开 | 单层配方摘要 | 支持递归子材料展开 |
-| 详情页 | 主材料显示 REI 配方 | 主材料和子材料都可显示 REI 原生配方 |
-| 多配方来源 | 摘要式展示为主 | 详情页直接渲染 REI 返回的多个配方 |
-| 替代材料 | 原始标签较长 | 简化替代材料名称并循环图标 |
-| UI | 鼠标附近悬浮信息 | 固定右上小面板，减少遮挡 |
-| 滚动 | 展开底部条目时可能看不全 | 动态高度和滚动范围已优化 |
+<img width="2554" height="1436" alt="配方详情页" src="https://github.com/user-attachments/assets/c5d9d8bb-6999-48e5-9d46-e9eaa2d74d1b" />
 
-## 前置模组
+## 核心功能
 
-- Fabric API
-- Litematica
-- MaLiLib
-- Roughly Enough Items (REI)
+### 更易读的材料数量
+
+LMLP 会把材料数量格式化成更适合备料的形式：
+
+```text
+493 = 7 组 + 45 个
+4437 = 2 盒 + 15 组 + 21 个
+```
+
+数量单位来自语言文件，方便多语言显示，也减少手动换算整组、潜影盒和散件数量的麻烦。
+
+### 材料列表内嵌配方摘要
+
+在 Litematica 材料列表中，单击材料行可以直接展开配方摘要。可合成材料会显示主要配方、产出数量、需要合成的次数，以及它的总子材料。
+
+摘要页里的子材料也可以继续展开，形成树状结构。例如：
+
+- 漏斗可以继续拆成箱子和铁锭。
+- 箱子可以继续拆成任意木板。
+- 木板可以继续拆成对应原木。
+
+展开和收起带有短动画，下面的材料行会跟随高度自然移动，不会突然跳到最终位置。
+
+### 配方详情页
+
+`Shift + 单击`材料行可以打开完整配方详情页。
+
+详情页用于查看一个材料的完整配方来源。它会尽量复用 REI 原生配方布局、物品交互、tooltip 和配方转移按钮，因此工作台、切石机、高炉等不同类型的配方都能保持接近 REI 的展示方式。
+
+详情页支持：
+
+- 同一材料的多个配方逐项展示。
+- 子材料继续展开为完整配方框。
+- 配方 ID 在高级提示模式下显示。
+- 鼠标悬停物品时显示对应 tooltip。
+- 使用材料列表热键返回原加工界面。
+- 在从加工界面进入时，尝试使用 REI 转移逻辑把材料摆入当前容器。
+
+配方详情页不会暂停单人世界。
+
+### 容器界面打开材料列表
+
+在工作台、高炉、切石机等容器界面中，可以使用 Litematica 原版材料列表热键打开材料列表。LMLP 会尽量保留原容器界面上下文：
+
+- 从容器界面打开材料列表后，不会直接丢掉原加工界面。
+- 从配方详情页返回时，可以回到原加工界面。
+- 再次打开时会尽量恢复上次的详情页状态。
+- 打开材料列表时会吞掉紧跟着的热键字符，避免它落入搜索框。
+
+### 可控制的递归拆分
+
+有些材料不应该继续往下拆。比如红石粉通常应该作为基础材料，而不是继续拆成红石块配方。
+
+LMLP 提供 `配方停止拆分物品` 配置。默认包含：
+
+```text
+minecraft:redstone
+```
+
+你可以继续加入：
+
+```text
+minecraft:iron_ingot
+iron_ingot
+minecraft:gold_ingot
+```
+
+没有命名空间的条目会默认按 `minecraft:` 处理，所以 `iron_ingot` 等同于 `minecraft:iron_ingot`。配置修改后会清理缓存，并立即影响后续材料列表。
+
+### 鼠标悬停浮窗
+
+LMLP 提供跟随鼠标的材料悬停浮窗。默认状态显示简略信息，按住详细浮窗热键后显示更完整的数量：
+
+```text
+物品名
+总数
+缺少
+可用
+```
+
+浮窗会在靠近屏幕边缘时自动翻转，并限制在屏幕内，尽量不挡住正在看的内容。
+
+如果你更喜欢 Litematica 原本的材料悬停显示，或者想彻底隐藏悬停浮窗，可以在配置中切换：
+
+```text
+LMLP / Litematica 原版 / 不显示悬停浮窗
+```
+
+### MaLiLib 风格配置菜单
+
+LMLP 提供和 Litematica 风格一致的配置界面，分为：
+
+- `通用`
+- `热键`
+
+通用配置包含悬停浮窗模式、配方停止拆分物品等选项。热键配置包含打开配置界面、显示详细浮窗等选项。
+
+## 默认配置
+
+| 配置项 | 默认值 | 说明 |
+| --- | --- | --- |
+| `悬停浮窗模式` | `LMLP` | 可选择 LMLP、Litematica 原版，或不显示材料悬停浮窗。 |
+| `配方停止拆分物品` | `minecraft:redstone` | 列表中的物品会被当作基础材料，不再继续递归拆分配方。 |
+| `打开配置界面` | `M + =` | 打开 LMLP 配置菜单。 |
+| `显示详细浮窗` | `LEFT_ALT` | 悬浮在材料行上时，按住显示详细数量信息。 |
+
+所有热键都可以在 MaLiLib 配置菜单中重新绑定或清空。
+
+## 使用方式
+
+1. 在 Litematica 中打开材料列表。
+2. 单击材料行，在列表内展开配方摘要。
+3. 单击子材料左侧箭头，继续展开嵌套材料。
+4. `Shift + 单击`材料行，打开完整配方详情页。
+5. 如果某些材料不应该继续拆，在配置菜单的 `配方停止拆分物品` 中加入物品 ID。
+
+## 安装
+
+1. 从 [Releases](https://github.com/huanmeng06/litematica_material_list_plus/releases) 下载与你的 Minecraft 版本匹配的 jar。
+2. 将 jar 放入对应 Fabric 实例的 `mods` 文件夹。
+3. 确认同一实例中已经安装 Fabric API、Litematica、MaLiLib 和 REI。
+4. 启动游戏，打开 Litematica 材料列表。
 
 ## 兼容环境
 
-本项目会按 Minecraft 版本分别维护和发布。当前已适配并测试的版本组合如下：
+| Minecraft | 最新发布 | Java | 前置模组 |
+| --- | --- | --- | --- |
+| `1.20.6` | `1.3.0+mc1.20.6` | `21` | Fabric API `0.100.8+1.20.6`<br>Litematica `0.18.3`<br>MaLiLib `0.19.2`<br>REI `15.0.787` |
+| `1.20.4` | `1.0.1+mc1.20.4` | `17` | Fabric API `0.97.3+1.20.4`<br>Litematica `0.17.4`<br>MaLiLib `0.18.4-alpha.1`<br>REI `14.1.786` |
+| `1.20.1` | `1.0.1+mc1.20.1` | `17` | Fabric API `0.92.9+1.20.1`<br>Litematica `0.15.4`<br>MaLiLib `0.16.3`<br>REI `12.1.785` |
 
-<div align="center">
-
-| Minecraft | 最新发布 | Fabric Loader | Java | 前置模组 |
-| :---: | :---: | :---: | :---: | :--- |
-| `1.20.1` | `1.0.1+mc1.20.1` | `>=0.16.9` | `17` | Fabric API `0.92.9+1.20.1`<br>Litematica `0.15.4`<br>MaLiLib `0.16.3`<br>REI `12.1.785` |
-| `1.20.4` | `1.0.1+mc1.20.4` | `0.19.2` | `17` | Fabric API `0.97.3+1.20.4`<br>Litematica `0.17.4`<br>MaLiLib `0.18.4-alpha.1`<br>REI `14.1.786` |
-| `1.20.6` | `1.1.0+mc1.20.6` | `0.19.2` | `21` | Fabric API `0.100.8+1.20.6`<br>Litematica `0.18.3`<br>MaLiLib `0.19.2`<br>REI `15.0.787` |
-
-</div>
-
-注意：REI 是必要前置。本模组的配方数据与配方界面依赖 REI。Architectury API、Cloth Config API 和 Cloth Basic Math 等为 REI 相关前置，请按实际 REI 安装要求一并安装。
-
-## 安装方式
-
-1. 从 GitHub Release 下载与你的 Minecraft 版本匹配的 jar。
-2. 将 jar 放入 Minecraft 实例的 `mods` 文件夹。
-3. 确认同一实例中已安装 Fabric、Litematica、MaLiLib 和 REI。
-4. 启动游戏，打开 Litematica 的材料列表界面。
+REI 是必要前置。LMLP 的配方数据、配方详情页和原生配方显示都依赖 REI。Architectury API、Cloth Config API 和 Cloth Basic Math 等为 REI 相关前置，请按实际 REI 安装要求一并安装。
 
 ## 本地构建
 
-本仓库当前使用 PowerShell 脚本基于本地 Minecraft 实例编译。
+仓库提供了一个 PowerShell 构建脚本，会基于本地 Minecraft 实例中的 remapped jar 和 mods 目录编译。
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\build.ps1
@@ -85,13 +166,17 @@ powershell -ExecutionPolicy Bypass -File .\scripts\build.ps1
 如果需要指定实例路径：
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\build.ps1 -InstanceDir "D:\path\to\your\instance"
+powershell -ExecutionPolicy Bypass -File .\scripts\build.ps1 `
+  -InstanceDir "D:\path\to\your\instance"
 ```
 
-构建 Minecraft 1.20.6 版本时需要使用 Java 21：
+构建 Minecraft `1.20.6` 版本时建议指定 Java 21：
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\build.ps1 -InstanceDir "D:\path\to\your\1.20.6-instance" -JavaHome "C:\path\to\jdk-21" -JavaRelease 21
+powershell -ExecutionPolicy Bypass -File .\scripts\build.ps1 `
+  -InstanceDir "D:\path\to\your\1.20.6-instance" `
+  -JavaHome "C:\path\to\jdk-21" `
+  -JavaRelease 21
 ```
 
 构建产物会输出到：
@@ -103,10 +188,9 @@ build\libs\
 ## 分支说明
 
 - `main` 用于项目主页文档、通用说明和发布入口。
-- `mc1.20.1` / `mc1.20.4` / `mc1.20.6` 分别维护对应 Minecraft 版本代码。
-- `1.1.0` 的新功能目前优先在 Minecraft `1.20.6` 上发布和测试。
-- `1.20.1` / `1.20.4` 暂时保留 `1.0.1` 系列功能，后续可按需回移植。
+- `dev-newFeature` 用于记录开发过程和小版本更新日志。
+- `mc1.20.1`、`mc1.20.4`、`mc1.20.6` 分别维护对应 Minecraft 版本代码，不再单独维护 README。
 
 ## 许可证
 
-本项目使用 MIT License 发布。Litematica、MaLiLib、REI 等依赖模组遵循其各自许可证，本项目不随 jar 打包这些依赖。
+本项目使用 MIT License 发布。Litematica、MaLiLib、REI、Fabric API 等依赖模组遵循其各自许可证，本项目不随 jar 打包这些依赖。
