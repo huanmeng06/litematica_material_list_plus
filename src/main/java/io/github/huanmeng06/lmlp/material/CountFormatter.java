@@ -1,5 +1,6 @@
 package io.github.huanmeng06.lmlp.material;
 
+import fi.dy.masa.malilib.util.StringUtils;
 import net.minecraft.class_1799;
 
 public final class CountFormatter {
@@ -35,21 +36,21 @@ public final class CountFormatter {
         StringBuilder builder = new StringBuilder(raw).append(" = ");
         boolean hasPrevious = false;
         if (boxes > 0) {
-            builder.append(boxes).append(" 盒");
+            builder.append(countPart("lmlp.label.count.shulker_boxes", boxes));
             hasPrevious = true;
         }
         if (remainingGroups > 0) {
             if (hasPrevious) {
                 builder.append(" + ");
             }
-            builder.append(remainingGroups).append(" 组");
+            builder.append(countPart("lmlp.label.count.stacks", remainingGroups));
             hasPrevious = true;
         }
         if (remainder > 0) {
             if (hasPrevious) {
                 builder.append(" + ");
             }
-            builder.append(remainder).append(" 个");
+            builder.append(countPart("lmlp.label.count.items", remainder));
         }
 
         return builder.toString();
@@ -68,23 +69,27 @@ public final class CountFormatter {
         StringBuilder builder = new StringBuilder();
         boolean hasPrevious = false;
         if (boxes > 0) {
-            builder.append(boxes).append(" 盒");
+            builder.append(countPart("lmlp.label.count.shulker_boxes", boxes));
             hasPrevious = true;
         }
         if (remainingGroups > 0) {
             if (hasPrevious) {
                 builder.append(" + ");
             }
-            builder.append(remainingGroups).append(" 组");
+            builder.append(countPart("lmlp.label.count.stacks", remainingGroups));
             hasPrevious = true;
         }
         if (remainder > 0) {
             if (hasPrevious) {
                 builder.append(" + ");
             }
-            builder.append(remainder).append(" 个");
+            builder.append(countPart("lmlp.label.count.items", remainder));
         }
 
         return builder.toString();
+    }
+
+    private static String countPart(String key, int count) {
+        return StringUtils.translate(key, count);
     }
 }

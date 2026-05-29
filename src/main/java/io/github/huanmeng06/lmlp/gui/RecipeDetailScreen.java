@@ -101,7 +101,7 @@ public class RecipeDetailScreen extends class_437 {
     private List<Tooltip.Entry> hoveredTransferTooltip = List.of();
 
     public RecipeDetailScreen(class_437 parent, class_1799 target, int totalCount, int missingCount, List<RecipeSummary> summaries) {
-        super(class_2561.method_43470("lmlp.gui.recipe_detail.title"));
+        super(class_2561.method_43471("lmlp.gui.recipe_detail.title"));
         this.parent = parent;
         this.transferContainerScreen = findHandledParent(parent);
         this.target = target.method_7972();
