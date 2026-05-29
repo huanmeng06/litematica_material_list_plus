@@ -120,6 +120,11 @@ public class RecipeDetailScreen extends class_437 {
     }
 
     @Override
+    public boolean method_25421() {
+        return false;
+    }
+
+    @Override
     public boolean method_25404(int keyCode, int scanCode, int modifiers) {
         if (MaterialListHotkeyMatcher.matches(keyCode) && this.transferContainerScreen != null) {
             MaterialListOpener.rememberHandledScreenOverlay(this);
