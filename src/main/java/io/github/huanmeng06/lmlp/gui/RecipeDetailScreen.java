@@ -60,6 +60,8 @@ public class RecipeDetailScreen extends class_437 {
     private static final int MAX_NATIVE_DISPLAYS_PER_FRAME = 64;
     private static final int MAX_NATIVE_DISPLAY_DEPTH = 3;
     private static final int OUTLINE_CLIP_PADDING = 2;
+    private static final int TITLE_X = 20;
+    private static final int TITLE_Y = 10;
     private static final int PAGE_MARGIN_X = 24;
     private static final int PAGE_TOP = 22;
     private static final int PAGE_BOTTOM_MARGIN = 20;
@@ -224,6 +226,7 @@ public class RecipeDetailScreen extends class_437 {
         this.scrollBar.setMaxValue(Math.max(0, this.contentHeight() - viewportHeight));
         this.updateBackButtonPosition(layout);
 
+        this.renderTitle(context);
         this.renderBackButton(context, mouseX, mouseY);
         this.renderTargetHeader(context, layout.left(), layout.headerTop(), layout.headerWidth(), HEADER_HEIGHT, mouseX, mouseY);
 
@@ -258,6 +261,16 @@ public class RecipeDetailScreen extends class_437 {
                 context.method_51446(this.field_22793, this.hoveredStack, mouseX, mouseY);
             }
         }
+    }
+
+    private void renderTitle(class_332 context) {
+        context.method_51433(
+                this.field_22793,
+                StringUtils.translate("lmlp.gui.title.recipe_detail_header", LitematicaMaterialListPlus.MOD_VERSION),
+                TITLE_X,
+                TITLE_Y,
+                0xFFFFFFFF,
+                false);
     }
 
     private void renderTargetHeader(class_332 context, int left, int top, int width, int height, int mouseX, int mouseY) {

@@ -44,6 +44,7 @@
   "lmlp.label.hover.detail_hint": "按住%s查看详情",
   "lmlp.label.hover.detail_key_unbound": "未绑定按键",
   "lmlp.gui.title.configs": "Litematica Material List Plus 配置 - %s",
+  "lmlp.gui.title.recipe_detail_header": "Litematica Material List Plus - %s",
   "lmlp.gui.button.config_gui.generic": "通用",
   "lmlp.gui.button.config_gui.hotkeys": "热键",
   "lmlp.hotkeys.category.material_list": "材料列表",

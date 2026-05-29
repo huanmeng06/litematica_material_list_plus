@@ -44,6 +44,7 @@
   "lmlp.label.hover.detail_hint": "Hold %s for details",
   "lmlp.label.hover.detail_key_unbound": "unbound key",
   "lmlp.gui.title.configs": "Litematica Material List Plus Config - %s",
+  "lmlp.gui.title.recipe_detail_header": "Litematica Material List Plus - %s",
   "lmlp.gui.button.config_gui.generic": "Generic",
   "lmlp.gui.button.config_gui.hotkeys": "Hotkeys",
   "lmlp.hotkeys.category.material_list": "Material List",
