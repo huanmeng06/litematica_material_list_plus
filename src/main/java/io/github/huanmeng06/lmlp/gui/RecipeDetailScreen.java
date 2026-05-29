@@ -115,12 +115,14 @@ public class RecipeDetailScreen extends class_437 {
 
     @Override
     public void method_25419() {
+        MaterialListOpener.forgetHandledScreenOverlay(this);
         this.field_22787.method_1507(this.parent);
     }
 
     @Override
     public boolean method_25404(int keyCode, int scanCode, int modifiers) {
         if (MaterialListHotkeyMatcher.matches(keyCode) && this.transferContainerScreen != null) {
+            MaterialListOpener.rememberHandledScreenOverlay(this);
             this.field_22787.method_1507(this.transferContainerScreen);
             return true;
         }
