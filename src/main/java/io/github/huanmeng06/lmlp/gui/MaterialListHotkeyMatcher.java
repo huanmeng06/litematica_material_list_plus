@@ -8,6 +8,9 @@ import org.lwjgl.glfw.GLFW;
 import java.util.List;
 
 public final class MaterialListHotkeyMatcher {
+    private static int suppressedCharInputs;
+    private static long suppressCharInputUntilNanos;
+
     private MaterialListHotkeyMatcher() {
     }
 
@@ -29,6 +32,30 @@ public final class MaterialListHotkeyMatcher {
             }
         }
 
+        return true;
+    }
+
+    public static boolean isConfiguredKey(int keyCode) {
+        IKeybind keybind = Hotkeys.OPEN_GUI_MATERIAL_LIST.getKeybind();
+        return keybind.getKeys().contains(keyCode);
+    }
+
+    public static void suppressNextCharInput() {
+        suppressedCharInputs++;
+        suppressCharInputUntilNanos = System.nanoTime() + 250_000_000L;
+    }
+
+    public static boolean consumeSuppressedCharInput() {
+        if (suppressedCharInputs <= 0) {
+            return false;
+        }
+
+        if (System.nanoTime() > suppressCharInputUntilNanos) {
+            suppressedCharInputs = 0;
+            return false;
+        }
+
+        suppressedCharInputs--;
         return true;
     }
 }

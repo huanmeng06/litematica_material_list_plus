@@ -119,6 +119,16 @@ public class RecipeDetailScreen extends class_437 {
     }
 
     @Override
+    public boolean method_25404(int keyCode, int scanCode, int modifiers) {
+        if (MaterialListHotkeyMatcher.matches(keyCode) && this.transferContainerScreen != null) {
+            this.field_22787.method_1507(this.transferContainerScreen);
+            return true;
+        }
+
+        return super.method_25404(keyCode, scanCode, modifiers);
+    }
+
+    @Override
     public boolean method_25401(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
         NativeDisplayArea area = this.nativeDisplayAreaAt(mouseX, mouseY);
         if (this.dispatchNativeDisplay(area, "mouse scroll", summary -> this.nativeDisplayBridge.mouseScrolled(summary, mouseX, mouseY, verticalAmount))) {

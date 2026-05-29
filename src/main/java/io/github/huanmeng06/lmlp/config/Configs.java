@@ -30,6 +30,13 @@ public class Configs implements IConfigHandler {
                 "lmlp.config.name.enable_lmlp_hover_tooltip"
         );
 
+        public static final ConfigBoolean SUPPRESS_MATERIAL_LIST_HOTKEY_SEARCH_INPUT = new ConfigBoolean(
+                "suppressMaterialListHotkeySearchInput",
+                true,
+                "Prevent material list hotkey letters from being typed into the material list search box.",
+                "lmlp.config.name.suppress_material_list_hotkey_search_input"
+        );
+
         public static final ConfigStringList RECIPE_STOP_ITEMS = new ConfigStringList(
                 "recipeStopItems",
                 ImmutableList.of("minecraft:redstone"),
@@ -38,6 +45,7 @@ public class Configs implements IConfigHandler {
 
         public static final List<IConfigBase> OPTIONS = ImmutableList.of(
                 ENABLE_LMLP_HOVER_TOOLTIP,
+                SUPPRESS_MATERIAL_LIST_HOTKEY_SEARCH_INPUT,
                 RECIPE_STOP_ITEMS
         );
 
