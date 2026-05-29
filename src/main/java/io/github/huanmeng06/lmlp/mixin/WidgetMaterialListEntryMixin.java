@@ -13,6 +13,7 @@ import fi.dy.masa.malilib.util.GuiUtils;
 import fi.dy.masa.malilib.util.StringUtils;
 import io.github.huanmeng06.lmlp.access.WidgetListBoundsAccess;
 import io.github.huanmeng06.lmlp.config.Configs;
+import io.github.huanmeng06.lmlp.config.HoverTooltipMode;
 import io.github.huanmeng06.lmlp.config.Hotkeys;
 import io.github.huanmeng06.lmlp.gui.MaterialListPlusState;
 import io.github.huanmeng06.lmlp.gui.RecipeDetailScreen;
@@ -282,10 +283,12 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
             return;
         }
 
-        if (Configs.Generic.ENABLE_LMLP_HOVER_TOOLTIP.getBooleanValue()) {
-            this.renderMaterialHoverTooltip(drawContext, mouseX, mouseY, this.isDetailHoverKeyDown());
-        } else {
-            this.renderVanillaMaterialHoverTooltip(drawContext, mouseX, mouseY);
+        HoverTooltipMode mode = (HoverTooltipMode) Configs.Generic.HOVER_TOOLTIP_MODE.getOptionListValue();
+        switch (mode) {
+            case LMLP -> this.renderMaterialHoverTooltip(drawContext, mouseX, mouseY, this.isDetailHoverKeyDown());
+            case LITEMATICA -> this.renderVanillaMaterialHoverTooltip(drawContext, mouseX, mouseY);
+            case HIDDEN -> {
+            }
         }
     }
 

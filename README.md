@@ -6,7 +6,7 @@ Litematica Material List Plus, 简称 LMLP, 是一个面向 Minecraft Fabric 客
 
 当前发布版本：`v1.2.0`
 
-当前构建：`1.2.21+mc1.20.6`
+当前构建：`1.2.22+mc1.20.6`
 
 适配目标：Minecraft `1.20.6` / Fabric / Litematica / MaLiLib / REI
 
@@ -98,13 +98,11 @@ LMLP 默认启用一个跟随鼠标的材料悬停浮窗。
 
 浮窗会在靠近屏幕边缘时自动翻转，并限制在屏幕内，尽量避免挡住正在看的内容。
 
-如果你更喜欢 Litematica 原本的材料悬停显示，可以在配置中关闭：
+如果你更喜欢 Litematica 原本的材料悬停显示，或者想彻底隐藏材料悬停浮窗，可以在配置中切换：
 
 ```text
-启用 LMLP 悬停浮窗
+悬停浮窗模式：LMLP / Litematica 原版 / 不显示悬停浮窗
 ```
-
-关闭后会恢复 Litematica 原版的悬停效果。
 
 ### MaLiLib 风格配置菜单
 
@@ -121,7 +119,7 @@ LMLP 提供和 Litematica 风格一致的配置界面，包含：
 
 | 配置项 | 默认值 | 说明 |
 | --- | --- | --- |
-| `启用 LMLP 悬停浮窗` | `true` | 开启 LMLP 的简略/详细鼠标悬停浮窗；关闭后使用 Litematica 原版悬停显示。 |
+| `悬停浮窗模式` | `LMLP` | 可选择 LMLP、Litematica 原版，或不显示材料悬停浮窗。 |
 | `配方停止拆分物品` | `minecraft:redstone` | 列表中的物品会被当作基础材料，不再继续递归拆配方。 |
 
 ### 热键
@@ -197,6 +195,10 @@ build\libs\
 ```
 
 ## 版本说明
+
+### v1.2.22
+
+- 悬停浮窗配置改为三档模式：LMLP、Litematica 原版、不显示悬停浮窗。
 
 ### v1.2.21
 

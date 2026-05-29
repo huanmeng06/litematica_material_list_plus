@@ -6,7 +6,7 @@ import com.google.gson.JsonObject;
 import fi.dy.masa.malilib.config.ConfigUtils;
 import fi.dy.masa.malilib.config.IConfigBase;
 import fi.dy.masa.malilib.config.IConfigHandler;
-import fi.dy.masa.malilib.config.options.ConfigBoolean;
+import fi.dy.masa.malilib.config.options.ConfigOptionList;
 import fi.dy.masa.malilib.config.options.ConfigStringList;
 import fi.dy.masa.malilib.util.FileUtils;
 import fi.dy.masa.malilib.util.JsonUtils;
@@ -23,11 +23,11 @@ public class Configs implements IConfigHandler {
     private static final String HOTKEYS = "Hotkeys";
 
     public static final class Generic {
-        public static final ConfigBoolean ENABLE_LMLP_HOVER_TOOLTIP = new ConfigBoolean(
-                "enableLmlpHoverTooltip",
-                true,
-                "Use the LMLP compact/detail material hover tooltip. Disable to use the original Litematica hover tooltip.",
-                "lmlp.config.name.enable_lmlp_hover_tooltip"
+        public static final ConfigOptionList HOVER_TOOLTIP_MODE = new ConfigOptionList(
+                "hoverTooltipMode",
+                HoverTooltipMode.LMLP,
+                "Choose which material hover tooltip to show.",
+                "lmlp.config.name.hover_tooltip_mode"
         );
 
         public static final ConfigStringList RECIPE_STOP_ITEMS = new ConfigStringList(
@@ -37,7 +37,7 @@ public class Configs implements IConfigHandler {
         );
 
         public static final List<IConfigBase> OPTIONS = ImmutableList.of(
-                ENABLE_LMLP_HOVER_TOOLTIP,
+                HOVER_TOOLTIP_MODE,
                 RECIPE_STOP_ITEMS
         );
 
@@ -57,6 +57,7 @@ public class Configs implements IConfigHandler {
                 JsonObject root = element.getAsJsonObject();
                 ConfigUtils.readConfigBase(root, GENERIC, Generic.OPTIONS);
                 ConfigUtils.readConfigBase(root, HOTKEYS, Hotkeys.HOTKEY_LIST);
+                migrateLegacyHoverTooltipConfig(root);
             }
         }
     }
@@ -89,6 +90,22 @@ public class Configs implements IConfigHandler {
         }
 
         return "minecraft:" + trimmed;
+    }
+
+    private static void migrateLegacyHoverTooltipConfig(JsonObject root) {
+        if (!root.has(GENERIC) || !root.get(GENERIC).isJsonObject()) {
+            return;
+        }
+
+        JsonObject generic = root.getAsJsonObject(GENERIC);
+        if (generic.has("hoverTooltipMode") || !generic.has("enableLmlpHoverTooltip")) {
+            return;
+        }
+
+        JsonElement legacyValue = generic.get("enableLmlpHoverTooltip");
+        if (legacyValue.isJsonPrimitive() && legacyValue.getAsJsonPrimitive().isBoolean()) {
+            Generic.HOVER_TOOLTIP_MODE.setOptionListValue(legacyValue.getAsBoolean() ? HoverTooltipMode.LMLP : HoverTooltipMode.LITEMATICA);
+        }
     }
 
     @Override
