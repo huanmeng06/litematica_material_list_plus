@@ -10,16 +10,6 @@ Litematica Material List Plus, 简称 LMLP, 是一个面向 Minecraft Fabric 客
 
 适配方向：Minecraft / Fabric / Litematica / MaLiLib / REI
 
-## 预览
-
-> 材料列表内嵌配方摘要
-
-<img width="2541" height="1440" alt="材料列表配方摘要" src="https://github.com/user-attachments/assets/f22f42bb-e4ec-45e6-bd7d-18a6d9ba72c4" />
-
-> 配方详情页
-
-<img width="2554" height="1436" alt="配方详情页" src="https://github.com/user-attachments/assets/c5d9d8bb-6999-48e5-9d46-e9eaa2d74d1b" />
-
 ## 核心功能
 
 ### 更易读的材料数量
@@ -33,9 +23,11 @@ LMLP 会把材料数量格式化成更适合备料的形式：
 
 数量单位来自语言文件，方便多语言显示，也减少手动换算整组、潜影盒和散件数量的麻烦。
 
-### 材料列表内嵌配方摘要
+### 配方摘要
 
 在 Litematica 材料列表中，单击材料行可以直接展开配方摘要。可合成材料会显示主要配方、产出数量、需要合成的次数，以及它的总子材料。
+
+<img width="2541" height="1440" alt="配方摘要" src="https://github.com/user-attachments/assets/f22f42bb-e4ec-45e6-bd7d-18a6d9ba72c4" />
 
 摘要页里的子材料也可以继续展开，形成树状结构。例如：
 
@@ -48,6 +40,8 @@ LMLP 会把材料数量格式化成更适合备料的形式：
 ### 配方详情页
 
 `Shift + 单击`材料行可以打开完整配方详情页。
+
+<img width="2554" height="1436" alt="配方详情页" src="https://github.com/user-attachments/assets/c5d9d8bb-6999-48e5-9d46-e9eaa2d74d1b" />
 
 详情页用于查看一个材料的完整配方来源。它会尽量复用 REI 原生配方布局、物品交互、tooltip 和配方转移按钮，因此工作台、切石机、高炉等不同类型的配方都能保持接近 REI 的展示方式。
 
