@@ -10,6 +10,10 @@ import fi.dy.masa.malilib.util.InfoUtils;
 import net.minecraft.class_465;
 
 public final class MaterialListOpener {
+    private static GuiMaterialList handledScreenMaterialListGui;
+    private static class_465<?> handledScreenParent;
+    private static MaterialListBase handledScreenMaterialList;
+
     private MaterialListOpener() {
     }
 
@@ -31,10 +35,18 @@ public final class MaterialListOpener {
             return true;
         }
 
-        GuiMaterialList gui = new GuiMaterialList(materialList);
-        gui.setParent(parent);
+        GuiMaterialList gui = getHandledScreenGui(parent, materialList);
         HandledScreenMaterialListBridge.preserveOnce(parent);
         GuiBase.openGui(gui);
+        return true;
+    }
+
+    public static boolean closeToHandledScreenParent(GuiBase gui) {
+        if (!(gui.getParent() instanceof class_465<?> parent)) {
+            return false;
+        }
+
+        GuiBase.openGui(parent);
         return true;
     }
 
@@ -53,5 +65,16 @@ public final class MaterialListOpener {
         }
 
         return materialList;
+    }
+
+    private static GuiMaterialList getHandledScreenGui(class_465<?> parent, MaterialListBase materialList) {
+        if (handledScreenMaterialListGui == null || handledScreenParent != parent || handledScreenMaterialList != materialList) {
+            handledScreenMaterialListGui = new GuiMaterialList(materialList);
+            handledScreenParent = parent;
+            handledScreenMaterialList = materialList;
+        }
+
+        handledScreenMaterialListGui.setParent(parent);
+        return handledScreenMaterialListGui;
     }
 }
