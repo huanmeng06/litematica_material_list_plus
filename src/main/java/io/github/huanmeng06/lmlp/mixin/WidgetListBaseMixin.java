@@ -50,19 +50,21 @@ public abstract class WidgetListBaseMixin implements WidgetListBoundsAccess {
             return;
         }
 
-        MaterialListPlusState.pruneTreeAnimations();
-        if (MaterialListPlusState.hasActiveTreeAnimations()) {
+        boolean hadActiveAnimations = MaterialListPlusState.hasActiveAnimations();
+        MaterialListPlusState.pruneAnimations();
+        if (hadActiveAnimations || MaterialListPlusState.hasActiveAnimations()) {
             this.reCreateListEntryWidgets();
         }
     }
 
     @Inject(method = "getBrowserEntryHeightFor", at = @At("HEAD"), cancellable = true)
     private void lmlp$getBrowserEntryHeightFor(Object entry, CallbackInfoReturnable<Integer> cir) {
-        if (!((Object) this instanceof WidgetListMaterialList) || !(entry instanceof MaterialListEntry materialEntry) || !MaterialListPlusState.isRecipeExpanded(materialEntry)) {
+        if (!((Object) this instanceof WidgetListMaterialList) || !(entry instanceof MaterialListEntry materialEntry) || !MaterialListPlusState.isRecipeVisible(materialEntry)) {
             return;
         }
 
-        cir.setReturnValue(23 + RecipeInlineRenderer.getOuterHeight(MaterialListPlusState.getCachedSummaries(materialEntry)));
+        int visibleOuterHeight = RecipeInlineRenderer.getOuterHeight(MaterialListPlusState.getCachedSummaries(materialEntry), MaterialListPlusState.recipeProgress(materialEntry));
+        cir.setReturnValue(23 + visibleOuterHeight);
     }
 
     @Inject(method = "reCreateListEntryWidgets", at = @At("TAIL"))

@@ -23,9 +23,13 @@ public final class MaterialListPlusState {
     private static MaterialListEntry expandedEntry;
     private static String expandedKey = "";
     private static List<RecipeSummary> expandedSummaries = Collections.emptyList();
+    private static MaterialListEntry visibleRecipeEntry;
+    private static String visibleRecipeKey = "";
+    private static List<RecipeSummary> visibleRecipeSummaries = Collections.emptyList();
     private static final Set<String> expandedTreeNodes = new HashSet<>();
     private static final Map<String, Boolean> treeSupportCache = new HashMap<>();
     private static final Map<String, MaterialTreeNode> treeCache = new HashMap<>();
+    private static final ExpandAnimationTracker recipeAnimations = new ExpandAnimationTracker();
     private static final ExpandAnimationTracker treeAnimations = new ExpandAnimationTracker();
 
     private MaterialListPlusState() {
@@ -39,6 +43,10 @@ public final class MaterialListPlusState {
         return expandedEntry != null && expandedEntry.equals(entry);
     }
 
+    public static boolean isRecipeVisible(MaterialListEntry entry) {
+        return visibleRecipeEntry != null && visibleRecipeEntry.equals(entry);
+    }
+
     public static void toggle(MaterialListEntry entry, MaterialListBase materialList) {
         if (isRecipeExpanded(entry)) {
             clearRecipe();
@@ -49,9 +57,16 @@ public final class MaterialListPlusState {
 
     public static void open(MaterialListEntry entry, MaterialListBase materialList) {
         clearIngredientTrees();
+        String key = key(entry, materialList);
+        float startProgress = visibleRecipeEntry != null && visibleRecipeEntry.equals(entry) ? recipeProgress(entry) : 0.0F;
+        List<RecipeSummary> summaries = RecipeResolvers.findRecipes(entry.getStack(), MaterialCounts.total(entry, materialList), MaterialCounts.missing(entry, materialList));
         expandedEntry = entry;
-        expandedKey = key(entry, materialList);
-        expandedSummaries = RecipeResolvers.findRecipes(entry.getStack(), MaterialCounts.total(entry, materialList), MaterialCounts.missing(entry, materialList));
+        expandedKey = key;
+        expandedSummaries = summaries;
+        visibleRecipeEntry = entry;
+        visibleRecipeKey = key;
+        visibleRecipeSummaries = summaries;
+        recipeAnimations.start(key, startProgress, 1.0F);
     }
 
     public static void clear() {
@@ -125,8 +140,32 @@ public final class MaterialListPlusState {
         treeAnimations.prune();
     }
 
+    public static void pruneAnimations() {
+        boolean hadRecipeAnimation = recipeAnimations.isActive();
+        recipeAnimations.prune();
+        treeAnimations.prune();
+        if (hadRecipeAnimation && visibleRecipeEntry != null && !isRecipeExpanded(visibleRecipeEntry) && recipeProgress(visibleRecipeEntry) <= 0.0F) {
+            visibleRecipeEntry = null;
+            visibleRecipeKey = "";
+            visibleRecipeSummaries = Collections.emptyList();
+            recipeAnimations.clear();
+        }
+    }
+
     public static boolean hasActiveTreeAnimations() {
         return treeAnimations.isActive();
+    }
+
+    public static boolean hasActiveAnimations() {
+        return recipeAnimations.isActive() || treeAnimations.isActive();
+    }
+
+    public static float recipeProgress(MaterialListEntry entry) {
+        if (!isRecipeVisible(entry)) {
+            return 0.0F;
+        }
+
+        return recipeAnimations.progress(visibleRecipeKey, isRecipeExpanded(entry));
     }
 
     public static Set<String> getExpandedTreeNodes() {
@@ -146,6 +185,12 @@ public final class MaterialListPlusState {
     }
 
     private static void clearRecipe() {
+        if (expandedEntry != null) {
+            visibleRecipeEntry = expandedEntry;
+            visibleRecipeKey = expandedKey;
+            visibleRecipeSummaries = expandedSummaries;
+            recipeAnimations.start(visibleRecipeKey, recipeProgress(expandedEntry), 0.0F);
+        }
         expandedEntry = null;
         expandedKey = "";
         expandedSummaries = Collections.emptyList();
@@ -195,11 +240,11 @@ public final class MaterialListPlusState {
     }
 
     public static List<RecipeSummary> getCachedSummaries(MaterialListEntry entry) {
-        if (!isRecipeExpanded(entry)) {
+        if (!isRecipeVisible(entry)) {
             return Collections.emptyList();
         }
 
-        return expandedSummaries;
+        return visibleRecipeSummaries;
     }
 
     public static List<RecipeSummary> resolveFor(MaterialListEntry entry, MaterialListBase materialList) {

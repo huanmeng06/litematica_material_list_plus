@@ -1,8 +1,6 @@
 package io.github.huanmeng06.lmlp.gui;
 
 import java.util.List;
-import java.util.Set;
-
 import fi.dy.masa.malilib.gui.GuiBase;
 import fi.dy.masa.malilib.gui.widgets.WidgetBase;
 import fi.dy.masa.malilib.render.RenderUtils;
@@ -46,15 +44,35 @@ public final class RecipeInlineRenderer {
         return getHeight(summaries) + ENTRY_BOTTOM_GAP;
     }
 
-    public static void render(WidgetBase widget, class_332 context, int x, int y, int width, List<RecipeSummary> summaries, int mouseX, int mouseY) {
-        int height = getHeight(summaries);
-        RenderUtils.drawOutlinedBox(x, y, Math.max(160, width), height, 0xDD000000, 0xFF777777);
+    public static int getOuterHeight(List<RecipeSummary> summaries, float progress) {
+        return Math.round(getOuterHeight(summaries) * progress);
+    }
 
+    public static void render(WidgetBase widget, class_332 context, int x, int y, int width, List<RecipeSummary> summaries, int mouseX, int mouseY) {
+        render(widget, context, x, y, width, summaries, getOuterHeight(summaries), mouseX, mouseY);
+    }
+
+    public static void render(WidgetBase widget, class_332 context, int x, int y, int width, List<RecipeSummary> summaries, int visibleOuterHeight, int mouseX, int mouseY) {
+        int height = getHeight(summaries);
         int panelWidth = Math.max(160, width);
+        int visibleHeight = Math.max(0, Math.min(height, visibleOuterHeight));
+        if (visibleHeight <= 0) {
+            return;
+        }
+
+        RenderUtils.drawRect(x, y, panelWidth, visibleHeight, 0xDD000000);
         int textX = x + PADDING;
+        if (visibleHeight <= 2) {
+            drawOutline(x, y, panelWidth, visibleHeight, 0xFF777777);
+            return;
+        }
+
+        context.method_44379(x + 1, y + 1, x + panelWidth - 1, y + visibleHeight - 1);
 
         if (summaries.isEmpty()) {
             widget.drawString(textX, y + 16, 0xFFFFCC66, StringUtils.translate("lmlp.label.recipe.none"), context);
+            context.method_44380();
+            drawOutline(x, y, panelWidth, visibleHeight, 0xFF777777);
             return;
         }
 
@@ -81,12 +99,12 @@ public final class RecipeInlineRenderer {
             MaterialTreeNode root = MaterialListPlusState.getVisibleIngredientTree(ingredient);
             if (root != null) {
                 int fullHeight = visibleChildrenHeight(root.children());
-                int visibleHeight = Math.min(fullHeight, Math.round(fullHeight * MaterialListPlusState.treeProgress(root.path())));
-                if (visibleHeight > 0) {
-                    context.method_44379(textX, cursorY, x + panelWidth - PADDING, cursorY + visibleHeight);
-                    renderChildren(widget, context, textX, cursorY, root.children(), 1, visibleHeight, mouseX, mouseY);
+                int childVisibleHeight = Math.min(fullHeight, Math.round(fullHeight * MaterialListPlusState.treeProgress(root.path())));
+                if (childVisibleHeight > 0) {
+                    context.method_44379(textX, cursorY - 3, x + panelWidth - PADDING, cursorY + childVisibleHeight);
+                    renderChildren(widget, context, textX, cursorY, root.children(), 1, childVisibleHeight, mouseX, mouseY);
                     context.method_44380();
-                    cursorY += visibleHeight;
+                    cursorY += childVisibleHeight;
                 }
             }
         }
@@ -94,11 +112,18 @@ public final class RecipeInlineRenderer {
         if (summaries.size() > 1) {
             widget.drawString(textX, y + height - 16, 0xFFFFFFFF, GuiBase.TXT_GOLD + StringUtils.translate("lmlp.label.recipe.more_hint"), context);
         }
+
+        context.method_44380();
+        drawOutline(x, y, panelWidth, visibleHeight, 0xFF777777);
     }
 
     public static ToggleTarget toggleAt(List<RecipeSummary> summaries, int x, int y, int width, int mouseX, int mouseY) {
+        return toggleAt(summaries, x, y, width, getOuterHeight(summaries), mouseX, mouseY);
+    }
+
+    public static ToggleTarget toggleAt(List<RecipeSummary> summaries, int x, int y, int width, int visibleOuterHeight, int mouseX, int mouseY) {
         int panelWidth = Math.max(160, width);
-        int height = getHeight(summaries);
+        int height = Math.min(getHeight(summaries), Math.max(0, visibleOuterHeight));
         if (mouseX < x || mouseX >= x + panelWidth || mouseY < y || mouseY >= y + height || summaries.isEmpty()) {
             return ToggleTarget.NONE;
         }
@@ -145,7 +170,7 @@ public final class RecipeInlineRenderer {
             renderRow(widget, context, textX, cursorY, depth, node.hasChildren(), expanded, AlternativeItemDisplay.icon(node), node.name(), node.totalCount(), node.missingCount(), node.maxStackSize(), mouseX, mouseY);
 
             int visibleRowHeight = Math.min(INGREDIENT_HEIGHT, remainingHeight);
-            cursorY += visibleRowHeight;
+            cursorY += INGREDIENT_HEIGHT;
             remainingHeight -= visibleRowHeight;
             if (node.hasChildren() && remainingHeight > 0) {
                 int fullChildrenHeight = visibleChildrenHeight(node.children());
@@ -216,7 +241,7 @@ public final class RecipeInlineRenderer {
                 return new ToggleScan(ToggleTarget.node(node.path()), cursorY + INGREDIENT_HEIGHT);
             }
 
-            cursorY += visibleRowHeight;
+            cursorY += INGREDIENT_HEIGHT;
             remainingHeight -= visibleRowHeight;
             if (node.hasChildren() && remainingHeight > 0) {
                 int fullChildrenHeight = visibleChildrenHeight(node.children());
@@ -237,6 +262,19 @@ public final class RecipeInlineRenderer {
     private static boolean isToggleHit(int textX, int y, int depth, int mouseX, int mouseY) {
         int toggleX = textX + depth * TREE_INDENT_WIDTH;
         return mouseX >= toggleX && mouseX < toggleX + INGREDIENT_TOGGLE_WIDTH && mouseY >= y - 2 && mouseY < y + INGREDIENT_HEIGHT - 2;
+    }
+
+    private static void drawOutline(int x, int y, int width, int height, int color) {
+        if (width <= 0 || height <= 0) {
+            return;
+        }
+
+        RenderUtils.drawRect(x, y, width, 1, color);
+        if (height > 1) {
+            RenderUtils.drawRect(x, y + height - 1, width, 1, color);
+            RenderUtils.drawRect(x, y, 1, height, color);
+            RenderUtils.drawRect(x + width - 1, y, 1, height, color);
+        }
     }
 
     public record ToggleTarget(IngredientSummary ingredient, String nodePath) {
