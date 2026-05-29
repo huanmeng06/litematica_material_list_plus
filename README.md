@@ -1,78 +1,146 @@
-# Litematica Material List Plus - dev-newFeature
+# LMLP 开发日志
 
-这个分支用于记录 Minecraft `1.20.6` 开发过程、测试构建和提交更新。
+这个 README 只记录 `dev-newFeature` 分支的开发过程和每个小版本做了什么。完整的项目介绍、安装说明、功能说明和截图展示放在 `main` 分支维护。
 
-完整项目介绍、安装说明、功能说明和长期维护文档以后放在 `main` 分支 README 中；各 Minecraft 版本分支只保留必要的版本状态和开发日志，避免多处分散维护同一份长文档。
-
-当前正式版本：`v1.3.0`
+当前正式版：`v1.3.0`
 
 当前构建：`1.3.0+mc1.20.6`
 
 适配目标：Minecraft `1.20.6` / Fabric / Litematica / MaLiLib / REI
 
-## v1.3.0 更新摘要
-
-本次正式版基于 `1.2.25+mc1.20.6` 开发构建整理发布。
-
-### 新功能
-
-- 材料列表支持从容器界面打开，并尽量保留原加工界面上下文。
-- 新增完整配方详情页，支持 `Shift + 单击`材料行打开。
-- 配方详情页复用 REI 原生配方布局、物品交互、tooltip 和转移按钮逻辑。
-- 配方详情页支持返回原加工界面，并能恢复上次详情页状态。
-- 悬停浮窗模式扩展为三档：LMLP、Litematica 原版、不显示悬停浮窗。
-- 摘要页和详情页的嵌套材料展开/收起加入短动画。
-
-### 修复与优化
-
-- 修复容器界面中材料列表热键、返回、搜索框输入等交互冲突。
-- 修复配方详情页在单人世界中暂停游戏的问题。
-- 修复 REI 转移按钮 tooltip、配方 ID、本地化文本和收藏提示过滤相关问题。
-- 修复详情页展开动画中内容框边框线缺失的问题。
-- 修复摘要页递归子材料动画中第二层及更深层级被错误裁切的问题。
-- 优化配方详情页标题、材料概览框和详情框布局。
-- 补充中文、英文、香港繁体中文语言文件并保持 key 对齐。
-
-## 开发日志
+## 版本说明
 
 ### v1.3.0
 
-- `c020e11` Animate material row recipe panel
-- `27a536a` Animate inline recipe expansion
-- `749a485` Animate recipe detail expansion
-- `53408dd` Add hidden hover tooltip mode
-- `52af1ff` Align recipe detail layout
-- `22c9a58` Add recipe detail mod title
-- `a4ab1ea` Keep world running on recipe details
-- `afa7f68` Restore recipe detail hotkey state
-- `773bf9c` Limit material list hotkey closing to recipe details
-- `58d5df0` Improve material list hotkey toggling
-- `7bb5591` Revert "Fix material list hotkey close"
-- `dbfaca4` Fix material list hotkey close
-- `e031519` Toggle material list from container screens
-- `46608fa` Shorten recipe stop config tooltip
-- `eb58b51` Fix config option name translations
-- `d1ffe66` Add Hong Kong Chinese language
-- `f18a858` Improve displayed text localization
-- `9c6e841` Use REI gray for transfer recipe id
-- `0805866` Fix transfer tooltip recipe id text
-- `c21213a` Avoid unknown REI tooltip components
-- `1a4ef68` Render REI transfer tooltips in detail screen
-- `843f865` Match REI transfer button behavior
-- `5b5a666` Use REI button for recipe transfer
-- `b632ab1` Add REI transfer button to recipe details
-- `02d36eb` Preserve handled screen for material list
-- `33c6182` Keep material list over handled screens
-- `a7d79ce` Open material list from handled screens
-- `6cb0e9d` Update README.md
-- `eb2a963` Add screenshots; remove SVG placeholders
-- `fd2fca6` Update project README
+- 将 `1.2.25+mc1.20.6` 开发构建整理为正式版发布。
+- 完整梳理从容器界面打开材料列表、配方详情页、REI 转移按钮、悬停浮窗模式、展开动画等功能。
+- GitHub Release 使用正式版 jar：`litematica-material-list-plus-1.3.0+mc1.20.6.jar`。
 
-## 本地构建
+### v1.2.25
 
-```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\build.ps1 `
-  -InstanceDir "E:\Minecraft\[MC]PCL\PCL2-Mod_Dev\versions\1.20.6-Fabric 0.19.2-Mod_Dev" `
-  -JavaHome "C:\Users\Huan_meeng\AppData\Roaming\.minecraft\runtime\java-runtime-delta" `
-  -JavaRelease 21
-```
+- 修复材料列表摘要页递归子材料动画中第二层及更深层级可能被错误裁切的问题。
+- 材料列表主材料行单击展开/收起摘要面板时，现在也会使用同一套短动画。
+
+### v1.2.24
+
+- 修复配方详情页嵌套展开动画中内容框横向边框可能缺失的问题。
+- 材料列表内嵌配方摘要的子材料展开/收起现在使用与详情页一致的短动画。
+
+### v1.2.23
+
+- 打开配置界面的默认热键触发时机改为按下时触发。
+- 配方详情页的嵌套材料层级展开和收起现在带有短动画，子配方会随高度裁切平滑显示或隐藏。
+
+### v1.2.22
+
+- 悬停浮窗配置改为三档模式：LMLP、Litematica 原版、不显示悬停浮窗。
+
+### v1.2.21
+
+- 优化配方详情页标题、材料概览框和配方详情框的左侧对齐与垂直间距。
+
+### v1.2.20
+
+- 配方详情页新增与配置菜单相同位置的 LMLP 标题和版本号。
+
+### v1.2.19
+
+- 配方详情页不再暂停单人游戏世界。
+
+### v1.2.18
+
+- 从配方详情页使用材料列表热键返回加工界面后，再次打开会恢复到该详情页。
+- 修复从加工界面用材料列表热键打开后，热键字符落入材料列表搜索框的问题。
+
+### v1.2.17
+
+- 材料列表页不再使用材料列表热键关闭，避免与 MaLiLib 原生搜索框输入冲突。
+- 配方详情页保留材料列表热键返回原加工界面的行为。
+
+### v1.2.16
+
+- 新增配置开关，阻止材料列表热键字符写入材料列表搜索框。
+- 配方详情页现在也可以使用 Litematica 的材料列表热键收起并返回原加工界面。
+
+### v1.2.15
+
+- 在加工台等容器界面中，`M+L` 打开的材料列表现在可以再次按 `M+L` 关闭并返回原容器。
+- 从同一个容器再次打开材料列表时会复用上次的列表界面，保留滚动位置和展开状态。
+
+### v1.2.14
+
+- 缩短“配方停止拆分物品”的配置悬停说明，避免 tooltip 横向过长。
+
+### v1.2.13
+
+- 补充 MaLiLib 配置菜单选项名称使用的原生 `config.name.*` 翻译键，修复配置项名称未翻译的问题。
+
+### v1.2.12
+
+- 新增中文（香港繁体）语言文件。
+- 优化英文语言文件中的配置菜单、tooltip 和配方详情页文案。
+
+### v1.2.11
+
+- 将数量格式中的“盒 / 组 / 个”等显示文本移动到语言 JSON，方便多语言翻译。
+- 修复配方详情页标题未按语言文件翻译的问题。
+
+### v1.2.10
+
+- 移动物品按钮 tooltip 中的配方 ID 行改为 REI 风格灰色显示。
+
+### v1.2.9
+
+- 修复移动物品按钮 tooltip 中配方 ID 显示异常的问题，改为使用 LMLP 自己的本地化文本显示完整配方 ID。
+- 加强收藏提示过滤，避免 REI 收藏说明混入移动物品按钮 tooltip。
+
+### v1.2.8
+
+- 修复移动物品按钮 tooltip 渲染 REI 自定义组件时触发 `Unknown TooltipComponent` 崩溃的问题。
+- 转移按钮 tooltip 现在只渲染文本内容，避免非 REI 原生页面直接交给 Minecraft 渲染未知组件。
+
+### v1.2.7
+
+- 修复 LMLP 配方详情页中移动物品按钮悬停时不显示 REI 转移提示的问题。
+- 过滤移动物品按钮 tooltip 中的 REI 收藏提示行，保留移动、缺少材料、容器不匹配和配方 ID 等关键信息。
+
+### v1.2.6
+
+- 配方详情页的移动物品按钮改为使用 REI 默认的 10x10 加号区域，并按 REI 的默认位置贴在配方面板右下角外侧。
+- 移动按钮的可用、缺少原料、容器不匹配和悬停提示改为复用 REI `TransferHandler.Result` 逻辑。
+
+### v1.2.5
+
+- 配方详情页的物品转移按钮改为使用 REI 原生按钮组件，按钮样式、悬停效果和提示文本跟随 REI。
+- 按钮位置调整到配方面板右下角，继续复用 REI 的转移处理逻辑，把当前加工界面作为目标容器。
+
+### v1.2.4
+
+- 在配方详情页的 REI 配方面板中新增移动物品按钮；从工作台等加工界面打开材料列表再进入详情页时，可尝试调用 REI 将材料摆入当前加工台。
+- 点击按钮后若 REI 转移成功，会返回原加工界面以便直接查看摆放结果。
+
+### v1.2.3
+
+- 修复 `1.2.2` 在启动阶段因容器界面 Mixin 注入目标不存在而崩溃的问题。
+- 容器内打开材料列表改为真正打开 Litematica 原生 `GuiMaterialList`，并仅跳过这一次切屏导致的容器关闭；Esc 返回后保留原工作台等加工界面。
+
+### v1.2.2
+
+- 将加工容器中的材料列表入口改为叠层显示，关闭材料列表时不再一并关闭工作台、高炉、切石机等原加工界面。
+- 叠层继续复用 Litematica 原生材料列表控件，保留排序、搜索、滚动和 LMLP 行内配方展开。
+
+### v1.2.1
+
+- 修复在工作台、高炉、切石机等加工容器界面中，Litematica 材料列表热键无法打开材料列表的问题。
+- 该入口直接打开 Litematica 原生材料列表，LMLP 的材料展开和配方详情功能会继续生效。
+
+### v1.2.0
+
+- 新增嵌套材料拆分。
+- 新增配方停止拆分列表。
+- 新增 Litematica 风格 MaLiLib 配置菜单。
+- 新增可配置详细悬停浮窗热键。
+- 新增打开 LMLP 配置菜单热键。
+- 新增 LMLP 悬停浮窗总开关，可恢复 Litematica 原版悬停显示。
+- 优化配置页行间距和分类布局。
+- 优化材料悬停浮窗，支持边缘翻转、屏幕内限制和文本截断。
