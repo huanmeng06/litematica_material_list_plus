@@ -8,6 +8,7 @@ import fi.dy.masa.malilib.gui.widgets.WidgetListEntryBase;
 import io.github.huanmeng06.lmlp.access.WidgetListBoundsAccess;
 import io.github.huanmeng06.lmlp.gui.MaterialListPlusState;
 import io.github.huanmeng06.lmlp.gui.RecipeInlineRenderer;
+import net.minecraft.class_332;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -40,6 +41,20 @@ public abstract class WidgetListBaseMixin implements WidgetListBoundsAccess {
 
     @Shadow
     protected abstract int getBrowserEntryHeightFor(Object entry);
+    @Shadow
+    protected abstract void reCreateListEntryWidgets();
+
+    @Inject(method = "drawContents", at = @At("HEAD"))
+    private void lmlp$refreshAnimatedRecipeExpansion(class_332 drawContext, int mouseX, int mouseY, float partialTicks, CallbackInfo ci) {
+        if (!((Object) this instanceof WidgetListMaterialList)) {
+            return;
+        }
+
+        MaterialListPlusState.pruneTreeAnimations();
+        if (MaterialListPlusState.hasActiveTreeAnimations()) {
+            this.reCreateListEntryWidgets();
+        }
+    }
 
     @Inject(method = "getBrowserEntryHeightFor", at = @At("HEAD"), cancellable = true)
     private void lmlp$getBrowserEntryHeightFor(Object entry, CallbackInfoReturnable<Integer> cir) {

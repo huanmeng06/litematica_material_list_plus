@@ -78,7 +78,6 @@ public class RecipeDetailScreen extends class_437 {
     private static final int NESTED_RECIPE_GAP = 8;
     private static final int NESTED_RECIPE_INDENT = 24;
     private static final int MAX_NESTED_DEPTH = 3;
-    private static final long EXPAND_ANIMATION_DURATION_MS = 150L;
     private static final class_2960 REI_DISPLAY_TEXTURE = new class_2960("roughlyenoughitems", "textures/gui/display.png");
 
     private final class_437 parent;
@@ -95,14 +94,13 @@ public class RecipeDetailScreen extends class_437 {
     private final List<ToggleArea> toggleAreas = new ArrayList<>();
     private final Map<String, List<RecipeSummary>> nestedRecipeCache = new HashMap<>();
     private final Set<String> expandedNestedRecipes = new HashSet<>();
-    private final Map<String, ExpandAnimation> nestedRecipeAnimations = new HashMap<>();
+    private final ExpandAnimationTracker nestedRecipeAnimations = new ExpandAnimationTracker();
     private final Set<String> disabledNativeDisplayCategories = new HashSet<>();
     private class_1799 hoveredStack = class_1799.field_8037;
     private int clipTop;
     private int clipBottom;
     private int activeClipTop = Integer.MIN_VALUE;
     private int activeClipBottom = Integer.MAX_VALUE;
-    private long animationTimeMs;
     private int nativeDisplaysRenderedThisFrame;
     private boolean nativeDisplayLimitLoggedThisFrame;
     private boolean draggingScrollbar;
@@ -215,8 +213,7 @@ public class RecipeDetailScreen extends class_437 {
     @Override
     public void method_25394(class_332 context, int mouseX, int mouseY, float delta) {
         this.method_25420(context, mouseX, mouseY, delta);
-        this.animationTimeMs = System.currentTimeMillis();
-        this.pruneFinishedAnimations();
+        this.nestedRecipeAnimations.prune();
 
         Layout layout = this.layout();
         int contentTop = layout.headerTop() + HEADER_HEIGHT + 12;
@@ -312,7 +309,33 @@ public class RecipeDetailScreen extends class_437 {
     }
 
     private void renderRecipeBox(class_332 context, RecipeSummary summary, int index, String path, int depth, int left, int y, int width, int boxHeight, int mouseX, int mouseY, float delta) {
-        RenderUtils.drawOutlinedBox(left, y, width, boxHeight, 0xDD000000, 0xFF777777);
+        this.renderRecipeBox(context, summary, index, path, depth, left, y, width, boxHeight, boxHeight, mouseX, mouseY, delta);
+    }
+
+    private void renderRecipeBox(class_332 context, RecipeSummary summary, int index, String path, int depth, int left, int y, int width, int boxHeight, int visibleHeight, int mouseX, int mouseY, float delta) {
+        int clippedVisibleHeight = Math.max(0, Math.min(boxHeight, visibleHeight));
+        if (clippedVisibleHeight <= 0) {
+            return;
+        }
+
+        RenderUtils.drawRect(left, y, width, clippedVisibleHeight, 0xDD000000);
+
+        int previousClipTop = this.activeClipTop;
+        int previousClipBottom = this.activeClipBottom;
+        this.activeClipTop = Math.max(this.activeClipTop, y + 1);
+        this.activeClipBottom = Math.min(this.activeClipBottom, y + clippedVisibleHeight - 1);
+        if (this.activeClipBottom > this.activeClipTop) {
+            context.method_44379(left + 1, this.activeClipTop, left + width - 1, this.activeClipBottom);
+            this.renderRecipeBoxContents(context, summary, index, path, depth, left, y, width, boxHeight, mouseX, mouseY, delta);
+            context.method_44380();
+        }
+        this.activeClipTop = previousClipTop;
+        this.activeClipBottom = previousClipBottom;
+
+        drawOutline(left, y, width, clippedVisibleHeight, 0xFF777777);
+    }
+
+    private void renderRecipeBoxContents(class_332 context, RecipeSummary summary, int index, String path, int depth, int left, int y, int width, int boxHeight, int mouseX, int mouseY, float delta) {
         context.method_51427(summary.outputIcon(), left + 10, y + 10);
         this.captureHoveredStack(summary.outputIcon(), mouseX, mouseY, left + 10, y + 10, 16, 16);
         context.method_51433(this.field_22793, RecipeSummaryFormatter.header(summary, index), left + 34, y + 12, 0xFFFFFFFF, false);
@@ -345,9 +368,7 @@ public class RecipeDetailScreen extends class_437 {
                     int previousClipBottom = this.activeClipBottom;
                     this.activeClipTop = Math.max(this.activeClipTop, lineY);
                     this.activeClipBottom = Math.min(this.activeClipBottom, lineY + visibleHeight);
-                    context.method_44379(left + 14, lineY, left + width - 14, lineY + visibleHeight);
-                    this.renderNestedRecipes(context, ingredient, ingredientPath, depth + 1, left + 14, lineY, width - 28, mouseX, mouseY, delta);
-                    context.method_44380();
+                    this.renderNestedRecipes(context, ingredient, ingredientPath, depth + 1, left + 14, lineY, width - 28, visibleHeight, mouseX, mouseY, delta);
                     this.activeClipTop = previousClipTop;
                     this.activeClipBottom = previousClipBottom;
                 }
@@ -376,17 +397,28 @@ public class RecipeDetailScreen extends class_437 {
                 mouseY);
     }
 
-    private int renderNestedRecipes(class_332 context, IngredientSummary ingredient, String parentPath, int depth, int left, int y, int width, int mouseX, int mouseY, float delta) {
+    private int renderNestedRecipes(class_332 context, IngredientSummary ingredient, String parentPath, int depth, int left, int y, int width, int visibleHeight, int mouseX, int mouseY, float delta) {
         int lineY = y;
+        int remainingHeight = visibleHeight;
         List<RecipeSummary> recipes = this.recipesFor(ingredient);
         int nestedLeft = left + NESTED_RECIPE_INDENT;
         int nestedWidth = Math.max(180, width - NESTED_RECIPE_INDENT);
         for (int recipeIndex = 0; recipeIndex < recipes.size(); recipeIndex++) {
+            if (remainingHeight <= 0) {
+                break;
+            }
+
             RecipeSummary recipe = recipes.get(recipeIndex);
             String path = parentPath + "/recipe/" + (recipeIndex + 1) + ":" + recipe.recipeId();
             int height = this.recipeBoxHeight(recipe, path, depth);
-            this.renderRecipeBox(context, recipe, recipeIndex + 1, path, depth, nestedLeft, lineY, nestedWidth, height, mouseX, mouseY, delta);
-            lineY += height + NESTED_RECIPE_GAP;
+            int visibleBoxHeight = Math.min(height, remainingHeight);
+            this.renderRecipeBox(context, recipe, recipeIndex + 1, path, depth, nestedLeft, lineY, nestedWidth, height, visibleBoxHeight, mouseX, mouseY, delta);
+            lineY += visibleBoxHeight;
+            remainingHeight -= visibleBoxHeight;
+
+            int visibleGap = Math.min(NESTED_RECIPE_GAP, remainingHeight);
+            lineY += visibleGap;
+            remainingHeight -= visibleGap;
         }
 
         return lineY;
@@ -747,20 +779,19 @@ public class RecipeDetailScreen extends class_437 {
     }
 
     private void toggleNestedRecipes(String path) {
-        this.animationTimeMs = System.currentTimeMillis();
         float startProgress = this.expandProgress(path);
         if (this.expandedNestedRecipes.contains(path)) {
             this.collapseNestedRecipes(path);
-            this.startExpandAnimation(path, startProgress, 0.0F);
+            this.nestedRecipeAnimations.start(path, startProgress, 0.0F);
         } else {
             this.expandedNestedRecipes.add(path);
-            this.startExpandAnimation(path, startProgress, 1.0F);
+            this.nestedRecipeAnimations.start(path, startProgress, 1.0F);
         }
     }
 
     private void collapseNestedRecipes(String path) {
         this.expandedNestedRecipes.removeIf(expandedPath -> expandedPath.equals(path) || expandedPath.startsWith(path + "/"));
-        this.nestedRecipeAnimations.keySet().removeIf(animatedPath -> animatedPath.startsWith(path + "/"));
+        this.nestedRecipeAnimations.removeDescendants(path);
     }
 
     private static String key(IngredientSummary ingredient) {
@@ -883,31 +914,7 @@ public class RecipeDetailScreen extends class_437 {
     }
 
     private float expandProgress(String path) {
-        ExpandAnimation animation = this.nestedRecipeAnimations.get(path);
-        if (animation != null) {
-            return animation.progress(this.animationTimeMs);
-        }
-
-        return this.expandedNestedRecipes.contains(path) ? 1.0F : 0.0F;
-    }
-
-    private void startExpandAnimation(String path, float startProgress, float targetProgress) {
-        if (Math.abs(startProgress - targetProgress) < 0.001F) {
-            this.nestedRecipeAnimations.remove(path);
-            return;
-        }
-
-        this.nestedRecipeAnimations.put(path, new ExpandAnimation(this.animationTimeMs, startProgress, targetProgress));
-    }
-
-    private void pruneFinishedAnimations() {
-        this.nestedRecipeAnimations.entrySet().removeIf(entry -> entry.getValue().isFinished(this.animationTimeMs));
-    }
-
-    private static float easeOutCubic(float progress) {
-        float clamped = Math.max(0.0F, Math.min(1.0F, progress));
-        float inverted = 1.0F - clamped;
-        return 1.0F - inverted * inverted * inverted;
+        return this.nestedRecipeAnimations.progress(path, this.expandedNestedRecipes.contains(path));
     }
 
     private boolean dispatchNativeDisplay(NativeDisplayArea area, String action, NativeDisplayAction displayAction) {
@@ -994,6 +1001,19 @@ public class RecipeDetailScreen extends class_437 {
         return mouseX >= x && mouseX < x + width && mouseY >= y && mouseY < y + height;
     }
 
+    private static void drawOutline(int x, int y, int width, int height, int color) {
+        if (width <= 0 || height <= 0) {
+            return;
+        }
+
+        RenderUtils.drawRect(x, y, width, 1, color);
+        if (height > 1) {
+            RenderUtils.drawRect(x, y + height - 1, width, 1, color);
+            RenderUtils.drawRect(x, y, 1, height, color);
+            RenderUtils.drawRect(x + width - 1, y, 1, height, color);
+        }
+    }
+
     private static class_465<?> findHandledParent(class_437 screen) {
         class_437 current = screen;
         while (current != null) {
@@ -1032,20 +1052,6 @@ public class RecipeDetailScreen extends class_437 {
     private record AutoCraftingState(boolean successful, boolean hasApplicable, int tint, TransferHandlerRenderer renderer, List<Tooltip.Entry> tooltip) {
     }
 
-    private record ExpandAnimation(long startTimeMs, float startProgress, float targetProgress) {
-        private float progress(long nowMs) {
-            if (nowMs <= this.startTimeMs) {
-                return this.startProgress;
-            }
-
-            float elapsed = (float) (nowMs - this.startTimeMs) / (float) EXPAND_ANIMATION_DURATION_MS;
-            return this.startProgress + (this.targetProgress - this.startProgress) * easeOutCubic(elapsed);
-        }
-
-        private boolean isFinished(long nowMs) {
-            return nowMs - this.startTimeMs >= EXPAND_ANIMATION_DURATION_MS;
-        }
-    }
     @FunctionalInterface
     private interface NativeDisplayAction {
         boolean apply(RecipeSummary summary);

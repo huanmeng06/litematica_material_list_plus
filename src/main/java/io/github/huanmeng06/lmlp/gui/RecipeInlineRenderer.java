@@ -29,21 +29,13 @@ public final class RecipeInlineRenderer {
     }
 
     public static int getHeight(List<RecipeSummary> summaries) {
+        MaterialListPlusState.pruneTreeAnimations();
         if (summaries.isEmpty()) {
             return 48;
         }
 
         RecipeSummary summary = summaries.get(0);
-        int visibleRows = 0;
-        for (IngredientSummary ingredient : summary.ingredients()) {
-            visibleRows++;
-            MaterialTreeNode root = MaterialListPlusState.getExpandedIngredientTree(ingredient);
-            if (root != null) {
-                visibleRows += visibleChildCount(root, MaterialListPlusState.getExpandedTreeNodes());
-            }
-        }
-
-        int height = 64 + visibleRows * INGREDIENT_HEIGHT + INNER_BOTTOM_PADDING;
+        int height = 64 + visibleIngredientHeight(summary) + INNER_BOTTOM_PADDING;
         if (summaries.size() > 1) {
             height += 22;
         }
@@ -77,7 +69,7 @@ public final class RecipeInlineRenderer {
         cursorY += 18;
 
         int ingredientBoxY = cursorY;
-        int ingredientBoxHeight = 18 + visibleIngredientRows(summary) * INGREDIENT_HEIGHT;
+        int ingredientBoxHeight = 18 + visibleIngredientHeight(summary);
         RenderUtils.drawRect(textX - 2, ingredientBoxY - 2, panelWidth - PADDING * 2 + 4, ingredientBoxHeight, 0x66000000);
         widget.drawString(textX, cursorY, 0xFFAAAAAA, StringUtils.translate("lmlp.label.recipe.ingredients_total"), context);
         cursorY += 18;
@@ -86,9 +78,16 @@ public final class RecipeInlineRenderer {
             renderIngredient(widget, context, textX, cursorY, ingredient, mouseX, mouseY);
             cursorY += INGREDIENT_HEIGHT;
 
-            MaterialTreeNode root = MaterialListPlusState.getExpandedIngredientTree(ingredient);
+            MaterialTreeNode root = MaterialListPlusState.getVisibleIngredientTree(ingredient);
             if (root != null) {
-                cursorY = renderChildren(widget, context, textX, cursorY, root.children(), MaterialListPlusState.getExpandedTreeNodes(), 1, mouseX, mouseY);
+                int fullHeight = visibleChildrenHeight(root.children());
+                int visibleHeight = Math.min(fullHeight, Math.round(fullHeight * MaterialListPlusState.treeProgress(root.path())));
+                if (visibleHeight > 0) {
+                    context.method_44379(textX, cursorY, x + panelWidth - PADDING, cursorY + visibleHeight);
+                    renderChildren(widget, context, textX, cursorY, root.children(), 1, visibleHeight, mouseX, mouseY);
+                    context.method_44380();
+                    cursorY += visibleHeight;
+                }
             }
         }
 
@@ -113,9 +112,11 @@ public final class RecipeInlineRenderer {
             }
             cursorY += INGREDIENT_HEIGHT;
 
-            MaterialTreeNode root = MaterialListPlusState.getExpandedIngredientTree(ingredient);
+            MaterialTreeNode root = MaterialListPlusState.getVisibleIngredientTree(ingredient);
             if (root != null) {
-                ToggleScan scan = scanChildren(root.children(), MaterialListPlusState.getExpandedTreeNodes(), textX, cursorY, 1, mouseX, mouseY);
+                int fullHeight = visibleChildrenHeight(root.children());
+                int visibleHeight = Math.min(fullHeight, Math.round(fullHeight * MaterialListPlusState.treeProgress(root.path())));
+                ToggleScan scan = scanChildren(root.children(), textX, cursorY, 1, visibleHeight, mouseX, mouseY);
                 if (scan.target() != ToggleTarget.NONE) {
                     return scan.target();
                 }
@@ -132,14 +133,28 @@ public final class RecipeInlineRenderer {
         renderRow(widget, context, textX, y, 0, hasTree, expanded, AlternativeItemDisplay.icon(ingredient), RecipeSummaryFormatter.ingredientName(ingredient), ingredient.countTotal(), ingredient.countMissing(), ingredient.maxStackSize(), mouseX, mouseY);
     }
 
-    private static int renderChildren(WidgetBase widget, class_332 context, int textX, int y, List<MaterialTreeNode> nodes, Set<String> expandedNodes, int depth, int mouseX, int mouseY) {
+    private static int renderChildren(WidgetBase widget, class_332 context, int textX, int y, List<MaterialTreeNode> nodes, int depth, int visibleHeight, int mouseX, int mouseY) {
         int cursorY = y;
+        int remainingHeight = visibleHeight;
         for (MaterialTreeNode node : nodes) {
-            boolean expanded = expandedNodes.contains(node.path());
+            if (remainingHeight <= 0) {
+                break;
+            }
+
+            boolean expanded = MaterialListPlusState.getExpandedTreeNodes().contains(node.path());
             renderRow(widget, context, textX, cursorY, depth, node.hasChildren(), expanded, AlternativeItemDisplay.icon(node), node.name(), node.totalCount(), node.missingCount(), node.maxStackSize(), mouseX, mouseY);
-            cursorY += INGREDIENT_HEIGHT;
-            if (node.hasChildren() && expanded) {
-                cursorY = renderChildren(widget, context, textX, cursorY, node.children(), expandedNodes, depth + 1, mouseX, mouseY);
+
+            int visibleRowHeight = Math.min(INGREDIENT_HEIGHT, remainingHeight);
+            cursorY += visibleRowHeight;
+            remainingHeight -= visibleRowHeight;
+            if (node.hasChildren() && remainingHeight > 0) {
+                int fullChildrenHeight = visibleChildrenHeight(node.children());
+                int visibleChildrenHeight = Math.min(fullChildrenHeight, Math.round(fullChildrenHeight * MaterialListPlusState.treeProgress(node.path())));
+                visibleChildrenHeight = Math.min(visibleChildrenHeight, remainingHeight);
+                if (visibleChildrenHeight > 0) {
+                    cursorY = renderChildren(widget, context, textX, cursorY, node.children(), depth + 1, visibleChildrenHeight, mouseX, mouseY);
+                    remainingHeight -= visibleChildrenHeight;
+                }
             }
         }
         return cursorY;
@@ -164,51 +179,55 @@ public final class RecipeInlineRenderer {
         widget.drawString(rowX + INGREDIENT_ICON_OFFSET + 26, y + 2, 0xFFFFFFFF, line, context);
     }
 
-    private static int visibleIngredientRows(RecipeSummary summary) {
-        int rows = 0;
+    private static int visibleIngredientHeight(RecipeSummary summary) {
+        int height = 0;
         for (IngredientSummary ingredient : summary.ingredients()) {
-            rows++;
-            MaterialTreeNode root = MaterialListPlusState.getExpandedIngredientTree(ingredient);
+            height += INGREDIENT_HEIGHT;
+            MaterialTreeNode root = MaterialListPlusState.getVisibleIngredientTree(ingredient);
             if (root != null) {
-                rows += visibleChildCount(root, MaterialListPlusState.getExpandedTreeNodes());
+                int fullHeight = visibleChildrenHeight(root.children());
+                height += Math.round(fullHeight * MaterialListPlusState.treeProgress(root.path()));
             }
         }
-        return rows;
+        return height;
     }
 
-    private static int visibleChildCount(MaterialTreeNode root, Set<String> expandedNodes) {
-        if (!expandedNodes.contains(root.path())) {
-            return 0;
-        }
-
-        return visibleNodeCount(root.children(), expandedNodes);
-    }
-
-    private static int visibleNodeCount(List<MaterialTreeNode> nodes, Set<String> expandedNodes) {
-        int count = 0;
+    private static int visibleChildrenHeight(List<MaterialTreeNode> nodes) {
+        int height = 0;
         for (MaterialTreeNode node : nodes) {
-            count++;
-            if (node.hasChildren() && expandedNodes.contains(node.path())) {
-                count += visibleNodeCount(node.children(), expandedNodes);
+            height += INGREDIENT_HEIGHT;
+            if (node.hasChildren()) {
+                height += Math.round(visibleChildrenHeight(node.children()) * MaterialListPlusState.treeProgress(node.path()));
             }
         }
-        return count;
+        return height;
     }
 
-    private static ToggleScan scanChildren(List<MaterialTreeNode> nodes, Set<String> expandedNodes, int textX, int y, int depth, int mouseX, int mouseY) {
+    private static ToggleScan scanChildren(List<MaterialTreeNode> nodes, int textX, int y, int depth, int visibleHeight, int mouseX, int mouseY) {
         int cursorY = y;
+        int remainingHeight = visibleHeight;
         for (MaterialTreeNode node : nodes) {
-            if (node.hasChildren() && isToggleHit(textX, cursorY, depth, mouseX, mouseY)) {
+            if (remainingHeight <= 0) {
+                break;
+            }
+
+            int visibleRowHeight = Math.min(INGREDIENT_HEIGHT, remainingHeight);
+            if (node.hasChildren() && mouseY < cursorY + visibleRowHeight && isToggleHit(textX, cursorY, depth, mouseX, mouseY)) {
                 return new ToggleScan(ToggleTarget.node(node.path()), cursorY + INGREDIENT_HEIGHT);
             }
 
-            cursorY += INGREDIENT_HEIGHT;
-            if (node.hasChildren() && expandedNodes.contains(node.path())) {
-                ToggleScan scan = scanChildren(node.children(), expandedNodes, textX, cursorY, depth + 1, mouseX, mouseY);
+            cursorY += visibleRowHeight;
+            remainingHeight -= visibleRowHeight;
+            if (node.hasChildren() && remainingHeight > 0) {
+                int fullChildrenHeight = visibleChildrenHeight(node.children());
+                int visibleChildrenHeight = Math.min(fullChildrenHeight, Math.round(fullChildrenHeight * MaterialListPlusState.treeProgress(node.path())));
+                visibleChildrenHeight = Math.min(visibleChildrenHeight, remainingHeight);
+                ToggleScan scan = scanChildren(node.children(), textX, cursorY, depth + 1, visibleChildrenHeight, mouseX, mouseY);
                 if (scan.target() != ToggleTarget.NONE) {
                     return scan;
                 }
                 cursorY = scan.nextY();
+                remainingHeight -= visibleChildrenHeight;
             }
         }
 

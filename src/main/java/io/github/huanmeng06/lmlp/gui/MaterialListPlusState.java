@@ -26,6 +26,7 @@ public final class MaterialListPlusState {
     private static final Set<String> expandedTreeNodes = new HashSet<>();
     private static final Map<String, Boolean> treeSupportCache = new HashMap<>();
     private static final Map<String, MaterialTreeNode> treeCache = new HashMap<>();
+    private static final ExpandAnimationTracker treeAnimations = new ExpandAnimationTracker();
 
     private MaterialListPlusState() {
     }
@@ -64,6 +65,8 @@ public final class MaterialListPlusState {
             treeSupportCache.put(key, false);
             treeCache.remove(key);
             collapseTreeNode("ingredient:" + key);
+            treeAnimations.remove("ingredient:" + key);
+            treeAnimations.removeDescendants("ingredient:" + key);
             return false;
         }
 
@@ -85,10 +88,14 @@ public final class MaterialListPlusState {
         }
 
         treeSupportCache.put(key(ingredient), true);
+        float startProgress = treeProgress(root.path());
         if (expandedTreeNodes.contains(root.path())) {
             collapseTreeNode(root.path());
+            treeAnimations.removeDescendants(root.path());
+            treeAnimations.start(root.path(), startProgress, 0.0F);
         } else {
             expandedTreeNodes.add(root.path());
+            treeAnimations.start(root.path(), startProgress, 1.0F);
         }
     }
 
@@ -101,15 +108,40 @@ public final class MaterialListPlusState {
         return root;
     }
 
+    public static MaterialTreeNode getVisibleIngredientTree(IngredientSummary ingredient) {
+        MaterialTreeNode root = treeCache.get(key(ingredient));
+        if (root == null) {
+            return null;
+        }
+
+        return expandedTreeNodes.contains(root.path()) || treeProgress(root.path()) > 0.0F ? root : null;
+    }
+
+    public static float treeProgress(String path) {
+        return treeAnimations.progress(path, expandedTreeNodes.contains(path));
+    }
+
+    public static void pruneTreeAnimations() {
+        treeAnimations.prune();
+    }
+
+    public static boolean hasActiveTreeAnimations() {
+        return treeAnimations.isActive();
+    }
+
     public static Set<String> getExpandedTreeNodes() {
         return Collections.unmodifiableSet(expandedTreeNodes);
     }
 
     public static void toggleTreeNode(String path) {
+        float startProgress = treeProgress(path);
         if (expandedTreeNodes.contains(path)) {
             collapseTreeNode(path);
+            treeAnimations.removeDescendants(path);
+            treeAnimations.start(path, startProgress, 0.0F);
         } else {
             expandedTreeNodes.add(path);
+            treeAnimations.start(path, startProgress, 1.0F);
         }
     }
 
@@ -121,6 +153,7 @@ public final class MaterialListPlusState {
 
     private static void clearIngredientTrees() {
         expandedTreeNodes.clear();
+        treeAnimations.clear();
     }
 
     public static void clearRecipeCaches() {
