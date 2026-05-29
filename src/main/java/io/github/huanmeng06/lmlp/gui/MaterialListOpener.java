@@ -42,7 +42,12 @@ public final class MaterialListOpener {
     }
 
     public static boolean closeToHandledScreenParent(GuiBase gui) {
-        if (!(gui.getParent() instanceof class_465<?> parent)) {
+        class_465<?> parent = gui.getParent() instanceof class_465<?> handledParent ? handledParent : null;
+        if (parent == null && gui == handledScreenMaterialListGui) {
+            parent = handledScreenParent;
+        }
+
+        if (parent == null) {
             return false;
         }
 
