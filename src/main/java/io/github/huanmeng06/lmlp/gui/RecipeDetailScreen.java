@@ -71,8 +71,8 @@ public class RecipeDetailScreen extends class_437 {
     private static final int HEADER_MAX_WIDTH = 600;
     private static final int HEADER_HEIGHT = 50;
     private static final int HEADER_BUTTON_GAP = 8;
-    private static final int PREFERRED_BUTTON_WIDTH = 20;
-    private static final int PREFERRED_BUTTON_HEIGHT = 18;
+    private static final int PREFERRED_BUTTON_SIZE = 16;
+    private static final int PREFERRED_ICON_SIZE = 9;
     private static final int INGREDIENT_ROW_HEIGHT = 20;
     private static final int INGREDIENT_TREE_INDENT_WIDTH = 18;
     private static final int INGREDIENT_TOGGLE_WIDTH = 18;
@@ -81,9 +81,8 @@ public class RecipeDetailScreen extends class_437 {
     private static final int NESTED_RECIPE_INDENT = 24;
     private static final int MAX_NESTED_DEPTH = 3;
     private static final class_2960 REI_DISPLAY_TEXTURE = new class_2960("roughlyenoughitems", "textures/gui/display.png");
-    private static final class_2960 RECIPE_BOOK_BUTTON_TEXTURE = new class_2960("minecraft", "recipe_book/button");
-    private static final class_2960 RECIPE_BOOK_BUTTON_HIGHLIGHTED_TEXTURE = new class_2960("minecraft", "recipe_book/button_highlighted");
-    private static final String PREFERRED_STAR = "\u2605";
+    private static final class_2960 PREFERRED_STAR_TEXTURE = new class_2960(LitematicaMaterialListPlus.MOD_ID, "textures/gui/preferred_recipe_star.png");
+    private static final class_2960 PREFERRED_EMPTY_STAR_TEXTURE = new class_2960(LitematicaMaterialListPlus.MOD_ID, "textures/gui/preferred_recipe_star_empty.png");
 
     private final class_437 parent;
     private final class_1799 target;
@@ -552,25 +551,23 @@ public class RecipeDetailScreen extends class_437 {
         String itemId = ItemStackTexts.id(summary.outputIcon());
         boolean preferred = Configs.isPreferredRecipe(itemId, summary.recipeId());
         String label = StringUtils.translate(preferred ? "lmlp.label.recipe.preferred_pinned" : "lmlp.label.recipe.preferred_pin");
-        int buttonX = left + width - PREFERRED_BUTTON_WIDTH - 8;
+        int buttonX = left + width - PREFERRED_BUTTON_SIZE - 8;
         int buttonY = y + 8;
         if (buttonX <= left + 34) {
             return;
         }
 
-        boolean hovered = isInside(mouseX, mouseY, buttonX, buttonY, PREFERRED_BUTTON_WIDTH, PREFERRED_BUTTON_HEIGHT);
-        class_2960 texture = hovered ? RECIPE_BOOK_BUTTON_HIGHLIGHTED_TEXTURE : RECIPE_BOOK_BUTTON_TEXTURE;
-        context.method_52706(texture, buttonX, buttonY, PREFERRED_BUTTON_WIDTH, PREFERRED_BUTTON_HEIGHT);
-        int starColor = preferred ? 0xFFFFD75A : hovered ? 0xFFFFFFFF : 0xFF777777;
-        int starX = buttonX + (PREFERRED_BUTTON_WIDTH - this.field_22793.method_1727(PREFERRED_STAR)) / 2;
-        int starY = buttonY + 5;
-        context.method_51433(this.field_22793, PREFERRED_STAR, starX, starY, starColor, false);
+        class_2960 starTexture = preferred ? PREFERRED_STAR_TEXTURE : PREFERRED_EMPTY_STAR_TEXTURE;
+        boolean hovered = isInside(mouseX, mouseY, buttonX, buttonY, PREFERRED_BUTTON_SIZE, PREFERRED_BUTTON_SIZE);
+        int starX = buttonX + (PREFERRED_BUTTON_SIZE - PREFERRED_ICON_SIZE) / 2;
+        int starY = buttonY + (PREFERRED_BUTTON_SIZE - PREFERRED_ICON_SIZE) / 2;
+        context.method_25290(starTexture, starX, starY, 0.0F, 0.0F, PREFERRED_ICON_SIZE, PREFERRED_ICON_SIZE, PREFERRED_ICON_SIZE, PREFERRED_ICON_SIZE);
         if (hovered) {
             this.hoveredPreferredRecipeTooltip = List.of(class_2561.method_43470(label));
         }
 
-        if (this.isVisibleInActiveClip(buttonY, PREFERRED_BUTTON_HEIGHT)) {
-            this.preferredRecipeButtons.add(new PreferredRecipeButtonArea(itemId, summary.recipeId(), buttonX, buttonY, PREFERRED_BUTTON_WIDTH, PREFERRED_BUTTON_HEIGHT));
+        if (this.isVisibleInActiveClip(buttonY, PREFERRED_BUTTON_SIZE)) {
+            this.preferredRecipeButtons.add(new PreferredRecipeButtonArea(itemId, summary.recipeId(), buttonX, buttonY, PREFERRED_BUTTON_SIZE, PREFERRED_BUTTON_SIZE));
         }
     }
 
