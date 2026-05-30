@@ -71,8 +71,8 @@ public class RecipeDetailScreen extends class_437 {
     private static final int HEADER_MAX_WIDTH = 600;
     private static final int HEADER_HEIGHT = 50;
     private static final int HEADER_BUTTON_GAP = 8;
-    private static final int PREFERRED_BUTTON_HEIGHT = 16;
-    private static final int PREFERRED_BUTTON_PADDING_X = 6;
+    private static final int PREFERRED_BUTTON_WIDTH = 20;
+    private static final int PREFERRED_BUTTON_HEIGHT = 18;
     private static final int INGREDIENT_ROW_HEIGHT = 20;
     private static final int INGREDIENT_TREE_INDENT_WIDTH = 18;
     private static final int INGREDIENT_TOGGLE_WIDTH = 18;
@@ -81,6 +81,9 @@ public class RecipeDetailScreen extends class_437 {
     private static final int NESTED_RECIPE_INDENT = 24;
     private static final int MAX_NESTED_DEPTH = 3;
     private static final class_2960 REI_DISPLAY_TEXTURE = new class_2960("roughlyenoughitems", "textures/gui/display.png");
+    private static final class_2960 RECIPE_BOOK_BUTTON_TEXTURE = new class_2960("minecraft", "recipe_book/button");
+    private static final class_2960 RECIPE_BOOK_BUTTON_HIGHLIGHTED_TEXTURE = new class_2960("minecraft", "recipe_book/button_highlighted");
+    private static final String PREFERRED_STAR = "\u2605";
 
     private final class_437 parent;
     private final class_1799 target;
@@ -109,6 +112,7 @@ public class RecipeDetailScreen extends class_437 {
     private boolean draggingScrollbar;
     private final class_465<?> transferContainerScreen;
     private List<Tooltip.Entry> hoveredTransferTooltip = List.of();
+    private List<class_2561> hoveredPreferredRecipeTooltip = List.of();
 
     public RecipeDetailScreen(class_437 parent, class_1799 target, int totalCount, int missingCount, List<RecipeSummary> summaries) {
         super(class_2561.method_43471("lmlp.gui.recipe_detail.title"));
@@ -229,6 +233,7 @@ public class RecipeDetailScreen extends class_437 {
 
         this.hoveredStack = class_1799.field_8037;
         this.hoveredTransferTooltip = List.of();
+        this.hoveredPreferredRecipeTooltip = List.of();
         this.clipTop = contentTop;
         this.clipBottom = contentBottom;
         this.activeClipTop = contentTop;
@@ -265,6 +270,10 @@ public class RecipeDetailScreen extends class_437 {
 
         this.renderScrollbar(context, mouseX, mouseY, delta, contentTop, contentBottom);
         if (this.renderTransferTooltip(context, mouseX, mouseY)) {
+            return;
+        }
+
+        if (this.renderPreferredRecipeTooltip(context, mouseX, mouseY)) {
             return;
         }
 
@@ -543,22 +552,25 @@ public class RecipeDetailScreen extends class_437 {
         String itemId = ItemStackTexts.id(summary.outputIcon());
         boolean preferred = Configs.isPreferredRecipe(itemId, summary.recipeId());
         String label = StringUtils.translate(preferred ? "lmlp.label.recipe.preferred_pinned" : "lmlp.label.recipe.preferred_pin");
-        int buttonWidth = this.field_22793.method_1727(label) + PREFERRED_BUTTON_PADDING_X * 2;
-        int buttonX = left + width - buttonWidth - 8;
+        int buttonX = left + width - PREFERRED_BUTTON_WIDTH - 8;
         int buttonY = y + 8;
         if (buttonX <= left + 34) {
             return;
         }
 
-        boolean hovered = isInside(mouseX, mouseY, buttonX, buttonY, buttonWidth, PREFERRED_BUTTON_HEIGHT);
-        int borderColor = preferred ? 0xFFFFAA00 : hovered ? 0xFFFFFFFF : 0xFF888888;
-        int backgroundColor = hovered ? 0xFF404040 : 0xFF202020;
-        int textColor = preferred ? 0xFFFFAA00 : 0xFFFFFFFF;
-        RenderUtils.drawOutlinedBox(buttonX, buttonY, buttonWidth, PREFERRED_BUTTON_HEIGHT, backgroundColor, borderColor);
-        context.method_51433(this.field_22793, label, buttonX + PREFERRED_BUTTON_PADDING_X, buttonY + 4, textColor, false);
+        boolean hovered = isInside(mouseX, mouseY, buttonX, buttonY, PREFERRED_BUTTON_WIDTH, PREFERRED_BUTTON_HEIGHT);
+        class_2960 texture = hovered ? RECIPE_BOOK_BUTTON_HIGHLIGHTED_TEXTURE : RECIPE_BOOK_BUTTON_TEXTURE;
+        context.method_52706(texture, buttonX, buttonY, PREFERRED_BUTTON_WIDTH, PREFERRED_BUTTON_HEIGHT);
+        int starColor = preferred ? 0xFFFFD75A : hovered ? 0xFFFFFFFF : 0xFF777777;
+        int starX = buttonX + (PREFERRED_BUTTON_WIDTH - this.field_22793.method_1727(PREFERRED_STAR)) / 2;
+        int starY = buttonY + 5;
+        context.method_51433(this.field_22793, PREFERRED_STAR, starX, starY, starColor, false);
+        if (hovered) {
+            this.hoveredPreferredRecipeTooltip = List.of(class_2561.method_43470(label));
+        }
 
         if (this.isVisibleInActiveClip(buttonY, PREFERRED_BUTTON_HEIGHT)) {
-            this.preferredRecipeButtons.add(new PreferredRecipeButtonArea(itemId, summary.recipeId(), buttonX, buttonY, buttonWidth, PREFERRED_BUTTON_HEIGHT));
+            this.preferredRecipeButtons.add(new PreferredRecipeButtonArea(itemId, summary.recipeId(), buttonX, buttonY, PREFERRED_BUTTON_WIDTH, PREFERRED_BUTTON_HEIGHT));
         }
     }
 
@@ -710,6 +722,15 @@ public class RecipeDetailScreen extends class_437 {
         }
 
         context.method_51434(this.field_22793, lines, mouseX, mouseY);
+        return true;
+    }
+
+    private boolean renderPreferredRecipeTooltip(class_332 context, int mouseX, int mouseY) {
+        if (this.hoveredPreferredRecipeTooltip.isEmpty()) {
+            return false;
+        }
+
+        context.method_51434(this.field_22793, this.hoveredPreferredRecipeTooltip, mouseX, mouseY);
         return true;
     }
 
