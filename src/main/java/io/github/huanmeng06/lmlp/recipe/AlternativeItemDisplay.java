@@ -3,6 +3,7 @@ package io.github.huanmeng06.lmlp.recipe;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.StringJoiner;
 
 import fi.dy.masa.malilib.util.StringUtils;
 import io.github.huanmeng06.lmlp.material.ItemStackTexts;
@@ -66,6 +67,11 @@ public final class AlternativeItemDisplay {
             return alternatives.get(0);
         }
 
+        String directName = directAlternativeName(icons, alternatives);
+        if (!directName.isEmpty()) {
+            return directName;
+        }
+
         String groupKey = commonGroupKey(icons);
         if (!groupKey.isEmpty()) {
             return StringUtils.translate(groupKey);
@@ -77,6 +83,41 @@ public final class AlternativeItemDisplay {
         }
 
         return "";
+    }
+
+    private static String directAlternativeName(List<class_1799> icons, List<String> alternatives) {
+        if (!isSandPair(icons)) {
+            return "";
+        }
+
+        StringJoiner joiner = new StringJoiner(" / ");
+        int limit = Math.min(alternatives.size(), 4);
+        for (int i = 0; i < limit; i++) {
+            joiner.add(alternatives.get(i));
+        }
+
+        if (alternatives.size() > limit) {
+            joiner.add("...");
+        }
+
+        return joiner.toString();
+    }
+
+    private static boolean isSandPair(List<class_1799> icons) {
+        boolean hasSand = false;
+        boolean hasRedSand = false;
+        for (class_1799 icon : icons) {
+            String id = ItemStackTexts.id(icon);
+            if (id.equals("minecraft:sand")) {
+                hasSand = true;
+            } else if (id.equals("minecraft:red_sand")) {
+                hasRedSand = true;
+            } else {
+                return false;
+            }
+        }
+
+        return hasSand && hasRedSand;
     }
 
     private static class_1799 cyclingIcon(List<class_1799> icons, class_1799 fallback) {
@@ -95,6 +136,10 @@ public final class AlternativeItemDisplay {
         }
 
         String suffix = commonIdSuffix(icons);
+        if (suffix.isEmpty()) {
+            suffix = commonWoodLogSuffix(icons);
+        }
+
         return suffix.isEmpty() ? "" : COMMON_GROUP_KEYS.getOrDefault(suffix, "");
     }
 
@@ -116,6 +161,26 @@ public final class AlternativeItemDisplay {
         }
 
         return suffix == null ? "" : suffix;
+    }
+
+    private static String commonWoodLogSuffix(List<class_1799> icons) {
+        boolean hasLog = false;
+        boolean hasWood = false;
+        for (class_1799 icon : icons) {
+            String id = ItemStackTexts.id(icon);
+            int separator = id.indexOf(':');
+            String path = separator >= 0 ? id.substring(separator + 1) : id;
+            String suffix = removeCommonPrefix(path);
+            if (suffix.equals("log")) {
+                hasLog = true;
+            } else if (suffix.equals("wood")) {
+                hasWood = true;
+            } else {
+                return "";
+            }
+        }
+
+        return hasLog && hasWood ? "log" : "";
     }
 
     private static String removeCommonPrefix(String path) {
