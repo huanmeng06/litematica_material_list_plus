@@ -48,6 +48,10 @@ public final class RecipeInlineRenderer {
         return Math.round(getOuterHeight(summaries) * progress);
     }
 
+    public static int getTargetOuterHeight(List<RecipeSummary> summaries) {
+        return getTargetHeight(summaries) + ENTRY_BOTTOM_GAP;
+    }
+
     public static void render(WidgetBase widget, class_332 context, int x, int y, int width, List<RecipeSummary> summaries, int mouseX, int mouseY) {
         render(widget, context, x, y, width, summaries, getOuterHeight(summaries), mouseX, mouseY);
     }
@@ -212,6 +216,42 @@ public final class RecipeInlineRenderer {
             if (root != null) {
                 int fullHeight = visibleChildrenHeight(root.children());
                 height += Math.round(fullHeight * MaterialListPlusState.treeProgress(root.path()));
+            }
+        }
+        return height;
+    }
+
+    private static int getTargetHeight(List<RecipeSummary> summaries) {
+        if (summaries.isEmpty()) {
+            return 48;
+        }
+
+        RecipeSummary summary = summaries.get(0);
+        int height = 64 + targetIngredientHeight(summary) + INNER_BOTTOM_PADDING;
+        if (summaries.size() > 1) {
+            height += 22;
+        }
+        return height;
+    }
+
+    private static int targetIngredientHeight(RecipeSummary summary) {
+        int height = 0;
+        for (IngredientSummary ingredient : summary.ingredients()) {
+            height += INGREDIENT_HEIGHT;
+            MaterialTreeNode root = MaterialListPlusState.getVisibleIngredientTree(ingredient);
+            if (root != null && MaterialListPlusState.getExpandedTreeNodes().contains(root.path())) {
+                height += targetChildrenHeight(root.children());
+            }
+        }
+        return height;
+    }
+
+    private static int targetChildrenHeight(List<MaterialTreeNode> nodes) {
+        int height = 0;
+        for (MaterialTreeNode node : nodes) {
+            height += INGREDIENT_HEIGHT;
+            if (node.hasChildren() && MaterialListPlusState.getExpandedTreeNodes().contains(node.path())) {
+                height += targetChildrenHeight(node.children());
             }
         }
         return height;

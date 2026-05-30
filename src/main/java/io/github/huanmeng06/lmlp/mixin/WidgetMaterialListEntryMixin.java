@@ -32,7 +32,6 @@ import java.util.List;
 
 @Mixin(value = WidgetMaterialListEntry.class, remap = false)
 public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortable<MaterialListEntry> {
-    private static final int BASE_ENTRY_HEIGHT = 23;
     private static final int EXPANDED_PANEL_BOTTOM_PADDING = 8;
     private static final int HOVER_TOOLTIP_MARGIN = 8;
     private static final int HOVER_TOOLTIP_CURSOR_OFFSET = 12;
@@ -181,7 +180,6 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
                 this.mc.method_1507(new RecipeDetailScreen(GuiUtils.getCurrentScreen(), this.entry.getStack(), MaterialCounts.total(this.entry, this.materialList), MaterialCounts.missing(this.entry, this.materialList), summaries));
             } else {
                 boolean wasExpanded = MaterialListPlusState.isRecipeExpanded(this.entry);
-                int rowTopY = this.y;
                 if (wasExpanded) {
                     MaterialListPlusState.clear();
                 } else {
@@ -190,7 +188,7 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
 
                 this.listWidget.refreshEntries();
                 if (!wasExpanded) {
-                    this.scrollExpandedEntryIntoView(rowTopY);
+                    this.scrollExpandedEntryIntoView();
                 }
             }
             return true;
@@ -508,24 +506,16 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         }
 
         this.listWidget.refreshEntries();
-        this.scrollExpandedEntryIntoView(this.y);
+        this.scrollExpandedEntryIntoView();
         return true;
     }
 
-    private void scrollExpandedEntryIntoView(int rowTopY) {
+    private void scrollExpandedEntryIntoView() {
         if (!(this.listWidget instanceof WidgetListBoundsAccess access)) {
             return;
         }
 
-        int visibleBottom = access.lmlp$getVisibleBottom() - EXPANDED_PANEL_BOTTOM_PADDING;
-        int expandedEntryHeight = BASE_ENTRY_HEIGHT + RecipeInlineRenderer.getOuterHeight(MaterialListPlusState.getCachedSummaries(this.entry));
-        int overflow = rowTopY + expandedEntryHeight - visibleBottom;
-        if (overflow <= 0) {
-            return;
-        }
-
-        int rows = (overflow + BASE_ENTRY_HEIGHT - 1) / BASE_ENTRY_HEIGHT;
-        this.listWidget.getScrollbar().offsetValue(rows);
+        access.lmlp$scrollEntryIntoView(this.entry, EXPANDED_PANEL_BOTTOM_PADDING);
         this.listWidget.refreshEntries();
     }
 

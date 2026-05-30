@@ -86,22 +86,93 @@ public abstract class WidgetListBaseMixin implements WidgetListBoundsAccess {
         return this.lmlp$getVisibleTop() + Math.max(0, this.browserHeight - this.browserPaddingY - this.browserEntriesOffsetY);
     }
 
+    @Override
+    public void lmlp$scrollEntryIntoView(Object entry, int bottomPadding) {
+        if (!((Object) this instanceof WidgetListMaterialList)) {
+            return;
+        }
+
+        int targetIndex = this.listContents.indexOf(entry);
+        if (targetIndex < 0) {
+            return;
+        }
+
+        int viewportHeight = this.lmlp$getContentViewportHeight(bottomPadding);
+        if (this.lmlp$isEntryBottomVisible(targetIndex, viewportHeight)) {
+            return;
+        }
+
+        int startIndex = this.lmlp$getBestStartIndexFor(targetIndex, viewportHeight);
+        this.scrollBar.setMaxValue(this.lmlp$getDynamicScrollbarMaxValue());
+        this.scrollBar.setValue(startIndex);
+    }
+
     private int lmlp$getDynamicScrollbarMaxValue() {
         int size = this.listContents.size();
         if (size <= 0) {
             return 0;
         }
 
-        int viewportHeight = Math.max(1, this.browserHeight - this.browserPaddingY - this.browserEntriesOffsetY - this.lmlp$getHeaderHeight());
+        int viewportHeight = this.lmlp$getContentViewportHeight(0);
         int height = 0;
         for (int index = size - 1; index >= 0; index--) {
-            height += Math.max(1, this.getBrowserEntryHeightFor(this.listContents.get(index)));
+            height += Math.max(1, this.lmlp$getScrollTargetEntryHeightFor(this.listContents.get(index)));
             if (height > viewportHeight) {
                 return Math.min(size - 1, index + 1);
             }
         }
 
         return 0;
+    }
+
+    private boolean lmlp$isEntryBottomVisible(int targetIndex, int viewportHeight) {
+        int currentIndex = this.scrollBar.getValue();
+        if (currentIndex > targetIndex) {
+            return false;
+        }
+
+        int height = 0;
+        for (int index = currentIndex; index <= targetIndex; index++) {
+            height += Math.max(1, this.lmlp$getScrollTargetEntryHeightFor(this.listContents.get(index)));
+            if (height > viewportHeight) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private int lmlp$getBestStartIndexFor(int targetIndex, int viewportHeight) {
+        int height = Math.max(1, this.lmlp$getScrollTargetEntryHeightFor(this.listContents.get(targetIndex)));
+        int startIndex = targetIndex;
+
+        if (height >= viewportHeight) {
+            return startIndex;
+        }
+
+        for (int index = targetIndex - 1; index >= 0; index--) {
+            int candidateHeight = height + Math.max(1, this.lmlp$getScrollTargetEntryHeightFor(this.listContents.get(index)));
+            if (candidateHeight > viewportHeight) {
+                break;
+            }
+
+            height = candidateHeight;
+            startIndex = index;
+        }
+
+        return startIndex;
+    }
+
+    private int lmlp$getContentViewportHeight(int bottomPadding) {
+        return Math.max(1, this.browserHeight - this.browserPaddingY - this.browserEntriesOffsetY - this.lmlp$getHeaderHeight() - bottomPadding);
+    }
+
+    private int lmlp$getScrollTargetEntryHeightFor(Object entry) {
+        if (entry instanceof MaterialListEntry materialEntry && MaterialListPlusState.isRecipeExpanded(materialEntry)) {
+            return 23 + RecipeInlineRenderer.getTargetOuterHeight(MaterialListPlusState.getCachedSummaries(materialEntry));
+        }
+
+        return this.getBrowserEntryHeightFor(entry);
     }
 
     private int lmlp$getHeaderHeight() {
