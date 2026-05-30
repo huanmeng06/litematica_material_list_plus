@@ -38,6 +38,8 @@
   "lmlp.label.recipe.any.concrete": "Any concrete",
   "lmlp.label.recipe.any.concrete_powder": "Any concrete powder",
   "lmlp.label.recipe.recipe_id": "Recipe ID",
+  "lmlp.label.recipe.preferred_pin": "Pin",
+  "lmlp.label.recipe.preferred_pinned": "Pinned",
   "lmlp.label.count.shulker_boxes": "%d boxes",
   "lmlp.label.count.stacks": "%d stacks",
   "lmlp.label.count.items": "%d items",

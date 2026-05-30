@@ -38,6 +38,8 @@
   "lmlp.label.recipe.any.concrete": "任意混凝土",
   "lmlp.label.recipe.any.concrete_powder": "任意混凝土粉末",
   "lmlp.label.recipe.recipe_id": "配方 ID",
+  "lmlp.label.recipe.preferred_pin": "置顶",
+  "lmlp.label.recipe.preferred_pinned": "已置顶",
   "lmlp.label.count.shulker_boxes": "%d 盒",
   "lmlp.label.count.stacks": "%d 组",
   "lmlp.label.count.items": "%d 个",

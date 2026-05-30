@@ -71,6 +71,8 @@ public class RecipeDetailScreen extends class_437 {
     private static final int HEADER_MAX_WIDTH = 600;
     private static final int HEADER_HEIGHT = 50;
     private static final int HEADER_BUTTON_GAP = 8;
+    private static final int PREFERRED_BUTTON_HEIGHT = 16;
+    private static final int PREFERRED_BUTTON_PADDING_X = 6;
     private static final int INGREDIENT_ROW_HEIGHT = 20;
     private static final int INGREDIENT_TREE_INDENT_WIDTH = 18;
     private static final int INGREDIENT_TOGGLE_WIDTH = 18;
@@ -84,13 +86,14 @@ public class RecipeDetailScreen extends class_437 {
     private final class_1799 target;
     private final int totalCount;
     private final int missingCount;
-    private final List<RecipeSummary> summaries;
+    private List<RecipeSummary> summaries;
     private final GuiScrollBar scrollBar = new GuiScrollBar();
     private final ButtonGeneric backButton = new ButtonGeneric(0, 0, BACK_BUTTON_WIDTH, BACK_BUTTON_HEIGHT, "");
     private final RecipeNativeDisplayBridge nativeDisplayBridge = createNativeDisplayBridge();
     private final RecipeTooltipBridge tooltipBridge = createTooltipBridge();
     private final List<NativeDisplayArea> nativeDisplayAreas = new ArrayList<>();
     private final List<TransferButtonEntry> transferButtons = new ArrayList<>();
+    private final List<PreferredRecipeButtonArea> preferredRecipeButtons = new ArrayList<>();
     private final List<ToggleArea> toggleAreas = new ArrayList<>();
     private final Map<String, List<RecipeSummary>> nestedRecipeCache = new HashMap<>();
     private final Set<String> expandedNestedRecipes = new HashSet<>();
@@ -114,7 +117,7 @@ public class RecipeDetailScreen extends class_437 {
         this.target = target.method_7972();
         this.totalCount = totalCount;
         this.missingCount = missingCount;
-        this.summaries = List.copyOf(summaries);
+        this.summaries = RecipeResolvers.applyPreferredOrder(List.copyOf(summaries));
         this.backButton.setDisplayString(StringUtils.translate("lmlp.label.recipe.back"));
         this.backButton.setTextCentered(true);
         this.backButton.setActionListener((button, mouseButton) -> this.method_25419());
@@ -160,6 +163,10 @@ public class RecipeDetailScreen extends class_437 {
         }
 
         if (button == 0 && this.handleTransferButtonClick(mouseX, mouseY)) {
+            return true;
+        }
+
+        if (button == 0 && this.handlePreferredRecipeButtonClick(mouseX, mouseY)) {
             return true;
         }
 
@@ -230,6 +237,7 @@ public class RecipeDetailScreen extends class_437 {
         this.nativeDisplayLimitLoggedThisFrame = false;
         this.nativeDisplayAreas.clear();
         this.transferButtons.clear();
+        this.preferredRecipeButtons.clear();
         this.toggleAreas.clear();
         this.scrollBar.setMaxValue(Math.max(0, this.contentHeight() - viewportHeight));
         this.updateBackButtonPosition(layout);
@@ -339,6 +347,7 @@ public class RecipeDetailScreen extends class_437 {
         context.method_51427(summary.outputIcon(), left + 10, y + 10);
         this.captureHoveredStack(summary.outputIcon(), mouseX, mouseY, left + 10, y + 10, 16, 16);
         context.method_51433(this.field_22793, RecipeSummaryFormatter.header(summary, index), left + 34, y + 12, 0xFFFFFFFF, false);
+        this.renderPreferredRecipeButton(context, summary, left, y, width, mouseX, mouseY);
 
         int panelWidth = this.displayPanelWidth(summary, width - 36, depth);
         int panelHeight = this.displayPanelHeight(summary, depth);
@@ -514,6 +523,43 @@ public class RecipeDetailScreen extends class_437 {
         }
 
         return false;
+    }
+
+    private boolean handlePreferredRecipeButtonClick(double mouseX, double mouseY) {
+        for (int i = this.preferredRecipeButtons.size() - 1; i >= 0; i--) {
+            PreferredRecipeButtonArea area = this.preferredRecipeButtons.get(i);
+            if (area.contains(mouseX, mouseY)) {
+                Configs.togglePreferredRecipe(area.itemId(), area.recipeId());
+                this.summaries = RecipeResolvers.applyPreferredOrder(this.summaries);
+                this.nestedRecipeCache.clear();
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private void renderPreferredRecipeButton(class_332 context, RecipeSummary summary, int left, int y, int width, int mouseX, int mouseY) {
+        String itemId = ItemStackTexts.id(summary.outputIcon());
+        boolean preferred = Configs.isPreferredRecipe(itemId, summary.recipeId());
+        String label = StringUtils.translate(preferred ? "lmlp.label.recipe.preferred_pinned" : "lmlp.label.recipe.preferred_pin");
+        int buttonWidth = this.field_22793.method_1727(label) + PREFERRED_BUTTON_PADDING_X * 2;
+        int buttonX = left + width - buttonWidth - 8;
+        int buttonY = y + 8;
+        if (buttonX <= left + 34) {
+            return;
+        }
+
+        boolean hovered = isInside(mouseX, mouseY, buttonX, buttonY, buttonWidth, PREFERRED_BUTTON_HEIGHT);
+        int borderColor = preferred ? 0xFFFFAA00 : hovered ? 0xFFFFFFFF : 0xFF888888;
+        int backgroundColor = hovered ? 0xFF404040 : 0xFF202020;
+        int textColor = preferred ? 0xFFFFAA00 : 0xFFFFFFFF;
+        RenderUtils.drawOutlinedBox(buttonX, buttonY, buttonWidth, PREFERRED_BUTTON_HEIGHT, backgroundColor, borderColor);
+        context.method_51433(this.field_22793, label, buttonX + PREFERRED_BUTTON_PADDING_X, buttonY + 4, textColor, false);
+
+        if (this.isVisibleInActiveClip(buttonY, PREFERRED_BUTTON_HEIGHT)) {
+            this.preferredRecipeButtons.add(new PreferredRecipeButtonArea(itemId, summary.recipeId(), buttonX, buttonY, buttonWidth, PREFERRED_BUTTON_HEIGHT));
+        }
     }
 
     private void renderTransferButton(class_332 context, RecipeSummary summary, int panelX, int panelY, int panelWidth, int panelHeight, int mouseX, int mouseY, float delta) {
@@ -1042,6 +1088,12 @@ public class RecipeDetailScreen extends class_437 {
     }
 
     private record TransferButtonEntry(Button button, AutoCraftingState state, int x, int y, int width, int height) {
+        private boolean contains(double mouseX, double mouseY) {
+            return mouseX >= this.x && mouseX < this.x + this.width && mouseY >= this.y && mouseY < this.y + this.height;
+        }
+    }
+
+    private record PreferredRecipeButtonArea(String itemId, String recipeId, int x, int y, int width, int height) {
         private boolean contains(double mouseX, double mouseY) {
             return mouseX >= this.x && mouseX < this.x + this.width && mouseY >= this.y && mouseY < this.y + this.height;
         }

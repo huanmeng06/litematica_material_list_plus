@@ -207,6 +207,12 @@ public final class MaterialListPlusState {
         treeCache.clear();
     }
 
+    public static void applyRecipePreferences() {
+        expandedSummaries = RecipeResolvers.applyPreferredOrder(expandedSummaries);
+        visibleRecipeSummaries = RecipeResolvers.applyPreferredOrder(visibleRecipeSummaries);
+        clearRecipeCaches();
+    }
+
     private static MaterialTreeNode treeFor(IngredientSummary ingredient) {
         String key = key(ingredient);
         if (Configs.shouldStopRecipeDecomposition(ItemStackTexts.id(ingredient.icon()))) {
