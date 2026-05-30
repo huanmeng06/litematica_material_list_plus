@@ -15,17 +15,18 @@ final class ToggleArrowRenderer {
     private ToggleArrowRenderer() {
     }
 
-    static void render(class_332 context, int slotX, int slotWidth, int centerY, boolean expanded, boolean hovered) {
+    static void render(class_332 context, int slotX, int slotWidth, int centerY, float expandProgress, boolean hovered) {
         class_2960 texture = hovered ? HIGHLIGHTED_TEXTURE : TEXTURE;
         int centerX = slotX + slotWidth / 2;
-        if (!expanded) {
+        float rotation = EXPANDED_ROTATION * Math.max(0.0F, Math.min(1.0F, expandProgress));
+        if (rotation <= 0.001F) {
             context.method_52706(texture, centerX - ICON_WIDTH / 2, centerY - ICON_HEIGHT / 2, ICON_WIDTH, ICON_HEIGHT);
             return;
         }
 
         context.method_51448().method_22903();
         context.method_51448().method_22904(centerX, centerY, 0.0D);
-        context.method_51448().method_22907(new Quaternionf().rotateZ(EXPANDED_ROTATION));
+        context.method_51448().method_22907(new Quaternionf().rotateZ(rotation));
         context.method_52706(texture, -ICON_WIDTH / 2, -ICON_HEIGHT / 2, ICON_WIDTH, ICON_HEIGHT);
         context.method_51448().method_22909();
     }

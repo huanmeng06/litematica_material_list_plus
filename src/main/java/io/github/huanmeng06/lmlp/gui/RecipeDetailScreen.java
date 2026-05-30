@@ -379,7 +379,6 @@ public class RecipeDetailScreen extends class_437 {
 
     private void renderIngredientLine(class_332 context, int left, int y, int depth, String path, IngredientSummary ingredient, int mouseX, int mouseY) {
         boolean hasRecipes = depth < MAX_NESTED_DEPTH && this.hasRecipes(ingredient);
-        boolean expanded = this.expandedNestedRecipes.contains(path);
         this.renderMaterialLine(
                 context,
                 left,
@@ -387,7 +386,6 @@ public class RecipeDetailScreen extends class_437 {
                 0,
                 path,
                 hasRecipes,
-                expanded,
                 AlternativeItemDisplay.icon(ingredient),
                 RecipeSummaryFormatter.ingredientName(ingredient),
                 RecipeSummaryFormatter.totalCount(ingredient),
@@ -424,13 +422,13 @@ public class RecipeDetailScreen extends class_437 {
         return lineY;
     }
 
-    private void renderMaterialLine(class_332 context, int left, int y, int depth, String path, boolean hasRecipes, boolean expanded, class_1799 icon, String name, String totalText, String missingText, boolean showMissing, int mouseX, int mouseY) {
+    private void renderMaterialLine(class_332 context, int left, int y, int depth, String path, boolean hasRecipes, class_1799 icon, String name, String totalText, String missingText, boolean showMissing, int mouseX, int mouseY) {
         int rowX = left + depth * INGREDIENT_TREE_INDENT_WIDTH;
         int iconX = rowX + INGREDIENT_ICON_OFFSET;
         int iconY = y - 5;
         if (hasRecipes) {
             boolean hovered = isInside(mouseX, mouseY, rowX, y - 2, INGREDIENT_TOGGLE_WIDTH, INGREDIENT_ROW_HEIGHT);
-            ToggleArrowRenderer.render(context, rowX, INGREDIENT_TOGGLE_WIDTH, iconY + 8, expanded, hovered);
+            ToggleArrowRenderer.render(context, rowX, INGREDIENT_TOGGLE_WIDTH, iconY + 8, this.expandProgress(path), hovered);
             if (this.isVisibleInActiveClip(y - 2, INGREDIENT_ROW_HEIGHT)) {
                 this.toggleAreas.add(new ToggleArea(path, rowX, y - 2, INGREDIENT_TOGGLE_WIDTH, INGREDIENT_ROW_HEIGHT));
             }

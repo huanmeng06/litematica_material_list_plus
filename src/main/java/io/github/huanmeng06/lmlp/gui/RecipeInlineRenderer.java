@@ -158,8 +158,9 @@ public final class RecipeInlineRenderer {
 
     private static void renderIngredient(WidgetBase widget, class_332 context, int textX, int y, IngredientSummary ingredient, int mouseX, int mouseY) {
         boolean hasTree = MaterialListPlusState.hasTree(ingredient);
-        boolean expanded = MaterialListPlusState.getExpandedIngredientTree(ingredient) != null;
-        renderRow(widget, context, textX, y, 0, hasTree, expanded, AlternativeItemDisplay.icon(ingredient), RecipeSummaryFormatter.ingredientName(ingredient), ingredient.countTotal(), ingredient.countMissing(), ingredient.maxStackSize(), mouseX, mouseY);
+        MaterialTreeNode root = MaterialListPlusState.getVisibleIngredientTree(ingredient);
+        float expandProgress = root == null ? 0.0F : MaterialListPlusState.treeProgress(root.path());
+        renderRow(widget, context, textX, y, 0, hasTree, expandProgress, AlternativeItemDisplay.icon(ingredient), RecipeSummaryFormatter.ingredientName(ingredient), ingredient.countTotal(), ingredient.countMissing(), ingredient.maxStackSize(), mouseX, mouseY);
     }
 
     private static int renderChildren(WidgetBase widget, class_332 context, int textX, int y, List<MaterialTreeNode> nodes, int depth, int visibleHeight, int mouseX, int mouseY) {
@@ -170,8 +171,8 @@ public final class RecipeInlineRenderer {
                 break;
             }
 
-            boolean expanded = MaterialListPlusState.getExpandedTreeNodes().contains(node.path());
-            renderRow(widget, context, textX, cursorY, depth, node.hasChildren(), expanded, AlternativeItemDisplay.icon(node), node.name(), node.totalCount(), node.missingCount(), node.maxStackSize(), mouseX, mouseY);
+            float expandProgress = node.hasChildren() ? MaterialListPlusState.treeProgress(node.path()) : 0.0F;
+            renderRow(widget, context, textX, cursorY, depth, node.hasChildren(), expandProgress, AlternativeItemDisplay.icon(node), node.name(), node.totalCount(), node.missingCount(), node.maxStackSize(), mouseX, mouseY);
 
             int visibleRowHeight = Math.min(INGREDIENT_HEIGHT, remainingHeight);
             cursorY += INGREDIENT_HEIGHT;
@@ -189,13 +190,13 @@ public final class RecipeInlineRenderer {
         return cursorY;
     }
 
-    private static void renderRow(WidgetBase widget, class_332 context, int textX, int y, int depth, boolean hasTree, boolean expanded, net.minecraft.class_1799 icon, String name, int totalCount, int missingCount, int maxStackSize, int mouseX, int mouseY) {
+    private static void renderRow(WidgetBase widget, class_332 context, int textX, int y, int depth, boolean hasTree, float expandProgress, net.minecraft.class_1799 icon, String name, int totalCount, int missingCount, int maxStackSize, int mouseX, int mouseY) {
         int rowX = textX + depth * TREE_INDENT_WIDTH;
         int iconX = rowX + INGREDIENT_ICON_OFFSET;
         int iconY = y - 2;
         if (hasTree) {
             boolean hovered = isToggleHit(textX, y, depth, mouseX, mouseY);
-            ToggleArrowRenderer.render(context, rowX, INGREDIENT_TOGGLE_WIDTH, iconY + 8, expanded, hovered);
+            ToggleArrowRenderer.render(context, rowX, INGREDIENT_TOGGLE_WIDTH, iconY + 8, expandProgress, hovered);
         }
 
         RenderUtils.drawRect(iconX, y - 3, 18, 18, 0x30FFFFFF);
