@@ -81,6 +81,7 @@ public class RecipeDetailScreen extends class_437 {
     private static final int NESTED_RECIPE_GAP = 8;
     private static final int NESTED_RECIPE_INDENT = 24;
     private static final int MAX_NESTED_DEPTH = 3;
+    private static final String ROOT_RECIPE_LIST = "root";
     private static final class_2960 REI_DISPLAY_TEXTURE = new class_2960("roughlyenoughitems", "textures/gui/display.png");
     private static final class_2960 PREFERRED_WIDGETS_TEXTURE = new class_2960(LitematicaMaterialListPlus.MOD_ID, "textures/gui/gui_widgets.png");
 
@@ -98,9 +99,10 @@ public class RecipeDetailScreen extends class_437 {
     private final List<PreferredRecipeButtonArea> preferredRecipeButtons = new ArrayList<>();
     private final List<ToggleArea> toggleAreas = new ArrayList<>();
     private final Map<String, List<RecipeSummary>> nestedRecipeCache = new HashMap<>();
+    private final Map<String, RecipeListSnapshot> recipeListSnapshots = new HashMap<>();
     private final Set<String> expandedNestedRecipes = new HashSet<>();
     private final ExpandAnimationTracker nestedRecipeAnimations = new ExpandAnimationTracker();
-    private RecipeReorderAnimation recipeReorderAnimation = RecipeReorderAnimation.NONE;
+    private final Map<String, RecipeReorderAnimation> recipeReorderAnimations = new HashMap<>();
     private final Set<String> disabledNativeDisplayCategories = new HashSet<>();
     private class_1799 hoveredStack = class_1799.field_8037;
     private int clipTop;
@@ -225,9 +227,7 @@ public class RecipeDetailScreen extends class_437 {
     public void method_25394(class_332 context, int mouseX, int mouseY, float delta) {
         this.method_25420(context, mouseX, mouseY, delta);
         this.nestedRecipeAnimations.prune();
-        if (this.recipeReorderAnimation.isFinished()) {
-            this.recipeReorderAnimation = RecipeReorderAnimation.NONE;
-        }
+        this.recipeReorderAnimations.entrySet().removeIf(entry -> entry.getValue().isFinished());
 
         Layout layout = this.layout();
         int contentTop = layout.headerTop() + HEADER_HEIGHT + 12;
@@ -247,6 +247,7 @@ public class RecipeDetailScreen extends class_437 {
         this.transferButtons.clear();
         this.preferredRecipeButtons.clear();
         this.toggleAreas.clear();
+        this.recipeListSnapshots.clear();
         this.scrollBar.setMaxValue(Math.max(0, this.contentHeight() - viewportHeight));
         this.updateBackButtonPosition(layout);
 
@@ -260,12 +261,13 @@ public class RecipeDetailScreen extends class_437 {
             RenderUtils.drawOutlinedBox(layout.left(), y, layout.contentWidth(), 46, 0xDD000000, 0xFF777777);
             context.method_51433(this.field_22793, StringUtils.translate("lmlp.label.recipe.none"), layout.left() + 10, y + 17, 0xFFFFCC66, false);
         } else {
+            this.captureRecipeListSnapshot(ROOT_RECIPE_LIST, this.summaries, 0);
             int index = 1;
             for (RecipeSummary summary : this.summaries) {
                 String path = "recipe/" + index + ":" + summary.recipeId();
                 int boxHeight = this.recipeBoxHeight(summary, path, 0);
-                int animatedY = this.recipeReorderAnimation.y(summary.recipeId(), y);
-                this.renderRecipeBox(context, summary, index, path, 0, layout.left(), animatedY, layout.contentWidth(), boxHeight, mouseX, mouseY, delta);
+                int animatedY = this.animatedRecipeY(ROOT_RECIPE_LIST, summary.recipeId(), y);
+                this.renderRecipeBox(context, summary, index, path, ROOT_RECIPE_LIST, 0, layout.left(), animatedY, layout.contentWidth(), boxHeight, mouseX, mouseY, delta);
                 y += boxHeight + 10;
                 index++;
             }
@@ -329,11 +331,11 @@ public class RecipeDetailScreen extends class_437 {
         this.backButton.render(mouseX, mouseY, false, context);
     }
 
-    private void renderRecipeBox(class_332 context, RecipeSummary summary, int index, String path, int depth, int left, int y, int width, int boxHeight, int mouseX, int mouseY, float delta) {
-        this.renderRecipeBox(context, summary, index, path, depth, left, y, width, boxHeight, boxHeight, mouseX, mouseY, delta);
+    private void renderRecipeBox(class_332 context, RecipeSummary summary, int index, String path, String listPath, int depth, int left, int y, int width, int boxHeight, int mouseX, int mouseY, float delta) {
+        this.renderRecipeBox(context, summary, index, path, listPath, depth, left, y, width, boxHeight, boxHeight, mouseX, mouseY, delta);
     }
 
-    private void renderRecipeBox(class_332 context, RecipeSummary summary, int index, String path, int depth, int left, int y, int width, int boxHeight, int visibleHeight, int mouseX, int mouseY, float delta) {
+    private void renderRecipeBox(class_332 context, RecipeSummary summary, int index, String path, String listPath, int depth, int left, int y, int width, int boxHeight, int visibleHeight, int mouseX, int mouseY, float delta) {
         int clippedVisibleHeight = Math.max(0, Math.min(boxHeight, visibleHeight));
         if (clippedVisibleHeight <= 0) {
             return;
@@ -347,7 +349,7 @@ public class RecipeDetailScreen extends class_437 {
         this.activeClipBottom = Math.min(this.activeClipBottom, y + clippedVisibleHeight - 1);
         if (this.activeClipBottom > this.activeClipTop) {
             context.method_44379(left + 1, this.activeClipTop, left + width - 1, this.activeClipBottom);
-            this.renderRecipeBoxContents(context, summary, index, path, depth, left, y, width, boxHeight, mouseX, mouseY, delta);
+            this.renderRecipeBoxContents(context, summary, index, path, listPath, depth, left, y, width, boxHeight, mouseX, mouseY, delta);
             context.method_44380();
         }
         this.activeClipTop = previousClipTop;
@@ -356,11 +358,11 @@ public class RecipeDetailScreen extends class_437 {
         drawOutline(left, y, width, clippedVisibleHeight, 0xFF777777);
     }
 
-    private void renderRecipeBoxContents(class_332 context, RecipeSummary summary, int index, String path, int depth, int left, int y, int width, int boxHeight, int mouseX, int mouseY, float delta) {
+    private void renderRecipeBoxContents(class_332 context, RecipeSummary summary, int index, String path, String listPath, int depth, int left, int y, int width, int boxHeight, int mouseX, int mouseY, float delta) {
         context.method_51427(summary.outputIcon(), left + 10, y + 10);
         this.captureHoveredStack(summary.outputIcon(), mouseX, mouseY, left + 10, y + 10, 16, 16);
         context.method_51433(this.field_22793, RecipeSummaryFormatter.header(summary, index), left + 34, y + 12, 0xFFFFFFFF, false);
-        this.renderPreferredRecipeButton(context, summary, left, y, width, mouseX, mouseY);
+        this.renderPreferredRecipeButton(context, summary, listPath, left, y, width, mouseX, mouseY);
 
         int panelWidth = this.displayPanelWidth(summary, width - 36, depth);
         int panelHeight = this.displayPanelHeight(summary, depth);
@@ -421,6 +423,7 @@ public class RecipeDetailScreen extends class_437 {
         int lineY = y;
         int remainingHeight = visibleHeight;
         List<RecipeSummary> recipes = this.recipesFor(ingredient);
+        this.captureRecipeListSnapshot(parentPath, recipes, depth);
         int nestedLeft = left + NESTED_RECIPE_INDENT;
         int nestedWidth = Math.max(180, width - NESTED_RECIPE_INDENT);
         for (int recipeIndex = 0; recipeIndex < recipes.size(); recipeIndex++) {
@@ -432,7 +435,8 @@ public class RecipeDetailScreen extends class_437 {
             String path = parentPath + "/recipe/" + (recipeIndex + 1) + ":" + recipe.recipeId();
             int height = this.recipeBoxHeight(recipe, path, depth);
             int visibleBoxHeight = Math.min(height, remainingHeight);
-            this.renderRecipeBox(context, recipe, recipeIndex + 1, path, depth, nestedLeft, lineY, nestedWidth, height, visibleBoxHeight, mouseX, mouseY, delta);
+            int animatedY = this.animatedRecipeY(parentPath, recipe.recipeId(), lineY);
+            this.renderRecipeBox(context, recipe, recipeIndex + 1, path, parentPath, depth, nestedLeft, animatedY, nestedWidth, height, visibleBoxHeight, mouseX, mouseY, delta);
             lineY += visibleBoxHeight;
             remainingHeight -= visibleBoxHeight;
 
@@ -542,10 +546,9 @@ public class RecipeDetailScreen extends class_437 {
         for (int i = this.preferredRecipeButtons.size() - 1; i >= 0; i--) {
             PreferredRecipeButtonArea area = this.preferredRecipeButtons.get(i);
             if (area.contains(mouseX, mouseY)) {
-                Map<String, Integer> oldPositions = this.topLevelRecipePositions(this.summaries);
                 Configs.togglePreferredRecipe(area.itemId(), area.recipeId());
                 this.summaries = RecipeResolvers.applyPreferredOrder(this.summaries);
-                this.recipeReorderAnimation = RecipeReorderAnimation.start(oldPositions, this.topLevelRecipePositions(this.summaries));
+                this.startRecipeReorderAnimations();
                 this.nestedRecipeCache.clear();
                 return true;
             }
@@ -554,7 +557,7 @@ public class RecipeDetailScreen extends class_437 {
         return false;
     }
 
-    private void renderPreferredRecipeButton(class_332 context, RecipeSummary summary, int left, int y, int width, int mouseX, int mouseY) {
+    private void renderPreferredRecipeButton(class_332 context, RecipeSummary summary, String listPath, int left, int y, int width, int mouseX, int mouseY) {
         String itemId = ItemStackTexts.id(summary.outputIcon());
         boolean preferred = Configs.isPreferredRecipe(itemId, summary.recipeId());
         String label = StringUtils.translate("lmlp.label.recipe.preferred_pin");
@@ -576,7 +579,7 @@ public class RecipeDetailScreen extends class_437 {
         }
 
         if (this.isVisibleInActiveClip(buttonY, PREFERRED_BUTTON_SIZE)) {
-            this.preferredRecipeButtons.add(new PreferredRecipeButtonArea(itemId, summary.recipeId(), buttonX, buttonY, PREFERRED_BUTTON_SIZE, PREFERRED_BUTTON_SIZE));
+            this.preferredRecipeButtons.add(new PreferredRecipeButtonArea(itemId, summary.recipeId(), listPath, buttonX, buttonY, PREFERRED_BUTTON_SIZE, PREFERRED_BUTTON_SIZE));
         }
     }
 
@@ -810,13 +813,35 @@ public class RecipeDetailScreen extends class_437 {
         return height;
     }
 
-    private Map<String, Integer> topLevelRecipePositions(List<RecipeSummary> recipes) {
+    private void captureRecipeListSnapshot(String listPath, List<RecipeSummary> recipes, int depth) {
+        this.recipeListSnapshots.put(listPath, new RecipeListSnapshot(List.copyOf(recipes), depth, this.recipePositions(recipes, depth)));
+    }
+
+    private void startRecipeReorderAnimations() {
+        this.recipeReorderAnimations.clear();
+        for (Map.Entry<String, RecipeListSnapshot> entry : this.recipeListSnapshots.entrySet()) {
+            String listPath = entry.getKey();
+            RecipeListSnapshot snapshot = entry.getValue();
+            List<RecipeSummary> recipes = ROOT_RECIPE_LIST.equals(listPath) ? this.summaries : RecipeResolvers.applyPreferredOrder(snapshot.recipes());
+            RecipeReorderAnimation animation = RecipeReorderAnimation.start(snapshot.positions(), this.recipePositions(recipes, snapshot.depth()));
+            if (!animation.isFinished()) {
+                this.recipeReorderAnimations.put(listPath, animation);
+            }
+        }
+    }
+
+    private int animatedRecipeY(String listPath, String recipeId, int targetY) {
+        RecipeReorderAnimation animation = this.recipeReorderAnimations.get(listPath);
+        return animation == null ? targetY : animation.y(recipeId, targetY);
+    }
+
+    private Map<String, Integer> recipePositions(List<RecipeSummary> recipes, int depth) {
         Map<String, Integer> positions = new HashMap<>();
         int y = 0;
         int index = 1;
         for (RecipeSummary summary : recipes) {
             positions.put(summary.recipeId(), y);
-            y += this.recipeBoxHeight(summary, "recipe/" + index + ":" + summary.recipeId(), 0) + 10;
+            y += this.recipeBoxHeight(summary, "recipe/" + index + ":" + summary.recipeId(), depth) + 10;
             index++;
         }
 
@@ -1142,10 +1167,13 @@ public class RecipeDetailScreen extends class_437 {
         }
     }
 
-    private record PreferredRecipeButtonArea(String itemId, String recipeId, int x, int y, int width, int height) {
+    private record PreferredRecipeButtonArea(String itemId, String recipeId, String listPath, int x, int y, int width, int height) {
         private boolean contains(double mouseX, double mouseY) {
             return mouseX >= this.x && mouseX < this.x + this.width && mouseY >= this.y && mouseY < this.y + this.height;
         }
+    }
+
+    private record RecipeListSnapshot(List<RecipeSummary> recipes, int depth, Map<String, Integer> positions) {
     }
 
     private record RecipeReorderAnimation(long startTimeMs, Map<String, Integer> startOffsets) {
