@@ -50,8 +50,6 @@ public abstract class WidgetListBaseMixin implements WidgetListBoundsAccess {
     protected abstract int getBrowserEntryHeightFor(Object entry);
     @Shadow
     protected abstract void reCreateListEntryWidgets();
-    @Shadow
-    protected abstract WidgetListEntryBase<?> createListEntryWidget(int x, int y, int listIndex, boolean isOdd, Object entry);
 
     @Inject(method = "drawContents", at = @At("HEAD"))
     private void lmlp$refreshAnimatedRecipeExpansion(class_332 drawContext, int mouseX, int mouseY, float partialTicks, CallbackInfo ci) {
@@ -74,25 +72,6 @@ public abstract class WidgetListBaseMixin implements WidgetListBoundsAccess {
 
         int visibleOuterHeight = RecipeInlineRenderer.getOuterHeight(MaterialListPlusState.getCachedSummaries(materialEntry), MaterialListPlusState.recipeProgress(materialEntry));
         cir.setReturnValue(23 + visibleOuterHeight);
-    }
-
-    @Inject(method = "createListEntryWidgetIfSpace", at = @At("HEAD"), cancellable = true)
-    private void lmlp$allowPartiallyVisibleExpandedMaterialRows(int x, int y, int listIndex, int maxHeight, int currentHeight, CallbackInfoReturnable<WidgetListEntryBase<?>> cir) {
-        if (!((Object) this instanceof WidgetListMaterialList) || listIndex < 0 || listIndex >= this.listContents.size()) {
-            return;
-        }
-
-        Object entry = this.listContents.get(listIndex);
-        if (!(entry instanceof MaterialListEntry materialEntry) || !MaterialListPlusState.isRecipeVisible(materialEntry)) {
-            return;
-        }
-
-        int fullHeight = this.getBrowserEntryHeightFor(entry);
-        if (currentHeight + fullHeight <= maxHeight || currentHeight + 23 > maxHeight) {
-            return;
-        }
-
-        cir.setReturnValue(this.createListEntryWidget(x, y, listIndex, (listIndex & 1) != 0, entry));
     }
 
     @Inject(method = "reCreateListEntryWidgets", at = @At("TAIL"))
