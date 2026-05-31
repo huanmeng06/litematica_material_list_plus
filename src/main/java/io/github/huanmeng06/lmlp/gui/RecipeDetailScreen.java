@@ -71,8 +71,9 @@ public class RecipeDetailScreen extends class_437 {
     private static final int HEADER_MAX_WIDTH = 600;
     private static final int HEADER_HEIGHT = 50;
     private static final int HEADER_BUTTON_GAP = 8;
-    private static final int PREFERRED_BUTTON_SIZE = 32;
-    private static final int PREFERRED_ICON_SIZE = 32;
+    private static final int PREFERRED_BUTTON_SIZE = 18;
+    private static final int PREFERRED_ICON_SIZE = 16;
+    private static final int PREFERRED_WIDGET_TEXTURE_SIZE = 256;
     private static final int INGREDIENT_ROW_HEIGHT = 20;
     private static final int INGREDIENT_TREE_INDENT_WIDTH = 18;
     private static final int INGREDIENT_TOGGLE_WIDTH = 18;
@@ -81,8 +82,7 @@ public class RecipeDetailScreen extends class_437 {
     private static final int NESTED_RECIPE_INDENT = 24;
     private static final int MAX_NESTED_DEPTH = 3;
     private static final class_2960 REI_DISPLAY_TEXTURE = new class_2960("roughlyenoughitems", "textures/gui/display.png");
-    private static final class_2960 PREFERRED_STAR_TEXTURE = new class_2960(LitematicaMaterialListPlus.MOD_ID, "textures/gui/preferred_recipe_star.png");
-    private static final class_2960 PREFERRED_EMPTY_STAR_TEXTURE = new class_2960(LitematicaMaterialListPlus.MOD_ID, "textures/gui/preferred_recipe_star_empty.png");
+    private static final class_2960 PREFERRED_WIDGETS_TEXTURE = new class_2960(LitematicaMaterialListPlus.MOD_ID, "textures/gui/gui_widgets.png");
 
     private final class_437 parent;
     private final class_1799 target;
@@ -550,25 +550,36 @@ public class RecipeDetailScreen extends class_437 {
     private void renderPreferredRecipeButton(class_332 context, RecipeSummary summary, int left, int y, int width, int mouseX, int mouseY) {
         String itemId = ItemStackTexts.id(summary.outputIcon());
         boolean preferred = Configs.isPreferredRecipe(itemId, summary.recipeId());
-        String label = StringUtils.translate(preferred ? "lmlp.label.recipe.preferred_pinned" : "lmlp.label.recipe.preferred_pin");
+        String label = StringUtils.translate("lmlp.label.recipe.preferred_pin");
         int buttonX = left + width - PREFERRED_BUTTON_SIZE - 8;
         int buttonY = y + 8;
         if (buttonX <= left + 34) {
             return;
         }
 
-        class_2960 starTexture = preferred ? PREFERRED_STAR_TEXTURE : PREFERRED_EMPTY_STAR_TEXTURE;
         boolean hovered = isInside(mouseX, mouseY, buttonX, buttonY, PREFERRED_BUTTON_SIZE, PREFERRED_BUTTON_SIZE);
         int starX = buttonX + (PREFERRED_BUTTON_SIZE - PREFERRED_ICON_SIZE) / 2;
         int starY = buttonY + (PREFERRED_BUTTON_SIZE - PREFERRED_ICON_SIZE) / 2;
-        context.method_25290(starTexture, starX, starY, 0.0F, 0.0F, PREFERRED_ICON_SIZE, PREFERRED_ICON_SIZE, PREFERRED_ICON_SIZE, PREFERRED_ICON_SIZE);
+        int textureU = hovered ? PREFERRED_ICON_SIZE : 0;
+        int textureV = preferred ? 0 : PREFERRED_ICON_SIZE;
+        context.method_25290(PREFERRED_WIDGETS_TEXTURE, starX, starY, (float) textureU, (float) textureV, PREFERRED_ICON_SIZE, PREFERRED_ICON_SIZE, PREFERRED_WIDGET_TEXTURE_SIZE, PREFERRED_WIDGET_TEXTURE_SIZE);
         if (hovered) {
+            this.drawPreferredRecipeHoverBorder(context, buttonX, buttonY);
             this.hoveredPreferredRecipeTooltip = List.of(class_2561.method_43470(label));
         }
 
         if (this.isVisibleInActiveClip(buttonY, PREFERRED_BUTTON_SIZE)) {
             this.preferredRecipeButtons.add(new PreferredRecipeButtonArea(itemId, summary.recipeId(), buttonX, buttonY, PREFERRED_BUTTON_SIZE, PREFERRED_BUTTON_SIZE));
         }
+    }
+
+    private void drawPreferredRecipeHoverBorder(class_332 context, int x, int y) {
+        int right = x + PREFERRED_BUTTON_SIZE;
+        int bottom = y + PREFERRED_BUTTON_SIZE;
+        context.method_25294(x, y, right, y + 1, 0xFFFFFFFF);
+        context.method_25294(x, bottom - 1, right, bottom, 0xFFFFFFFF);
+        context.method_25294(x, y, x + 1, bottom, 0xFFFFFFFF);
+        context.method_25294(right - 1, y, right, bottom, 0xFFFFFFFF);
     }
 
     private void renderTransferButton(class_332 context, RecipeSummary summary, int panelX, int panelY, int panelWidth, int panelHeight, int mouseX, int mouseY, float delta) {
