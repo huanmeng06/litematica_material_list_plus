@@ -100,6 +100,7 @@ public class RecipeDetailScreen extends class_437 {
     private final Map<String, List<RecipeSummary>> nestedRecipeCache = new HashMap<>();
     private final Set<String> expandedNestedRecipes = new HashSet<>();
     private final ExpandAnimationTracker nestedRecipeAnimations = new ExpandAnimationTracker();
+    private RecipeReorderAnimation recipeReorderAnimation = RecipeReorderAnimation.NONE;
     private final Set<String> disabledNativeDisplayCategories = new HashSet<>();
     private class_1799 hoveredStack = class_1799.field_8037;
     private int clipTop;
@@ -224,6 +225,9 @@ public class RecipeDetailScreen extends class_437 {
     public void method_25394(class_332 context, int mouseX, int mouseY, float delta) {
         this.method_25420(context, mouseX, mouseY, delta);
         this.nestedRecipeAnimations.prune();
+        if (this.recipeReorderAnimation.isFinished()) {
+            this.recipeReorderAnimation = RecipeReorderAnimation.NONE;
+        }
 
         Layout layout = this.layout();
         int contentTop = layout.headerTop() + HEADER_HEIGHT + 12;
@@ -260,7 +264,8 @@ public class RecipeDetailScreen extends class_437 {
             for (RecipeSummary summary : this.summaries) {
                 String path = "recipe/" + index + ":" + summary.recipeId();
                 int boxHeight = this.recipeBoxHeight(summary, path, 0);
-                this.renderRecipeBox(context, summary, index, path, 0, layout.left(), y, layout.contentWidth(), boxHeight, mouseX, mouseY, delta);
+                int animatedY = this.recipeReorderAnimation.y(summary.recipeId(), y);
+                this.renderRecipeBox(context, summary, index, path, 0, layout.left(), animatedY, layout.contentWidth(), boxHeight, mouseX, mouseY, delta);
                 y += boxHeight + 10;
                 index++;
             }
@@ -537,8 +542,10 @@ public class RecipeDetailScreen extends class_437 {
         for (int i = this.preferredRecipeButtons.size() - 1; i >= 0; i--) {
             PreferredRecipeButtonArea area = this.preferredRecipeButtons.get(i);
             if (area.contains(mouseX, mouseY)) {
+                Map<String, Integer> oldPositions = this.topLevelRecipePositions(this.summaries);
                 Configs.togglePreferredRecipe(area.itemId(), area.recipeId());
                 this.summaries = RecipeResolvers.applyPreferredOrder(this.summaries);
+                this.recipeReorderAnimation = RecipeReorderAnimation.start(oldPositions, this.topLevelRecipePositions(this.summaries));
                 this.nestedRecipeCache.clear();
                 return true;
             }
@@ -801,6 +808,19 @@ public class RecipeDetailScreen extends class_437 {
             index++;
         }
         return height;
+    }
+
+    private Map<String, Integer> topLevelRecipePositions(List<RecipeSummary> recipes) {
+        Map<String, Integer> positions = new HashMap<>();
+        int y = 0;
+        int index = 1;
+        for (RecipeSummary summary : recipes) {
+            positions.put(summary.recipeId(), y);
+            y += this.recipeBoxHeight(summary, "recipe/" + index + ":" + summary.recipeId(), 0) + 10;
+            index++;
+        }
+
+        return positions;
     }
 
     private int recipeBoxHeight(RecipeSummary summary, String path, int depth) {
@@ -1125,6 +1145,46 @@ public class RecipeDetailScreen extends class_437 {
     private record PreferredRecipeButtonArea(String itemId, String recipeId, int x, int y, int width, int height) {
         private boolean contains(double mouseX, double mouseY) {
             return mouseX >= this.x && mouseX < this.x + this.width && mouseY >= this.y && mouseY < this.y + this.height;
+        }
+    }
+
+    private record RecipeReorderAnimation(long startTimeMs, Map<String, Integer> startOffsets) {
+        private static final RecipeReorderAnimation NONE = new RecipeReorderAnimation(0L, Map.of());
+
+        private static RecipeReorderAnimation start(Map<String, Integer> oldPositions, Map<String, Integer> newPositions) {
+            Map<String, Integer> offsets = new HashMap<>();
+            for (Map.Entry<String, Integer> entry : newPositions.entrySet()) {
+                Integer oldY = oldPositions.get(entry.getKey());
+                if (oldY == null) {
+                    continue;
+                }
+
+                int offset = oldY - entry.getValue();
+                if (offset != 0) {
+                    offsets.put(entry.getKey(), offset);
+                }
+            }
+
+            if (offsets.isEmpty()) {
+                return NONE;
+            }
+
+            return new RecipeReorderAnimation(System.currentTimeMillis(), Map.copyOf(offsets));
+        }
+
+        private int y(String recipeId, int targetY) {
+            Integer offset = this.startOffsets.get(recipeId);
+            if (offset == null) {
+                return targetY;
+            }
+
+            float elapsed = (float) (System.currentTimeMillis() - this.startTimeMs) / (float) ExpandAnimationTracker.DURATION_MS;
+            float remaining = 1.0F - ExpandAnimationTracker.easeOutCubic(elapsed);
+            return targetY + Math.round(offset * remaining);
+        }
+
+        private boolean isFinished() {
+            return this.startOffsets.isEmpty() || System.currentTimeMillis() - this.startTimeMs >= ExpandAnimationTracker.DURATION_MS;
         }
     }
 

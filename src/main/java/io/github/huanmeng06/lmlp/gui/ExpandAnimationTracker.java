@@ -51,7 +51,7 @@ final class ExpandAnimationTracker {
         return System.currentTimeMillis();
     }
 
-    private static float easeOutCubic(float progress) {
+    static float easeOutCubic(float progress) {
         float clamped = Math.max(0.0F, Math.min(1.0F, progress));
         float inverted = 1.0F - clamped;
         return 1.0F - inverted * inverted * inverted;
