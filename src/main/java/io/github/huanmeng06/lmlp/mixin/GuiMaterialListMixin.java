@@ -3,7 +3,6 @@ package io.github.huanmeng06.lmlp.mixin;
 import fi.dy.masa.litematica.gui.GuiMaterialList;
 import fi.dy.masa.litematica.materials.MaterialListBase;
 import fi.dy.masa.litematica.util.BlockInfoListType;
-import fi.dy.masa.malilib.gui.GuiBase;
 import fi.dy.masa.malilib.gui.GuiListBase;
 import fi.dy.masa.malilib.gui.Message.MessageType;
 import fi.dy.masa.malilib.gui.button.ButtonBase;
@@ -95,8 +94,7 @@ public abstract class GuiMaterialListMixin extends GuiListBase {
 
         @Override
         public void actionPerformedWithButton(ButtonBase button, int mouseButton) {
-            boolean csv = GuiBase.isShiftDown();
-            File file = SubMaterialExporter.export(this.parent.getMaterialList(), csv);
+            File file = SubMaterialExporter.export(this.parent.getMaterialList());
             if (file != null) {
                 String messageKey = "litematica.message.material_list_written_to_file";
                 this.parent.addMessage(MessageType.SUCCESS, messageKey, file.getName());

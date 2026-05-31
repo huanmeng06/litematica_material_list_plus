@@ -50,7 +50,7 @@
   "lmlp.gui.button.config_gui.generic": "Generic",
   "lmlp.gui.button.config_gui.hotkeys": "Hotkeys",
   "lmlp.gui.button.material_list.write_sub_materials": "Write sub-material file",
-  "lmlp.gui.button.hover.material_list.write_sub_materials": "Write a minimal sub-material txt. Hold Shift to write CSV.",
+  "lmlp.gui.button.hover.material_list.write_sub_materials": "Write a minimal sub-material XLSX with Sheet1 details and Sheet2 totals.",
   "lmlp.message.sub_material_list_export_failed": "Failed to write sub-material file.",
   "lmlp.hotkeys.category.material_list": "Material List",
   "lmlp.config.name.enable_lmlp_hover_tooltip": "Enable LMLP hover tooltip",

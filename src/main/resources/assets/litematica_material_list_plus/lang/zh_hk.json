@@ -50,7 +50,7 @@
   "lmlp.gui.button.config_gui.generic": "一般",
   "lmlp.gui.button.config_gui.hotkeys": "快捷鍵",
   "lmlp.gui.button.material_list.write_sub_materials": "寫入子材料文件",
-  "lmlp.gui.button.hover.material_list.write_sub_materials": "寫入最小子材料 txt。按住 Shift 點擊寫入 CSV。",
+  "lmlp.gui.button.hover.material_list.write_sub_materials": "寫入最小子材料 XLSX，包含 Sheet1 明細和 Sheet2 匯總。",
   "lmlp.message.sub_material_list_export_failed": "寫入子材料文件失敗。",
   "lmlp.hotkeys.category.material_list": "材料清單",
   "lmlp.config.name.enable_lmlp_hover_tooltip": "啟用 LMLP 懸停提示",
