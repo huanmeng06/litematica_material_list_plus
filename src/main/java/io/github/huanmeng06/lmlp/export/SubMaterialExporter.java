@@ -6,6 +6,7 @@ import fi.dy.masa.litematica.materials.MaterialListSorter;
 import fi.dy.masa.malilib.data.DataDump;
 import fi.dy.masa.malilib.util.FileUtils;
 import io.github.huanmeng06.lmlp.config.Configs;
+import io.github.huanmeng06.lmlp.material.CountFormatter;
 import io.github.huanmeng06.lmlp.material.ItemStackTexts;
 import io.github.huanmeng06.lmlp.material.MaterialCounts;
 import io.github.huanmeng06.lmlp.recipe.IngredientSummary;
@@ -19,12 +20,25 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
 public final class SubMaterialExporter {
     private static final int MAX_RECIPE_DEPTH = 16;
+    private static final List<String> DETAIL_HEADERS = List.of(
+            "Item",
+            "Total",
+            "Missing",
+            "Available",
+            "Sub-material",
+            "Sub Total",
+            "Sub Missing",
+            "Sub Available"
+    );
+    private static final List<String> SUMMARY_HEADERS = List.of("Item", "Total", "Missing", "Available");
 
     private SubMaterialExporter() {
     }
@@ -34,6 +48,7 @@ public final class SubMaterialExporter {
         List<String> lines = new ArrayList<>();
         lines.addAll(detailDump(rows.detailRows(), csv).getLines());
         lines.add("");
+        lines.add("Sheet2 - Minimal sub-material totals");
         lines.addAll(summaryDump(rows.summaryRows(), csv).getLines());
 
         File dir = new File(FileUtils.getConfigDirectory(), "litematica");
@@ -50,20 +65,26 @@ public final class SubMaterialExporter {
             class_1799 stack = entry.getStack();
             int total = MaterialCounts.total(entry, materialList);
             int missing = MaterialCounts.missing(entry, materialList);
-            SourceMaterial source = new SourceMaterial(ItemStackTexts.id(stack), ItemStackTexts.name(stack), total, missing);
+            SourceMaterial source = new SourceMaterial(ItemStackTexts.name(stack), stack.method_7914(), total, missing);
             List<LeafMaterial> leaves = new ArrayList<>();
             collectLeaves(stack, source.name(), total, missing, 0, new HashSet<>(), leaves);
 
+            Map<String, LeafAccumulator> sourceLeaves = new LinkedHashMap<>();
             for (LeafMaterial leaf : leaves) {
-                detailRows.add(new DetailRow(source, leaf));
-                summaryRows.computeIfAbsent(leaf.itemId(), ignored -> new SummaryAccumulator(leaf.itemId(), leaf.name()))
+                sourceLeaves.computeIfAbsent(leaf.groupKey(), ignored -> new LeafAccumulator(leaf.name(), leaf.maxStackSize()))
                         .add(leaf.totalCount(), leaf.missingCount());
+                summaryRows.computeIfAbsent(leaf.groupKey(), ignored -> new SummaryAccumulator(leaf.name(), leaf.maxStackSize()))
+                        .add(leaf.totalCount(), leaf.missingCount());
+            }
+
+            for (LeafAccumulator leaf : sourceLeaves.values()) {
+                detailRows.add(new DetailRow(source, leaf.toLeaf()));
             }
         }
 
         List<SummaryRow> summaries = summaryRows.values().stream()
                 .map(SummaryAccumulator::toRow)
-                .sorted(Comparator.comparing(SummaryRow::name).thenComparing(SummaryRow::itemId))
+                .sorted(Comparator.comparing(SummaryRow::name))
                 .toList();
         return new ExportRows(detailRows, summaries);
     }
@@ -76,7 +97,7 @@ public final class SubMaterialExporter {
         }
 
         if (depth >= MAX_RECIPE_DEPTH || seenItems.contains(itemId) || Configs.shouldStopRecipeDecomposition(itemId)) {
-            leaves.add(new LeafMaterial(itemId, name, totalCount, missingCount));
+            leaves.add(new LeafMaterial(itemId, name, icon.method_7914(), totalCount, missingCount));
             return;
         }
 
@@ -84,7 +105,7 @@ public final class SubMaterialExporter {
         childSeenItems.add(itemId);
         List<RecipeSummary> summaries = RecipeResolvers.findRecipes(icon, totalCount, missingCount);
         if (summaries.isEmpty() || summaries.get(0).ingredients().isEmpty()) {
-            leaves.add(new LeafMaterial(itemId, name, totalCount, missingCount));
+            leaves.add(new LeafMaterial(itemId, name, icon.method_7914(), totalCount, missingCount));
             return;
         }
 
@@ -101,40 +122,32 @@ public final class SubMaterialExporter {
     }
 
     private static DataDump detailDump(List<DetailRow> rows, boolean csv) {
-        DataDump dump = new DataDump(8, csv ? DataDump.Format.CSV : DataDump.Format.ASCII);
-        dump.addTitle("Sheet1 - Material to minimal sub-materials");
-        dump.addHeader("Source ID", "Source", "Source Total", "Source Missing", "Sub-material ID", "Sub-material", "Sub Total", "Sub Missing");
+        DataDump dump = new DataDump(DETAIL_HEADERS.size(), csv ? DataDump.Format.CSV : DataDump.Format.ASCII);
+        dump.addHeader(DETAIL_HEADERS.toArray(new String[0]));
         for (DetailRow row : rows) {
-            dump.addData(
-                    row.source().itemId(),
-                    row.source().name(),
-                    Long.toString(row.source().totalCount()),
-                    Long.toString(row.source().missingCount()),
-                    row.leaf().itemId(),
-                    row.leaf().name(),
-                    Long.toString(row.leaf().totalCount()),
-                    Long.toString(row.leaf().missingCount()));
+            dump.addData(row.asCells().toArray(new String[0]));
         }
 
-        dump.setColumnProperties(2, DataDump.Alignment.RIGHT, true);
-        dump.setColumnProperties(3, DataDump.Alignment.RIGHT, true);
-        dump.setColumnProperties(6, DataDump.Alignment.RIGHT, true);
-        dump.setColumnProperties(7, DataDump.Alignment.RIGHT, true);
+        for (int column = 1; column < DETAIL_HEADERS.size(); column++) {
+            if (column != 4) {
+                dump.setColumnProperties(column, DataDump.Alignment.RIGHT, true);
+            }
+        }
         dump.setSort(false);
         dump.setUseColumnSeparator(true);
         return dump;
     }
 
     private static DataDump summaryDump(List<SummaryRow> rows, boolean csv) {
-        DataDump dump = new DataDump(4, csv ? DataDump.Format.CSV : DataDump.Format.ASCII);
-        dump.addTitle("Sheet2 - Minimal sub-material totals");
-        dump.addHeader("Sub-material ID", "Sub-material", "Total", "Missing");
+        DataDump dump = new DataDump(SUMMARY_HEADERS.size(), csv ? DataDump.Format.CSV : DataDump.Format.ASCII);
+        dump.addHeader(SUMMARY_HEADERS.toArray(new String[0]));
         for (SummaryRow row : rows) {
-            dump.addData(row.itemId(), row.name(), Long.toString(row.totalCount()), Long.toString(row.missingCount()));
+            dump.addData(row.asCells().toArray(new String[0]));
         }
 
-        dump.setColumnProperties(2, DataDump.Alignment.RIGHT, true);
-        dump.setColumnProperties(3, DataDump.Alignment.RIGHT, true);
+        for (int column = 1; column < SUMMARY_HEADERS.size(); column++) {
+            dump.setColumnProperties(column, DataDump.Alignment.RIGHT, true);
+        }
         dump.setSort(false);
         dump.setUseColumnSeparator(true);
         return dump;
@@ -143,27 +156,83 @@ public final class SubMaterialExporter {
     private record ExportRows(List<DetailRow> detailRows, List<SummaryRow> summaryRows) {
     }
 
-    private record SourceMaterial(String itemId, String name, long totalCount, long missingCount) {
+    private record SourceMaterial(String name, int maxStackSize, long totalCount, long missingCount) {
+        private long availableCount() {
+            return this.totalCount - this.missingCount;
+        }
     }
 
-    private record LeafMaterial(String itemId, String name, long totalCount, long missingCount) {
+    private record LeafMaterial(String itemId, String name, int maxStackSize, long totalCount, long missingCount) {
+        private String groupKey() {
+            String trimmed = this.name.trim();
+            return trimmed.isEmpty() ? this.itemId : trimmed.toLowerCase(Locale.ROOT);
+        }
+
+        private long availableCount() {
+            return this.totalCount - this.missingCount;
+        }
     }
 
     private record DetailRow(SourceMaterial source, LeafMaterial leaf) {
+        private List<String> asCells() {
+            return List.of(
+                    this.source.name(),
+                    CountFormatter.format(this.source.totalCount(), this.source.maxStackSize()),
+                    CountFormatter.format(this.source.missingCount(), this.source.maxStackSize()),
+                    CountFormatter.format(this.source.availableCount(), this.source.maxStackSize()),
+                    this.leaf.name(),
+                    CountFormatter.format(this.leaf.totalCount(), this.leaf.maxStackSize()),
+                    CountFormatter.format(this.leaf.missingCount(), this.leaf.maxStackSize()),
+                    CountFormatter.format(this.leaf.availableCount(), this.leaf.maxStackSize())
+            );
+        }
     }
 
-    private record SummaryRow(String itemId, String name, long totalCount, long missingCount) {
+    private record SummaryRow(String name, int maxStackSize, long totalCount, long missingCount) {
+        private long availableCount() {
+            return this.totalCount - this.missingCount;
+        }
+
+        private List<String> asCells() {
+            return List.of(
+                    this.name(),
+                    CountFormatter.format(this.totalCount(), this.maxStackSize()),
+                    CountFormatter.format(this.missingCount(), this.maxStackSize()),
+                    CountFormatter.format(this.availableCount(), this.maxStackSize())
+            );
+        }
     }
 
-    private static final class SummaryAccumulator {
-        private final String itemId;
+    private static final class LeafAccumulator {
         private final String name;
+        private final int maxStackSize;
         private long totalCount;
         private long missingCount;
 
-        private SummaryAccumulator(String itemId, String name) {
-            this.itemId = itemId;
+        private LeafAccumulator(String name, int maxStackSize) {
             this.name = name;
+            this.maxStackSize = maxStackSize;
+        }
+
+        private void add(long totalCount, long missingCount) {
+            this.totalCount += totalCount;
+            this.missingCount += missingCount;
+        }
+
+        private LeafMaterial toLeaf() {
+            return new LeafMaterial("", this.name, this.maxStackSize, this.totalCount, this.missingCount);
+        }
+    }
+
+    private static final class SummaryAccumulator {
+        private final String name;
+        private final int maxStackSize;
+        private long totalCount;
+        private long missingCount;
+
+        private SummaryAccumulator(String name, int maxStackSize) {
+            this.name = name;
+            this.maxStackSize = maxStackSize;
         }
 
         private void add(long totalCount, long missingCount) {
@@ -172,7 +241,7 @@ public final class SubMaterialExporter {
         }
 
         private SummaryRow toRow() {
-            return new SummaryRow(this.itemId, this.name, this.totalCount, this.missingCount);
+            return new SummaryRow(this.name, this.maxStackSize, this.totalCount, this.missingCount);
         }
     }
 }
