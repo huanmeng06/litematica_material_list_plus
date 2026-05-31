@@ -6,6 +6,7 @@ import fi.dy.masa.malilib.gui.GuiScrollBar;
 import fi.dy.masa.malilib.gui.widgets.WidgetListBase;
 import fi.dy.masa.malilib.gui.widgets.WidgetListEntryBase;
 import io.github.huanmeng06.lmlp.access.WidgetListBoundsAccess;
+import io.github.huanmeng06.lmlp.gui.MaterialListColumnLayout;
 import io.github.huanmeng06.lmlp.gui.MaterialListPlusState;
 import io.github.huanmeng06.lmlp.gui.RecipeInlineRenderer;
 import net.minecraft.class_332;
@@ -22,9 +23,15 @@ import java.util.List;
 @Mixin(value = WidgetListBase.class, remap = false)
 public abstract class WidgetListBaseMixin implements WidgetListBoundsAccess {
     @Shadow
+    protected int totalWidth;
+    @Shadow
     protected int browserEntriesStartY;
     @Shadow
     protected int browserHeight;
+    @Shadow
+    protected int browserWidth;
+    @Shadow
+    protected int browserEntryWidth;
     @Shadow
     protected int browserEntriesOffsetY;
     @Shadow
@@ -74,6 +81,16 @@ public abstract class WidgetListBaseMixin implements WidgetListBoundsAccess {
         }
 
         this.scrollBar.setMaxValue(this.lmlp$getDynamicScrollbarMaxValue());
+    }
+
+    @Inject(method = "reCreateListEntryWidgets", at = @At("HEAD"))
+    private void lmlp$expandMaterialListWidth(CallbackInfo ci) {
+        if (!((Object) this instanceof WidgetListMaterialList)) {
+            return;
+        }
+
+        this.browserWidth = Math.max(this.totalWidth, MaterialListColumnLayout.requiredEntryWidth() + 14);
+        this.browserEntryWidth = this.browserWidth - 14;
     }
 
     @Override

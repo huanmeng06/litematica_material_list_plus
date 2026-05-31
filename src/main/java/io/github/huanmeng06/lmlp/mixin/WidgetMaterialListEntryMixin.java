@@ -15,6 +15,7 @@ import io.github.huanmeng06.lmlp.access.WidgetListBoundsAccess;
 import io.github.huanmeng06.lmlp.config.Configs;
 import io.github.huanmeng06.lmlp.config.HoverTooltipMode;
 import io.github.huanmeng06.lmlp.config.Hotkeys;
+import io.github.huanmeng06.lmlp.gui.MaterialListColumnLayout;
 import io.github.huanmeng06.lmlp.gui.MaterialListPlusState;
 import io.github.huanmeng06.lmlp.gui.RecipeDetailScreen;
 import io.github.huanmeng06.lmlp.gui.RecipeInlineRenderer;
@@ -115,6 +116,8 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
             maxCountLength2 = Math.max(maxCountLength2, StringUtils.getStringWidth(CountFormatter.formatAligned(stack, missing, lmlpMaxMissingDigits)));
             maxCountLength3 = Math.max(maxCountLength3, StringUtils.getStringWidth(Integer.toString(entry.getCountAvailable())));
         }
+
+        MaterialListColumnLayout.updateRequiredEntryWidth(maxNameLength, maxCountLength1, maxCountLength2, maxCountLength3);
     }
 
     /**
