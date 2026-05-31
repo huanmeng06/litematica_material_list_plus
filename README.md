@@ -169,4 +169,4 @@ build\libs\
 
 ## 许可证
 
-本项目使用 MIT License 发布。Litematica、MaLiLib、REI、Fabric API 等依赖模组遵循其各自许可证，本项目不随 jar 打包这些依赖。
+本项目使用 LGPL-3.0-or-later 发布。Litematica、MaLiLib、REI、Fabric API 等依赖模组遵循其各自许可证，本项目不随 jar 打包这些依赖。

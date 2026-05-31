@@ -7,7 +7,7 @@
   "authors": [
     "Huan_meeng"
   ],
-  "license": "MIT",
+  "license": "LGPL-3.0-or-later",
   "environment": "client",
   "entrypoints": {
     "client": [
