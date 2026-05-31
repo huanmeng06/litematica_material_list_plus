@@ -4,11 +4,15 @@
 
 当前正式版：`v1.3.0`
 
-当前构建：`1.3.18+mc1.20.6`
+当前构建：`1.3.19+mc1.20.6`
 
 适配目标：Minecraft `1.20.6` / Fabric / Litematica / MaLiLib / REI
 
 ## 版本说明
+
+### v1.3.19
+
+- 将项目许可证从 MIT 切换为 `LGPL-3.0-or-later`，同步更新根目录 `LICENSE` 和 `fabric.mod.json` 元数据。
 
 ### v1.3.18
 
