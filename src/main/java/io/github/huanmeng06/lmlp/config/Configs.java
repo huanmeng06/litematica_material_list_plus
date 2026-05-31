@@ -35,6 +35,13 @@ public class Configs implements IConfigHandler {
                 "lmlp.config.name.enable_lmlp_hover_tooltip"
         );
 
+        public static final ConfigOptionList COUNT_DISPLAY_STYLE = new ConfigOptionList(
+                "countDisplayStyle",
+                CountDisplayStyle.STYLE_1,
+                "Style 1: total = boxes + stacks + items\nStyle 2: boxes + stacks + items\nStyle 3: A x SB + B x 64 + C\nStyle 4: total (Litematica)",
+                "lmlp.config.name.count_display_style"
+        );
+
         public static final ConfigStringList RECIPE_STOP_ITEMS = new ConfigStringList(
                 "recipeStopItems",
                 ImmutableList.of("minecraft:redstone"),
@@ -43,6 +50,7 @@ public class Configs implements IConfigHandler {
 
         public static final List<IConfigBase> OPTIONS = ImmutableList.of(
                 HOVER_TOOLTIP_MODE,
+                COUNT_DISPLAY_STYLE,
                 RECIPE_STOP_ITEMS
         );
 
