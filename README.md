@@ -12,7 +12,7 @@
 
 ### v1.3.19
 
-- 将项目许可证从 MIT 切换为 `LGPL-3.0-or-later`，同步更新根目录 `LICENSE` 和 `fabric.mod.json` 元数据。
+- 将项目许可证统一为 `LGPL-3.0-or-later`，同步更新根目录 `LICENSE` 和 `fabric.mod.json` 元数据。
 
 ### v1.3.18
 
