@@ -71,8 +71,8 @@ public class RecipeDetailScreen extends class_437 {
     private static final int HEADER_MAX_WIDTH = 600;
     private static final int HEADER_HEIGHT = 50;
     private static final int HEADER_BUTTON_GAP = 8;
-    private static final int PREFERRED_BUTTON_SIZE = 16;
-    private static final int PREFERRED_ICON_SIZE = 9;
+    private static final int PREFERRED_BUTTON_SIZE = 32;
+    private static final int PREFERRED_ICON_SIZE = 32;
     private static final int INGREDIENT_ROW_HEIGHT = 20;
     private static final int INGREDIENT_TREE_INDENT_WIDTH = 18;
     private static final int INGREDIENT_TOGGLE_WIDTH = 18;
