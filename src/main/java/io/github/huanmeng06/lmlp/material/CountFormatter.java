@@ -30,7 +30,7 @@ public final class CountFormatter {
             return raw;
         }
 
-        if (style == CountDisplayStyle.STYLE_1 && (count <= 0 || maxStackSize <= 1 || count <= maxStackSize)) {
+        if (style == CountDisplayStyle.STYLE_2 && (count <= 0 || maxStackSize <= 1 || count <= maxStackSize)) {
             return raw;
         }
 
@@ -40,7 +40,7 @@ public final class CountFormatter {
         }
 
         String grouped = parts.grouped();
-        if (style == CountDisplayStyle.STYLE_2) {
+        if (style == CountDisplayStyle.STYLE_1) {
             return grouped;
         }
 
@@ -49,7 +49,7 @@ public final class CountFormatter {
 
     public static String compact(int count, int maxStackSize) {
         CountDisplayStyle style = (CountDisplayStyle) Configs.Generic.COUNT_DISPLAY_STYLE.getOptionListValue();
-        if (style == CountDisplayStyle.STYLE_4 || (style == CountDisplayStyle.STYLE_1 && (count <= 0 || maxStackSize <= 1 || count <= maxStackSize))) {
+        if (style == CountDisplayStyle.STYLE_4 || (style == CountDisplayStyle.STYLE_2 && (count <= 0 || maxStackSize <= 1 || count <= maxStackSize))) {
             return Integer.toString(count);
         }
 

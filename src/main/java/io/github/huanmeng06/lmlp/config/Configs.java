@@ -38,7 +38,7 @@ public class Configs implements IConfigHandler {
         public static final ConfigOptionList COUNT_DISPLAY_STYLE = new ConfigOptionList(
                 "countDisplayStyle",
                 CountDisplayStyle.STYLE_1,
-                "Style 1: total = boxes + stacks + items\nStyle 2: boxes + stacks + items\nStyle 3: A × SB + B × 64 (16) + C\nStyle 4: total (Litematica)",
+                "Style 1: boxes + stacks + items\nStyle 2: total = boxes + stacks + items\nStyle 3: A × SB + B × 64 (16) + C\nStyle 4: total (Litematica)",
                 "lmlp.config.name.count_display_style"
         );
 
