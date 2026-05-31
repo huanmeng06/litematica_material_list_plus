@@ -44,7 +44,14 @@ public class Configs implements IConfigHandler {
 
         public static final ConfigStringList RECIPE_STOP_ITEMS = new ConfigStringList(
                 "recipeStopItems",
-                ImmutableList.of("minecraft:redstone"),
+                ImmutableList.of(
+                        "minecraft:iron_ingot",
+                        "minecraft:gold_ingot",
+                        "minecraft:slime_ball",
+                        "minecraft:quartz",
+                        "minecraft:honey_bottle",
+                        "minecraft:redstone"
+                ),
                 "Items in this list are treated as base materials."
         );
 
