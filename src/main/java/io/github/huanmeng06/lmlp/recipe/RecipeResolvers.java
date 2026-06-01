@@ -16,6 +16,10 @@ public final class RecipeResolvers {
     }
 
     public static List<RecipeSummary> findRecipes(class_1799 target, int totalCount, int missingCount) {
+        if (Configs.shouldStopRecipeDecomposition(ItemStackTexts.id(target))) {
+            return Collections.emptyList();
+        }
+
         try {
             return applyPreferredOrder(getResolver().findRecipes(target, totalCount, missingCount));
         } catch (Throwable throwable) {
