@@ -50,7 +50,7 @@ LMLP 会尽量保留 Litematica 原本的列表、排序、忽略、导出和热
     <td align="left">可选择 LMLP 浮窗、Litematica 原版浮窗，或完全隐藏浮窗。</td>
   </tr>
   <tr>
-    <th align="left"><a href="https://github.com/huanmeng06/litematica_material_list_plus/blob/main/README.md#子材料 XLSX 导出">子材料 XLSX 导出</a></td>
+    <th align="left"><a href="https://github.com/huanmeng06/litematica_material_list_plus/blob/main/README.md#子材料-xlsx-导出">子材料 XLSX 导出</a></td>
     <td align="left">导出当前置顶配方下的最小子材料明细和汇总表。</td>
   </tr>
 </table>
