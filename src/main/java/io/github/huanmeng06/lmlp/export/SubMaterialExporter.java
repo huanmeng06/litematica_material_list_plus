@@ -22,8 +22,10 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
@@ -120,6 +122,8 @@ public final class SubMaterialExporter {
 
     private static void writeWorkbook(File file, List<TreeRow> rows) throws IOException {
         List<List<String>> sheetRows = sheetRows(rows);
+        SharedStrings sharedStrings = new SharedStrings();
+        String worksheetXml = worksheetXml(sheetRows, rows, sharedStrings);
         try (ZipOutputStream zip = new ZipOutputStream(new FileOutputStream(file))) {
             addZipEntry(zip, "[Content_Types].xml", contentTypesXml());
             addZipEntry(zip, "_rels/.rels", rootRelationshipsXml());
@@ -128,7 +132,8 @@ public final class SubMaterialExporter {
             addZipEntry(zip, "xl/workbook.xml", workbookXml());
             addZipEntry(zip, "xl/_rels/workbook.xml.rels", workbookRelationshipsXml());
             addZipEntry(zip, "xl/styles.xml", stylesXml());
-            addZipEntry(zip, "xl/worksheets/sheet1.xml", worksheetXml(sheetRows, rows));
+            addZipEntry(zip, "xl/sharedStrings.xml", sharedStrings.xml());
+            addZipEntry(zip, "xl/worksheets/sheet1.xml", worksheetXml);
         }
     }
 
@@ -152,7 +157,7 @@ public final class SubMaterialExporter {
         return sheetRows;
     }
 
-    private static String worksheetXml(List<List<String>> rows, List<TreeRow> treeRows) {
+    private static String worksheetXml(List<List<String>> rows, List<TreeRow> treeRows, SharedStrings sharedStrings) {
         int rowCount = Math.max(1, rows.size());
         int columnCount = TREE_HEADERS.size();
         String range = "A1:" + cellReference(columnCount - 1, rowCount);
@@ -174,9 +179,10 @@ public final class SubMaterialExporter {
             List<String> row = rows.get(rowIndex);
             for (int columnIndex = 0; columnIndex < row.size(); columnIndex++) {
                 int style = cellStyle(rowIndex, columnIndex, rowIndex > 0 && treeRows.get(rowIndex - 1).depth() == 0);
-                builder.append("<c r=\"").append(cellReference(columnIndex, rowNumber)).append("\" s=\"").append(style).append("\" t=\"inlineStr\"><is><t xml:space=\"preserve\">")
-                        .append(escapeXml(row.get(columnIndex)))
-                        .append("</t></is></c>");
+                int stringIndex = sharedStrings.index(row.get(columnIndex));
+                builder.append("<c r=\"").append(cellReference(columnIndex, rowNumber)).append("\" s=\"").append(style).append("\" t=\"s\"><v>")
+                        .append(stringIndex)
+                        .append("</v></c>");
             }
             builder.append("</row>");
         }
@@ -250,6 +256,7 @@ public final class SubMaterialExporter {
                 + "<Override PartName=\"/docProps/core.xml\" ContentType=\"application/vnd.openxmlformats-package.core-properties+xml\"/>"
                 + "<Override PartName=\"/xl/workbook.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml\"/>"
                 + "<Override PartName=\"/xl/styles.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml\"/>"
+                + "<Override PartName=\"/xl/sharedStrings.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.sharedStrings+xml\"/>"
                 + "<Override PartName=\"/xl/worksheets/sheet1.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml\"/>"
                 + "</Types>";
     }
@@ -276,6 +283,7 @@ public final class SubMaterialExporter {
                 + "<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">"
                 + "<Relationship Id=\"rId1\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet\" Target=\"worksheets/sheet1.xml\"/>"
                 + "<Relationship Id=\"rId2\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles\" Target=\"styles.xml\"/>"
+                + "<Relationship Id=\"rId3\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/sharedStrings\" Target=\"sharedStrings.xml\"/>"
                 + "</Relationships>";
     }
 
@@ -283,9 +291,9 @@ public final class SubMaterialExporter {
         return "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>"
                 + "<styleSheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\">"
                 + "<fonts count=\"3\">"
-                + "<font><sz val=\"11\"/><color theme=\"1\"/><name val=\"Calibri\"/><family val=\"2\"/></font>"
-                + "<font><b/><sz val=\"11\"/><color rgb=\"FFFFFFFF\"/><name val=\"Calibri\"/><family val=\"2\"/></font>"
-                + "<font><b/><sz val=\"11\"/><color theme=\"1\"/><name val=\"Calibri\"/><family val=\"2\"/></font>"
+                + "<font><sz val=\"11\"/><color theme=\"1\"/><name val=\"Microsoft YaHei UI\"/><family val=\"2\"/><charset val=\"134\"/></font>"
+                + "<font><b/><sz val=\"11\"/><color rgb=\"FFFFFFFF\"/><name val=\"Microsoft YaHei UI\"/><family val=\"2\"/><charset val=\"134\"/></font>"
+                + "<font><b/><sz val=\"11\"/><color theme=\"1\"/><name val=\"Microsoft YaHei UI\"/><family val=\"2\"/><charset val=\"134\"/></font>"
                 + "</fonts>"
                 + "<fills count=\"4\">"
                 + "<fill><patternFill patternType=\"none\"/></fill>"
@@ -355,6 +363,40 @@ public final class SubMaterialExporter {
 
     private static boolean isValidXmlCharacter(char character) {
         return character == 0x9 || character == 0xA || character == 0xD || character >= 0x20;
+    }
+
+    private static final class SharedStrings {
+        private final Map<String, Integer> indexes = new LinkedHashMap<>();
+        private int count;
+
+        private int index(String value) {
+            this.count++;
+            Integer existing = this.indexes.get(value);
+            if (existing != null) {
+                return existing;
+            }
+
+            int index = this.indexes.size();
+            this.indexes.put(value, index);
+            return index;
+        }
+
+        private String xml() {
+            StringBuilder builder = new StringBuilder();
+            builder.append("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>");
+            builder.append("<sst xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" count=\"")
+                    .append(this.count)
+                    .append("\" uniqueCount=\"")
+                    .append(this.indexes.size())
+                    .append("\">");
+            for (String value : this.indexes.keySet()) {
+                builder.append("<si><t xml:space=\"preserve\">")
+                        .append(escapeXml(value))
+                        .append("</t></si>");
+            }
+            builder.append("</sst>");
+            return builder.toString();
+        }
     }
 
     private record TreeRow(String material, String type, int depth, int maxStackSize, long totalCount, long missingCount) {
