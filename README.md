@@ -1,12 +1,18 @@
-# Litematica Material List Plus
+<div align="center">
 
-Litematica Material List Plus, 简称 LMLP, 是一个面向 Minecraft Fabric 客户端的 Litematica 材料清单增强模组。
+<img width="128" height="128" alt="Litematica Material List Plus" src="https://github.com/user-attachments/assets/90ff5206-95dc-4032-b5dd-d6de8339c653" />
 
-它围绕“备料时到底还缺什么”这个问题扩展 Litematica 的材料列表：把数量换算成更容易理解的盒、组、个，直接在材料列表中查看配方摘要和递归子材料，选择首选配方，并把最终需要准备的子材料导出为 Excel 表格。
+<h1>Litematica Material List Plus</h1>
 
-LMLP 会尽量保留 Litematica 原本的列表、排序、忽略、导出和热键习惯，只在数量阅读、配方查看、材料拆分和导出整理这些地方补上更顺手的体验。
+<p>
+  <strong>让 Litematica 的材料清单更适合备料、查配方和导出统计。</strong>
+</p>
 
-最新正式版：`v1.4.0`
+</div>
+
+Litematica Material List Plus，简称 LMLP，是一个面向 Minecraft Fabric 客户端的 Litematica 材料清单增强模组。它在保留 Litematica 原版列表、排序、忽略、导出和热键习惯的基础上，重点增强材料数量阅读、配方查看、递归拆分和 Excel 导出流程。
+
+通过 LMLP，你可以把材料总数换算为更直观的盒、组、个；直接在材料列表中展开配方摘要和递归子材料；设置首选配方；并将最终需要准备的最小子材料导出为 Excel 表格。
 
 ## 功能概览
 
