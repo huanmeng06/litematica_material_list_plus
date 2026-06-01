@@ -248,13 +248,7 @@ LMLP 在 Litematica 原版“写入文件”按钮旁新增“写入子材料文
 
 </div>
 
-`Material Tree` 的可见列为：
-
-```text
-Material | Type | Total | Missing | Available
-```
-
-其中 `Material` 列会使用树状前缀表示层级：
+`Material` 列会使用树状前缀表示层级：
 
 ```text
 黏性活塞    Main
