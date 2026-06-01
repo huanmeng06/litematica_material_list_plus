@@ -4,11 +4,15 @@
 
 当前正式版：`v1.3.0`
 
-当前构建：`1.3.19+mc1.20.6`
+当前构建：`1.3.20+mc1.20.6`
 
 适配目标：Minecraft `1.20.6` / Fabric / Litematica / MaLiLib / REI
 
 ## 版本说明
+
+### v1.3.20
+
+- 新增模组图标资源 `assets/litematica_material_list_plus/icon.png`，并在 `fabric.mod.json` 中声明 `icon` 字段，使 Mod Menu/模组列表显示 LMLP 图标。
 
 ### v1.3.19
 
