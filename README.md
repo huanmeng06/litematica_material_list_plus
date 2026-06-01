@@ -4,11 +4,15 @@
 
 当前正式版：`v1.3.0`
 
-当前构建：`1.3.22+mc1.20.6`
+当前构建：`1.3.23+mc1.20.6`
 
 适配目标：Minecraft `1.20.6` / Fabric / Litematica / MaLiLib / REI
 
 ## 版本说明
+
+### v1.3.23
+
+- 替换模组图标资源 `assets/litematica_material_list_plus/icon.png` 为新版图标。
 
 ### v1.3.22
 
