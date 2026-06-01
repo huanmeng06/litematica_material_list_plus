@@ -56,6 +56,7 @@ public class RecipeDetailScreen extends class_437 {
     private static final int INGREDIENT_TEXT_COLOR = 0xFFFFFFFF;
     private static final int INGREDIENT_TOTAL_COLOR = 0xFFFFAA00;
     private static final int INGREDIENT_MISSING_COLOR = 0xFFFF5555;
+    private static final int SCREEN_BACKGROUND_COLOR = 0xB0000000;
     private static final int NATIVE_RENDER_CLIP_PADDING = 24;
     private static final int MAX_NATIVE_DISPLAYS_PER_FRAME = 64;
     private static final int MAX_NATIVE_DISPLAY_DEPTH = 3;
@@ -225,7 +226,7 @@ public class RecipeDetailScreen extends class_437 {
 
     @Override
     public void method_25394(class_332 context, int mouseX, int mouseY, float delta) {
-        this.method_25420(context, mouseX, mouseY, delta);
+        RenderUtils.drawRect(0, 0, this.field_22789, this.field_22790, SCREEN_BACKGROUND_COLOR);
         this.nestedRecipeAnimations.prune();
         this.recipeReorderAnimations.entrySet().removeIf(entry -> entry.getValue().isFinished());
 
