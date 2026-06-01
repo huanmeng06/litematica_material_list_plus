@@ -22,35 +22,35 @@ LMLP 会尽量保留 Litematica 原本的列表、排序、忽略、导出和热
     <th align="left">说明</th>
   </tr>
   <tr>
-    <th align="left">数量显示优化</td>
+    <th align="left"><a href="https://github.com/huanmeng06/litematica_material_list_plus/blob/main/README.md#数量显示优化">数量显示优化</a></td>
     <td align="left">支持把总数换算为盒、组、个，也可以切换为多种显示样式。</td>
   </tr>
   <tr>
-    <th align="left">配方摘要展开</td>
+    <th align="left"><a href="https://github.com/huanmeng06/litematica_material_list_plus/blob/main/README.md#配方摘要展开">配方摘要展开</a></td>
     <td align="left">在材料列表中单击材料，即可内联展开配方和总子材料。</td>
   </tr>
   <tr>
-    <th align="left">配方详情页</td>
+    <th align="left"><a href="https://github.com/huanmeng06/litematica_material_list_plus/blob/main/README.md#配方详情页">配方详情页</a></td>
     <td align="left"><code>Shift + 单击</code>材料行打开完整配方详情页，复用 REI 原生配方布局。</td>
   </tr>
   <tr>
-    <th align="left">配方置顶</td>
+    <th align="left"><a href="https://github.com/huanmeng06/litematica_material_list_plus/blob/main/README.md#配方置顶">配方置顶</a></td>
     <td align="left">为同一物品设置首选配方，影响详情页排序、摘要页快速查看和递归拆分结果。</td>
   </tr>
   <tr>
-    <th align="left">容器界面热键</td>
+    <th align="left"><a href="https://github.com/huanmeng06/litematica_material_list_plus/blob/main/README.md#容器界面热键">容器界面热键</a></td>
     <td align="left">在工作台、切石机、高炉等容器界面中，也可以用材料列表热键打开材料列表。</td>
   </tr>
   <tr>
-    <th align="left">停止拆分列表</td>
+    <th align="left"><a href="https://github.com/huanmeng06/litematica_material_list_plus/blob/main/README.md#停止拆分列表">停止拆分列表</a></td>
     <td align="left">可配置哪些物品被当作基础材料，不再继续往下拆配方。</td>
   </tr>
   <tr>
-    <th align="left">悬停浮窗模式</td>
+    <th align="left"><a href="https://github.com/huanmeng06/litematica_material_list_plus/blob/main/README.md#悬停浮窗模式">悬停浮窗模式</a></td>
     <td align="left">可选择 LMLP 浮窗、Litematica 原版浮窗，或完全隐藏浮窗。</td>
   </tr>
   <tr>
-    <th align="left">子材料 XLSX 导出</td>
+    <th align="left"><a href="https://github.com/huanmeng06/litematica_material_list_plus/blob/main/README.md#子材料 XLSX 导出">子材料 XLSX 导出</a></td>
     <td align="left">导出当前置顶配方下的最小子材料明细和汇总表。</td>
   </tr>
 </table>
