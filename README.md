@@ -34,12 +34,12 @@ LMLP 会尽量保留 Litematica 原本的列表、排序、忽略、导出和热
     <td align="left"><code>Shift + 单击</code>材料行打开完整配方详情页，复用 REI 原生配方布局。</td>
   </tr>
   <tr>
-    <th align="left">递归子材料</td>
-    <td align="left">摘要页和详情页都可以继续展开子材料，逐层拆到基础材料。</td>
-  </tr>
-  <tr>
     <th align="left">配方置顶</td>
     <td align="left">为同一物品设置首选配方，影响详情页排序、摘要页快速查看和递归拆分结果。</td>
+  </tr>
+  <tr>
+    <th align="left">容器界面热键</td>
+    <td align="left">在工作台、切石机、高炉等容器界面中，也可以用材料列表热键打开材料列表。</td>
   </tr>
   <tr>
     <th align="left">停止拆分列表</td>
@@ -48,10 +48,6 @@ LMLP 会尽量保留 Litematica 原本的列表、排序、忽略、导出和热
   <tr>
     <th align="left">悬停浮窗模式</td>
     <td align="left">可选择 LMLP 浮窗、Litematica 原版浮窗，或完全隐藏浮窗。</td>
-  </tr>
-  <tr>
-    <th align="left">容器界面热键</td>
-    <td align="left">在工作台、切石机、高炉等容器界面中，也可以用材料列表热键打开材料列表。</td>
   </tr>
   <tr>
     <th align="left">子材料 XLSX 导出</td>
@@ -63,7 +59,7 @@ LMLP 会尽量保留 Litematica 原本的列表、排序、忽略、导出和热
 
 ## 核心功能
 
-### 更易读的材料数量
+### 数量显示优化
 
 LMLP 可以把材料数量格式化成更适合备料的形式，例如：
 
@@ -119,7 +115,7 @@ LMLP 可以把材料数量格式化成更适合备料的形式，例如：
 </div>
 
 
-### 配方摘要
+### 配方摘要展开
 
 在 Litematica 材料列表中，单击材料行可以直接展开配方摘要。可合成材料会显示当前首选配方、每次产出数量、需要合成的次数，以及该配方对应的总子材料。
 
@@ -167,8 +163,20 @@ LMLP 可以把材料数量格式化成更适合备料的形式，例如：
 
 <img width="1884" height="1088" alt="PixPin_2026-06-01_14-48-28" src="https://github.com/user-attachments/assets/140b5ad4-b9ab-41d8-ac5f-0e649c07b66f" />
 
+### 容器界面热键
 
-### 可控制的递归拆分
+在工作台、高炉、切石机等容器界面中，可以使用 Litematica 原版材料列表热键打开材料列表，方便边看材料边合成。
+
+容器界面相关行为：
+
+- 从容器界面打开材料列表后，不会直接丢掉原加工界面。
+- 从配方详情页返回时，可以回到原加工界面。
+- 再次打开时会恢复上次的详情页状态。
+
+<img width="1884" height="1088" alt="PixPin_2026-06-01_14-44-33" src="https://github.com/user-attachments/assets/e41b0938-0e94-49e4-9581-aca1b1b9208f" />
+
+
+### 停止拆分列表
 
 有些材料不应该继续往下拆。比如铁锭、金锭、红石粉、石英等，在很多备料场景里应该被当作基础材料，而不是继续拆成其他配方来源。
 
@@ -187,16 +195,56 @@ minecraft:redstone
 
 你也可以继续加入其他物品 ID。配置会影响摘要页、详情页和子材料导出。
 
+### 悬停浮窗模式
+
+LMLP 提供材料行悬停浮窗模式配置：
+
+```text
+LMLP / Litematica 原版 / 不显示悬停浮窗
+```
+
+如果使用 LMLP 浮窗，悬浮材料行时会显示更适合备料查看的数量信息。喜欢原版行为时可以切回 Litematica 原版，也可以完全关闭悬停浮窗减少打扰。
+
+<div align="center">
+
+<table>
+  <tr>
+    <td align="center">
+      <img src="https://github.com/user-attachments/assets/108418a7-9bd5-416e-9a09-5216e7d5f847" width="420">
+    </td>
+    <td align="center">
+      <img src="https://github.com/user-attachments/assets/82078fc7-89d0-495e-aa1b-0df07da39b06" width="520">
+    </td>
+  </tr>
+</table>
+
+</div>
+
+
 ### 子材料 XLSX 导出
 
 LMLP 在 Litematica 原版“写入文件”按钮旁新增“写入子材料文件”按钮。点击后会导出一个 XLSX 文件，用当前置顶配方和停止拆分列表，把所有材料递归拆到最小子材料。
 
 导出的工作簿包含两张表：
 
-| 工作表 | 内容 |
-| --- | --- |
-| `Material Tree` | 单表树状层级结构，展示每个主材料和它向下拆出的递归子材料。 |
-| `Sub-material Totals` | 汇总所有最小子材料的总数、缺少和可用数量。 |
+<div align="center">
+
+<table>
+  <tr>
+    <th align="center">工作表</th>
+    <th align="left">内容</th>
+  </tr>
+  <tr>
+    <td align="center"><code>Material Tree</code></td>
+    <td align="left">单表树状层级结构，展示每个主材料和它向下拆出的递归子材料。</td>
+  </tr>
+  <tr>
+    <td align="center"><code>Sub-material Totals</code></td>
+    <td align="left">汇总所有最小子材料的总数、缺少和可用数量。</td>
+  </tr>
+</table>
+
+</div>
 
 `Material Tree` 的可见列为：
 
@@ -232,45 +280,6 @@ XLSX 会保留当前配置选择的数量显示样式，并包含表头样式、
 </table>
 
 </div>
-
-
-### 悬停浮窗
-
-LMLP 提供材料行悬停浮窗模式配置：
-
-```text
-LMLP / Litematica 原版 / 不显示悬停浮窗
-```
-
-如果使用 LMLP 浮窗，悬浮材料行时会显示更适合备料查看的数量信息。喜欢原版行为时可以切回 Litematica 原版，也可以完全关闭悬停浮窗减少打扰。
-
-<div align="center">
-
-<table>
-  <tr>
-    <td align="center">
-      <img src="https://github.com/user-attachments/assets/108418a7-9bd5-416e-9a09-5216e7d5f847" width="420">
-    </td>
-    <td align="center">
-      <img src="https://github.com/user-attachments/assets/82078fc7-89d0-495e-aa1b-0df07da39b06" width="520">
-    </td>
-  </tr>
-</table>
-
-</div>
-
-
-### 容器界面支持打开材料列表
-
-在工作台、高炉、切石机等容器界面中，可以使用 Litematica 原版材料列表热键打开材料列表，方便边看材料边合成。
-
-容器界面相关行为：
-
-- 从容器界面打开材料列表后，不会直接丢掉原加工界面。
-- 从配方详情页返回时，可以回到原加工界面。
-- 再次打开时会恢复上次的详情页状态。
-
-<img width="1884" height="1088" alt="PixPin_2026-06-01_14-44-33" src="https://github.com/user-attachments/assets/e41b0938-0e94-49e4-9581-aca1b1b9208f" />
 
 
 ## 默认配置
