@@ -8,10 +8,6 @@ LMLP 会尽量保留 Litematica 原本的列表、排序、忽略、导出和热
 
 最新正式版：`v1.4.0`
 
-当前主要发布构建：`1.4.0+mc1.20.6`
-
-适配方向：Minecraft `1.20.6` / Fabric / Litematica / MaLiLib / REI
-
 ## 功能概览
 
 <div align="center">
