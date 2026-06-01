@@ -82,8 +82,8 @@ public class RecipeDetailScreen extends class_437 {
     private static final int NESTED_RECIPE_INDENT = 24;
     private static final int MAX_NESTED_DEPTH = 3;
     private static final String ROOT_RECIPE_LIST = "root";
-    private static final class_2960 REI_DISPLAY_TEXTURE = new class_2960("roughlyenoughitems", "textures/gui/display.png");
-    private static final class_2960 PREFERRED_WIDGETS_TEXTURE = new class_2960(LitematicaMaterialListPlus.MOD_ID, "textures/gui/gui_widgets.png");
+    private static final class_2960 REI_DISPLAY_TEXTURE = class_2960.method_60655("roughlyenoughitems", "textures/gui/display.png");
+    private static final class_2960 PREFERRED_WIDGETS_TEXTURE = class_2960.method_60655(LitematicaMaterialListPlus.MOD_ID, "textures/gui/gui_widgets.png");
 
     private final class_437 parent;
     private final class_1799 target;
