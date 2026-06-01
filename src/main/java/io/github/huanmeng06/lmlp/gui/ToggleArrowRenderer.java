@@ -2,6 +2,7 @@ package io.github.huanmeng06.lmlp.gui;
 
 import org.joml.Quaternionf;
 
+import io.github.huanmeng06.lmlp.LitematicaMaterialListPlus;
 import net.minecraft.class_2960;
 import net.minecraft.class_332;
 
@@ -9,8 +10,8 @@ final class ToggleArrowRenderer {
     private static final int ICON_WIDTH = 10;
     private static final int ICON_HEIGHT = 14;
     private static final float EXPANDED_ROTATION = (float) (Math.PI / 2.0D);
-    private static final class_2960 TEXTURE = new class_2960("minecraft", "recipe_book/page_forward");
-    private static final class_2960 HIGHLIGHTED_TEXTURE = new class_2960("minecraft", "recipe_book/page_forward_highlighted");
+    private static final class_2960 TEXTURE = new class_2960(LitematicaMaterialListPlus.MOD_ID, "recipe_book/page_forward");
+    private static final class_2960 HIGHLIGHTED_TEXTURE = new class_2960(LitematicaMaterialListPlus.MOD_ID, "recipe_book/page_forward_highlighted");
 
     private ToggleArrowRenderer() {
     }
