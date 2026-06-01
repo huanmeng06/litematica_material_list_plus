@@ -32,28 +32,59 @@ $BuildDir = Join-Path $RepoRoot "build"
 $ClassesDir = Join-Path $BuildDir "classes"
 $ResourcesDir = Join-Path $BuildDir "resources"
 $LibsDir = Join-Path $BuildDir "libs"
+$NestedJarsDir = Join-Path $BuildDir "nested-jars"
 
 if (Test-Path -LiteralPath $BuildDir) {
     Remove-Item -LiteralPath $BuildDir -Recurse -Force
 }
 
 New-Item -ItemType Directory -Force -Path $ClassesDir, $ResourcesDir, $LibsDir | Out-Null
+New-Item -ItemType Directory -Force -Path $NestedJarsDir | Out-Null
 
 $ClasspathJars = New-Object System.Collections.Generic.List[string]
 $ClasspathJars.Add($ClientJar.FullName)
 
+Add-Type -AssemblyName System.IO.Compression.FileSystem
+
+function Add-ClasspathJar {
+    param(
+        [System.IO.FileInfo] $Jar
+    )
+
+    $ClasspathJars.Add($Jar.FullName)
+
+    try {
+        $zip = [IO.Compression.ZipFile]::OpenRead($Jar.FullName)
+        try {
+            foreach ($entry in $zip.Entries) {
+                if ($entry.FullName.StartsWith("META-INF/jars/") -and $entry.FullName.EndsWith(".jar")) {
+                    $nestedName = [IO.Path]::GetFileName($entry.FullName)
+                    $safePrefix = ($Jar.BaseName -replace '[^A-Za-z0-9_.-]', '_')
+                    $nestedPath = Join-Path $NestedJarsDir "$safePrefix-$nestedName"
+                    [IO.Compression.ZipFileExtensions]::ExtractToFile($entry, $nestedPath, $true)
+                    $ClasspathJars.Add($nestedPath)
+                }
+            }
+        } finally {
+            $zip.Dispose()
+        }
+    } catch {
+        Write-Warning "Unable to inspect nested jars in $($Jar.FullName): $($_.Exception.Message)"
+    }
+}
+
 Get-ChildItem -LiteralPath (Join-Path $MinecraftRoot "libraries") -Recurse -Filter "*.jar" | ForEach-Object {
-    $ClasspathJars.Add($_.FullName)
+    Add-ClasspathJar $_
 }
 
 Get-ChildItem -LiteralPath (Join-Path $Instance "mods") -Filter "*.jar" | ForEach-Object {
-    $ClasspathJars.Add($_.FullName)
+    Add-ClasspathJar $_
 }
 
 $ProcessedModsDir = Join-Path $Instance ".fabric\processedMods"
 if (Test-Path -LiteralPath $ProcessedModsDir) {
     Get-ChildItem -LiteralPath $ProcessedModsDir -Recurse -Filter "*.jar" | ForEach-Object {
-        $ClasspathJars.Add($_.FullName)
+        Add-ClasspathJar $_
     }
 }
 

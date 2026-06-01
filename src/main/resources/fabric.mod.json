@@ -1,9 +1,10 @@
 {
   "schemaVersion": 1,
   "id": "litematica_material_list_plus",
-  "version": "1.0.1+mc1.20.4",
+  "version": "1.4.0+mc1.20.4",
   "name": "Litematica Material List Plus",
   "description": "Enhances Litematica's material list with grouped counts and REI recipe summaries.",
+  "icon": "assets/litematica_material_list_plus/icon.png",
   "authors": [
     "Huan_meeng"
   ],
@@ -12,6 +13,9 @@
   "entrypoints": {
     "client": [
       "io.github.huanmeng06.lmlp.LitematicaMaterialListPlus"
+    ],
+    "modmenu": [
+      "io.github.huanmeng06.lmlp.compat.modmenu.ModMenuImpl"
     ]
   },
   "mixins": [

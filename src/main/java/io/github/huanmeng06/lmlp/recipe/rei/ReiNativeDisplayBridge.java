@@ -20,19 +20,28 @@ import me.shedaniel.rei.api.common.category.CategoryIdentifier;
 import me.shedaniel.rei.api.common.display.Display;
 import me.shedaniel.rei.api.common.entry.EntryIngredient;
 import me.shedaniel.rei.api.common.entry.EntryStack;
+import net.minecraft.class_1836;
 import net.minecraft.class_327;
 import net.minecraft.class_332;
 
 public final class ReiNativeDisplayBridge implements RecipeNativeDisplayBridge {
     private static final int WORKSTATION_SLOT_SIZE = 18;
-    private static final int WORKSTATION_ICON_SIZE = 16;
     private static final int WORKSTATION_SLOT_MARGIN = 4;
 
     private final Map<Display, Layout> layouts = new IdentityHashMap<>();
 
     @Override
     public boolean canRender(RecipeSummary summary) {
-        return displayFor(summary) != null;
+        Display display = displayFor(summary);
+        if (display == null) {
+            return false;
+        }
+
+        try {
+            return categoryFor(display) != null;
+        } catch (Throwable throwable) {
+            return false;
+        }
     }
 
     @Override
@@ -43,7 +52,8 @@ public final class ReiNativeDisplayBridge implements RecipeNativeDisplayBridge {
         }
 
         try {
-            return Math.max(1, categoryFor(display).getCategory().getDisplayWidth(display));
+            CategoryRegistry.CategoryConfiguration<Display> category = categoryFor(display);
+            return category == null ? fallbackWidth : Math.max(1, category.getCategory().getDisplayWidth(display));
         } catch (Throwable throwable) {
             return fallbackWidth;
         }
@@ -57,7 +67,8 @@ public final class ReiNativeDisplayBridge implements RecipeNativeDisplayBridge {
         }
 
         try {
-            return Math.max(1, categoryFor(display).getCategory().getDisplayHeight());
+            CategoryRegistry.CategoryConfiguration<Display> category = categoryFor(display);
+            return category == null ? fallbackHeight : Math.max(1, category.getCategory().getDisplayHeight());
         } catch (Throwable throwable) {
             return fallbackHeight;
         }
@@ -90,7 +101,7 @@ public final class ReiNativeDisplayBridge implements RecipeNativeDisplayBridge {
             for (int i = layout.widgets().size() - 1; i >= 0; i--) {
                 Widget widget = layout.widgets().get(i);
                 if (widget instanceof Slot slot && slot.isTooltipsEnabled() && slot.containsMouse(mouseX, mouseY)) {
-                    Tooltip tooltip = slot.getCurrentTooltip(TooltipContext.of(new Point(mouseX, mouseY)));
+                    Tooltip tooltip = slot.getCurrentTooltip(TooltipContext.of(new Point(mouseX, mouseY), class_1836.field_41070));
                     return tooltip != null && ReiTooltipBridge.renderTooltip(context, textRenderer, tooltip, mouseX, mouseY);
                 }
             }
@@ -151,7 +162,12 @@ public final class ReiNativeDisplayBridge implements RecipeNativeDisplayBridge {
         Rectangle bounds = new Rectangle(x, y, width, height);
         EntryStack<?> workstationEntry = workstationEntry(display);
 
-        DisplayCategoryView<Display> view = categoryFor(display).getView(display);
+        CategoryRegistry.CategoryConfiguration<Display> category = categoryFor(display);
+        if (category == null) {
+            throw new IllegalStateException("No REI category for display " + display.getCategoryIdentifier());
+        }
+
+        DisplayCategoryView<Display> view = category.getView(display);
         List<Widget> widgets = new ArrayList<>(view.setupDisplay(display, bounds));
         if (workstationEntry != null) {
             widgets.add(this.createWorkstationSlot(bounds, workstationEntry));
@@ -192,6 +208,10 @@ public final class ReiNativeDisplayBridge implements RecipeNativeDisplayBridge {
         }
 
         CategoryRegistry.CategoryConfiguration<Display> category = categoryFor(display);
+        if (category == null) {
+            return null;
+        }
+
         for (EntryIngredient ingredient : category.getWorkstations()) {
             for (EntryStack<?> stack : ingredient) {
                 if (!stack.isEmpty()) {
@@ -205,7 +225,7 @@ public final class ReiNativeDisplayBridge implements RecipeNativeDisplayBridge {
 
     private static Rectangle workstationSlotBounds(Rectangle bounds) {
         return new Rectangle(
-                bounds.x + bounds.width - WORKSTATION_SLOT_SIZE - WORKSTATION_SLOT_MARGIN,
+                bounds.x + WORKSTATION_SLOT_MARGIN,
                 bounds.y + bounds.height - WORKSTATION_SLOT_SIZE - WORKSTATION_SLOT_MARGIN,
                 WORKSTATION_SLOT_SIZE,
                 WORKSTATION_SLOT_SIZE);
