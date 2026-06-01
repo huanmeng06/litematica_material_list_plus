@@ -39,16 +39,50 @@ LMLP 可以把材料数量格式化成更适合备料的形式，例如：
 
 数量显示方式可以在配置中选择：
 
-| 样式 | 显示方式 |
-| --- | --- |
-| 样式1 | 盒数 + 组数 + 个数 |
-| 样式2 | 总数 = 盒数 + 组数 + 个数 |
-| 样式3 | A × SB + B × 64 (16) + C |
-| 样式4 | 总数，保持 Litematica 原版显示 |
+<div align="center">
+
+<table>
+  <tr>
+    <th align="center">样式</th>
+    <th align="center">显示方式</th>
+  </tr>
+  <tr>
+    <td align="center">样式1</td>
+    <td align="center">盒数 + 组数 + 个数</td>
+  </tr>
+  <tr>
+    <td align="center">样式2</td>
+    <td align="center">总数 = 盒数 + 组数 + 个数</td>
+  </tr>
+  <tr>
+    <td align="center">样式3</td>
+    <td align="center">A × SB + B × 64 (16) + C</td>
+  </tr>
+  <tr>
+    <td align="center">样式4</td>
+    <td align="center">总数，保持 Litematica 原版显示</td>
+  </tr>
+</table>
+
+</div>
 
 当样式较长时，材料列表会按当前最长数量文本自适应扩展宽度，减少总计、缺少和可用列互相重叠。
 
-> 图片占位符：材料列表数量显示样式截图
+<div align="center">
+
+<table>
+  <tr>
+    <td><img src="https://github.com/user-attachments/assets/d6fb2bb4-4deb-498d-a753-0012e0f19833" width="500"></td>
+    <td><img src="https://github.com/user-attachments/assets/056952d6-aea6-4d93-b932-cf2d95c6eb39" width="500"></td>
+  </tr>
+  <tr>
+    <td><img src="https://github.com/user-attachments/assets/74a5d175-1a1b-443f-9bc3-59ccc61531d1" width="500"></td>
+    <td><img src="https://github.com/user-attachments/assets/5811a986-a89f-4a02-ba7d-093d3fe6084f" width="500"></td>
+  </tr>
+</table>
+
+</div>
+
 
 ### 配方摘要
 
