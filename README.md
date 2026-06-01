@@ -14,17 +14,52 @@ LMLP 会尽量保留 Litematica 原本的列表、排序、忽略、导出和热
 
 ## 功能概览
 
-| 功能 | 说明 |
-| --- | --- |
-| 数量显示优化 | 支持把总数换算为盒、组、个，也可以切换为多种显示样式。 |
-| 配方摘要展开 | 在材料列表中单击材料，即可内联展开配方和总子材料。 |
-| 配方详情页 | `Shift + 单击`材料行打开完整配方详情页，复用 REI 原生配方布局。 |
-| 递归子材料 | 摘要页和详情页都可以继续展开子材料，逐层拆到基础材料。 |
-| 配方置顶 | 为同一物品设置首选配方，影响详情页排序、摘要页快速查看和递归拆分结果。 |
-| 停止拆分列表 | 可配置哪些物品被当作基础材料，不再继续往下拆配方。 |
-| 悬停浮窗模式 | 可选择 LMLP 浮窗、Litematica 原版浮窗，或完全隐藏浮窗。 |
-| 容器界面热键 | 在工作台、切石机、高炉等容器界面中，也可以用材料列表热键打开材料列表。 |
-| 子材料 XLSX 导出 | 导出当前置顶配方下的最小子材料明细和汇总表。 |
+<div align="center">
+
+<table>
+  <tr>
+    <th align="left">功能</th>
+    <th align="left">说明</th>
+  </tr>
+  <tr>
+    <th align="left">数量显示优化</td>
+    <td align="left">支持把总数换算为盒、组、个，也可以切换为多种显示样式。</td>
+  </tr>
+  <tr>
+    <th align="left">配方摘要展开</td>
+    <td align="left">在材料列表中单击材料，即可内联展开配方和总子材料。</td>
+  </tr>
+  <tr>
+    <th align="left">配方详情页</td>
+    <td align="left"><code>Shift + 单击</code>材料行打开完整配方详情页，复用 REI 原生配方布局。</td>
+  </tr>
+  <tr>
+    <th align="left">递归子材料</td>
+    <td align="left">摘要页和详情页都可以继续展开子材料，逐层拆到基础材料。</td>
+  </tr>
+  <tr>
+    <th align="left">配方置顶</td>
+    <td align="left">为同一物品设置首选配方，影响详情页排序、摘要页快速查看和递归拆分结果。</td>
+  </tr>
+  <tr>
+    <th align="left">停止拆分列表</td>
+    <td align="left">可配置哪些物品被当作基础材料，不再继续往下拆配方。</td>
+  </tr>
+  <tr>
+    <th align="left">悬停浮窗模式</td>
+    <td align="left">可选择 LMLP 浮窗、Litematica 原版浮窗，或完全隐藏浮窗。</td>
+  </tr>
+  <tr>
+    <th align="left">容器界面热键</td>
+    <td align="left">在工作台、切石机、高炉等容器界面中，也可以用材料列表热键打开材料列表。</td>
+  </tr>
+  <tr>
+    <th align="left">子材料 XLSX 导出</td>
+    <td align="left">导出当前置顶配方下的最小子材料明细和汇总表。</td>
+  </tr>
+</table>
+
+</div>
 
 ## 核心功能
 
@@ -96,7 +131,8 @@ LMLP 可以把材料数量格式化成更适合备料的形式，例如：
 
 展开和收起带有短动画，下面的材料行会跟随高度自然移动。靠近底部的材料展开时，也会预留足够滚动空间，避免展开后还要继续下滑才能看全。
 
-> 图片占位符：材料列表内联配方摘要截图
+<img width="1884" height="1088" alt="PixPin_2026-06-01_14-42-05" src="https://github.com/user-attachments/assets/83782a10-5594-4590-b7ba-b9abca0df53b" />
+
 
 ### 配方详情页
 
@@ -113,7 +149,8 @@ LMLP 可以把材料数量格式化成更适合备料的形式，例如：
 - 使用材料列表热键返回原加工界面。
 - 从加工界面进入时，可以使用 REI 转移逻辑把材料摆入当前容器。
 
-> 图片占位符：配方详情页截图
+<img width="1884" height="1088" alt="image" src="https://github.com/user-attachments/assets/592f5436-9a43-4e72-8615-b1b0bd9c64a6" />
+
 
 ### 配方置顶
 
@@ -126,11 +163,10 @@ LMLP 可以把材料数量格式化成更适合备料的形式，例如：
 - 递归子材料拆分时使用的配方。
 - XLSX 导出时的最小子材料结果。
 
-再次点击已置顶配方可以取消置顶。置顶按钮使用四态像素素材，支持未置顶、悬浮未置顶、已置顶、悬浮已置顶，并带有白色悬浮边框和 tooltip。
-
 当配方置顶导致列表重排时，配方框会按现有展开动画速度移动到新的排序位置。页面不会跟着被置顶配方滚到顶部，方便继续浏览剩余配方。子材料里的配方列表也支持同样的置顶重排动画。
 
-> 图片占位符：配方置顶按钮和重排效果截图
+<img width="1884" height="1088" alt="PixPin_2026-06-01_14-48-28" src="https://github.com/user-attachments/assets/140b5ad4-b9ab-41d8-ac5f-0e649c07b66f" />
+
 
 ### 可控制的递归拆分
 
@@ -180,11 +216,23 @@ Material | Type | Total | Missing | Available
    └─ 红石粉 Sub-sub
 ```
 
-XLSX 会保留当前配置选择的数量显示样式，并包含表头样式、首行冻结、筛选、自动列宽和适合树状字符显示的字体设置。
+XLSX 会保留当前配置选择的数量显示样式，并包含表头样式、首行冻结、筛选、自动列宽。
 
-> 图片占位符：XLSX Material Tree 工作表截图
+<div align="center">
 
-> 图片占位符：XLSX Sub-material Totals 工作表截图
+<table>
+  <tr>
+    <td align="center">
+      <img src="https://github.com/user-attachments/assets/2fc37ed9-fa21-49a6-9914-f16c250ae375" width="420">
+    </td>
+    <td align="center">
+      <img src="https://github.com/user-attachments/assets/ebd0f492-c104-41ce-917f-ea8a4d124d90" width="420">
+    </td>
+  </tr>
+</table>
+
+</div>
+
 
 ### 悬停浮窗
 
@@ -196,6 +244,22 @@ LMLP / Litematica 原版 / 不显示悬停浮窗
 
 如果使用 LMLP 浮窗，悬浮材料行时会显示更适合备料查看的数量信息。喜欢原版行为时可以切回 Litematica 原版，也可以完全关闭悬停浮窗减少打扰。
 
+<div align="center">
+
+<table>
+  <tr>
+    <td align="center">
+      <img src="https://github.com/user-attachments/assets/108418a7-9bd5-416e-9a09-5216e7d5f847" width="420">
+    </td>
+    <td align="center">
+      <img src="https://github.com/user-attachments/assets/82078fc7-89d0-495e-aa1b-0df07da39b06" width="520">
+    </td>
+  </tr>
+</table>
+
+</div>
+
+
 ### 容器界面支持打开材料列表
 
 在工作台、高炉、切石机等容器界面中，可以使用 Litematica 原版材料列表热键打开材料列表，方便边看材料边合成。
@@ -205,6 +269,9 @@ LMLP / Litematica 原版 / 不显示悬停浮窗
 - 从容器界面打开材料列表后，不会直接丢掉原加工界面。
 - 从配方详情页返回时，可以回到原加工界面。
 - 再次打开时会恢复上次的详情页状态。
+
+<img width="1884" height="1088" alt="PixPin_2026-06-01_14-44-33" src="https://github.com/user-attachments/assets/e41b0938-0e94-49e4-9581-aca1b1b9208f" />
+
 
 ## 默认配置
 
