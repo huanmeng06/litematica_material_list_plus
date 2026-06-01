@@ -20,7 +20,9 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -33,6 +35,7 @@ import java.util.zip.ZipOutputStream;
 public final class SubMaterialExporter {
     private static final int MAX_RECIPE_DEPTH = 16;
     private static final List<String> TREE_HEADERS = List.of("Material", "Type", "Total", "Missing", "Available");
+    private static final List<String> SUMMARY_HEADERS = List.of("Material", "Total", "Missing", "Available");
 
     private SubMaterialExporter() {
     }
@@ -43,7 +46,7 @@ public final class SubMaterialExporter {
             return null;
         }
 
-        List<TreeRow> rows = buildRows(materialList);
+        ExportRows rows = buildRows(materialList);
         File file = timestampedFile(dir, "sub_material_list", ".xlsx");
         try {
             writeWorkbook(file, rows);
@@ -56,19 +59,32 @@ public final class SubMaterialExporter {
         }
     }
 
-    private static List<TreeRow> buildRows(MaterialListBase materialList) {
+    private static ExportRows buildRows(MaterialListBase materialList) {
         List<MaterialListEntry> entries = new ArrayList<>(materialList.getMaterialsFiltered(false));
         entries.sort(new MaterialListSorter(materialList));
 
-        List<TreeRow> rows = new ArrayList<>();
+        List<TreeRow> treeRows = new ArrayList<>();
+        Map<String, SummaryAccumulator> summaryRows = new HashMap<>();
         for (MaterialListEntry entry : entries) {
             class_1799 stack = entry.getStack();
             int total = MaterialCounts.total(entry, materialList);
             int missing = MaterialCounts.missing(entry, materialList);
-            rows.add(TreeRow.root(ItemStackTexts.name(stack), stack.method_7914(), total, missing));
-            appendChildren(stack, total, missing, 1, List.of(), new HashSet<>(), rows);
+            treeRows.add(TreeRow.root(ItemStackTexts.name(stack), stack.method_7914(), total, missing));
+            appendChildren(stack, total, missing, 1, List.of(), new HashSet<>(), treeRows);
+
+            List<LeafMaterial> leaves = new ArrayList<>();
+            collectLeaves(stack, ItemStackTexts.name(stack), total, missing, 0, new HashSet<>(), leaves);
+            for (LeafMaterial leaf : leaves) {
+                summaryRows.computeIfAbsent(leaf.groupKey(), ignored -> new SummaryAccumulator(leaf.name(), leaf.maxStackSize()))
+                        .add(leaf.totalCount(), leaf.missingCount());
+            }
         }
-        return rows;
+
+        List<SummaryRow> summaries = summaryRows.values().stream()
+                .map(SummaryAccumulator::toRow)
+                .sorted(Comparator.comparing(SummaryRow::name))
+                .toList();
+        return new ExportRows(treeRows, summaries);
     }
 
     private static void appendChildren(class_1799 stack, int totalCount, int missingCount, int depth, List<Boolean> ancestorLast, Set<String> seenItems, List<TreeRow> rows) {
@@ -120,10 +136,44 @@ public final class SubMaterialExporter {
         return builder.toString();
     }
 
-    private static void writeWorkbook(File file, List<TreeRow> rows) throws IOException {
-        List<List<String>> sheetRows = sheetRows(rows);
+    private static void collectLeaves(class_1799 stack, String name, int totalCount, int missingCount, int depth, Set<String> seenItems, List<LeafMaterial> leaves) {
+        class_1799 icon = stack.method_7972();
+        String itemId = ItemStackTexts.id(icon);
+        if (totalCount <= 0 && missingCount <= 0) {
+            return;
+        }
+
+        if (depth >= MAX_RECIPE_DEPTH || seenItems.contains(itemId) || Configs.shouldStopRecipeDecomposition(itemId)) {
+            leaves.add(new LeafMaterial(itemId, name, icon.method_7914(), totalCount, missingCount));
+            return;
+        }
+
+        Set<String> childSeenItems = new HashSet<>(seenItems);
+        childSeenItems.add(itemId);
+        List<RecipeSummary> summaries = RecipeResolvers.findRecipes(icon, totalCount, missingCount);
+        if (summaries.isEmpty() || summaries.get(0).ingredients().isEmpty()) {
+            leaves.add(new LeafMaterial(itemId, name, icon.method_7914(), totalCount, missingCount));
+            return;
+        }
+
+        for (IngredientSummary ingredient : summaries.get(0).ingredients()) {
+            collectLeaves(
+                    ingredient.icon(),
+                    RecipeSummaryFormatter.ingredientName(ingredient),
+                    ingredient.countTotal(),
+                    ingredient.countMissing(),
+                    depth + 1,
+                    childSeenItems,
+                    leaves);
+        }
+    }
+
+    private static void writeWorkbook(File file, ExportRows rows) throws IOException {
+        List<List<String>> treeSheetRows = treeSheetRows(rows.treeRows());
+        List<List<String>> summarySheetRows = summarySheetRows(rows.summaryRows());
         SharedStrings sharedStrings = new SharedStrings();
-        String worksheetXml = worksheetXml(sheetRows, rows, sharedStrings);
+        String treeWorksheetXml = treeWorksheetXml(treeSheetRows, rows.treeRows(), sharedStrings);
+        String summaryWorksheetXml = summaryWorksheetXml(summarySheetRows, sharedStrings);
         try (ZipOutputStream zip = new ZipOutputStream(new FileOutputStream(file))) {
             addZipEntry(zip, "[Content_Types].xml", contentTypesXml());
             addZipEntry(zip, "_rels/.rels", rootRelationshipsXml());
@@ -133,7 +183,8 @@ public final class SubMaterialExporter {
             addZipEntry(zip, "xl/_rels/workbook.xml.rels", workbookRelationshipsXml());
             addZipEntry(zip, "xl/styles.xml", stylesXml());
             addZipEntry(zip, "xl/sharedStrings.xml", sharedStrings.xml());
-            addZipEntry(zip, "xl/worksheets/sheet1.xml", worksheetXml);
+            addZipEntry(zip, "xl/worksheets/sheet1.xml", treeWorksheetXml);
+            addZipEntry(zip, "xl/worksheets/sheet2.xml", summaryWorksheetXml);
         }
     }
 
@@ -148,7 +199,7 @@ public final class SubMaterialExporter {
         return file;
     }
 
-    private static List<List<String>> sheetRows(List<TreeRow> rows) {
+    private static List<List<String>> treeSheetRows(List<TreeRow> rows) {
         List<List<String>> sheetRows = new ArrayList<>();
         sheetRows.add(TREE_HEADERS);
         for (TreeRow row : rows) {
@@ -157,9 +208,27 @@ public final class SubMaterialExporter {
         return sheetRows;
     }
 
-    private static String worksheetXml(List<List<String>> rows, List<TreeRow> treeRows, SharedStrings sharedStrings) {
+    private static List<List<String>> summarySheetRows(List<SummaryRow> rows) {
+        List<List<String>> sheetRows = new ArrayList<>();
+        sheetRows.add(SUMMARY_HEADERS);
+        for (SummaryRow row : rows) {
+            sheetRows.add(row.asCells());
+        }
+        return sheetRows;
+    }
+
+    private static String treeWorksheetXml(List<List<String>> rows, List<TreeRow> treeRows, SharedStrings sharedStrings) {
+        return worksheetXml(rows, sharedStrings, (rowIndex, columnIndex) ->
+                cellStyle(rowIndex, columnIndex, rowIndex > 0 && treeRows.get(rowIndex - 1).depth() == 0));
+    }
+
+    private static String summaryWorksheetXml(List<List<String>> rows, SharedStrings sharedStrings) {
+        return worksheetXml(rows, sharedStrings, SubMaterialExporter::summaryCellStyle);
+    }
+
+    private static String worksheetXml(List<List<String>> rows, SharedStrings sharedStrings, CellStyleResolver styleResolver) {
         int rowCount = Math.max(1, rows.size());
-        int columnCount = TREE_HEADERS.size();
+        int columnCount = rows.stream().mapToInt(List::size).max().orElse(1);
         String range = "A1:" + cellReference(columnCount - 1, rowCount);
         StringBuilder builder = new StringBuilder();
         builder.append("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>");
@@ -178,7 +247,7 @@ public final class SubMaterialExporter {
             builder.append(">");
             List<String> row = rows.get(rowIndex);
             for (int columnIndex = 0; columnIndex < row.size(); columnIndex++) {
-                int style = cellStyle(rowIndex, columnIndex, rowIndex > 0 && treeRows.get(rowIndex - 1).depth() == 0);
+                int style = styleResolver.style(rowIndex, columnIndex);
                 int stringIndex = sharedStrings.index(row.get(columnIndex));
                 builder.append("<c r=\"").append(cellReference(columnIndex, rowNumber)).append("\" s=\"").append(style).append("\" t=\"s\"><v>")
                         .append(stringIndex)
@@ -200,6 +269,14 @@ public final class SubMaterialExporter {
 
         if (mainRow) {
             return columnIndex == 0 ? 4 : 5;
+        }
+
+        return columnIndex == 0 ? 1 : 2;
+    }
+
+    private static int summaryCellStyle(int rowIndex, int columnIndex) {
+        if (rowIndex == 0) {
+            return 3;
         }
 
         return columnIndex == 0 ? 1 : 2;
@@ -258,6 +335,7 @@ public final class SubMaterialExporter {
                 + "<Override PartName=\"/xl/styles.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml\"/>"
                 + "<Override PartName=\"/xl/sharedStrings.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.sharedStrings+xml\"/>"
                 + "<Override PartName=\"/xl/worksheets/sheet1.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml\"/>"
+                + "<Override PartName=\"/xl/worksheets/sheet2.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml\"/>"
                 + "</Types>";
     }
 
@@ -274,7 +352,7 @@ public final class SubMaterialExporter {
         return "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>"
                 + "<workbook xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\">"
                 + "<bookViews><workbookView xWindow=\"240\" yWindow=\"120\" windowWidth=\"18000\" windowHeight=\"12000\"/></bookViews>"
-                + "<sheets><sheet name=\"Material Tree\" sheetId=\"1\" r:id=\"rId1\"/></sheets>"
+                + "<sheets><sheet name=\"Material Tree\" sheetId=\"1\" r:id=\"rId1\"/><sheet name=\"Sub-material Totals\" sheetId=\"2\" r:id=\"rId2\"/></sheets>"
                 + "</workbook>";
     }
 
@@ -282,8 +360,9 @@ public final class SubMaterialExporter {
         return "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>"
                 + "<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">"
                 + "<Relationship Id=\"rId1\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet\" Target=\"worksheets/sheet1.xml\"/>"
-                + "<Relationship Id=\"rId2\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles\" Target=\"styles.xml\"/>"
-                + "<Relationship Id=\"rId3\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/sharedStrings\" Target=\"sharedStrings.xml\"/>"
+                + "<Relationship Id=\"rId2\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet\" Target=\"worksheets/sheet2.xml\"/>"
+                + "<Relationship Id=\"rId3\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles\" Target=\"styles.xml\"/>"
+                + "<Relationship Id=\"rId4\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/sharedStrings\" Target=\"sharedStrings.xml\"/>"
                 + "</Relationships>";
     }
 
@@ -326,8 +405,8 @@ public final class SubMaterialExporter {
                 + "<Properties xmlns=\"http://schemas.openxmlformats.org/officeDocument/2006/extended-properties\" xmlns:vt=\"http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes\">"
                 + "<Application>Litematica Material List Plus</Application>"
                 + "<DocSecurity>0</DocSecurity><ScaleCrop>false</ScaleCrop>"
-                + "<HeadingPairs><vt:vector size=\"2\" baseType=\"variant\"><vt:variant><vt:lpstr>Worksheets</vt:lpstr></vt:variant><vt:variant><vt:i4>1</vt:i4></vt:variant></vt:vector></HeadingPairs>"
-                + "<TitlesOfParts><vt:vector size=\"1\" baseType=\"lpstr\"><vt:lpstr>Material Tree</vt:lpstr></vt:vector></TitlesOfParts>"
+                + "<HeadingPairs><vt:vector size=\"2\" baseType=\"variant\"><vt:variant><vt:lpstr>Worksheets</vt:lpstr></vt:variant><vt:variant><vt:i4>2</vt:i4></vt:variant></vt:vector></HeadingPairs>"
+                + "<TitlesOfParts><vt:vector size=\"2\" baseType=\"lpstr\"><vt:lpstr>Material Tree</vt:lpstr><vt:lpstr>Sub-material Totals</vt:lpstr></vt:vector></TitlesOfParts>"
                 + "<Company></Company><LinksUpToDate>false</LinksUpToDate><SharedDoc>false</SharedDoc><HyperlinksChanged>false</HyperlinksChanged><AppVersion>16.0300</AppVersion>"
                 + "</Properties>";
     }
@@ -401,6 +480,21 @@ public final class SubMaterialExporter {
         }
     }
 
+    @FunctionalInterface
+    private interface CellStyleResolver {
+        int style(int rowIndex, int columnIndex);
+    }
+
+    private record ExportRows(List<TreeRow> treeRows, List<SummaryRow> summaryRows) {
+    }
+
+    private record LeafMaterial(String itemId, String name, int maxStackSize, long totalCount, long missingCount) {
+        private String groupKey() {
+            String trimmed = this.name.trim();
+            return trimmed.isEmpty() ? this.itemId : trimmed.toLowerCase(Locale.ROOT);
+        }
+    }
+
     private record TreeRow(String material, String type, int depth, int maxStackSize, long totalCount, long missingCount) {
         private static TreeRow root(String name, int maxStackSize, long totalCount, long missingCount) {
             return new TreeRow(name, "Main", 0, maxStackSize, totalCount, missingCount);
@@ -435,6 +529,42 @@ public final class SubMaterialExporter {
                     CountFormatter.format(this.missingCount(), this.maxStackSize()),
                     CountFormatter.format(this.availableCount(), this.maxStackSize())
             );
+        }
+    }
+
+    private record SummaryRow(String name, int maxStackSize, long totalCount, long missingCount) {
+        private long availableCount() {
+            return this.totalCount - this.missingCount;
+        }
+
+        private List<String> asCells() {
+            return List.of(
+                    this.name(),
+                    CountFormatter.format(this.totalCount(), this.maxStackSize()),
+                    CountFormatter.format(this.missingCount(), this.maxStackSize()),
+                    CountFormatter.format(this.availableCount(), this.maxStackSize())
+            );
+        }
+    }
+
+    private static final class SummaryAccumulator {
+        private final String name;
+        private final int maxStackSize;
+        private long totalCount;
+        private long missingCount;
+
+        private SummaryAccumulator(String name, int maxStackSize) {
+            this.name = name;
+            this.maxStackSize = maxStackSize;
+        }
+
+        private void add(long totalCount, long missingCount) {
+            this.totalCount += totalCount;
+            this.missingCount += missingCount;
+        }
+
+        private SummaryRow toRow() {
+            return new SummaryRow(this.name, this.maxStackSize, this.totalCount, this.missingCount);
         }
     }
 }
