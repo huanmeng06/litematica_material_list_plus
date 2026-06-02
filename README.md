@@ -296,12 +296,16 @@ XLSX 会保留当前配置选择的数量显示样式，并包含表头样式、
 
 ## 兼容环境
 
+<div align="center">
+
 | Minecraft | 最新发布 | Java | 前置模组 |
 | --- | --- | --- | --- |
 | `1.21.1` | `1.4.1+mc1.21.1` | `21` | Fabric API<br>Litematica<br>MaLiLib<br>REI |
 | `1.20.6` | `1.4.1+mc1.20.6` | `21` | Fabric API `0.100.8+1.20.6`<br>Litematica `0.18.3`<br>MaLiLib `0.19.2`<br>REI `15.0.787` |
 | `1.20.4` | `1.4.1+mc1.20.4` | `17` | Fabric API `0.97.3+1.20.4`<br>Litematica `0.17.4`<br>MaLiLib `0.18.4-alpha.1`<br>REI `14.1.786` |
 | `1.20.1` | `1.4.1+mc1.20.1` | `17` | Fabric API `0.92.9+1.20.1`<br>Litematica `0.15.4`<br>MaLiLib `0.16.3`<br>REI `12.1.785` |
+
+</div>
 
 REI 是必要前置。LMLP 的配方数据、配方详情页和原生配方显示都依赖 REI。Architectury API、Cloth Config API 和 Cloth Basic Math 等为 REI 相关前置，请按实际 REI 安装要求一并安装。
 
