@@ -1,6 +1,5 @@
 package io.github.huanmeng06.lmlp.mixin;
 
-import com.mojang.blaze3d.systems.RenderSystem;
 import fi.dy.masa.litematica.gui.Icons;
 import fi.dy.masa.litematica.gui.widgets.WidgetListMaterialList;
 import fi.dy.masa.litematica.gui.widgets.WidgetMaterialListEntry;
@@ -261,7 +260,6 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         int iconY = this.y + 3;
         RenderUtils.drawRect(iconX, iconY, 16, 16, 0x20FFFFFF);
         drawContext.method_51427(stack, iconX, iconY);
-        RenderSystem.disableBlend();
         RenderUtils.disableDiffuseLighting();
         drawContext.method_51448().method_22909();
 
