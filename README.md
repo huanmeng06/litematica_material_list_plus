@@ -328,7 +328,7 @@ powershell -ExecutionPolicy Bypass -File .\scripts\build.ps1 `
   -InstanceDir "D:\path\to\your\instance"
 ```
 
-构建 Minecraft `1.20.6` 版本时建议指定 Java 21：
+构建特定版本的 Minecraft 时建议使用指定的 Java 版本（17 / 21）：
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\build.ps1 `
