@@ -277,20 +277,6 @@ XLSX 会保留当前配置选择的数量显示样式，并包含表头样式、
 
 </div>
 
-
-## 默认配置
-
-| 配置项 | 默认值 | 说明 |
-| --- | --- | --- |
-| `countDisplayStyle` | `样式1` | 控制材料数量显示方式。默认显示盒数、组数和个数。 |
-| `enableLmlpHoverTooltip` | `LMLP` | 可选择 LMLP、Litematica 原版，或不显示材料悬停浮窗。 |
-| `recipeStopItems` | 铁锭、金锭、粘液球、石英、蜂蜜瓶、红石 | 列表中的物品会被当作基础材料，不再继续递归拆分配方。 |
-| `preferredRecipes` | 空 | 保存配方置顶结果。通常通过详情页星标按钮修改，不需要手动编辑。 |
-| `openConfigGui` | `M + =` | 打开 LMLP 配置菜单。 |
-| `showHoverDetails` | `LEFT_ALT` | 悬浮在材料行上时，按住显示详细数量信息。 |
-
-所有热键都可以在 MaLiLib 配置菜单中重新绑定或清空。
-
 ## 使用方式
 
 1. 在 Litematica 中打开材料列表。
