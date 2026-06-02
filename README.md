@@ -129,7 +129,7 @@ LMLP 可以把材料数量格式化成更适合备料的形式，例如：
 
 展开和收起带有短动画，下面的材料行会跟随高度自然移动。靠近底部的材料展开时，也会预留足够滚动空间，避免展开后还要继续下滑才能看全。
 
-<img width="1884" height="1088" alt="PixPin_2026-06-01_14-42-05" src="https://github.com/user-attachments/assets/83782a10-5594-4590-b7ba-b9abca0df53b" />
+<img width="1048" height="605" alt="PixPin_2026-06-01_14-42-05" src="https://github.com/user-attachments/assets/83782a10-5594-4590-b7ba-b9abca0df53b" />
 
 
 ### 配方详情页
@@ -147,7 +147,7 @@ LMLP 可以把材料数量格式化成更适合备料的形式，例如：
 - 使用材料列表热键返回原加工界面。
 - 从加工界面进入时，可以使用 REI 转移逻辑把材料摆入当前容器。
 
-<img width="1884" height="1088" alt="image" src="https://github.com/user-attachments/assets/592f5436-9a43-4e72-8615-b1b0bd9c64a6" />
+<img width="1048" height="605" alt="image" src="https://github.com/user-attachments/assets/592f5436-9a43-4e72-8615-b1b0bd9c64a6" />
 
 
 ### 配方置顶
@@ -163,7 +163,7 @@ LMLP 可以把材料数量格式化成更适合备料的形式，例如：
 
 当配方置顶导致列表重排时，配方框会按现有展开动画速度移动到新的排序位置。页面不会跟着被置顶配方滚到顶部，方便继续浏览剩余配方。子材料里的配方列表也支持同样的置顶重排动画。
 
-<img width="1884" height="1088" alt="PixPin_2026-06-01_14-48-28" src="https://github.com/user-attachments/assets/140b5ad4-b9ab-41d8-ac5f-0e649c07b66f" />
+<img width="1048" height="605" alt="PixPin_2026-06-01_14-48-28" src="https://github.com/user-attachments/assets/140b5ad4-b9ab-41d8-ac5f-0e649c07b66f" />
 
 ### 容器界面热键
 
@@ -175,7 +175,7 @@ LMLP 可以把材料数量格式化成更适合备料的形式，例如：
 - 从配方详情页返回时，可以回到原加工界面。
 - 再次打开时会恢复上次的详情页状态。
 
-<img width="1884" height="1088" alt="PixPin_2026-06-01_14-44-33" src="https://github.com/user-attachments/assets/e41b0938-0e94-49e4-9581-aca1b1b9208f" />
+<img width="1048" height="605" alt="PixPin_2026-06-01_14-44-33" src="https://github.com/user-attachments/assets/e41b0938-0e94-49e4-9581-aca1b1b9208f" />
 
 
 ### 停止拆分列表
