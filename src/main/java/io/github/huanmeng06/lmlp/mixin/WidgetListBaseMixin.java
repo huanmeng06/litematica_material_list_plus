@@ -135,7 +135,7 @@ public abstract class WidgetListBaseMixin implements WidgetListBoundsAccess {
         for (int index = size - 1; index >= 0; index--) {
             height += Math.max(1, this.lmlp$getScrollTargetEntryHeightFor(this.listContents.get(index)));
             if (height > viewportHeight) {
-                return index;
+                return Math.min(size - 1, index + 1);
             }
         }
 
