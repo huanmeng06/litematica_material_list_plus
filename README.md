@@ -349,7 +349,7 @@ build\libs\
 
 ## 未来展望
 
-- 适配更多版本的 Minecraft，最低版本或许下探 1.18.2，最高 26.1.x。
+- 适配更多版本的 Minecraft，最低版本或许下探 1.18.2，最高跟随 Minecraft 和 Litematica 更新。
 - 可能会适配 JEI。
 - 对游戏内 HUD 增强显示。
 - 更新频率取决于作者学业强度、 Codex 剩余额度以及 Litematica 更新强度。
