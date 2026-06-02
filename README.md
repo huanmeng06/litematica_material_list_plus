@@ -343,9 +343,9 @@ build\libs\
 
 ## 分支说明
 
-- `main` 用于项目主页文档、通用说明和发布入口。
+- `main` 仅用于项目介绍与文档。实际源码按 Minecraft 版本维护在 mc1.xx.x / mc26.x.x 分支中。
 - `dev-newFeature` 用于记录开发过程和小版本更新日志。
-- `mc1.xx.x` 分别维护对应 Minecraft 版本代码。
+- `mc1.xx.x / mc26.x.x` 分别维护对应 Minecraft 版本代码。
 
 ## 未来展望
 
