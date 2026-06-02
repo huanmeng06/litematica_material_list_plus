@@ -309,7 +309,7 @@ XLSX 会保留当前配置选择的数量显示样式，并包含表头样式、
 
 </div>
 
-REI 是必要前置。LMLP 的配方数据、配方详情页和原生配方显示都依赖 REI。Architectury API、Cloth Config API 和 Cloth Basic Math 等为 REI 相关前置，请按实际 REI 安装要求一并安装。
+REI 是必要前置。LMLP 的配方数据、配方详情页和原生配方显示都依赖 REI。Architectury API 和 Cloth Config API 等为 REI 相关前置，请按实际 REI 安装要求一并安装。
 
 ## 本地构建
 
