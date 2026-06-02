@@ -28,6 +28,7 @@ import io.github.huanmeng06.lmlp.recipe.RecipeSummary;
 import io.github.huanmeng06.lmlp.recipe.RecipeSummaryFormatter;
 import net.minecraft.class_1799;
 import net.minecraft.class_124;
+import net.minecraft.class_1921;
 import net.minecraft.class_2561;
 import net.minecraft.class_2960;
 import net.minecraft.class_332;
@@ -486,7 +487,7 @@ public class RecipeDetailScreen extends class_437 {
         List<RecipeSlotSummary> slots = summary.inputSlots();
         int gridX = x + 34;
         int gridY = y + 24;
-        context.method_25290(REI_DISPLAY_TEXTURE, gridX, gridY, 0.0F, 0.0F, 54, 54, 256, 256);
+        context.method_25290(class_1921::method_62277, REI_DISPLAY_TEXTURE, gridX, gridY, 0.0F, 0.0F, 54, 54, 256, 256);
         for (int row = 0; row < 3; row++) {
             for (int column = 0; column < 3; column++) {
                 int slotIndex = row * 3 + column;
@@ -496,7 +497,7 @@ public class RecipeDetailScreen extends class_437 {
             }
         }
 
-        context.method_25290(REI_DISPLAY_TEXTURE, x + 122, y + 44, 60.0F, 18.0F, 24, 15, 256, 256);
+        context.method_25290(class_1921::method_62277, REI_DISPLAY_TEXTURE, x + 122, y + 44, 60.0F, 18.0F, 24, 15, 256, 256);
 
         int outputX = x + 166;
         int outputY = y + 35;
@@ -573,7 +574,7 @@ public class RecipeDetailScreen extends class_437 {
         int starY = buttonY + (PREFERRED_BUTTON_SIZE - PREFERRED_ICON_SIZE) / 2;
         int textureU = hovered ? PREFERRED_ICON_SIZE : 0;
         int textureV = preferred ? 0 : PREFERRED_ICON_SIZE;
-        context.method_25290(PREFERRED_WIDGETS_TEXTURE, starX, starY, (float) textureU, (float) textureV, PREFERRED_ICON_SIZE, PREFERRED_ICON_SIZE, PREFERRED_WIDGET_TEXTURE_SIZE, PREFERRED_WIDGET_TEXTURE_SIZE);
+        context.method_25290(class_1921::method_62277, PREFERRED_WIDGETS_TEXTURE, starX, starY, (float) textureU, (float) textureV, PREFERRED_ICON_SIZE, PREFERRED_ICON_SIZE, PREFERRED_WIDGET_TEXTURE_SIZE, PREFERRED_WIDGET_TEXTURE_SIZE);
         if (hovered) {
             this.drawPreferredRecipeHoverBorder(context, buttonX, buttonY);
             this.hoveredPreferredRecipeTooltip = List.of(class_2561.method_43470(label));
@@ -981,7 +982,7 @@ public class RecipeDetailScreen extends class_437 {
             return;
         }
 
-        this.scrollBar.render(mouseX, mouseY, delta, this.scrollbarX(), top, 8, bottom - top, this.contentHeight());
+        this.scrollBar.render(mouseX, mouseY, delta, this.scrollbarX(), top, 8, bottom - top, this.contentHeight(), context);
     }
 
     private void captureHoveredStack(class_1799 stack, int mouseX, int mouseY, int x, int y, int width, int height) {

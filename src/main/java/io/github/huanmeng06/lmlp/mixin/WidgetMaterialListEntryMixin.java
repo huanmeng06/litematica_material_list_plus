@@ -235,7 +235,7 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
                 this.drawString(xTotal, yText, -1, this.header2, drawContext);
                 this.drawString(xMissing, yText, -1, this.header3, drawContext);
                 this.drawString(xAvailable, yText, -1, this.header4, drawContext);
-                this.renderColumnHeader(mouseX, mouseY, Icons.ARROW_DOWN, Icons.ARROW_UP);
+                this.renderColumnHeader(mouseX, mouseY, Icons.ARROW_DOWN, Icons.ARROW_UP, drawContext);
             }
 
             return;

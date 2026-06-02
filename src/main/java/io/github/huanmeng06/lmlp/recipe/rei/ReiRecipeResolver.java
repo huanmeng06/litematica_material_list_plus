@@ -50,7 +50,7 @@ public final class ReiRecipeResolver implements RecipeResolver {
                         summarizeSlots(display),
                         3,
                         3,
-                        display instanceof DefaultCraftingDisplay<?> craftingDisplay && craftingDisplay.isShapeless(),
+                        display instanceof DefaultCraftingDisplay craftingDisplay && craftingDisplay.isShapeless(),
                         display));
             }
         }
@@ -100,7 +100,7 @@ public final class ReiRecipeResolver implements RecipeResolver {
 
     private static List<RecipeSlotSummary> summarizeSlots(Display display) {
         List<EntryIngredient> inputs;
-        if (display instanceof DefaultCraftingDisplay<?> craftingDisplay) {
+        if (display instanceof DefaultCraftingDisplay craftingDisplay) {
             inputs = craftingDisplay.getOrganisedInputEntries(3, 3);
         } else {
             inputs = display.getInputEntries();
