@@ -86,7 +86,7 @@ public final class ReiRecipeResolver implements RecipeResolver {
             }
 
             String key = keyFor(slot.alternatives(), slot.count());
-            IngredientAccumulator accumulator = ingredients.computeIfAbsent(key, ignored -> new IngredientAccumulator(slot.icon(), slot.alternatives()));
+            IngredientAccumulator accumulator = ingredients.computeIfAbsent(key, ignored -> new IngredientAccumulator(slot.icon(), slot.icons(), slot.alternatives()));
             accumulator.addSlot(slot.count());
         }
 
@@ -137,7 +137,7 @@ public final class ReiRecipeResolver implements RecipeResolver {
             }
         }
 
-        return new RecipeSlotSummary(first.method_7972(), names, Math.max(1, first.method_7947()));
+        return new RecipeSlotSummary(first.method_7972(), alternatives, names, Math.max(1, first.method_7947()));
     }
 
     private static List<class_1799> collectAlternatives(EntryIngredient ingredient) {
@@ -181,12 +181,14 @@ public final class ReiRecipeResolver implements RecipeResolver {
 
     private static final class IngredientAccumulator {
         private final class_1799 icon;
+        private final List<class_1799> icons;
         private final List<String> alternatives;
         private final int maxStackSize;
         private int countPerCraft;
 
-        private IngredientAccumulator(class_1799 icon, List<String> alternatives) {
+        private IngredientAccumulator(class_1799 icon, List<class_1799> icons, List<String> alternatives) {
             this.icon = icon.method_7972();
+            this.icons = icons.stream().map(class_1799::method_7972).toList();
             this.alternatives = List.copyOf(alternatives);
             this.maxStackSize = Math.max(1, icon.method_7914());
             this.countPerCraft = 0;
@@ -199,6 +201,7 @@ public final class ReiRecipeResolver implements RecipeResolver {
         private IngredientSummary toSummary(int craftsTotal, int craftsMissing) {
             return new IngredientSummary(
                     this.icon,
+                    this.icons,
                     this.alternatives,
                     this.countPerCraft,
                     this.countPerCraft * craftsTotal,

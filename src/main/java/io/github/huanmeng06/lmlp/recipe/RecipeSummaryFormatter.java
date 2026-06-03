@@ -20,6 +20,33 @@ public final class RecipeSummaryFormatter {
 
     public static String ingredientName(IngredientSummary ingredient) {
         List<String> alternatives = ingredient.alternatives();
+        String shortName = AlternativeItemDisplay.name(ingredient.icons(), alternatives);
+        if (!shortName.isEmpty()) {
+            return shortName;
+        }
+
+        return joinedAlternatives(alternatives);
+    }
+
+    public static String slotName(RecipeSlotSummary slot) {
+        List<String> alternatives = slot.alternatives();
+        String shortName = AlternativeItemDisplay.name(slot.icons(), alternatives);
+        if (!shortName.isEmpty()) {
+            return shortName;
+        }
+
+        return joinedAlternatives(alternatives);
+    }
+
+    public static String totalCount(IngredientSummary ingredient) {
+        return CountFormatter.format(ingredient.countTotal(), ingredient.maxStackSize());
+    }
+
+    public static String missingCount(IngredientSummary ingredient) {
+        return CountFormatter.format(ingredient.countMissing(), ingredient.maxStackSize());
+    }
+
+    private static String joinedAlternatives(List<String> alternatives) {
         if (alternatives.isEmpty()) {
             return "";
         }
@@ -39,13 +66,5 @@ public final class RecipeSummaryFormatter {
         }
 
         return StringUtils.translate("lmlp.label.recipe.any", joiner.toString());
-    }
-
-    public static String totalCount(IngredientSummary ingredient) {
-        return CountFormatter.format(ingredient.countTotal(), ingredient.maxStackSize());
-    }
-
-    public static String missingCount(IngredientSummary ingredient) {
-        return CountFormatter.format(ingredient.countMissing(), ingredient.maxStackSize());
     }
 }
