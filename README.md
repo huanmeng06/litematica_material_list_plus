@@ -296,6 +296,7 @@ XLSX 会保留当前配置选择的数量显示样式，并包含表头样式、
 3. 确认同一实例中已经安装 Fabric API、Litematica、MaLiLib 和 REI。
 4. 启动游戏，打开 Litematica 材料列表。
 
+<!--
 ## 兼容环境
 
 <div align="center">
@@ -316,6 +317,8 @@ XLSX 会保留当前配置选择的数量显示样式，并包含表头样式、
 REI 是必要前置。LMLP 的配方数据、配方详情页和原生配方显示都依赖 REI。Architectury API 和 Cloth Config API 等为 REI 相关前置，请按实际 REI 安装要求一并安装。
 
 `fabric.mod.json` 的依赖声明会保持相对宽松，避免同一 Minecraft 版本下的小版本前置更新被误拦截。上表是作者实际构建和测试过的推荐环境；如果遇到启动失败、界面渲染异常或 REI 配方显示异常，请优先按上表安装对应版本的 Fabric API、Litematica、MaLiLib 和 REI。
+
+-->
 
 ## 分支说明
 
