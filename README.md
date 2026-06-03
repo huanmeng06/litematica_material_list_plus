@@ -315,36 +315,6 @@ XLSX 会保留当前配置选择的数量显示样式，并包含表头样式、
 
 REI 是必要前置。LMLP 的配方数据、配方详情页和原生配方显示都依赖 REI。Architectury API 和 Cloth Config API 等为 REI 相关前置，请按实际 REI 安装要求一并安装。
 
-## 本地构建
-
-仓库提供了一个 PowerShell 构建脚本，会基于本地 Minecraft 实例中的 remapped jar 和 mods 目录编译。
-
-```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\build.ps1
-```
-
-如果需要指定实例路径：
-
-```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\build.ps1 `
-  -InstanceDir "D:\path\to\your\instance"
-```
-
-构建特定版本的 Minecraft 时建议使用指定的 Java 版本（17 / 21）：
-
-```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\build.ps1 `
-  -InstanceDir "D:\path\to\your\1.20.6-instance" `
-  -JavaHome "C:\path\to\jdk-21" `
-  -JavaRelease 21
-```
-
-构建产物会输出到：
-
-```text
-build\libs\
-```
-
 ## 分支说明
 
 - `main` 仅用于项目介绍与文档。实际源码按 Minecraft 版本维护在 mc1.xx.x / mc26.x.x 分支中。
