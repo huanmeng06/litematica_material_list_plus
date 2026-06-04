@@ -1,11 +1,15 @@
 package io.github.huanmeng06.lmlp.mixin;
 
 import fi.dy.masa.litematica.gui.widgets.WidgetListMaterialList;
+import fi.dy.masa.litematica.gui.widgets.WidgetMaterialListEntry;
 import fi.dy.masa.litematica.materials.MaterialListEntry;
 import fi.dy.masa.malilib.gui.GuiScrollBar;
 import fi.dy.masa.malilib.gui.widgets.WidgetListBase;
 import fi.dy.masa.malilib.gui.widgets.WidgetListEntryBase;
+import io.github.huanmeng06.lmlp.access.WidgetMaterialListAccess;
 import io.github.huanmeng06.lmlp.access.WidgetListBoundsAccess;
+import io.github.huanmeng06.lmlp.config.Configs;
+import io.github.huanmeng06.lmlp.config.CountDisplayStyle;
 import io.github.huanmeng06.lmlp.gui.MaterialListColumnLayout;
 import io.github.huanmeng06.lmlp.gui.MaterialListPlusState;
 import io.github.huanmeng06.lmlp.gui.RecipeInlineRenderer;
@@ -18,10 +22,15 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Mixin(value = WidgetListBase.class, remap = false)
 public abstract class WidgetListBaseMixin implements WidgetListBoundsAccess {
+    private int lmlp$lastLayoutMultiplier = Integer.MIN_VALUE;
+    private int lmlp$lastLayoutEntryCount = -1;
+    private CountDisplayStyle lmlp$lastLayoutCountDisplayStyle;
+
     @Shadow
     protected int totalWidth;
     @Shadow
@@ -57,9 +66,12 @@ public abstract class WidgetListBaseMixin implements WidgetListBoundsAccess {
             return;
         }
 
+        this.lmlp$refreshMaterialListColumnLayoutIfNeeded();
+
         boolean hadActiveAnimations = MaterialListPlusState.hasActiveAnimations();
+        boolean hadActiveColumnAnimation = MaterialListColumnLayout.hasActiveAnimation();
         MaterialListPlusState.pruneAnimations();
-        if (hadActiveAnimations || MaterialListPlusState.hasActiveAnimations()) {
+        if (hadActiveAnimations || MaterialListPlusState.hasActiveAnimations() || hadActiveColumnAnimation || MaterialListColumnLayout.hasActiveAnimation()) {
             this.reCreateListEntryWidgets();
         }
     }
@@ -198,5 +210,33 @@ public abstract class WidgetListBaseMixin implements WidgetListBoundsAccess {
         }
 
         return 0;
+    }
+
+    private void lmlp$refreshMaterialListColumnLayoutIfNeeded() {
+        if (!((Object) this instanceof WidgetMaterialListAccess access)) {
+            return;
+        }
+
+        int multiplier = access.lmlp$getMaterialList().getMultiplier();
+        CountDisplayStyle style = (CountDisplayStyle) Configs.Generic.COUNT_DISPLAY_STYLE.getOptionListValue();
+        int entryCount = this.listContents.size();
+        if (multiplier == this.lmlp$lastLayoutMultiplier
+                && entryCount == this.lmlp$lastLayoutEntryCount
+                && style == this.lmlp$lastLayoutCountDisplayStyle) {
+            return;
+        }
+
+        List<MaterialListEntry> entries = new ArrayList<>();
+        for (Object entry : this.listContents) {
+            if (entry instanceof MaterialListEntry materialEntry) {
+                entries.add(materialEntry);
+            }
+        }
+
+        WidgetMaterialListEntry.setMaxNameLength(entries, multiplier);
+        this.lmlp$lastLayoutMultiplier = multiplier;
+        this.lmlp$lastLayoutEntryCount = entryCount;
+        this.lmlp$lastLayoutCountDisplayStyle = style;
+        this.reCreateListEntryWidgets();
     }
 }
