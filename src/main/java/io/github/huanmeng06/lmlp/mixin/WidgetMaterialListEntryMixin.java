@@ -126,16 +126,16 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
     @Overwrite
     protected int getColumnPosX(int column) {
         int xItem = this.x + 4;
-        int xTotal = xItem + maxNameLength + 40;
-        int xMissing = xTotal + maxCountLength1 + 24;
-        int xAvailable = xMissing + maxCountLength2 + 24;
+        int xTotal = xItem + MaterialListColumnLayout.nameWidth() + 40;
+        int xMissing = xTotal + MaterialListColumnLayout.totalWidth() + 24;
+        int xAvailable = xMissing + MaterialListColumnLayout.missingWidth() + 24;
 
         return switch (column) {
             case 0 -> xItem;
             case 1 -> xTotal;
             case 2 -> xMissing;
             case 3 -> xAvailable;
-            case 4 -> xAvailable + maxCountLength3 + 24;
+            case 4 -> xAvailable + MaterialListColumnLayout.availableWidth() + 24;
             default -> xItem;
         };
     }
