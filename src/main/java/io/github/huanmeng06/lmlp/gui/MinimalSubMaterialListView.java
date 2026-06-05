@@ -21,11 +21,14 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.WeakHashMap;
+import java.util.function.Predicate;
 
 public final class MinimalSubMaterialListView {
     private static final int MAX_RECIPE_DEPTH = 16;
     private static final long DISPLAY_CYCLE_MS = 900L;
     private static final long BUILD_BUDGET_NS = 2_500_000L;
+    private static final String COMMON_HIGHLIGHT = "\u00A7e\u00A7l\u00A7n";
+    private static final String RESET = "\u00A7r";
     private static final Map<MaterialListBase, Boolean> ACTIVE_LISTS = new WeakHashMap<>();
     private static final Map<MaterialListBase, Cache> ENTRY_CACHES = new WeakHashMap<>();
     private static final Map<MaterialListBase, BuildState> BUILD_STATES = new WeakHashMap<>();
@@ -187,18 +190,33 @@ public final class MinimalSubMaterialListView {
     }
 
     private static void addLeaf(class_1799 stack, List<class_1799> icons, List<String> names, String name, int totalCount, int missingCount, Map<String, Accumulator> materials) {
-        String key = groupKey(stack, name);
-        materials.computeIfAbsent(key, ignored -> new Accumulator(stack, name))
+        String key = groupKey(stack, icons, name);
+        String displayName = groupDisplayName(icons.isEmpty() ? List.of(stack) : icons, name);
+        materials.computeIfAbsent(key, ignored -> new Accumulator(stack, displayName))
                 .add(totalCount, missingCount, icons, names);
     }
 
-    private static String groupKey(class_1799 stack, String name) {
+    private static String groupKey(class_1799 stack, List<class_1799> icons, String name) {
+        String alternativeKey = knownAlternativeTranslationKey(icons.isEmpty() ? List.of(stack) : icons);
+        if (!alternativeKey.isEmpty()) {
+            return "group:" + alternativeKey;
+        }
+
         String trimmed = name.trim();
         if (!trimmed.isEmpty()) {
             return "name:" + trimmed.toLowerCase(Locale.ROOT);
         }
 
         return "id:" + ItemStackTexts.id(stack);
+    }
+
+    private static String groupDisplayName(List<class_1799> icons, String fallback) {
+        String alternativeKey = knownAlternativeTranslationKey(icons);
+        if (!alternativeKey.isEmpty()) {
+            return StringUtils.translate(alternativeKey);
+        }
+
+        return fallback;
     }
 
     private static List<String> candidateNames(List<class_1799> icons, List<String> alternatives) {
@@ -388,11 +406,11 @@ public final class MinimalSubMaterialListView {
 
     private record DisplayData(String name, List<Candidate> candidates) {
         private String displayName() {
-            return this.stableName();
+            return emphasizeAny(this.stableName());
         }
 
         private String widestName() {
-            return this.stableName();
+            return this.displayName();
         }
 
         private Candidate currentCandidate() {
@@ -417,46 +435,12 @@ public final class MinimalSubMaterialListView {
         }
 
         private String knownAlternativeName() {
-            if (this.allCandidates(DisplayData::isLogLike)) {
-                return StringUtils.translate("lmlp.label.recipe.any.log");
-            }
-            if (this.allCandidates(path -> path.equals("sand") || path.equals("red_sand"))) {
-                return StringUtils.translate("lmlp.label.recipe.any.sand");
-            }
-            if (this.allCandidates(path -> path.contains("quartz"))) {
-                return StringUtils.translate("lmlp.label.recipe.any.quartz");
-            }
-            if (this.allCandidates(DisplayData::isCobblestoneLike)) {
-                return StringUtils.translate("lmlp.label.recipe.any.cobblestone");
-            }
-            return "";
-        }
-
-        private boolean allCandidates(java.util.function.Predicate<String> predicate) {
-            if (this.candidates.isEmpty()) {
-                return false;
-            }
-
+            List<class_1799> icons = new ArrayList<>(this.candidates.size());
             for (Candidate candidate : this.candidates) {
-                String path = itemPath(candidate.icon());
-                if (!predicate.test(path)) {
-                    return false;
-                }
+                icons.add(candidate.icon());
             }
-            return true;
-        }
 
-        private static boolean isLogLike(String path) {
-            return path.endsWith("_log")
-                    || path.endsWith("_wood")
-                    || path.endsWith("_stem")
-                    || path.endsWith("_hyphae");
-        }
-
-        private static boolean isCobblestoneLike(String path) {
-            return path.contains("cobblestone")
-                    || path.equals("cobbled_deepslate")
-                    || path.equals("blackstone");
+            return groupDisplayName(icons, "");
         }
     }
 
@@ -467,5 +451,58 @@ public final class MinimalSubMaterialListView {
         String id = ItemStackTexts.id(stack);
         int separator = id.indexOf(':');
         return separator >= 0 ? id.substring(separator + 1) : id;
+    }
+
+    private static String knownAlternativeTranslationKey(List<class_1799> icons) {
+        if (allIconsMatch(icons, MinimalSubMaterialListView::isLogLike)) {
+            return "lmlp.label.recipe.any.log";
+        }
+        if (allIconsMatch(icons, path -> path.equals("sand") || path.equals("red_sand"))) {
+            return "lmlp.label.recipe.any.sand";
+        }
+        if (allIconsMatch(icons, path -> path.contains("quartz"))) {
+            return "lmlp.label.recipe.any.quartz";
+        }
+        if (allIconsMatch(icons, MinimalSubMaterialListView::isCobblestoneLike)) {
+            return "lmlp.label.recipe.any.cobblestone";
+        }
+        return "";
+    }
+
+    private static boolean allIconsMatch(List<class_1799> icons, Predicate<String> predicate) {
+        if (icons.isEmpty()) {
+            return false;
+        }
+
+        for (class_1799 icon : icons) {
+            if (icon.method_7960() || !predicate.test(itemPath(icon))) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static boolean isLogLike(String path) {
+        return path.endsWith("_log")
+                || path.endsWith("_wood")
+                || path.endsWith("_stem")
+                || path.endsWith("_hyphae");
+    }
+
+    private static boolean isCobblestoneLike(String path) {
+        return path.contains("cobblestone")
+                || path.equals("cobbled_deepslate")
+                || path.equals("blackstone");
+    }
+
+    private static String emphasizeAny(String name) {
+        if (name.startsWith("任意")) {
+            return COMMON_HIGHLIGHT + "任意" + RESET + name.substring("任意".length());
+        }
+        if (name.startsWith("Any ")) {
+            return COMMON_HIGHLIGHT + "Any" + RESET + name.substring("Any".length());
+        }
+        return name;
     }
 }

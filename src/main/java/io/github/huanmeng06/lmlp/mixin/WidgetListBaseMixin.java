@@ -32,6 +32,7 @@ public abstract class WidgetListBaseMixin implements WidgetListBoundsAccess {
     private int lmlp$lastLayoutEntryCount = -1;
     private String lmlp$lastLayoutSignature = "";
     private CountDisplayStyle lmlp$lastLayoutCountDisplayStyle;
+    private boolean lmlp$lastLayoutMinimalSubMaterialView;
 
     @Shadow
     protected int totalWidth;
@@ -226,6 +227,7 @@ public abstract class WidgetListBaseMixin implements WidgetListBoundsAccess {
         }
 
         int multiplier = access.lmlp$getMaterialList().getMultiplier();
+        boolean minimalSubMaterialView = MinimalSubMaterialListView.isActive(access.lmlp$getMaterialList());
         CountDisplayStyle style = (CountDisplayStyle) Configs.Generic.COUNT_DISPLAY_STYLE.getOptionListValue();
         int entryCount = this.listContents.size();
         List<MaterialListEntry> entries = new ArrayList<>();
@@ -238,7 +240,8 @@ public abstract class WidgetListBaseMixin implements WidgetListBoundsAccess {
         if (multiplier == this.lmlp$lastLayoutMultiplier
                 && entryCount == this.lmlp$lastLayoutEntryCount
                 && signature.equals(this.lmlp$lastLayoutSignature)
-                && style == this.lmlp$lastLayoutCountDisplayStyle) {
+                && style == this.lmlp$lastLayoutCountDisplayStyle
+                && minimalSubMaterialView == this.lmlp$lastLayoutMinimalSubMaterialView) {
             return;
         }
 
@@ -247,6 +250,7 @@ public abstract class WidgetListBaseMixin implements WidgetListBoundsAccess {
         this.lmlp$lastLayoutEntryCount = entryCount;
         this.lmlp$lastLayoutSignature = signature;
         this.lmlp$lastLayoutCountDisplayStyle = style;
+        this.lmlp$lastLayoutMinimalSubMaterialView = minimalSubMaterialView;
         this.reCreateListEntryWidgets();
     }
 
