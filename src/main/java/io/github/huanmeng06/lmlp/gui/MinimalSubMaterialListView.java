@@ -13,7 +13,6 @@ import io.github.huanmeng06.lmlp.recipe.RecipeSummaryFormatter;
 import net.minecraft.class_1799;
 
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
@@ -27,8 +26,6 @@ public final class MinimalSubMaterialListView {
     private static final int MAX_RECIPE_DEPTH = 16;
     private static final long DISPLAY_CYCLE_MS = 900L;
     private static final long BUILD_BUDGET_NS = 2_500_000L;
-    private static final String COMMON_HIGHLIGHT = "\u00A7e\u00A7l\u00A7n";
-    private static final String RESET = "\u00A7r";
     private static final Map<MaterialListBase, Boolean> ACTIVE_LISTS = new WeakHashMap<>();
     private static final Map<MaterialListBase, Cache> ENTRY_CACHES = new WeakHashMap<>();
     private static final Map<MaterialListBase, BuildState> BUILD_STATES = new WeakHashMap<>();
@@ -391,22 +388,11 @@ public final class MinimalSubMaterialListView {
 
     private record DisplayData(String name, List<Candidate> candidates) {
         private String displayName() {
-            if (this.candidates.size() <= 1) {
-                return this.name;
-            }
-
-            return this.formatCandidate(this.currentCandidate().name());
+            return this.stableName();
         }
 
         private String widestName() {
-            if (this.candidates.size() <= 1) {
-                return this.name;
-            }
-
-            return this.formatCandidate(this.candidates.stream()
-                    .map(Candidate::name)
-                    .max(Comparator.comparingInt(String::length))
-                    .orElse(this.currentCandidate().name()));
+            return this.stableName();
         }
 
         private Candidate currentCandidate() {
@@ -414,77 +400,72 @@ public final class MinimalSubMaterialListView {
             return this.candidates.get(index);
         }
 
-        private String formatCandidate(String candidateName) {
-            String highlight = highlightText(candidateName);
-            if (highlight.isEmpty() || !candidateName.contains(highlight)) {
-                return candidateName;
+        private String stableName() {
+            if (this.candidates.size() > 1) {
+                String knownName = knownAlternativeName();
+                if (!knownName.isEmpty()) {
+                    return knownName;
+                }
             }
 
-            int index = "木".equals(highlight) ? candidateName.lastIndexOf(highlight) : candidateName.indexOf(highlight);
-            if (index < 0) {
-                return candidateName;
+            String trimmed = this.name.trim();
+            if (!trimmed.isEmpty()) {
+                return trimmed;
             }
 
-            return candidateName.substring(0, index)
-                    + COMMON_HIGHLIGHT
-                    + highlight
-                    + RESET
-                    + candidateName.substring(index + highlight.length());
+            return this.candidates.isEmpty() ? "" : this.candidates.get(0).name();
         }
 
-        private String highlightText(String candidateName) {
-            String common = commonText();
-            if (candidateName.contains("原木") && this.candidates.stream().map(Candidate::name).anyMatch(name -> name.contains("原木"))) {
-                return "原木";
+        private String knownAlternativeName() {
+            if (this.allCandidates(DisplayData::isLogLike)) {
+                return StringUtils.translate("lmlp.label.recipe.any.log");
             }
-
-            if (candidateName.contains("木") && common.contains("木")) {
-                return "木";
+            if (this.allCandidates(path -> path.equals("sand") || path.equals("red_sand"))) {
+                return StringUtils.translate("lmlp.label.recipe.any.sand");
             }
-
-            return common;
+            if (this.allCandidates(path -> path.contains("quartz"))) {
+                return StringUtils.translate("lmlp.label.recipe.any.quartz");
+            }
+            if (this.allCandidates(DisplayData::isCobblestoneLike)) {
+                return StringUtils.translate("lmlp.label.recipe.any.cobblestone");
+            }
+            return "";
         }
 
-        private String commonText() {
-            String common = longestCommonSubstring(this.candidates.stream()
-                    .map(Candidate::name)
-                    .toList());
-            return common.trim();
+        private boolean allCandidates(java.util.function.Predicate<String> predicate) {
+            if (this.candidates.isEmpty()) {
+                return false;
+            }
+
+            for (Candidate candidate : this.candidates) {
+                String path = itemPath(candidate.icon());
+                if (!predicate.test(path)) {
+                    return false;
+                }
+            }
+            return true;
         }
 
+        private static boolean isLogLike(String path) {
+            return path.endsWith("_log")
+                    || path.endsWith("_wood")
+                    || path.endsWith("_stem")
+                    || path.endsWith("_hyphae");
+        }
+
+        private static boolean isCobblestoneLike(String path) {
+            return path.contains("cobblestone")
+                    || path.equals("cobbled_deepslate")
+                    || path.equals("blackstone");
+        }
     }
 
     private record Candidate(class_1799 icon, String name) {
     }
 
-    private static String longestCommonSubstring(List<String> values) {
-        if (values.size() <= 1) {
-            return "";
-        }
-
-        String shortest = values.stream()
-                .min(Comparator.comparingInt(String::length))
-                .orElse("");
-        String best = "";
-        for (int start = 0; start < shortest.length(); start++) {
-            for (int end = start + 1; end <= shortest.length(); end++) {
-                String candidate = shortest.substring(start, end);
-                if (candidate.length() <= best.length() || candidate.isBlank()) {
-                    continue;
-                }
-
-                boolean present = true;
-                for (String value : values) {
-                    if (!value.contains(candidate)) {
-                        present = false;
-                        break;
-                    }
-                }
-                if (present) {
-                    best = candidate;
-                }
-            }
-        }
-        return best;
+    private static String itemPath(class_1799 stack) {
+        String id = ItemStackTexts.id(stack);
+        int separator = id.indexOf(':');
+        return separator >= 0 ? id.substring(separator + 1) : id;
     }
 }
