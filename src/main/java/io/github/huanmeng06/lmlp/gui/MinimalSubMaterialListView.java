@@ -300,7 +300,7 @@ public final class MinimalSubMaterialListView {
                 return this.name;
             }
 
-            return anyPrefix() + this.formatCandidate(this.currentCandidate().name());
+            return this.formatCandidate(this.currentCandidate().name());
         }
 
         private String widestName() {
@@ -308,7 +308,7 @@ public final class MinimalSubMaterialListView {
                 return this.name;
             }
 
-            return anyPrefix() + this.formatCandidate(this.candidates.stream()
+            return this.formatCandidate(this.candidates.stream()
                     .map(Candidate::name)
                     .max(Comparator.comparingInt(String::length))
                     .orElse(this.currentCandidate().name()));
@@ -357,10 +357,6 @@ public final class MinimalSubMaterialListView {
             return common.trim();
         }
 
-        private static String anyPrefix() {
-            String translated = StringUtils.translate("lmlp.label.recipe.any", "");
-            return translated.isBlank() ? "任一：" : translated;
-        }
     }
 
     private record Candidate(class_1799 icon, String name) {
