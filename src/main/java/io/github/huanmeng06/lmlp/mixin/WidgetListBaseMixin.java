@@ -12,6 +12,7 @@ import io.github.huanmeng06.lmlp.config.Configs;
 import io.github.huanmeng06.lmlp.config.CountDisplayStyle;
 import io.github.huanmeng06.lmlp.gui.MaterialListColumnLayout;
 import io.github.huanmeng06.lmlp.gui.MaterialListPlusState;
+import io.github.huanmeng06.lmlp.gui.MinimalSubMaterialListView;
 import io.github.huanmeng06.lmlp.gui.RecipeInlineRenderer;
 import net.minecraft.class_332;
 import org.spongepowered.asm.mixin.Final;
@@ -29,6 +30,7 @@ import java.util.List;
 public abstract class WidgetListBaseMixin implements WidgetListBoundsAccess {
     private int lmlp$lastLayoutMultiplier = Integer.MIN_VALUE;
     private int lmlp$lastLayoutEntryCount = -1;
+    private String lmlp$lastLayoutSignature = "";
     private CountDisplayStyle lmlp$lastLayoutCountDisplayStyle;
 
     @Shadow
@@ -220,23 +222,40 @@ public abstract class WidgetListBaseMixin implements WidgetListBoundsAccess {
         int multiplier = access.lmlp$getMaterialList().getMultiplier();
         CountDisplayStyle style = (CountDisplayStyle) Configs.Generic.COUNT_DISPLAY_STYLE.getOptionListValue();
         int entryCount = this.listContents.size();
-        if (multiplier == this.lmlp$lastLayoutMultiplier
-                && entryCount == this.lmlp$lastLayoutEntryCount
-                && style == this.lmlp$lastLayoutCountDisplayStyle) {
-            return;
-        }
-
         List<MaterialListEntry> entries = new ArrayList<>();
         for (Object entry : this.listContents) {
             if (entry instanceof MaterialListEntry materialEntry) {
                 entries.add(materialEntry);
             }
         }
+        String signature = this.lmlp$layoutSignature(entries);
+        if (multiplier == this.lmlp$lastLayoutMultiplier
+                && entryCount == this.lmlp$lastLayoutEntryCount
+                && signature.equals(this.lmlp$lastLayoutSignature)
+                && style == this.lmlp$lastLayoutCountDisplayStyle) {
+            return;
+        }
 
         WidgetMaterialListEntry.setMaxNameLength(entries, multiplier);
         this.lmlp$lastLayoutMultiplier = multiplier;
         this.lmlp$lastLayoutEntryCount = entryCount;
+        this.lmlp$lastLayoutSignature = signature;
         this.lmlp$lastLayoutCountDisplayStyle = style;
         this.reCreateListEntryWidgets();
+    }
+
+    private String lmlp$layoutSignature(List<MaterialListEntry> entries) {
+        StringBuilder builder = new StringBuilder();
+        for (MaterialListEntry entry : entries) {
+            builder.append(MinimalSubMaterialListView.widestDisplayName(entry))
+                    .append(':')
+                    .append(entry.getCountTotal())
+                    .append(':')
+                    .append(entry.getCountMissing())
+                    .append(':')
+                    .append(entry.getCountAvailable())
+                    .append('|');
+        }
+        return builder.toString();
     }
 }

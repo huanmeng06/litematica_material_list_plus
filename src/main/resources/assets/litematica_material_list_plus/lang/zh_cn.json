@@ -51,6 +51,7 @@
   "lmlp.gui.button.config_gui.hotkeys": "热键",
   "lmlp.gui.button.material_list.write_sub_materials": "写入子材料文件",
   "lmlp.gui.button.hover.material_list.write_sub_materials": "写入树状子材料 XLSX。",
+  "lmlp.gui.material_list.display_type.minimal_sub_materials": "最小子材料",
   "lmlp.message.sub_material_list_export_failed": "写入子材料文件失败。",
   "lmlp.hotkeys.category.material_list": "材料列表",
   "lmlp.config.name.enable_lmlp_hover_tooltip": "启用 LMLP 悬停浮窗",

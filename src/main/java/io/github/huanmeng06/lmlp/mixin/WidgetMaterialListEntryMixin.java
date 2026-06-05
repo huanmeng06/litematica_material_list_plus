@@ -17,6 +17,7 @@ import io.github.huanmeng06.lmlp.config.HoverTooltipMode;
 import io.github.huanmeng06.lmlp.config.Hotkeys;
 import io.github.huanmeng06.lmlp.gui.MaterialListColumnLayout;
 import io.github.huanmeng06.lmlp.gui.MaterialListPlusState;
+import io.github.huanmeng06.lmlp.gui.MinimalSubMaterialListView;
 import io.github.huanmeng06.lmlp.gui.RecipeDetailScreen;
 import io.github.huanmeng06.lmlp.gui.RecipeInlineRenderer;
 import io.github.huanmeng06.lmlp.material.CountFormatter;
@@ -110,8 +111,9 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
             int total = entry.getCountTotal() * multiplier;
             int missing = multiplier == 1 ? entry.getCountMissing() : total;
             class_1799 stack = entry.getStack();
+            String name = MinimalSubMaterialListView.widestDisplayName(entry);
 
-            maxNameLength = Math.max(maxNameLength, StringUtils.getStringWidth(stack.method_7964().getString()));
+            maxNameLength = Math.max(maxNameLength, StringUtils.getStringWidth(name));
             maxCountLength1 = Math.max(maxCountLength1, StringUtils.getStringWidth(CountFormatter.formatAligned(stack, total, lmlpMaxTotalDigits)));
             maxCountLength2 = Math.max(maxCountLength2, StringUtils.getStringWidth(CountFormatter.formatAligned(stack, missing, lmlpMaxMissingDigits)));
             maxCountLength3 = Math.max(maxCountLength3, StringUtils.getStringWidth(Integer.toString(entry.getCountAvailable())));
@@ -245,13 +247,14 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
             return;
         }
 
-        class_1799 stack = this.entry.getStack();
+        class_1799 stack = MinimalSubMaterialListView.displayStack(this.entry);
+        String name = MinimalSubMaterialListView.displayName(this.entry);
         int total = MaterialCounts.total(this.entry, this.materialList);
         int missing = MaterialCounts.missing(this.entry, this.materialList);
         int available = this.entry.getCountAvailable();
 
         int iconX = xItem;
-        this.drawString(xItem + 20, yText, -1, stack.method_7964().getString(), drawContext);
+        this.drawString(xItem + 20, yText, -1, name, drawContext);
         this.drawString(xTotal, yText, -1, CountFormatter.formatAligned(stack, total, lmlpMaxTotalDigits), drawContext);
         this.drawString(xMissing, yText, -1, missingColor(missing, available) + CountFormatter.formatAligned(stack, missing, lmlpMaxMissingDigits), drawContext);
         this.drawString(xAvailable, yText, -1, availableColor(available, missing) + available, drawContext);
@@ -298,11 +301,11 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
     }
 
     private void renderMaterialHoverTooltip(class_332 drawContext, int mouseX, int mouseY, boolean detailed) {
-        class_1799 stack = this.entry.getStack();
+        class_1799 stack = MinimalSubMaterialListView.displayStack(this.entry);
         String totalLabel = StringUtils.translate(detailed ? "litematica.gui.label.material_list.title.total" : "lmlp.label.recipe.total_short");
         String missingLabel = StringUtils.translate(detailed ? "litematica.gui.label.material_list.title.missing" : "lmlp.label.recipe.missing_short");
         String availableLabel = StringUtils.translate("litematica.gui.label.material_list.title.available");
-        String itemText = stack.method_7964().getString();
+        String itemText = MinimalSubMaterialListView.displayName(this.entry);
         int total = MaterialCounts.total(this.entry, this.materialList);
         int missing = MaterialCounts.missing(this.entry, this.materialList);
         int available = this.entry.getCountAvailable();
@@ -368,11 +371,11 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
     }
 
     private void renderVanillaMaterialHoverTooltip(class_332 drawContext, int mouseX, int mouseY) {
-        class_1799 stack = this.entry.getStack();
+        class_1799 stack = MinimalSubMaterialListView.displayStack(this.entry);
         String itemLabel = GuiBase.TXT_BOLD + StringUtils.translate("litematica.gui.label.material_list.title.item");
         String totalLabel = GuiBase.TXT_BOLD + StringUtils.translate("litematica.gui.label.material_list.title.total");
         String missingLabel = GuiBase.TXT_BOLD + StringUtils.translate("litematica.gui.label.material_list.title.missing");
-        String itemText = stack.method_7964().getString();
+        String itemText = MinimalSubMaterialListView.displayName(this.entry);
         int multiplier = this.materialList.getMultiplier();
         int total = this.entry.getCountTotal() * multiplier;
         int missing = multiplier == 1 ? this.entry.getCountMissing() : total;

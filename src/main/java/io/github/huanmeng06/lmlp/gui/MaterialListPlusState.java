@@ -205,6 +205,7 @@ public final class MaterialListPlusState {
         clearIngredientTrees();
         treeSupportCache.clear();
         treeCache.clear();
+        MinimalSubMaterialListView.clearCaches();
     }
 
     public static void applyRecipePreferences() {
