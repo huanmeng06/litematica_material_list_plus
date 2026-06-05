@@ -174,6 +174,10 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         }
 
         if (mouseButton == 0 && this.isMouseOver(mouseX, mouseY)) {
+            if (MinimalSubMaterialListView.isActive(this.materialList)) {
+                return true;
+            }
+
             if (!GuiBase.isShiftDown()) {
                 if (this.handleRecipePanelClick(mouseX, mouseY)) {
                     return true;
