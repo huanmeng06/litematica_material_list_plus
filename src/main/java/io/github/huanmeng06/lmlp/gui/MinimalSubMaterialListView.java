@@ -26,10 +26,12 @@ import java.util.WeakHashMap;
 public final class MinimalSubMaterialListView {
     private static final int MAX_RECIPE_DEPTH = 16;
     private static final long DISPLAY_CYCLE_MS = 900L;
+    private static final long BUILD_BUDGET_NS = 2_500_000L;
     private static final String COMMON_HIGHLIGHT = "\u00A7e\u00A7l\u00A7n";
     private static final String RESET = "\u00A7r";
     private static final Map<MaterialListBase, Boolean> ACTIVE_LISTS = new WeakHashMap<>();
     private static final Map<MaterialListBase, Cache> ENTRY_CACHES = new WeakHashMap<>();
+    private static final Map<MaterialListBase, BuildState> BUILD_STATES = new WeakHashMap<>();
     private static final Map<MaterialListEntry, DisplayData> ENTRY_DISPLAYS = new IdentityHashMap<>();
 
     private MinimalSubMaterialListView() {
@@ -92,36 +94,44 @@ public final class MinimalSubMaterialListView {
             return cache.entries();
         }
 
-        Map<String, Accumulator> materials = new LinkedHashMap<>();
-        boolean multiplied = materialList.getMultiplier() > 1;
-
-        for (MaterialListEntry entry : sourceEntries) {
-            class_1799 stack = entry.getStack();
-            int total = entry.getCountTotal();
-            int missing = multiplied ? total : entry.getCountMissing();
-            collectLeaves(stack, List.of(stack), List.of(ItemStackTexts.name(stack)), ItemStackTexts.name(stack), total, missing, 0, new HashSet<>(), materials);
+        BuildState state = BUILD_STATES.get(materialList);
+        if (state == null || !state.signature().equals(signature)) {
+            clearCache(materialList);
+            state = new BuildState(signature, sourceEntries, materialList.getMultiplier() > 1);
+            BUILD_STATES.put(materialList, state);
         }
 
-        List<MaterialListEntry> entries = new ArrayList<>(materials.size());
-        Map<MaterialListEntry, DisplayData> displays = new IdentityHashMap<>();
-        for (Accumulator material : materials.values()) {
-            int total = clampToInt(material.totalCount);
-            int missing = clampToInt(material.missingCount);
-            int available = multiplied ? 0 : Math.max(0, total - missing);
-            MaterialListEntry entry = new MaterialListEntry(material.stack.method_7972(), total, missing, 0, available);
-            entries.add(entry);
-            displays.put(entry, new DisplayData(material.name, material.candidates()));
+        state.process(materialList, BUILD_BUDGET_NS);
+        if (state.isComplete()) {
+            ENTRY_CACHES.put(materialList, new Cache(signature, state.entries()));
+            BUILD_STATES.remove(materialList);
         }
-
-        clearCache(materialList);
-        ENTRY_DISPLAYS.putAll(displays);
-        ENTRY_CACHES.put(materialList, new Cache(signature, entries));
-        return entries;
+        return state.entries();
     }
 
     public static void clearCaches() {
         ENTRY_CACHES.keySet().forEach(MinimalSubMaterialListView::removeDisplayData);
         ENTRY_CACHES.clear();
+        BUILD_STATES.keySet().forEach(MinimalSubMaterialListView::removeBuildDisplayData);
+        BUILD_STATES.clear();
+    }
+
+    public static boolean tick(MaterialListBase materialList) {
+        if (!isActive(materialList)) {
+            return false;
+        }
+
+        BuildState state = BUILD_STATES.get(materialList);
+        if (state == null) {
+            return false;
+        }
+
+        boolean changed = state.process(materialList, BUILD_BUDGET_NS);
+        if (state.isComplete()) {
+            ENTRY_CACHES.put(materialList, new Cache(state.signature(), state.entries()));
+            BUILD_STATES.remove(materialList);
+        }
+        return changed;
     }
 
     public static String displayName(MaterialListEntry entry) {
@@ -237,7 +247,9 @@ public final class MinimalSubMaterialListView {
 
     private static void clearCache(MaterialListBase materialList) {
         removeDisplayData(materialList);
+        removeBuildDisplayData(materialList);
         ENTRY_CACHES.remove(materialList);
+        BUILD_STATES.remove(materialList);
     }
 
     private static void removeDisplayData(MaterialListBase materialList) {
@@ -247,6 +259,17 @@ public final class MinimalSubMaterialListView {
         }
 
         for (MaterialListEntry entry : cache.entries()) {
+            ENTRY_DISPLAYS.remove(entry);
+        }
+    }
+
+    private static void removeBuildDisplayData(MaterialListBase materialList) {
+        BuildState state = BUILD_STATES.get(materialList);
+        if (state == null) {
+            return;
+        }
+
+        for (MaterialListEntry entry : state.entries()) {
             ENTRY_DISPLAYS.remove(entry);
         }
     }
@@ -288,6 +311,78 @@ public final class MinimalSubMaterialListView {
 
         private List<Candidate> candidates() {
             return List.copyOf(this.candidates.values());
+        }
+    }
+
+    private static final class BuildState {
+        private final String signature;
+        private final List<MaterialListEntry> sourceEntries;
+        private final boolean multiplied;
+        private final Map<String, Accumulator> materials = new LinkedHashMap<>();
+        private List<MaterialListEntry> entries = List.of();
+        private int nextSourceIndex;
+        private boolean complete;
+
+        private BuildState(String signature, List<MaterialListEntry> sourceEntries, boolean multiplied) {
+            this.signature = signature;
+            this.sourceEntries = List.copyOf(sourceEntries);
+            this.multiplied = multiplied;
+        }
+
+        private String signature() {
+            return this.signature;
+        }
+
+        private List<MaterialListEntry> entries() {
+            return this.entries;
+        }
+
+        private boolean isComplete() {
+            return this.complete;
+        }
+
+        private boolean process(MaterialListBase materialList, long budgetNs) {
+            if (this.complete) {
+                return false;
+            }
+
+            long deadline = System.nanoTime() + budgetNs;
+            boolean changed = false;
+            do {
+                if (this.nextSourceIndex >= this.sourceEntries.size()) {
+                    this.complete = true;
+                    break;
+                }
+
+                MaterialListEntry entry = this.sourceEntries.get(this.nextSourceIndex++);
+                class_1799 stack = entry.getStack();
+                int total = entry.getCountTotal();
+                int missing = this.multiplied ? total : entry.getCountMissing();
+                collectLeaves(stack, List.of(stack), List.of(ItemStackTexts.name(stack)), ItemStackTexts.name(stack), total, missing, 0, new HashSet<>(), this.materials);
+                changed = true;
+            } while (System.nanoTime() < deadline);
+
+            if (changed || this.complete) {
+                this.publish(materialList);
+            }
+            return changed;
+        }
+
+        private void publish(MaterialListBase materialList) {
+            removeBuildDisplayData(materialList);
+            List<MaterialListEntry> entries = new ArrayList<>(this.materials.size());
+            Map<MaterialListEntry, DisplayData> displays = new IdentityHashMap<>();
+            for (Accumulator material : this.materials.values()) {
+                int total = clampToInt(material.totalCount);
+                int missing = clampToInt(material.missingCount);
+                int available = this.multiplied ? 0 : Math.max(0, total - missing);
+                MaterialListEntry entry = new MaterialListEntry(material.stack.method_7972(), total, missing, 0, available);
+                entries.add(entry);
+                displays.put(entry, new DisplayData(material.name, material.candidates()));
+            }
+
+            this.entries = entries;
+            ENTRY_DISPLAYS.putAll(displays);
         }
     }
 

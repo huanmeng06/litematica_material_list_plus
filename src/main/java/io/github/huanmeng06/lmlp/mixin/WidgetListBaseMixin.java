@@ -61,11 +61,17 @@ public abstract class WidgetListBaseMixin implements WidgetListBoundsAccess {
     protected abstract int getBrowserEntryHeightFor(Object entry);
     @Shadow
     protected abstract void reCreateListEntryWidgets();
+    @Shadow
+    public abstract void refreshEntries();
 
     @Inject(method = "drawContents", at = @At("HEAD"))
     private void lmlp$refreshAnimatedRecipeExpansion(class_332 drawContext, int mouseX, int mouseY, float partialTicks, CallbackInfo ci) {
         if (!((Object) this instanceof WidgetListMaterialList)) {
             return;
+        }
+
+        if ((Object) this instanceof WidgetMaterialListAccess access && MinimalSubMaterialListView.tick(access.lmlp$getMaterialList())) {
+            this.refreshEntries();
         }
 
         this.lmlp$refreshMaterialListColumnLayoutIfNeeded();
