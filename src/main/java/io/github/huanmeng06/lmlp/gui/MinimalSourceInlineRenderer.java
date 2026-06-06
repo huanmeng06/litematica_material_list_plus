@@ -28,7 +28,7 @@ public final class MinimalSourceInlineRenderer {
             return 56;
         }
 
-        return 64 + visibleSourceCount(sources) * ROW_HEIGHT + INNER_BOTTOM_PADDING;
+        return 50 + visibleSourceCount(sources) * ROW_HEIGHT + INNER_BOTTOM_PADDING;
     }
 
     public static int getOuterHeight(class_1799 targetIcon, List<MinimalSubMaterialListView.SourceContribution> sources, boolean showAll) {
@@ -69,6 +69,7 @@ public final class MinimalSourceInlineRenderer {
         cursorY += 24;
 
         String boldTargetName = GuiBase.TXT_BOLD + targetName + GuiBase.TXT_RST;
+        String goldCountLabel = GuiBase.TXT_GOLD + StringUtils.translate("lmlp.label.minimal_sources.count_word") + GuiBase.TXT_RST;
         if (isSelfSource(targetIcon, sources)) {
             widget.drawString(textX, cursorY + 2, 0xFFFFFFFF, StringUtils.translate("lmlp.label.minimal_sources.self_material", boldTargetName), context);
             context.method_44380();
@@ -76,14 +77,12 @@ public final class MinimalSourceInlineRenderer {
             return;
         }
 
-        widget.drawString(textX, cursorY, 0xFFFFFFFF, StringUtils.translate("lmlp.label.minimal_sources.header_named", boldTargetName), context);
+        widget.drawString(textX, cursorY, 0xFFFFFFFF, StringUtils.translate("lmlp.label.minimal_sources.header_named", boldTargetName, goldCountLabel), context);
         cursorY += 18;
 
         int boxY = cursorY;
-        int boxHeight = 18 + visibleSourceCount(sources) * ROW_HEIGHT;
+        int boxHeight = visibleSourceCount(sources) * ROW_HEIGHT;
         RenderUtils.drawRect(textX - 2, boxY - 2, panelWidth - PADDING * 2 + 4, boxHeight, 0x66000000);
-        widget.drawString(textX, cursorY, 0xFFAAAAAA, StringUtils.translate("lmlp.label.minimal_sources.source_materials_named", boldTargetName), context);
-        cursorY += 18;
 
         int visibleCount = visibleSourceCount(sources);
         for (int index = 0; index < visibleCount; index++) {
