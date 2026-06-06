@@ -761,6 +761,9 @@ public final class MinimalSubMaterialListView {
         if (allIconsMatch(icons, MinimalSubMaterialListView::isCobblestoneLike)) {
             return "lmlp.label.recipe.any.cobblestone";
         }
+        if (allIconsMatch(icons, MinimalSubMaterialListView::isPurpurLike)) {
+            return "lmlp.label.recipe.any.purpur";
+        }
         return "";
     }
 
@@ -824,6 +827,10 @@ public final class MinimalSubMaterialListView {
         return path.contains("cobblestone")
                 || path.equals("cobbled_deepslate")
                 || path.equals("blackstone");
+    }
+
+    private static boolean isPurpurLike(String path) {
+        return path.equals("purpur_block") || path.equals("purpur_pillar");
     }
 
     private static String emphasizeAny(String name) {

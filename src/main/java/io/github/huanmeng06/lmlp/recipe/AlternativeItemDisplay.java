@@ -109,6 +109,10 @@ public final class AlternativeItemDisplay {
     }
 
     private static String directAlternativeName(List<class_1799> icons, List<String> alternatives) {
+        if (isPurpurPair(icons)) {
+            return StringUtils.translate("lmlp.label.recipe.any.purpur");
+        }
+
         if (!isSandPair(icons)) {
             return "";
         }
@@ -141,6 +145,23 @@ public final class AlternativeItemDisplay {
         }
 
         return hasSand && hasRedSand;
+    }
+
+    private static boolean isPurpurPair(List<class_1799> icons) {
+        boolean hasPurpurBlock = false;
+        boolean hasPurpurPillar = false;
+        for (class_1799 icon : icons) {
+            String id = ItemStackTexts.id(icon);
+            if (id.equals("minecraft:purpur_block")) {
+                hasPurpurBlock = true;
+            } else if (id.equals("minecraft:purpur_pillar")) {
+                hasPurpurPillar = true;
+            } else {
+                return false;
+            }
+        }
+
+        return hasPurpurBlock && hasPurpurPillar;
     }
 
     private static String sameWoodFamilyLogName(List<class_1799> icons, List<String> alternatives) {
