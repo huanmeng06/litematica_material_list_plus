@@ -84,6 +84,6 @@
   "config.comment.countdisplaystyle": "Style 1: boxes + stacks + items\nStyle 2: total = boxes + stacks + items\nStyle 3: A × SB + B × 64 (16) + C\nStyle 4: total (Litematica)",
   "config.comment.hovertooltipmode": "Choose LMLP, Litematica original, or no material hover tooltip.",
   "config.comment.openconfiggui": "Open the Litematica Material List Plus configuration screen.",
-  "config.comment.recipestopitems": "Items in this list are treated as base materials.",
+  "config.comment.recipestopitems": "Items in this list are treated as base materials. Use {color} to match all 16 colored variants, for example minecraft:{color}_wool.",
   "config.comment.showhoverdetails": "Hold this key while hovering a material list entry to show total, missing and available counts in the detailed tooltip."
 }

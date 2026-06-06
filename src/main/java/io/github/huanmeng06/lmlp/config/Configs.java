@@ -14,11 +14,14 @@ import io.github.huanmeng06.lmlp.LitematicaMaterialListPlus;
 import io.github.huanmeng06.lmlp.gui.MaterialListPlusState;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 
 public class Configs implements IConfigHandler {
     private static final String FILE_NAME = LitematicaMaterialListPlus.MOD_ID + ".json";
@@ -26,6 +29,25 @@ public class Configs implements IConfigHandler {
     private static final String HOTKEYS = "Hotkeys";
     private static final String PREFERRED_RECIPES = "PreferredRecipes";
     private static final Map<String, String> preferredRecipes = new HashMap<>();
+    private static final List<String> COLOR_NAMES = List.of(
+            "white",
+            "orange",
+            "magenta",
+            "light_blue",
+            "yellow",
+            "lime",
+            "pink",
+            "gray",
+            "light_gray",
+            "cyan",
+            "purple",
+            "blue",
+            "brown",
+            "green",
+            "red",
+            "black"
+    );
+    private static final List<String> COLOR_PATTERN_SUFFIXES = List.of("dye", "wool", "carpet", "terracotta");
 
     public static final class Generic {
         public static final ConfigOptionList HOVER_TOOLTIP_MODE = new ConfigOptionList(
@@ -51,72 +73,12 @@ public class Configs implements IConfigHandler {
                         "minecraft:quartz",
                         "minecraft:honey_bottle",
                         "minecraft:redstone",
-                        "minecraft:white_dye",
-                        "minecraft:orange_dye",
-                        "minecraft:magenta_dye",
-                        "minecraft:light_blue_dye",
-                        "minecraft:yellow_dye",
-                        "minecraft:lime_dye",
-                        "minecraft:pink_dye",
-                        "minecraft:gray_dye",
-                        "minecraft:light_gray_dye",
-                        "minecraft:cyan_dye",
-                        "minecraft:purple_dye",
-                        "minecraft:blue_dye",
-                        "minecraft:brown_dye",
-                        "minecraft:green_dye",
-                        "minecraft:red_dye",
-                        "minecraft:black_dye",
-                        "minecraft:white_wool",
-                        "minecraft:orange_wool",
-                        "minecraft:magenta_wool",
-                        "minecraft:light_blue_wool",
-                        "minecraft:yellow_wool",
-                        "minecraft:lime_wool",
-                        "minecraft:pink_wool",
-                        "minecraft:gray_wool",
-                        "minecraft:light_gray_wool",
-                        "minecraft:cyan_wool",
-                        "minecraft:purple_wool",
-                        "minecraft:blue_wool",
-                        "minecraft:brown_wool",
-                        "minecraft:green_wool",
-                        "minecraft:red_wool",
-                        "minecraft:black_wool",
-                        "minecraft:white_carpet",
-                        "minecraft:orange_carpet",
-                        "minecraft:magenta_carpet",
-                        "minecraft:light_blue_carpet",
-                        "minecraft:yellow_carpet",
-                        "minecraft:lime_carpet",
-                        "minecraft:pink_carpet",
-                        "minecraft:gray_carpet",
-                        "minecraft:light_gray_carpet",
-                        "minecraft:cyan_carpet",
-                        "minecraft:purple_carpet",
-                        "minecraft:blue_carpet",
-                        "minecraft:brown_carpet",
-                        "minecraft:green_carpet",
-                        "minecraft:red_carpet",
-                        "minecraft:black_carpet",
-                        "minecraft:white_terracotta",
-                        "minecraft:orange_terracotta",
-                        "minecraft:magenta_terracotta",
-                        "minecraft:light_blue_terracotta",
-                        "minecraft:yellow_terracotta",
-                        "minecraft:lime_terracotta",
-                        "minecraft:pink_terracotta",
-                        "minecraft:gray_terracotta",
-                        "minecraft:light_gray_terracotta",
-                        "minecraft:cyan_terracotta",
-                        "minecraft:purple_terracotta",
-                        "minecraft:blue_terracotta",
-                        "minecraft:brown_terracotta",
-                        "minecraft:green_terracotta",
-                        "minecraft:red_terracotta",
-                        "minecraft:black_terracotta"
+                        "minecraft:{color}_dye",
+                        "minecraft:{color}_wool",
+                        "minecraft:{color}_carpet",
+                        "minecraft:{color}_terracotta"
                 ),
-                "Items in this list are treated as base materials."
+                "Items in this list are treated as base materials. Use {color} to match all 16 Minecraft colors, for example minecraft:{color}_wool."
         );
 
         public static final List<IConfigBase> OPTIONS = ImmutableList.of(
@@ -143,6 +105,7 @@ public class Configs implements IConfigHandler {
                 ConfigUtils.readConfigBase(root, HOTKEYS, Hotkeys.HOTKEY_LIST);
                 readPreferredRecipes(root);
                 migrateHoverTooltipModeConfig(root);
+                migrateRecipeStopColorPatterns();
             }
         }
     }
@@ -161,7 +124,22 @@ public class Configs implements IConfigHandler {
     public static boolean shouldStopRecipeDecomposition(String itemId) {
         String normalizedItemId = normalizeItemId(itemId);
         for (String configuredId : Generic.RECIPE_STOP_ITEMS.getStrings()) {
-            if (normalizeItemId(configuredId).equals(normalizedItemId)) {
+            if (matchesRecipeStopItem(configuredId, normalizedItemId)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static boolean matchesRecipeStopItem(String configuredId, String normalizedItemId) {
+        String normalizedConfiguredId = normalizeItemId(configuredId);
+        if (!normalizedConfiguredId.contains("{color}")) {
+            return normalizedConfiguredId.equals(normalizedItemId);
+        }
+
+        for (String color : COLOR_NAMES) {
+            if (normalizedConfiguredId.replace("{color}", color).equals(normalizedItemId)) {
                 return true;
             }
         }
@@ -206,6 +184,62 @@ public class Configs implements IConfigHandler {
         }
 
         return "minecraft:" + trimmed;
+    }
+
+    private static void migrateRecipeStopColorPatterns() {
+        List<String> values = new ArrayList<>(Generic.RECIPE_STOP_ITEMS.getStrings());
+        boolean modified = false;
+        for (String suffix : COLOR_PATTERN_SUFFIXES) {
+            if (compactColorPattern(values, suffix)) {
+                modified = true;
+            }
+        }
+
+        if (modified) {
+            Generic.RECIPE_STOP_ITEMS.setStrings(values);
+        }
+    }
+
+    private static boolean compactColorPattern(List<String> values, String suffix) {
+        String pattern = "minecraft:{color}_" + suffix;
+        Set<String> colorIds = new HashSet<>();
+        for (String color : COLOR_NAMES) {
+            colorIds.add("minecraft:" + color + "_" + suffix);
+        }
+
+        Set<String> normalizedValues = new HashSet<>();
+        boolean hasPattern = false;
+        for (String value : values) {
+            String normalized = normalizeItemId(value);
+            normalizedValues.add(normalized);
+            if (normalized.equals(pattern)) {
+                hasPattern = true;
+            }
+        }
+
+        if (!normalizedValues.containsAll(colorIds)) {
+            return false;
+        }
+
+        int insertIndex = values.size();
+        for (int index = 0; index < values.size(); index++) {
+            if (colorIds.contains(normalizeItemId(values.get(index)))) {
+                insertIndex = index;
+                break;
+            }
+        }
+
+        for (int index = values.size() - 1; index >= 0; index--) {
+            if (colorIds.contains(normalizeItemId(values.get(index)))) {
+                values.remove(index);
+            }
+        }
+
+        if (!hasPattern) {
+            values.add(Math.min(insertIndex, values.size()), pattern);
+        }
+
+        return true;
     }
 
     private static void readPreferredRecipes(JsonObject root) {

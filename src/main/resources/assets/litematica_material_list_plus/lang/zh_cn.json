@@ -84,6 +84,6 @@
   "config.comment.countdisplaystyle": "样式1：盒数 + 组数 + 个数\n样式2：总数 = 盒数 + 组数 + 个数\n样式3：A × SB + B × 64 (16) + C\n样式4：总数（Litematica）",
   "config.comment.hovertooltipmode": "选择 LMLP、Litematica 原版，或不显示材料悬停浮窗。",
   "config.comment.openconfiggui": "打开 Litematica Material List Plus 配置界面。",
-  "config.comment.recipestopitems": "这些物品会作为基础材料，不再继续拆分配方。",
+  "config.comment.recipestopitems": "这些物品会作为基础材料，不再继续拆分配方。可用 {color} 匹配 16 色物品，例如 minecraft:{color}_wool。",
   "config.comment.showhoverdetails": "悬浮在材料列表条目上时，按住此按键显示包含总数、缺少和可用数量的详细浮窗。"
 }
