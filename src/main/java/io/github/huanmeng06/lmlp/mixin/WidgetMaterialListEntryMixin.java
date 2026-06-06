@@ -291,7 +291,11 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
             RecipeInlineRenderer.render(this, drawContext, this.x + 28, panelY, Math.max(180, this.width - 64), summaries, visibleOuterHeight, mouseX, mouseY);
         }
 
-        if (!MinimalSubMaterialListView.isActive(this.materialList)) {
+        if (MinimalSubMaterialListView.isActive(this.materialList)) {
+            if (this.isMouseOver(mouseX, mouseY)) {
+                this.renderMinimalChoiceTooltip(drawContext, mouseX, mouseY);
+            }
+        } else {
             super.render(mouseX, mouseY, selected, drawContext);
         }
     }
@@ -324,6 +328,10 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
     }
 
     private void renderMinimalChoiceTooltip(class_332 drawContext, int mouseX, int mouseY) {
+        if (Configs.Generic.HOVER_TOOLTIP_MODE.getOptionListValue() == HoverTooltipMode.HIDDEN) {
+            return;
+        }
+
         List<MinimalSubMaterialListView.TooltipCandidate> candidates = MinimalSubMaterialListView.tooltipCandidates(this.entry);
         if (candidates.isEmpty()) {
             return;
