@@ -42,6 +42,19 @@ public final class AlternativeItemDisplay {
             "bamboo_",
             "crimson_",
             "warped_");
+    private static final List<String> WOOD_FAMILIES = List.of(
+            "dark_oak",
+            "pale_oak",
+            "oak",
+            "spruce",
+            "birch",
+            "jungle",
+            "acacia",
+            "mangrove",
+            "cherry",
+            "bamboo",
+            "crimson",
+            "warped");
 
     private AlternativeItemDisplay() {
     }
@@ -70,6 +83,11 @@ public final class AlternativeItemDisplay {
         String directName = directAlternativeName(icons, alternatives);
         if (!directName.isEmpty()) {
             return directName;
+        }
+
+        String familyLogName = sameWoodFamilyLogName(icons, alternatives);
+        if (!familyLogName.isEmpty()) {
+            return familyLogName;
         }
 
         String groupKey = commonGroupKey(icons);
@@ -120,6 +138,37 @@ public final class AlternativeItemDisplay {
         return hasSand && hasRedSand;
     }
 
+    private static String sameWoodFamilyLogName(List<class_1799> icons, List<String> alternatives) {
+        if (icons.size() < 2 || icons.size() != alternatives.size()) {
+            return "";
+        }
+
+        String family = "";
+        String preferredName = "";
+        for (int index = 0; index < icons.size(); index++) {
+            String path = itemPath(icons.get(index));
+            if (!isLogLike(path)) {
+                return "";
+            }
+
+            String currentFamily = woodFamily(path);
+            if (currentFamily.isEmpty()) {
+                return "";
+            }
+            if (family.isEmpty()) {
+                family = currentFamily;
+            } else if (!family.equals(currentFamily)) {
+                return "";
+            }
+
+            if (preferredName.isEmpty() && (path.endsWith("_log") || path.endsWith("_stem"))) {
+                preferredName = alternatives.get(index);
+            }
+        }
+
+        return preferredName.isEmpty() ? alternatives.get(0) : preferredName;
+    }
+
     private static class_1799 cyclingIcon(List<class_1799> icons, class_1799 fallback) {
         if (icons.isEmpty()) {
             return fallback;
@@ -147,8 +196,7 @@ public final class AlternativeItemDisplay {
         String suffix = null;
         for (class_1799 icon : icons) {
             String id = ItemStackTexts.id(icon);
-            int separator = id.indexOf(':');
-            String path = separator >= 0 ? id.substring(separator + 1) : id;
+            String path = itemPath(id);
             String currentSuffix = removeCommonPrefix(path);
             if (currentSuffix.equals(path) || currentSuffix.isEmpty()) {
                 return "";
@@ -168,8 +216,7 @@ public final class AlternativeItemDisplay {
         boolean hasWood = false;
         for (class_1799 icon : icons) {
             String id = ItemStackTexts.id(icon);
-            int separator = id.indexOf(':');
-            String path = separator >= 0 ? id.substring(separator + 1) : id;
+            String path = itemPath(id);
             String suffix = removeCommonPrefix(path);
             if (suffix.equals("log")) {
                 hasLog = true;
@@ -203,6 +250,36 @@ public final class AlternativeItemDisplay {
         }
 
         return value;
+    }
+
+    private static boolean isLogLike(String path) {
+        return path.endsWith("_log")
+                || path.endsWith("_wood")
+                || path.endsWith("_stem")
+                || path.endsWith("_hyphae");
+    }
+
+    private static String woodFamily(String path) {
+        if (path.startsWith("stripped_")) {
+            path = path.substring("stripped_".length());
+        }
+
+        for (String family : WOOD_FAMILIES) {
+            if (path.equals(family) || path.startsWith(family + "_")) {
+                return family;
+            }
+        }
+
+        return "";
+    }
+
+    private static String itemPath(class_1799 stack) {
+        return itemPath(ItemStackTexts.id(stack));
+    }
+
+    private static String itemPath(String id) {
+        int separator = id.indexOf(':');
+        return separator >= 0 ? id.substring(separator + 1) : id;
     }
 
     private static String commonNameSuffix(List<String> alternatives) {

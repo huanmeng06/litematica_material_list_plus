@@ -31,6 +31,19 @@ public final class MinimalSubMaterialListView {
     private static final long INITIAL_BUILD_BUDGET_NS = 20_000_000L;
     private static final String COMMON_HIGHLIGHT = "\u00A7e\u00A7l\u00A7n";
     private static final String RESET = "\u00A7r";
+    private static final List<String> WOOD_FAMILIES = List.of(
+            "dark_oak",
+            "pale_oak",
+            "oak",
+            "spruce",
+            "birch",
+            "jungle",
+            "acacia",
+            "mangrove",
+            "cherry",
+            "bamboo",
+            "crimson",
+            "warped");
     private static final Map<MaterialListBase, Boolean> ACTIVE_LISTS = new WeakHashMap<>();
     private static final Map<MaterialListBase, Cache> ENTRY_CACHES = new WeakHashMap<>();
     private static final Map<MaterialListBase, BuildState> BUILD_STATES = new WeakHashMap<>();
@@ -682,7 +695,7 @@ public final class MinimalSubMaterialListView {
         if (icons.size() < 2) {
             return "";
         }
-        if (allIconsMatch(icons, MinimalSubMaterialListView::isLogLike)) {
+        if (allIconsMatch(icons, MinimalSubMaterialListView::isLogLike) && hasMultipleWoodFamilies(icons)) {
             return "lmlp.label.recipe.any.log";
         }
         if (allIconsMatch(icons, path -> path.equals("sand") || path.equals("red_sand"))) {
@@ -716,6 +729,37 @@ public final class MinimalSubMaterialListView {
                 || path.endsWith("_wood")
                 || path.endsWith("_stem")
                 || path.endsWith("_hyphae");
+    }
+
+    private static boolean hasMultipleWoodFamilies(List<class_1799> icons) {
+        String firstFamily = "";
+        for (class_1799 icon : icons) {
+            String family = woodFamily(itemPath(icon));
+            if (family.isEmpty()) {
+                return true;
+            }
+            if (firstFamily.isEmpty()) {
+                firstFamily = family;
+            } else if (!firstFamily.equals(family)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static String woodFamily(String path) {
+        if (path.startsWith("stripped_")) {
+            path = path.substring("stripped_".length());
+        }
+
+        for (String family : WOOD_FAMILIES) {
+            if (path.equals(family) || path.startsWith(family + "_")) {
+                return family;
+            }
+        }
+
+        return "";
     }
 
     private static boolean isCobblestoneLike(String path) {
