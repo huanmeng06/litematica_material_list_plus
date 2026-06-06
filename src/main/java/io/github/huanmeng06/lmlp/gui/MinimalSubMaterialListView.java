@@ -13,6 +13,7 @@ import io.github.huanmeng06.lmlp.recipe.RecipeSummaryFormatter;
 import net.minecraft.class_1799;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
@@ -562,6 +563,10 @@ public final class MinimalSubMaterialListView {
             for (SourceAccumulator source : this.sources.values()) {
                 contributions.add(source.toContribution(maxStackSize));
             }
+            contributions.sort(Comparator
+                    .comparingInt(SourceContribution::totalCount)
+                    .reversed()
+                    .thenComparing(SourceContribution::name));
             return List.copyOf(contributions);
         }
     }

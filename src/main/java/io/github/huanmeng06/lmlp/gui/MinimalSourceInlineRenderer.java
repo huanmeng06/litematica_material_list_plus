@@ -15,7 +15,7 @@ public final class MinimalSourceInlineRenderer {
     private static final int PADDING = 8;
     private static final int INNER_BOTTOM_PADDING = 4;
     private static final int ENTRY_BOTTOM_GAP = 4;
-    private static final int MAX_VISIBLE_SOURCE_ROWS = 8;
+    private static final int MAX_VISIBLE_SOURCE_ROWS = 4;
     private static final int OVERFLOW_ROW_HEIGHT = 16;
 
     private MinimalSourceInlineRenderer() {
