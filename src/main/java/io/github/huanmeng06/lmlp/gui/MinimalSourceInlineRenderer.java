@@ -16,6 +16,8 @@ public final class MinimalSourceInlineRenderer {
     private static final int PADDING = 8;
     private static final int INNER_BOTTOM_PADDING = 4;
     private static final int ENTRY_BOTTOM_GAP = 4;
+    private static final int SOURCE_ICON_BOX_SIZE = 18;
+    private static final int SOURCE_ICON_BOX_Y_OFFSET = -3;
     private static final int COLUMN_GAP = 28;
     private static final int TWO_COLUMN_THRESHOLD = 5;
     private static final int THREE_COLUMN_THRESHOLD = 9;
@@ -86,21 +88,21 @@ public final class MinimalSourceInlineRenderer {
         int boxY = cursorY;
         int visibleCount = visibleSourceCount(sources);
         int columns = sourceColumnCount(visibleCount);
-        int rowsPerColumn = sourceRowCount(visibleCount, columns);
-        int boxHeight = rowsPerColumn * ROW_HEIGHT;
+        int rowCount = sourceRowCount(visibleCount, columns);
+        int boxHeight = rowCount * ROW_HEIGHT;
         RenderUtils.drawRect(textX - 2, boxY - 2, panelWidth - PADDING * 2 + 4, boxHeight, 0x66000000);
 
         int columnGap = columns > 1 ? COLUMN_GAP : 0;
         int contentWidth = Math.max(1, panelWidth - PADDING * 2);
         int columnWidth = Math.max(1, (contentWidth - columnGap * (columns - 1)) / columns);
         if (columns > 1) {
-            drawColumnSeparators(textX, boxY, boxHeight, columns, columnWidth, columnGap);
+            drawColumnSeparators(textX, boxY, rowCount, columns, columnWidth, columnGap);
         }
 
         for (int index = 0; index < visibleCount; index++) {
             MinimalSubMaterialListView.SourceContribution source = sources.get(index);
-            int column = index / rowsPerColumn;
-            int row = index % rowsPerColumn;
+            int row = index / columns;
+            int column = index % columns;
             int rowX = textX + column * (columnWidth + columnGap);
             int rowY = cursorY + row * ROW_HEIGHT;
             renderSourceRow(widget, context, rowX, rowY, source);
@@ -138,8 +140,8 @@ public final class MinimalSourceInlineRenderer {
     }
 
     private static void renderSourceRow(WidgetBase widget, class_332 context, int textX, int y, MinimalSubMaterialListView.SourceContribution source) {
-        RenderUtils.drawRect(textX, y - 3, 18, 18, 0x30FFFFFF);
-        context.method_51427(source.icon(), textX + 1, y - 2);
+        RenderUtils.drawRect(textX, y + SOURCE_ICON_BOX_Y_OFFSET, SOURCE_ICON_BOX_SIZE, SOURCE_ICON_BOX_SIZE, 0x30FFFFFF);
+        context.method_51427(source.icon(), textX + 1, y + SOURCE_ICON_BOX_Y_OFFSET + 1);
 
         String line = source.name() + ": " + GuiBase.TXT_GOLD + CountFormatter.format(source.totalCount(), source.maxStackSize());
         if (source.missingCount() != source.totalCount()) {
@@ -148,10 +150,12 @@ public final class MinimalSourceInlineRenderer {
         widget.drawString(textX + 26, y + 2, 0xFFFFFFFF, line, context);
     }
 
-    private static void drawColumnSeparators(int contentX, int boxY, int boxHeight, int columns, int columnWidth, int columnGap) {
+    private static void drawColumnSeparators(int contentX, int boxY, int rowCount, int columns, int columnWidth, int columnGap) {
+        int separatorY = boxY + SOURCE_ICON_BOX_Y_OFFSET;
+        int separatorHeight = Math.max(0, (rowCount - 1) * ROW_HEIGHT + SOURCE_ICON_BOX_SIZE);
         for (int separator = 1; separator < columns; separator++) {
             int x = contentX + separator * columnWidth + (separator - 1) * columnGap + columnGap / 2;
-            RenderUtils.drawRect(x, boxY - 2, 1, Math.max(0, boxHeight), COLUMN_SEPARATOR_COLOR);
+            RenderUtils.drawRect(x, separatorY, 1, separatorHeight, COLUMN_SEPARATOR_COLOR);
         }
     }
 
