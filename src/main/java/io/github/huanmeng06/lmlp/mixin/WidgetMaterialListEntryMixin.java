@@ -18,6 +18,7 @@ import io.github.huanmeng06.lmlp.config.HoverTooltipMode;
 import io.github.huanmeng06.lmlp.config.Hotkeys;
 import io.github.huanmeng06.lmlp.gui.MaterialListColumnLayout;
 import io.github.huanmeng06.lmlp.gui.MaterialListPlusState;
+import io.github.huanmeng06.lmlp.gui.MinimalSourceDetailScreen;
 import io.github.huanmeng06.lmlp.gui.MinimalSubMaterialListView;
 import io.github.huanmeng06.lmlp.gui.MinimalSourceInlineRenderer;
 import io.github.huanmeng06.lmlp.gui.RecipeDetailScreen;
@@ -182,8 +183,19 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
 
         if (MinimalSubMaterialListView.isActive(this.materialList)) {
             if (mouseButton == 0 && this.isMouseOver(mouseX, mouseY)) {
+                if (GuiBase.isShiftDown()) {
+                    this.mc.method_1507(new MinimalSourceDetailScreen(
+                            GuiUtils.getCurrentScreen(),
+                            MinimalSubMaterialListView.displayStack(this.entry),
+                            MinimalSubMaterialListView.displayName(this.entry),
+                            MaterialCounts.total(this.entry, this.materialList),
+                            MaterialCounts.missing(this.entry, this.materialList),
+                            MinimalSubMaterialListView.sourceContributions(this.entry)));
+                    return true;
+                }
+
                 boolean wasExpanded = MinimalSubMaterialListView.isSourcesExpanded(this.entry);
-                MinimalSubMaterialListView.toggleSources(this.entry, GuiBase.isShiftDown());
+                MinimalSubMaterialListView.toggleSources(this.entry, false);
                 this.listWidget.refreshEntries();
                 if (!wasExpanded) {
                     this.scrollExpandedEntryIntoView();
