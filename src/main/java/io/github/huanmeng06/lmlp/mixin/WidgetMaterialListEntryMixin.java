@@ -321,10 +321,6 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
             int visibleOuterHeight = MinimalSourceInlineRenderer.getOuterHeight(stack, sources, showAllSources, MinimalSubMaterialListView.sourceProgress(this.entry));
             MinimalSourceInlineRenderer.render(this, drawContext, this.x + 28, panelY, Math.max(180, this.width - 64), stack, name, sources, showAllSources, visibleOuterHeight);
         }
-
-        if (!MinimalSubMaterialListView.isActive(this.materialList)) {
-            super.render(mouseX, mouseY, selected, drawContext);
-        }
     }
 
     /**

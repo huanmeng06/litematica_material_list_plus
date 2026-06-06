@@ -448,6 +448,8 @@ public final class MinimalSubMaterialListView {
         StringBuilder builder = new StringBuilder();
         builder.append(materialList.getMaterialListType().getStringValue())
                 .append('|')
+                .append(StringUtils.translate("litematica.gui.label.material_list.title.item"))
+                .append('|')
                 .append(materialList.getHideAvailable())
                 .append('|')
                 .append(materialList.getMultiplier());
