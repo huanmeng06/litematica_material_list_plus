@@ -36,6 +36,9 @@ public final class MinimalSubMaterialListView {
     private static final Map<MaterialListBase, BuildState> BUILD_STATES = new WeakHashMap<>();
     private static final Map<MaterialListEntry, DisplayData> ENTRY_DISPLAYS = new IdentityHashMap<>();
     private static final Map<String, DisplayData> ENTRY_DISPLAY_KEYS = new HashMap<>();
+    private static final ExpandAnimationTracker SOURCE_ANIMATIONS = new ExpandAnimationTracker();
+    private static String expandedSourceKey = "";
+    private static String visibleSourceKey = "";
     private static long layoutRevision;
 
     private MinimalSubMaterialListView() {
@@ -201,6 +204,51 @@ public final class MinimalSubMaterialListView {
         return List.copyOf(candidates);
     }
 
+    public static List<SourceContribution> sourceContributions(MaterialListEntry entry) {
+        DisplayData display = displayData(entry);
+        return display == null ? List.of() : display.sources();
+    }
+
+    public static boolean isSourcesExpanded(MaterialListEntry entry) {
+        return !expandedSourceKey.isEmpty() && expandedSourceKey.equals(entryKey(entry));
+    }
+
+    public static boolean isSourcesVisible(MaterialListEntry entry) {
+        return !visibleSourceKey.isEmpty() && visibleSourceKey.equals(entryKey(entry));
+    }
+
+    public static void toggleSources(MaterialListEntry entry) {
+        if (isSourcesExpanded(entry)) {
+            clearSources(entry);
+        } else {
+            openSources(entry);
+        }
+    }
+
+    public static float sourceProgress(MaterialListEntry entry) {
+        if (!isSourcesVisible(entry)) {
+            return 0.0F;
+        }
+
+        return SOURCE_ANIMATIONS.progress(visibleSourceKey, isSourcesExpanded(entry));
+    }
+
+    public static boolean hasActiveSourceAnimations() {
+        return SOURCE_ANIMATIONS.isActive();
+    }
+
+    public static void pruneSourceAnimations() {
+        boolean hadAnimation = SOURCE_ANIMATIONS.isActive();
+        SOURCE_ANIMATIONS.prune();
+        if (hadAnimation && !visibleSourceKey.isEmpty() && !visibleSourceKey.equals(expandedSourceKey)) {
+            float progress = SOURCE_ANIMATIONS.progress(visibleSourceKey, false);
+            if (progress <= 0.0F) {
+                visibleSourceKey = "";
+                SOURCE_ANIMATIONS.clear();
+            }
+        }
+    }
+
     public static long layoutRevision() {
         return layoutRevision;
     }
@@ -210,7 +258,26 @@ public final class MinimalSubMaterialListView {
         return display == null ? ENTRY_DISPLAY_KEYS.get(entryKey(entry)) : display;
     }
 
-    private static void collectLeaves(class_1799 stack, List<class_1799> icons, List<String> names, String name, int totalCount, int missingCount, int depth, Set<String> seenItems, Map<String, Accumulator> materials) {
+    private static void openSources(MaterialListEntry entry) {
+        String key = entryKey(entry);
+        float startProgress = visibleSourceKey.equals(key) ? sourceProgress(entry) : 0.0F;
+        expandedSourceKey = key;
+        visibleSourceKey = key;
+        SOURCE_ANIMATIONS.start(key, startProgress, 1.0F);
+    }
+
+    private static void clearSources(MaterialListEntry entry) {
+        String key = entryKey(entry);
+        if (!expandedSourceKey.equals(key)) {
+            return;
+        }
+
+        visibleSourceKey = expandedSourceKey;
+        SOURCE_ANIMATIONS.start(visibleSourceKey, sourceProgress(entry), 0.0F);
+        expandedSourceKey = "";
+    }
+
+    private static void collectLeaves(class_1799 stack, List<class_1799> icons, List<String> names, String name, SourceOrigin source, int totalCount, int missingCount, int depth, Set<String> seenItems, Map<String, Accumulator> materials) {
         class_1799 icon = stack.method_7972();
         String itemId = ItemStackTexts.id(icon);
         if (totalCount <= 0 && missingCount <= 0) {
@@ -218,7 +285,7 @@ public final class MinimalSubMaterialListView {
         }
 
         if (depth >= MAX_RECIPE_DEPTH || seenItems.contains(itemId) || Configs.shouldStopRecipeDecomposition(itemId)) {
-            addLeaf(icon, icons, names, name, totalCount, missingCount, materials);
+            addLeaf(icon, icons, names, name, source, totalCount, missingCount, materials);
             return;
         }
 
@@ -226,7 +293,7 @@ public final class MinimalSubMaterialListView {
         childSeenItems.add(itemId);
         List<RecipeSummary> summaries = RecipeResolvers.findRecipes(icon, totalCount, missingCount);
         if (summaries.isEmpty() || summaries.get(0).ingredients().isEmpty()) {
-            addLeaf(icon, icons, names, name, totalCount, missingCount, materials);
+            addLeaf(icon, icons, names, name, source, totalCount, missingCount, materials);
             return;
         }
 
@@ -239,6 +306,7 @@ public final class MinimalSubMaterialListView {
                         ingredientIcons,
                         ingredientNames,
                         RecipeSummaryFormatter.ingredientName(ingredient),
+                        source,
                         ingredient.countTotal(),
                         ingredient.countMissing(),
                         materials);
@@ -250,6 +318,7 @@ public final class MinimalSubMaterialListView {
                     ingredientIcons,
                     ingredientNames,
                     RecipeSummaryFormatter.ingredientName(ingredient),
+                    source,
                     ingredient.countTotal(),
                     ingredient.countMissing(),
                     depth + 1,
@@ -258,11 +327,11 @@ public final class MinimalSubMaterialListView {
         }
     }
 
-    private static void addLeaf(class_1799 stack, List<class_1799> icons, List<String> names, String name, int totalCount, int missingCount, Map<String, Accumulator> materials) {
+    private static void addLeaf(class_1799 stack, List<class_1799> icons, List<String> names, String name, SourceOrigin source, int totalCount, int missingCount, Map<String, Accumulator> materials) {
         String key = groupKey(stack, icons, name);
         String displayName = groupDisplayName(icons.isEmpty() ? List.of(stack) : icons, name);
         materials.computeIfAbsent(key, ignored -> new Accumulator(stack, displayName))
-                .add(totalCount, missingCount, icons, names);
+                .add(totalCount, missingCount, icons, names, source);
     }
 
     private static String groupKey(class_1799 stack, List<class_1799> icons, String name) {
@@ -334,6 +403,7 @@ public final class MinimalSubMaterialListView {
         removeBuildDisplayData(materialList);
         ENTRY_CACHES.remove(materialList);
         BUILD_STATES.remove(materialList);
+        clearSourceState();
         layoutRevision++;
     }
 
@@ -379,6 +449,12 @@ public final class MinimalSubMaterialListView {
         }
     }
 
+    private static void clearSourceState() {
+        expandedSourceKey = "";
+        visibleSourceKey = "";
+        SOURCE_ANIMATIONS.clear();
+    }
+
     private static int clampToInt(long value) {
         if (value > Integer.MAX_VALUE) {
             return Integer.MAX_VALUE;
@@ -393,6 +469,7 @@ public final class MinimalSubMaterialListView {
         private final class_1799 stack;
         private final String name;
         private final Map<String, Candidate> candidates = new LinkedHashMap<>();
+        private final Map<String, SourceAccumulator> sources = new LinkedHashMap<>();
         private long totalCount;
         private long missingCount;
 
@@ -402,7 +479,7 @@ public final class MinimalSubMaterialListView {
             this.candidates.put(ItemStackTexts.id(stack), new Candidate(stack.method_7972(), ItemStackTexts.name(stack)));
         }
 
-        private void add(int totalCount, int missingCount, List<class_1799> icons, List<String> names) {
+        private void add(int totalCount, int missingCount, List<class_1799> icons, List<String> names, SourceOrigin source) {
             this.totalCount += totalCount;
             this.missingCount += missingCount;
             for (int index = 0; index < icons.size(); index++) {
@@ -412,10 +489,45 @@ public final class MinimalSubMaterialListView {
                     this.candidates.putIfAbsent(ItemStackTexts.id(icon), new Candidate(icon.method_7972(), name));
                 }
             }
+            this.sources.computeIfAbsent(source.id(), ignored -> new SourceAccumulator(source))
+                    .add(totalCount, missingCount);
         }
 
         private List<Candidate> candidates() {
             return List.copyOf(this.candidates.values());
+        }
+
+        private List<SourceContribution> sources() {
+            List<SourceContribution> contributions = new ArrayList<>(this.sources.size());
+            int maxStackSize = Math.max(1, this.stack.method_7914());
+            for (SourceAccumulator source : this.sources.values()) {
+                contributions.add(source.toContribution(maxStackSize));
+            }
+            return List.copyOf(contributions);
+        }
+    }
+
+    private static final class SourceAccumulator {
+        private final SourceOrigin origin;
+        private long totalCount;
+        private long missingCount;
+
+        private SourceAccumulator(SourceOrigin origin) {
+            this.origin = origin;
+        }
+
+        private void add(int totalCount, int missingCount) {
+            this.totalCount += totalCount;
+            this.missingCount += missingCount;
+        }
+
+        private SourceContribution toContribution(int maxStackSize) {
+            return new SourceContribution(
+                    this.origin.icon().method_7972(),
+                    this.origin.name(),
+                    clampToInt(this.totalCount),
+                    clampToInt(this.missingCount),
+                    maxStackSize);
         }
     }
 
@@ -463,7 +575,8 @@ public final class MinimalSubMaterialListView {
                 class_1799 stack = entry.getStack();
                 int total = entry.getCountTotal();
                 int missing = this.multiplied ? total : entry.getCountMissing();
-                collectLeaves(stack, List.of(stack), List.of(ItemStackTexts.name(stack)), ItemStackTexts.name(stack), total, missing, 0, new HashSet<>(), this.materials);
+                SourceOrigin source = new SourceOrigin(ItemStackTexts.id(stack), stack.method_7972(), ItemStackTexts.name(stack));
+                collectLeaves(stack, List.of(stack), List.of(ItemStackTexts.name(stack)), ItemStackTexts.name(stack), source, total, missing, 0, new HashSet<>(), this.materials);
                 changed = true;
             } while (System.nanoTime() < deadline);
 
@@ -484,7 +597,7 @@ public final class MinimalSubMaterialListView {
                 int available = this.multiplied ? 0 : Math.max(0, total - missing);
                 MaterialListEntry entry = new MaterialListEntry(material.stack.method_7972(), total, missing, 0, available);
                 entries.add(entry);
-                DisplayData display = new DisplayData(material.name, material.candidates());
+                DisplayData display = new DisplayData(material.name, material.candidates(), material.sources());
                 displays.put(entry, display);
                 ENTRY_DISPLAY_KEYS.put(entryKey(entry), display);
             }
@@ -497,7 +610,7 @@ public final class MinimalSubMaterialListView {
     private record Cache(String signature, List<MaterialListEntry> entries) {
     }
 
-    private record DisplayData(String name, List<Candidate> candidates) {
+    private record DisplayData(String name, List<Candidate> candidates, List<SourceContribution> sources) {
         private String displayName() {
             return emphasizeAny(this.stableName());
         }
@@ -540,7 +653,13 @@ public final class MinimalSubMaterialListView {
     private record Candidate(class_1799 icon, String name) {
     }
 
+    private record SourceOrigin(String id, class_1799 icon, String name) {
+    }
+
     public record TooltipCandidate(class_1799 icon, String name) {
+    }
+
+    public record SourceContribution(class_1799 icon, String name, int totalCount, int missingCount, int maxStackSize) {
     }
 
     private static String itemPath(class_1799 stack) {

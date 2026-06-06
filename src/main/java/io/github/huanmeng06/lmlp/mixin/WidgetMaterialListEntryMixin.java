@@ -19,6 +19,7 @@ import io.github.huanmeng06.lmlp.config.Hotkeys;
 import io.github.huanmeng06.lmlp.gui.MaterialListColumnLayout;
 import io.github.huanmeng06.lmlp.gui.MaterialListPlusState;
 import io.github.huanmeng06.lmlp.gui.MinimalSubMaterialListView;
+import io.github.huanmeng06.lmlp.gui.MinimalSourceInlineRenderer;
 import io.github.huanmeng06.lmlp.gui.RecipeDetailScreen;
 import io.github.huanmeng06.lmlp.gui.RecipeInlineRenderer;
 import io.github.huanmeng06.lmlp.material.CountFormatter;
@@ -180,7 +181,16 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         }
 
         if (MinimalSubMaterialListView.isActive(this.materialList)) {
-            return mouseButton == 0 && this.isMouseOver(mouseX, mouseY);
+            if (mouseButton == 0 && this.isMouseOver(mouseX, mouseY)) {
+                boolean wasExpanded = MinimalSubMaterialListView.isSourcesExpanded(this.entry);
+                MinimalSubMaterialListView.toggleSources(this.entry);
+                this.listWidget.refreshEntries();
+                if (!wasExpanded) {
+                    this.scrollExpandedEntryIntoView();
+                }
+                return true;
+            }
+            return false;
         }
 
         if (super.onMouseClickedImpl(mouseX, mouseY, mouseButton)) {
@@ -290,6 +300,13 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
             int panelY = this.y + 23;
             int visibleOuterHeight = RecipeInlineRenderer.getOuterHeight(summaries, MaterialListPlusState.recipeProgress(this.entry));
             RecipeInlineRenderer.render(this, drawContext, this.x + 28, panelY, Math.max(180, this.width - 64), summaries, visibleOuterHeight, mouseX, mouseY);
+        }
+
+        if (MinimalSubMaterialListView.isActive(this.materialList) && MinimalSubMaterialListView.isSourcesVisible(this.entry)) {
+            List<MinimalSubMaterialListView.SourceContribution> sources = MinimalSubMaterialListView.sourceContributions(this.entry);
+            int panelY = this.y + 23;
+            int visibleOuterHeight = MinimalSourceInlineRenderer.getOuterHeight(sources, MinimalSubMaterialListView.sourceProgress(this.entry));
+            MinimalSourceInlineRenderer.render(this, drawContext, this.x + 28, panelY, Math.max(180, this.width - 64), stack, name, sources, visibleOuterHeight);
         }
 
         if (!MinimalSubMaterialListView.isActive(this.materialList)) {

@@ -14,6 +14,7 @@ import io.github.huanmeng06.lmlp.config.CountDisplayStyle;
 import io.github.huanmeng06.lmlp.gui.MaterialListColumnLayout;
 import io.github.huanmeng06.lmlp.gui.MaterialListPlusState;
 import io.github.huanmeng06.lmlp.gui.MinimalSubMaterialListView;
+import io.github.huanmeng06.lmlp.gui.MinimalSourceInlineRenderer;
 import io.github.huanmeng06.lmlp.gui.RecipeInlineRenderer;
 import net.minecraft.class_332;
 import org.spongepowered.asm.mixin.Final;
@@ -80,9 +81,16 @@ public abstract class WidgetListBaseMixin implements WidgetListBoundsAccess {
         this.lmlp$refreshMaterialListColumnLayoutIfNeeded(true);
 
         boolean hadActiveAnimations = MaterialListPlusState.hasActiveAnimations();
+        boolean hadActiveSourceAnimations = MinimalSubMaterialListView.hasActiveSourceAnimations();
         boolean hadActiveColumnAnimation = MaterialListColumnLayout.hasActiveAnimation();
         MaterialListPlusState.pruneAnimations();
-        if (hadActiveAnimations || MaterialListPlusState.hasActiveAnimations() || hadActiveColumnAnimation || MaterialListColumnLayout.hasActiveAnimation()) {
+        MinimalSubMaterialListView.pruneSourceAnimations();
+        if (hadActiveAnimations
+                || MaterialListPlusState.hasActiveAnimations()
+                || hadActiveSourceAnimations
+                || MinimalSubMaterialListView.hasActiveSourceAnimations()
+                || hadActiveColumnAnimation
+                || MaterialListColumnLayout.hasActiveAnimation()) {
             this.reCreateListEntryWidgets();
         }
     }
@@ -105,12 +113,20 @@ public abstract class WidgetListBaseMixin implements WidgetListBoundsAccess {
 
     @Inject(method = "getBrowserEntryHeightFor", at = @At("HEAD"), cancellable = true)
     private void lmlp$getBrowserEntryHeightFor(Object entry, CallbackInfoReturnable<Integer> cir) {
-        if (!((Object) this instanceof WidgetListMaterialList) || !(entry instanceof MaterialListEntry materialEntry) || !MaterialListPlusState.isRecipeVisible(materialEntry)) {
+        if (!((Object) this instanceof WidgetListMaterialList) || !(entry instanceof MaterialListEntry materialEntry)) {
             return;
         }
 
-        int visibleOuterHeight = RecipeInlineRenderer.getOuterHeight(MaterialListPlusState.getCachedSummaries(materialEntry), MaterialListPlusState.recipeProgress(materialEntry));
-        cir.setReturnValue(23 + visibleOuterHeight);
+        boolean minimalSubMaterialView = (Object) this instanceof WidgetMaterialListAccess access && MinimalSubMaterialListView.isActive(access.lmlp$getMaterialList());
+        if (minimalSubMaterialView && MinimalSubMaterialListView.isSourcesVisible(materialEntry)) {
+            int visibleOuterHeight = MinimalSourceInlineRenderer.getOuterHeight(
+                    MinimalSubMaterialListView.sourceContributions(materialEntry),
+                    MinimalSubMaterialListView.sourceProgress(materialEntry));
+            cir.setReturnValue(23 + visibleOuterHeight);
+        } else if (MaterialListPlusState.isRecipeVisible(materialEntry)) {
+            int visibleOuterHeight = RecipeInlineRenderer.getOuterHeight(MaterialListPlusState.getCachedSummaries(materialEntry), MaterialListPlusState.recipeProgress(materialEntry));
+            cir.setReturnValue(23 + visibleOuterHeight);
+        }
     }
 
     @Inject(
@@ -237,8 +253,14 @@ public abstract class WidgetListBaseMixin implements WidgetListBoundsAccess {
     }
 
     private int lmlp$getScrollTargetEntryHeightFor(Object entry) {
-        if (entry instanceof MaterialListEntry materialEntry && MaterialListPlusState.isRecipeExpanded(materialEntry)) {
-            return 23 + RecipeInlineRenderer.getTargetOuterHeight(MaterialListPlusState.getCachedSummaries(materialEntry));
+        if (entry instanceof MaterialListEntry materialEntry) {
+            boolean minimalSubMaterialView = (Object) this instanceof WidgetMaterialListAccess access && MinimalSubMaterialListView.isActive(access.lmlp$getMaterialList());
+            if (minimalSubMaterialView && MinimalSubMaterialListView.isSourcesExpanded(materialEntry)) {
+                return 23 + MinimalSourceInlineRenderer.getOuterHeight(MinimalSubMaterialListView.sourceContributions(materialEntry));
+            }
+            if (MaterialListPlusState.isRecipeExpanded(materialEntry)) {
+                return 23 + RecipeInlineRenderer.getTargetOuterHeight(MaterialListPlusState.getCachedSummaries(materialEntry));
+            }
         }
 
         return this.getBrowserEntryHeightFor(entry);
