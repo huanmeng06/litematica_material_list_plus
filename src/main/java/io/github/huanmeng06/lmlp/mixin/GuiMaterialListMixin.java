@@ -2,6 +2,7 @@ package io.github.huanmeng06.lmlp.mixin;
 
 import fi.dy.masa.litematica.gui.GuiMaterialList;
 import fi.dy.masa.litematica.materials.MaterialListBase;
+import fi.dy.masa.litematica.materials.MaterialListEntry;
 import fi.dy.masa.litematica.util.BlockInfoListType;
 import fi.dy.masa.malilib.gui.GuiListBase;
 import fi.dy.masa.malilib.gui.Message.MessageType;
@@ -19,9 +20,11 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyArg;
+import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.io.File;
+import java.util.List;
 
 @Mixin(value = GuiMaterialList.class, remap = false)
 public abstract class GuiMaterialListMixin extends GuiListBase {
@@ -35,6 +38,15 @@ public abstract class GuiMaterialListMixin extends GuiListBase {
 
     protected GuiMaterialListMixin(int listX, int listY) {
         super(listX, listY);
+    }
+
+    @Redirect(
+            method = {"<init>", "onTaskCompleted"},
+            at = @At(
+                    value = "INVOKE",
+                    target = "Lfi/dy/masa/litematica/gui/widgets/WidgetMaterialListEntry;setMaxNameLength(Ljava/util/List;I)V"))
+    private void lmlp$skipGlobalMaterialListColumnSizing(List<MaterialListEntry> entries, int multiplier) {
+        // LMLP fits columns after WidgetListBase has built the current page's visible rows.
     }
 
     @ModifyArg(
