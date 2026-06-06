@@ -1,65 +1,19 @@
 package io.github.huanmeng06.lmlp.gui;
 
 public final class MaterialListColumnLayout {
-    private static int startNameWidth = 1;
-    private static int startTotalWidth = 1;
-    private static int startMissingWidth = 1;
-    private static int startAvailableWidth = 1;
-    private static int targetNameWidth = 1;
-    private static int targetTotalWidth = 1;
-    private static int targetMissingWidth = 1;
-    private static int targetAvailableWidth = 1;
-    private static long animationStartMs;
-    private static boolean initialized;
-    private static boolean animating;
+    private static int nameWidth = 1;
+    private static int totalWidth = 1;
+    private static int missingWidth = 1;
+    private static int availableWidth = 1;
 
     private MaterialListColumnLayout() {
     }
 
     public static void updateRequiredEntryWidth(int nameWidth, int totalWidth, int missingWidth, int availableWidth) {
-        if (!initialized) {
-            startNameWidth = targetNameWidth = nameWidth;
-            startTotalWidth = targetTotalWidth = totalWidth;
-            startMissingWidth = targetMissingWidth = missingWidth;
-            startAvailableWidth = targetAvailableWidth = availableWidth;
-            initialized = true;
-            animating = false;
-            return;
-        }
-
-        if (nameWidth == targetNameWidth
-                && totalWidth == targetTotalWidth
-                && missingWidth == targetMissingWidth
-                && availableWidth == targetAvailableWidth) {
-            return;
-        }
-
-        int currentNameWidth = nameWidth();
-        int currentTotalWidth = totalWidth();
-        int currentMissingWidth = missingWidth();
-        int currentAvailableWidth = availableWidth();
-        if (nameWidth > currentNameWidth
-                || totalWidth > currentTotalWidth
-                || missingWidth > currentMissingWidth
-                || availableWidth > currentAvailableWidth) {
-            startNameWidth = targetNameWidth = nameWidth;
-            startTotalWidth = targetTotalWidth = totalWidth;
-            startMissingWidth = targetMissingWidth = missingWidth;
-            startAvailableWidth = targetAvailableWidth = availableWidth;
-            animating = false;
-            return;
-        }
-
-        startNameWidth = currentNameWidth;
-        startTotalWidth = currentTotalWidth;
-        startMissingWidth = currentMissingWidth;
-        startAvailableWidth = currentAvailableWidth;
-        targetNameWidth = nameWidth;
-        targetTotalWidth = totalWidth;
-        targetMissingWidth = missingWidth;
-        targetAvailableWidth = availableWidth;
-        animationStartMs = System.currentTimeMillis();
-        animating = true;
+        MaterialListColumnLayout.nameWidth = nameWidth;
+        MaterialListColumnLayout.totalWidth = totalWidth;
+        MaterialListColumnLayout.missingWidth = missingWidth;
+        MaterialListColumnLayout.availableWidth = availableWidth;
     }
 
     public static int requiredEntryWidth() {
@@ -67,38 +21,22 @@ public final class MaterialListColumnLayout {
     }
 
     public static int nameWidth() {
-        return animatedWidth(startNameWidth, targetNameWidth);
+        return nameWidth;
     }
 
     public static int totalWidth() {
-        return animatedWidth(startTotalWidth, targetTotalWidth);
+        return totalWidth;
     }
 
     public static int missingWidth() {
-        return animatedWidth(startMissingWidth, targetMissingWidth);
+        return missingWidth;
     }
 
     public static int availableWidth() {
-        return animatedWidth(startAvailableWidth, targetAvailableWidth);
+        return availableWidth;
     }
 
     public static boolean hasActiveAnimation() {
-        return animating;
-    }
-
-    private static int animatedWidth(int start, int target) {
-        if (!animating) {
-            return target;
-        }
-
-        long elapsedMs = System.currentTimeMillis() - animationStartMs;
-        if (elapsedMs >= ExpandAnimationTracker.DURATION_MS) {
-            animating = false;
-            return target;
-        }
-
-        float progress = (float) elapsedMs / (float) ExpandAnimationTracker.DURATION_MS;
-        float eased = ExpandAnimationTracker.easeOutCubic(progress);
-        return Math.round(start + (target - start) * eased);
+        return false;
     }
 }
