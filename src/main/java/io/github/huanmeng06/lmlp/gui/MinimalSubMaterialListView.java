@@ -158,6 +158,19 @@ public final class MinimalSubMaterialListView {
         return display.currentCandidate().icon().method_7972();
     }
 
+    public static List<class_1799> displayStacks(MaterialListEntry entry) {
+        DisplayData display = displayData(entry);
+        if (display == null || display.candidates().isEmpty()) {
+            return List.of(entry.getStack());
+        }
+
+        List<class_1799> stacks = new ArrayList<>(display.candidates().size());
+        for (Candidate candidate : display.candidates()) {
+            stacks.add(candidate.icon().method_7972());
+        }
+        return stacks;
+    }
+
     public static long layoutRevision() {
         return layoutRevision;
     }

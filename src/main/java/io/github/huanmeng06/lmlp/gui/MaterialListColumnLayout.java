@@ -34,10 +34,26 @@ public final class MaterialListColumnLayout {
             return;
         }
 
-        startNameWidth = nameWidth();
-        startTotalWidth = totalWidth();
-        startMissingWidth = missingWidth();
-        startAvailableWidth = availableWidth();
+        int currentNameWidth = nameWidth();
+        int currentTotalWidth = totalWidth();
+        int currentMissingWidth = missingWidth();
+        int currentAvailableWidth = availableWidth();
+        if (nameWidth > currentNameWidth
+                || totalWidth > currentTotalWidth
+                || missingWidth > currentMissingWidth
+                || availableWidth > currentAvailableWidth) {
+            startNameWidth = targetNameWidth = nameWidth;
+            startTotalWidth = targetTotalWidth = totalWidth;
+            startMissingWidth = targetMissingWidth = missingWidth;
+            startAvailableWidth = targetAvailableWidth = availableWidth;
+            animating = false;
+            return;
+        }
+
+        startNameWidth = currentNameWidth;
+        startTotalWidth = currentTotalWidth;
+        startMissingWidth = currentMissingWidth;
+        startAvailableWidth = currentAvailableWidth;
         targetNameWidth = nameWidth;
         targetTotalWidth = totalWidth;
         targetMissingWidth = missingWidth;
