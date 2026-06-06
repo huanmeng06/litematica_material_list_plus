@@ -17,19 +17,21 @@ public final class MaterialListColumnLayout {
     private static long animationStartMs;
     private static boolean initialized;
     private static boolean animating;
+    private static boolean animateShrinkForNextUpdate = true;
 
     private MaterialListColumnLayout() {
     }
 
     public static void updateRequiredEntryWidth(int requiredNameWidth, int requiredTotalWidth, int requiredMissingWidth, int requiredAvailableWidth) {
+        boolean animateShrink = animateShrinkForNextUpdate;
+        animateShrinkForNextUpdate = true;
+        updateRequiredEntryWidth(requiredNameWidth, requiredTotalWidth, requiredMissingWidth, requiredAvailableWidth, animateShrink);
+    }
+
+    public static void updateRequiredEntryWidth(int requiredNameWidth, int requiredTotalWidth, int requiredMissingWidth, int requiredAvailableWidth, boolean animateShrink) {
         if (!initialized) {
-            setWidths(requiredNameWidth, requiredTotalWidth, requiredMissingWidth, requiredAvailableWidth);
-            targetNameWidth = requiredNameWidth;
-            targetTotalWidth = requiredTotalWidth;
-            targetMissingWidth = requiredMissingWidth;
-            targetAvailableWidth = requiredAvailableWidth;
+            setImmediate(requiredNameWidth, requiredTotalWidth, requiredMissingWidth, requiredAvailableWidth);
             initialized = true;
-            animating = false;
             return;
         }
 
@@ -37,6 +39,11 @@ public final class MaterialListColumnLayout {
                 && requiredTotalWidth == targetTotalWidth
                 && requiredMissingWidth == targetMissingWidth
                 && requiredAvailableWidth == targetAvailableWidth) {
+            return;
+        }
+
+        if (!animateShrink) {
+            setImmediate(requiredNameWidth, requiredTotalWidth, requiredMissingWidth, requiredAvailableWidth);
             return;
         }
 
@@ -98,11 +105,28 @@ public final class MaterialListColumnLayout {
         return animating;
     }
 
+    public static void setAnimateShrinkForNextUpdate(boolean animateShrink) {
+        animateShrinkForNextUpdate = animateShrink;
+    }
+
     private static void setWidths(int nameWidth, int totalWidth, int missingWidth, int availableWidth) {
         MaterialListColumnLayout.nameWidth = nameWidth;
         MaterialListColumnLayout.totalWidth = totalWidth;
         MaterialListColumnLayout.missingWidth = missingWidth;
         MaterialListColumnLayout.availableWidth = availableWidth;
+    }
+
+    private static void setImmediate(int nameWidth, int totalWidth, int missingWidth, int availableWidth) {
+        setWidths(nameWidth, totalWidth, missingWidth, availableWidth);
+        startNameWidth = nameWidth;
+        startTotalWidth = totalWidth;
+        startMissingWidth = missingWidth;
+        startAvailableWidth = availableWidth;
+        targetNameWidth = nameWidth;
+        targetTotalWidth = totalWidth;
+        targetMissingWidth = missingWidth;
+        targetAvailableWidth = availableWidth;
+        animating = false;
     }
 
     private static void advanceAnimation() {

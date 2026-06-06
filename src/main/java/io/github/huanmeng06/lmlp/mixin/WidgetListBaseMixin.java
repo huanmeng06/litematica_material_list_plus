@@ -76,7 +76,7 @@ public abstract class WidgetListBaseMixin implements WidgetListBoundsAccess {
             this.refreshEntries();
         }
 
-        this.lmlp$refreshMaterialListColumnLayoutIfNeeded();
+        this.lmlp$refreshMaterialListColumnLayoutIfNeeded(true);
 
         boolean hadActiveAnimations = MaterialListPlusState.hasActiveAnimations();
         boolean hadActiveColumnAnimation = MaterialListColumnLayout.hasActiveAnimation();
@@ -94,6 +94,19 @@ public abstract class WidgetListBaseMixin implements WidgetListBoundsAccess {
 
         int visibleOuterHeight = RecipeInlineRenderer.getOuterHeight(MaterialListPlusState.getCachedSummaries(materialEntry), MaterialListPlusState.recipeProgress(materialEntry));
         cir.setReturnValue(23 + visibleOuterHeight);
+    }
+
+    @Inject(
+            method = "refreshBrowserEntries",
+            at = @At(
+                    value = "INVOKE",
+                    target = "Lfi/dy/masa/malilib/gui/widgets/WidgetListBase;reCreateListEntryWidgets()V"))
+    private void lmlp$fitMaterialListColumnsBeforeRecreate(CallbackInfo ci) {
+        if (!((Object) this instanceof WidgetListMaterialList)) {
+            return;
+        }
+
+        this.lmlp$refreshMaterialListColumnLayoutIfNeeded(false);
     }
 
     @Inject(method = "reCreateListEntryWidgets", at = @At("TAIL"))
@@ -222,7 +235,7 @@ public abstract class WidgetListBaseMixin implements WidgetListBoundsAccess {
         return 0;
     }
 
-    private void lmlp$refreshMaterialListColumnLayoutIfNeeded() {
+    private void lmlp$refreshMaterialListColumnLayoutIfNeeded(boolean recreateAfterUpdate) {
         if (!((Object) this instanceof WidgetMaterialListAccess access)) {
             return;
         }
@@ -231,13 +244,8 @@ public abstract class WidgetListBaseMixin implements WidgetListBoundsAccess {
         boolean minimalSubMaterialView = MinimalSubMaterialListView.isActive(access.lmlp$getMaterialList());
         long minimalSubMaterialRevision = MinimalSubMaterialListView.layoutRevision();
         CountDisplayStyle style = (CountDisplayStyle) Configs.Generic.COUNT_DISPLAY_STYLE.getOptionListValue();
-        int entryCount = this.listContents.size();
-        List<MaterialListEntry> entries = new ArrayList<>();
-        for (Object entry : this.listContents) {
-            if (entry instanceof MaterialListEntry materialEntry) {
-                entries.add(materialEntry);
-            }
-        }
+        List<MaterialListEntry> entries = this.lmlp$currentMaterialEntries();
+        int entryCount = entries.size();
         String signature = this.lmlp$layoutSignature(entries);
         if (multiplier == this.lmlp$lastLayoutMultiplier
                 && entryCount == this.lmlp$lastLayoutEntryCount
@@ -248,6 +256,7 @@ public abstract class WidgetListBaseMixin implements WidgetListBoundsAccess {
             return;
         }
 
+        MaterialListColumnLayout.setAnimateShrinkForNextUpdate(this.lmlp$shouldAnimateColumnLayout(multiplier, style, minimalSubMaterialView));
         WidgetMaterialListEntry.setMaxNameLength(entries, multiplier);
         this.lmlp$lastLayoutMultiplier = multiplier;
         this.lmlp$lastLayoutEntryCount = entryCount;
@@ -255,7 +264,26 @@ public abstract class WidgetListBaseMixin implements WidgetListBoundsAccess {
         this.lmlp$lastLayoutCountDisplayStyle = style;
         this.lmlp$lastLayoutMinimalSubMaterialView = minimalSubMaterialView;
         this.lmlp$lastLayoutMinimalSubMaterialRevision = minimalSubMaterialRevision;
-        this.reCreateListEntryWidgets();
+        if (recreateAfterUpdate) {
+            this.reCreateListEntryWidgets();
+        }
+    }
+
+    private boolean lmlp$shouldAnimateColumnLayout(int multiplier, CountDisplayStyle style, boolean minimalSubMaterialView) {
+        return this.lmlp$lastLayoutEntryCount > 0
+                && multiplier == this.lmlp$lastLayoutMultiplier
+                && style == this.lmlp$lastLayoutCountDisplayStyle
+                && minimalSubMaterialView == this.lmlp$lastLayoutMinimalSubMaterialView;
+    }
+
+    private List<MaterialListEntry> lmlp$currentMaterialEntries() {
+        List<MaterialListEntry> entries = new ArrayList<>();
+        for (Object entry : this.listContents) {
+            if (entry instanceof MaterialListEntry materialEntry) {
+                entries.add(materialEntry);
+            }
+        }
+        return entries;
     }
 
     private String lmlp$layoutSignature(List<MaterialListEntry> entries) {
