@@ -101,8 +101,8 @@ public final class MinimalSourceInlineRenderer {
 
         for (int index = 0; index < visibleCount; index++) {
             MinimalSubMaterialListView.SourceContribution source = sources.get(index);
-            int row = index / columns;
-            int column = index % columns;
+            int column = index / rowCount;
+            int row = index % rowCount;
             int rowX = textX + column * (columnWidth + columnGap);
             int rowY = cursorY + row * ROW_HEIGHT;
             renderSourceRow(widget, context, rowX, rowY, source);
