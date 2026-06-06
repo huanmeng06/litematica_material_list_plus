@@ -7,6 +7,7 @@ import fi.dy.masa.malilib.gui.widgets.WidgetBase;
 import fi.dy.masa.malilib.render.RenderUtils;
 import fi.dy.masa.malilib.util.StringUtils;
 import io.github.huanmeng06.lmlp.material.CountFormatter;
+import io.github.huanmeng06.lmlp.material.ItemStackTexts;
 import net.minecraft.class_1799;
 import net.minecraft.class_332;
 
@@ -19,24 +20,27 @@ public final class MinimalSourceInlineRenderer {
     private MinimalSourceInlineRenderer() {
     }
 
-    public static int getHeight(List<MinimalSubMaterialListView.SourceContribution> sources, boolean showAll) {
+    public static int getHeight(class_1799 targetIcon, List<MinimalSubMaterialListView.SourceContribution> sources, boolean showAll) {
         if (sources.isEmpty()) {
             return 48;
+        }
+        if (isSelfSource(targetIcon, sources)) {
+            return 56;
         }
 
         return 64 + visibleSourceCount(sources) * ROW_HEIGHT + INNER_BOTTOM_PADDING;
     }
 
-    public static int getOuterHeight(List<MinimalSubMaterialListView.SourceContribution> sources, boolean showAll) {
-        return getHeight(sources, showAll) + ENTRY_BOTTOM_GAP;
+    public static int getOuterHeight(class_1799 targetIcon, List<MinimalSubMaterialListView.SourceContribution> sources, boolean showAll) {
+        return getHeight(targetIcon, sources, showAll) + ENTRY_BOTTOM_GAP;
     }
 
-    public static int getOuterHeight(List<MinimalSubMaterialListView.SourceContribution> sources, boolean showAll, float progress) {
-        return Math.round(getOuterHeight(sources, showAll) * progress);
+    public static int getOuterHeight(class_1799 targetIcon, List<MinimalSubMaterialListView.SourceContribution> sources, boolean showAll, float progress) {
+        return Math.round(getOuterHeight(targetIcon, sources, showAll) * progress);
     }
 
     public static void render(WidgetBase widget, class_332 context, int x, int y, int width, class_1799 targetIcon, String targetName, List<MinimalSubMaterialListView.SourceContribution> sources, boolean showAll, int visibleOuterHeight) {
-        int height = getHeight(sources, showAll);
+        int height = getHeight(targetIcon, sources, showAll);
         int panelWidth = Math.max(160, width);
         int visibleHeight = Math.max(0, Math.min(height, visibleOuterHeight));
         if (visibleHeight <= 0) {
@@ -64,13 +68,21 @@ public final class MinimalSourceInlineRenderer {
         widget.drawString(textX + 24, cursorY + 4, 0xFFFFFFFF, GuiBase.TXT_BOLD + targetName, context);
         cursorY += 24;
 
-        widget.drawString(textX, cursorY, 0xFFFFFFFF, StringUtils.translate("lmlp.label.minimal_sources.header"), context);
+        String boldTargetName = GuiBase.TXT_BOLD + targetName + GuiBase.TXT_RST;
+        if (isSelfSource(targetIcon, sources)) {
+            widget.drawString(textX, cursorY + 2, 0xFFFFFFFF, StringUtils.translate("lmlp.label.minimal_sources.self_material", boldTargetName), context);
+            context.method_44380();
+            drawOutline(x, y, panelWidth, visibleHeight, 0xFF777777);
+            return;
+        }
+
+        widget.drawString(textX, cursorY, 0xFFFFFFFF, StringUtils.translate("lmlp.label.minimal_sources.header_named", boldTargetName), context);
         cursorY += 18;
 
         int boxY = cursorY;
         int boxHeight = 18 + visibleSourceCount(sources) * ROW_HEIGHT;
         RenderUtils.drawRect(textX - 2, boxY - 2, panelWidth - PADDING * 2 + 4, boxHeight, 0x66000000);
-        widget.drawString(textX, cursorY, 0xFFAAAAAA, StringUtils.translate("lmlp.label.minimal_sources.source_materials"), context);
+        widget.drawString(textX, cursorY, 0xFFAAAAAA, StringUtils.translate("lmlp.label.minimal_sources.source_materials_named", boldTargetName), context);
         cursorY += 18;
 
         int visibleCount = visibleSourceCount(sources);
@@ -86,6 +98,10 @@ public final class MinimalSourceInlineRenderer {
 
     private static int visibleSourceCount(List<MinimalSubMaterialListView.SourceContribution> sources) {
         return sources.size();
+    }
+
+    private static boolean isSelfSource(class_1799 targetIcon, List<MinimalSubMaterialListView.SourceContribution> sources) {
+        return sources.size() == 1 && ItemStackTexts.id(targetIcon).equals(ItemStackTexts.id(sources.get(0).icon()));
     }
 
     private static void renderSourceRow(WidgetBase widget, class_332 context, int textX, int y, MinimalSubMaterialListView.SourceContribution source) {

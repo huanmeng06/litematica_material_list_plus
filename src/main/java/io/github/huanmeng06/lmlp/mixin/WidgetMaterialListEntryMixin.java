@@ -318,7 +318,7 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
             List<MinimalSubMaterialListView.SourceContribution> sources = MinimalSubMaterialListView.sourceContributions(this.entry);
             boolean showAllSources = MinimalSubMaterialListView.isSourcesFull(this.entry);
             int panelY = this.y + 23;
-            int visibleOuterHeight = MinimalSourceInlineRenderer.getOuterHeight(sources, showAllSources, MinimalSubMaterialListView.sourceProgress(this.entry));
+            int visibleOuterHeight = MinimalSourceInlineRenderer.getOuterHeight(stack, sources, showAllSources, MinimalSubMaterialListView.sourceProgress(this.entry));
             MinimalSourceInlineRenderer.render(this, drawContext, this.x + 28, panelY, Math.max(180, this.width - 64), stack, name, sources, showAllSources, visibleOuterHeight);
         }
 

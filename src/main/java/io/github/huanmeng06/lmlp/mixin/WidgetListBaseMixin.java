@@ -236,6 +236,7 @@ public abstract class WidgetListBaseMixin implements WidgetListBoundsAccess {
         if (minimalSubMaterialView && MinimalSubMaterialListView.isSourcesVisible(materialEntry)) {
             boolean showAllSources = MinimalSubMaterialListView.isSourcesFull(materialEntry);
             int visibleOuterHeight = MinimalSourceInlineRenderer.getOuterHeight(
+                    MinimalSubMaterialListView.displayStack(materialEntry),
                     MinimalSubMaterialListView.sourceContributions(materialEntry),
                     showAllSources,
                     MinimalSubMaterialListView.sourceProgress(materialEntry));
@@ -437,6 +438,7 @@ public abstract class WidgetListBaseMixin implements WidgetListBoundsAccess {
             boolean minimalSubMaterialView = (Object) this instanceof WidgetMaterialListAccess access && MinimalSubMaterialListView.isActive(access.lmlp$getMaterialList());
             if (minimalSubMaterialView && MinimalSubMaterialListView.isSourcesExpanded(materialEntry)) {
                 return 23 + MinimalSourceInlineRenderer.getOuterHeight(
+                        MinimalSubMaterialListView.displayStack(materialEntry),
                         MinimalSubMaterialListView.sourceContributions(materialEntry),
                         MinimalSubMaterialListView.isSourcesFull(materialEntry));
             }
