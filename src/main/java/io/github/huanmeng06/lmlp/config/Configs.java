@@ -82,7 +82,23 @@ public class Configs implements IConfigHandler {
                         "minecraft:brown_carpet",
                         "minecraft:green_carpet",
                         "minecraft:red_carpet",
-                        "minecraft:black_carpet"
+                        "minecraft:black_carpet",
+                        "minecraft:white_terracotta",
+                        "minecraft:orange_terracotta",
+                        "minecraft:magenta_terracotta",
+                        "minecraft:light_blue_terracotta",
+                        "minecraft:yellow_terracotta",
+                        "minecraft:lime_terracotta",
+                        "minecraft:pink_terracotta",
+                        "minecraft:gray_terracotta",
+                        "minecraft:light_gray_terracotta",
+                        "minecraft:cyan_terracotta",
+                        "minecraft:purple_terracotta",
+                        "minecraft:blue_terracotta",
+                        "minecraft:brown_terracotta",
+                        "minecraft:green_terracotta",
+                        "minecraft:red_terracotta",
+                        "minecraft:black_terracotta"
                 ),
                 "Items in this list are treated as base materials."
         );
