@@ -314,6 +314,22 @@ public final class MinimalSubMaterialListView {
             List<class_1799> ingredientIcons = ingredient.icons().isEmpty() ? List.of(ingredient.icon()) : ingredient.icons();
             List<String> ingredientNames = candidateNames(ingredientIcons, ingredient.alternatives());
             if (ingredient.isChoiceGroup()) {
+                CandidateSet refinedChoice = refineWoodCandidatesForSource(source, ingredientIcons, ingredientNames);
+                if (shouldDecomposeRefinedChoice(refinedChoice)) {
+                    collectLeaves(
+                            refinedChoice.icons().get(0),
+                            refinedChoice.icons(),
+                            refinedChoice.names(),
+                            refinedChoice.names().isEmpty() ? RecipeSummaryFormatter.ingredientName(ingredient) : refinedChoice.names().get(0),
+                            source,
+                            ingredient.countTotal(),
+                            ingredient.countMissing(),
+                            depth + 1,
+                            childSeenItems,
+                            materials);
+                    continue;
+                }
+
                 addLeaf(
                         ingredient.icon(),
                         ingredientIcons,
@@ -348,6 +364,10 @@ public final class MinimalSubMaterialListView {
         String displayName = groupDisplayName(candidates.icons(), displayNameFallback);
         materials.computeIfAbsent(key, ignored -> new Accumulator(displayStack, displayName))
                 .add(totalCount, missingCount, candidates.icons(), candidates.names(), source);
+    }
+
+    private static boolean shouldDecomposeRefinedChoice(CandidateSet candidates) {
+        return candidates.icons().size() == 1 && isPlanksLike(itemPath(candidates.icons().get(0)));
     }
 
     private static CandidateSet refineWoodCandidatesForSource(SourceOrigin source, List<class_1799> icons, List<String> names) {
