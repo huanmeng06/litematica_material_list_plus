@@ -90,6 +90,11 @@ public final class AlternativeItemDisplay {
             return familyLogName;
         }
 
+        String familyPlanksName = sameWoodFamilyPlanksName(icons, alternatives);
+        if (!familyPlanksName.isEmpty()) {
+            return familyPlanksName;
+        }
+
         String groupKey = commonGroupKey(icons);
         if (!groupKey.isEmpty()) {
             return StringUtils.translate(groupKey);
@@ -162,6 +167,37 @@ public final class AlternativeItemDisplay {
             }
 
             if (preferredName.isEmpty() && (path.endsWith("_log") || path.endsWith("_stem"))) {
+                preferredName = alternatives.get(index);
+            }
+        }
+
+        return preferredName.isEmpty() ? alternatives.get(0) : preferredName;
+    }
+
+    private static String sameWoodFamilyPlanksName(List<class_1799> icons, List<String> alternatives) {
+        if (icons.size() < 2 || icons.size() != alternatives.size()) {
+            return "";
+        }
+
+        String family = "";
+        String preferredName = "";
+        for (int index = 0; index < icons.size(); index++) {
+            String path = itemPath(icons.get(index));
+            if (!path.endsWith("_planks")) {
+                return "";
+            }
+
+            String currentFamily = woodFamily(path);
+            if (currentFamily.isEmpty()) {
+                return "";
+            }
+            if (family.isEmpty()) {
+                family = currentFamily;
+            } else if (!family.equals(currentFamily)) {
+                return "";
+            }
+
+            if (preferredName.isEmpty() && path.equals(family + "_planks")) {
                 preferredName = alternatives.get(index);
             }
         }

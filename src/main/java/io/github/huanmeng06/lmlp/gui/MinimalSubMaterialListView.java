@@ -341,10 +341,36 @@ public final class MinimalSubMaterialListView {
     }
 
     private static void addLeaf(class_1799 stack, List<class_1799> icons, List<String> names, String name, SourceOrigin source, int totalCount, int missingCount, Map<String, Accumulator> materials) {
-        String key = groupKey(stack, icons, name);
-        String displayName = groupDisplayName(icons.isEmpty() ? List.of(stack) : icons, name);
-        materials.computeIfAbsent(key, ignored -> new Accumulator(stack, displayName))
-                .add(totalCount, missingCount, icons, names, source);
+        CandidateSet candidates = refineWoodCandidatesForSource(source, icons.isEmpty() ? List.of(stack) : icons, names);
+        String displayNameFallback = candidates.names().size() == 1 ? candidates.names().get(0) : name;
+        class_1799 displayStack = candidates.icons().isEmpty() ? stack : candidates.icons().get(0);
+        String key = groupKey(displayStack, candidates.icons(), displayNameFallback);
+        String displayName = groupDisplayName(candidates.icons(), displayNameFallback);
+        materials.computeIfAbsent(key, ignored -> new Accumulator(displayStack, displayName))
+                .add(totalCount, missingCount, candidates.icons(), candidates.names(), source);
+    }
+
+    private static CandidateSet refineWoodCandidatesForSource(SourceOrigin source, List<class_1799> icons, List<String> names) {
+        if (icons.size() < 2) {
+            return new CandidateSet(icons, names);
+        }
+
+        String sourceFamily = woodFamily(itemPath(source.id()));
+        if (sourceFamily.isEmpty() || !allIconsMatch(icons, path -> isPlanksLike(path) || isLogLike(path))) {
+            return new CandidateSet(icons, names);
+        }
+
+        List<class_1799> refinedIcons = new ArrayList<>();
+        List<String> refinedNames = new ArrayList<>();
+        for (int index = 0; index < icons.size(); index++) {
+            class_1799 icon = icons.get(index);
+            if (sourceFamily.equals(woodFamily(itemPath(icon)))) {
+                refinedIcons.add(icon);
+                refinedNames.add(index < names.size() ? names.get(index) : ItemStackTexts.name(icon));
+            }
+        }
+
+        return refinedIcons.isEmpty() ? new CandidateSet(icons, names) : new CandidateSet(List.copyOf(refinedIcons), List.copyOf(refinedNames));
     }
 
     private static String groupKey(class_1799 stack, List<class_1799> icons, String name) {
@@ -669,6 +695,9 @@ public final class MinimalSubMaterialListView {
     private record SourceOrigin(String id, class_1799 icon, String name) {
     }
 
+    private record CandidateSet(List<class_1799> icons, List<String> names) {
+    }
+
     public record TooltipCandidate(class_1799 icon, String name) {
     }
 
@@ -677,6 +706,10 @@ public final class MinimalSubMaterialListView {
 
     private static String itemPath(class_1799 stack) {
         String id = ItemStackTexts.id(stack);
+        return itemPath(id);
+    }
+
+    private static String itemPath(String id) {
         int separator = id.indexOf(':');
         return separator >= 0 ? id.substring(separator + 1) : id;
     }
@@ -729,6 +762,10 @@ public final class MinimalSubMaterialListView {
                 || path.endsWith("_wood")
                 || path.endsWith("_stem")
                 || path.endsWith("_hyphae");
+    }
+
+    private static boolean isPlanksLike(String path) {
+        return path.endsWith("_planks");
     }
 
     private static boolean hasMultipleWoodFamilies(List<class_1799> icons) {
