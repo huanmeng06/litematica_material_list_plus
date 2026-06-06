@@ -131,12 +131,13 @@ public final class MinimalSubMaterialListView {
             return false;
         }
 
-        boolean changed = state.process(materialList, BUILD_BUDGET_NS);
-        if (state.isComplete()) {
+        state.process(materialList, BUILD_BUDGET_NS);
+        boolean complete = state.isComplete();
+        if (complete) {
             ENTRY_CACHES.put(materialList, new Cache(state.signature(), state.entries()));
             BUILD_STATES.remove(materialList);
         }
-        return changed;
+        return complete;
     }
 
     public static String displayName(MaterialListEntry entry) {
@@ -407,7 +408,7 @@ public final class MinimalSubMaterialListView {
                 changed = true;
             } while (System.nanoTime() < deadline);
 
-            if (changed || this.complete) {
+            if (this.complete) {
                 this.publish(materialList);
             }
             return changed;

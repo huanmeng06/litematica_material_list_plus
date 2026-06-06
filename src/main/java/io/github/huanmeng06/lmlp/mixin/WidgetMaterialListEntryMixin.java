@@ -47,6 +47,7 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
     private static final int VANILLA_TOOLTIP_LABEL_VALUE_GAP = 20;
     private static final int VANILLA_TOOLTIP_PADDING_EXTRA = 60;
     private static final int VANILLA_TOOLTIP_LINE_HEIGHT = 16;
+    private static final int COUNT_COLUMN_SAFETY_PADDING = 12;
     private static int lmlpMaxTotalDigits;
     private static int lmlpMaxMissingDigits;
     @Shadow
@@ -120,7 +121,11 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
             maxCountLength3 = Math.max(maxCountLength3, StringUtils.getStringWidth(Integer.toString(entry.getCountAvailable())));
         }
 
-        MaterialListColumnLayout.updateRequiredEntryWidth(maxNameLength, maxCountLength1, maxCountLength2, maxCountLength3);
+        MaterialListColumnLayout.updateRequiredEntryWidth(
+                maxNameLength,
+                maxCountLength1 + COUNT_COLUMN_SAFETY_PADDING,
+                maxCountLength2 + COUNT_COLUMN_SAFETY_PADDING,
+                maxCountLength3 + COUNT_COLUMN_SAFETY_PADDING);
     }
 
     /**
