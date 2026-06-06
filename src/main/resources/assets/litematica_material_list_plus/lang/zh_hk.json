@@ -78,7 +78,7 @@
   "config.name.openconfiggui": "開啟設定畫面",
   "config.name.recipestopitems": "配方停止拆分物品",
   "config.name.showhoverdetails": "顯示詳細懸停提示",
-  "config.comment.disablelitematicahovertooltip": "關閉 Litematica 原版材料懸停提示，改用 LMLP 的簡略/詳細材料提示。",
+  "config.comment.disablelitematicahovertooltip": "開啟時不顯示材料懸停提示；關閉時使用 Litematica 原版懸停提示。",
   "config.comment.countdisplaystyle": "樣式1：盒數 + 組數 + 個數\n樣式2：總數 = 盒數 + 組數 + 個數\n樣式3：A × SB + B × 64 (16) + C\n樣式4：總數（Litematica）",
   "config.comment.openconfiggui": "開啟 Litematica Material List Plus 設定畫面。",
   "config.comment.recipestopitems": "這些物品會作為基礎材料，不再繼續拆分配方。可用 {color} 匹配 16 色物品，例如 minecraft:{color}_wool。",

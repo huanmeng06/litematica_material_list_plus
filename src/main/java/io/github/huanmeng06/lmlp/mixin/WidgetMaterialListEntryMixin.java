@@ -324,7 +324,7 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
 
     /**
      * @author Huan_meeng
-     * @reason Split material hover details into a compact mouse-following preview and an Alt-held detail view.
+     * @reason Optionally suppress Litematica's original material hover tooltip.
      */
     @Overwrite
     public void postRenderHovered(int mouseX, int mouseY, boolean selected, class_332 drawContext) {
@@ -332,17 +332,11 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
             return;
         }
 
-        if (!Configs.Generic.DISABLE_LITEMATICA_HOVER_TOOLTIP.getBooleanValue()) {
-            this.renderVanillaMaterialHoverTooltip(drawContext, mouseX, mouseY);
+        if (Configs.Generic.DISABLE_LITEMATICA_HOVER_TOOLTIP.getBooleanValue()) {
             return;
         }
 
-        if (MinimalSubMaterialListView.isActive(this.materialList) && !MinimalSubMaterialListView.tooltipCandidates(this.entry).isEmpty()) {
-            this.lmlp$renderMinimalChoiceTooltip(drawContext, mouseX, mouseY);
-            return;
-        }
-
-        this.renderMaterialHoverTooltip(drawContext, mouseX, mouseY, this.isDetailHoverKeyDown());
+        this.renderVanillaMaterialHoverTooltip(drawContext, mouseX, mouseY);
     }
 
     @Override

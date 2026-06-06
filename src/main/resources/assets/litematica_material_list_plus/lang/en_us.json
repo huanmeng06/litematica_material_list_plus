@@ -78,7 +78,7 @@
   "config.name.openconfiggui": "Open config screen",
   "config.name.recipestopitems": "Recipe stop items",
   "config.name.showhoverdetails": "Show hover details",
-  "config.comment.disablelitematicahovertooltip": "Disable Litematica's original material hover tooltip and use LMLP's compact/detail tooltip instead.",
+  "config.comment.disablelitematicahovertooltip": "When enabled, no material hover tooltip is shown. Turn this off to use Litematica's original hover tooltip.",
   "config.comment.countdisplaystyle": "Style 1: boxes + stacks + items\nStyle 2: total = boxes + stacks + items\nStyle 3: A × SB + B × 64 (16) + C\nStyle 4: total (Litematica)",
   "config.comment.openconfiggui": "Open the Litematica Material List Plus configuration screen.",
   "config.comment.recipestopitems": "Items in this list are treated as base materials. Use {color} to match all 16 colored variants, for example minecraft:{color}_wool.",

@@ -54,7 +54,7 @@ public class Configs implements IConfigHandler {
         public static final ConfigBoolean DISABLE_LITEMATICA_HOVER_TOOLTIP = new ConfigBoolean(
                 "disableLitematicaHoverTooltip",
                 true,
-                "Disable Litematica's original material hover tooltip and use LMLP's compact/detail tooltip instead.",
+                "Disable Litematica's original material hover tooltip. Turn this off to show Litematica's original tooltip.",
                 "lmlp.config.name.disable_litematica_hover_tooltip"
         );
 
