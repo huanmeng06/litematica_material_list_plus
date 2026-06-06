@@ -31,6 +31,7 @@ public class MinimalSourceDetailScreen extends class_437 {
     private static final int HEADER_BUTTON_GAP = 8;
     private static final int SOURCE_BOX_HEIGHT = 46;
     private static final int SOURCE_BOX_GAP = 10;
+    private static final int WHEEL_SCROLL_PIXELS = 36;
 
     private final class_437 parent;
     private final class_1799 target;
@@ -42,6 +43,7 @@ public class MinimalSourceDetailScreen extends class_437 {
     private final ButtonGeneric backButton = new ButtonGeneric(0, 0, BACK_BUTTON_WIDTH, BACK_BUTTON_HEIGHT, "");
     private class_1799 hoveredStack = class_1799.field_8037;
     private boolean draggingScrollbar;
+    private double scrollRemainder;
 
     public MinimalSourceDetailScreen(class_437 parent, class_1799 target, String targetName, int totalCount, int missingCount, List<MinimalSubMaterialListView.SourceContribution> sources) {
         super(class_2561.method_43471("lmlp.gui.minimal_sources.title"));
@@ -68,7 +70,7 @@ public class MinimalSourceDetailScreen extends class_437 {
 
     @Override
     public boolean method_25401(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
-        this.scrollBar.offsetValue(-(int) (verticalAmount * 24));
+        this.offsetScroll(verticalAmount);
         return true;
     }
 
@@ -202,6 +204,17 @@ public class MinimalSourceDetailScreen extends class_437 {
         }
 
         this.scrollBar.render(mouseX, mouseY, delta, this.scrollbarX(), top, 8, bottom - top, this.contentHeight());
+    }
+
+    private void offsetScroll(double verticalAmount) {
+        double target = this.scrollRemainder - verticalAmount * WHEEL_SCROLL_PIXELS;
+        int pixels = (int) target;
+        this.scrollRemainder = target - pixels;
+        if (pixels == 0 && verticalAmount != 0.0D) {
+            pixels = verticalAmount > 0.0D ? -1 : 1;
+            this.scrollRemainder = 0.0D;
+        }
+        this.scrollBar.offsetValue(pixels);
     }
 
     private int contentHeight() {

@@ -82,6 +82,7 @@ public class RecipeDetailScreen extends class_437 {
     private static final int NESTED_RECIPE_GAP = 8;
     private static final int NESTED_RECIPE_INDENT = 24;
     private static final int MAX_NESTED_DEPTH = 3;
+    private static final int WHEEL_SCROLL_PIXELS = 36;
     private static final String ROOT_RECIPE_LIST = "root";
     private static final class_2960 REI_DISPLAY_TEXTURE = new class_2960("roughlyenoughitems", "textures/gui/display.png");
     private static final class_2960 PREFERRED_WIDGETS_TEXTURE = new class_2960(LitematicaMaterialListPlus.MOD_ID, "textures/gui/gui_widgets.png");
@@ -113,6 +114,7 @@ public class RecipeDetailScreen extends class_437 {
     private int nativeDisplaysRenderedThisFrame;
     private boolean nativeDisplayLimitLoggedThisFrame;
     private boolean draggingScrollbar;
+    private double scrollRemainder;
     private final class_465<?> transferContainerScreen;
     private List<Tooltip.Entry> hoveredTransferTooltip = List.of();
     private List<class_2561> hoveredPreferredRecipeTooltip = List.of();
@@ -159,7 +161,7 @@ public class RecipeDetailScreen extends class_437 {
             return true;
         }
 
-        this.scrollBar.offsetValue(-(int) (verticalAmount * 24));
+        this.offsetScroll(verticalAmount);
         return true;
     }
 
@@ -982,6 +984,17 @@ public class RecipeDetailScreen extends class_437 {
         }
 
         this.scrollBar.render(mouseX, mouseY, delta, this.scrollbarX(), top, 8, bottom - top, this.contentHeight());
+    }
+
+    private void offsetScroll(double verticalAmount) {
+        double target = this.scrollRemainder - verticalAmount * WHEEL_SCROLL_PIXELS;
+        int pixels = (int) target;
+        this.scrollRemainder = target - pixels;
+        if (pixels == 0 && verticalAmount != 0.0D) {
+            pixels = verticalAmount > 0.0D ? -1 : 1;
+            this.scrollRemainder = 0.0D;
+        }
+        this.scrollBar.offsetValue(pixels);
     }
 
     private void captureHoveredStack(class_1799 stack, int mouseX, int mouseY, int x, int y, int width, int height) {

@@ -6,6 +6,7 @@
   "client": [
     "GuiMaterialListButtonListenerMixin",
     "GuiMaterialListMixin",
+    "GuiBaseHoverAccess",
     "GuiListBaseMixin",
     "HandledScreenMixin",
     "WidgetListBaseMixin",
