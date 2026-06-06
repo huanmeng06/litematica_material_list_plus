@@ -336,10 +336,6 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
             return;
         }
 
-        if (MinimalSubMaterialListView.isActive(this.materialList) && !MinimalSubMaterialListView.tooltipCandidates(this.entry).isEmpty()) {
-            return;
-        }
-
         this.renderVanillaMaterialHoverTooltip(drawContext, mouseX, mouseY);
     }
 
@@ -384,7 +380,7 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
                 + HOVER_TOOLTIP_HEADER_GAP
                 + rowsPerColumn * CHOICE_TOOLTIP_ROW_HEIGHT;
 
-        PanelBounds bounds = this.hoverTooltipBounds(mouseX, mouseY, panelWidth, panelHeight);
+        PanelBounds bounds = this.choiceTooltipBounds(mouseX, mouseY, panelWidth, panelHeight);
         int panelX = bounds.x();
         int panelY = bounds.y();
         int contentX = panelX + HOVER_TOOLTIP_PADDING;
@@ -570,6 +566,73 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         return String.format("%d", count);
     }
 
+    private PanelBounds choiceTooltipBounds(int mouseX, int mouseY, int panelWidth, int panelHeight) {
+        PanelBounds bounds = this.hoverTooltipBounds(mouseX, mouseY, panelWidth, panelHeight);
+        if (Configs.Generic.DISABLE_LITEMATICA_HOVER_TOOLTIP.getBooleanValue()) {
+            return bounds;
+        }
+
+        TooltipBounds vanilla = this.vanillaTooltipBounds(mouseX, mouseY);
+        if (!intersects(bounds.x(), bounds.y(), panelWidth, panelHeight, vanilla.x(), vanilla.y(), vanilla.width(), vanilla.height())) {
+            return bounds;
+        }
+
+        int screenWidth = this.mc.method_22683().method_4486();
+        int screenHeight = this.mc.method_22683().method_4502();
+        int minX = HOVER_TOOLTIP_MARGIN;
+        int minY = HOVER_TOOLTIP_MARGIN;
+        int maxX = Math.max(minX, screenWidth - panelWidth - HOVER_TOOLTIP_MARGIN);
+        int maxY = Math.max(minY, screenHeight - panelHeight - HOVER_TOOLTIP_MARGIN);
+        int preferredX = clamp(bounds.x(), minX, maxX);
+
+        int belowY = vanilla.y() + vanilla.height() + HOVER_TOOLTIP_MARGIN;
+        if (belowY <= maxY) {
+            return new PanelBounds(preferredX, belowY);
+        }
+
+        int aboveY = vanilla.y() - panelHeight - HOVER_TOOLTIP_MARGIN;
+        if (aboveY >= minY) {
+            return new PanelBounds(preferredX, aboveY);
+        }
+
+        int preferredY = clamp(bounds.y(), minY, maxY);
+        int rightX = vanilla.x() + vanilla.width() + HOVER_TOOLTIP_MARGIN;
+        if (rightX <= maxX) {
+            return new PanelBounds(rightX, preferredY);
+        }
+
+        int leftX = vanilla.x() - panelWidth - HOVER_TOOLTIP_MARGIN;
+        if (leftX >= minX) {
+            return new PanelBounds(leftX, preferredY);
+        }
+
+        return bounds;
+    }
+
+    private TooltipBounds vanillaTooltipBounds(int mouseX, int mouseY) {
+        class_1799 stack = MinimalSubMaterialListView.displayStack(this.entry);
+        String itemLabel = GuiBase.TXT_BOLD + StringUtils.translate("litematica.gui.label.material_list.title.item");
+        String totalLabel = GuiBase.TXT_BOLD + StringUtils.translate("litematica.gui.label.material_list.title.total");
+        String missingLabel = GuiBase.TXT_BOLD + StringUtils.translate("litematica.gui.label.material_list.title.missing");
+        String itemText = MinimalSubMaterialListView.displayName(this.entry);
+        int multiplier = this.materialList.getMultiplier();
+        int total = this.entry.getCountTotal() * multiplier;
+        int missing = multiplier == 1 ? this.entry.getCountMissing() : total;
+        String totalText = this.formatVanillaCount(total, stack.method_7914());
+        String missingText = this.formatVanillaCount(missing, stack.method_7914());
+        int labelWidth = Math.max(this.getStringWidth(itemLabel), Math.max(this.getStringWidth(totalLabel), this.getStringWidth(missingLabel)));
+        int valueWidth = Math.max(this.getStringWidth(itemText) + 20, Math.max(this.getStringWidth(totalText), this.getStringWidth(missingText)));
+        int panelWidth = labelWidth + valueWidth + VANILLA_TOOLTIP_LABEL_VALUE_GAP + VANILLA_TOOLTIP_PADDING_EXTRA;
+        int panelX = mouseX + VANILLA_TOOLTIP_MARGIN;
+        int panelY = mouseY - VANILLA_TOOLTIP_MARGIN;
+
+        if (panelX + panelWidth - 20 >= this.width) {
+            panelX -= panelWidth + 20;
+        }
+
+        return new TooltipBounds(panelX, panelY, panelWidth, VANILLA_TOOLTIP_HEIGHT);
+    }
+
     private PanelBounds hoverTooltipBounds(int mouseX, int mouseY, int panelWidth, int panelHeight) {
         int screenWidth = this.mc.method_22683().method_4486();
         int screenHeight = this.mc.method_22683().method_4502();
@@ -609,6 +672,13 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
 
     private static int clamp(int value, int min, int max) {
         return Math.max(min, Math.min(max, value));
+    }
+
+    private static boolean intersects(int leftA, int topA, int widthA, int heightA, int leftB, int topB, int widthB, int heightB) {
+        return leftA < leftB + widthB
+                && leftA + widthA > leftB
+                && topA < topB + heightB
+                && topA + heightA > topB;
     }
 
     private boolean handleRecipePanelClick(int mouseX, int mouseY) {
@@ -681,5 +751,8 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
     }
 
     private record PanelBounds(int x, int y) {
+    }
+
+    private record TooltipBounds(int x, int y, int width, int height) {
     }
 }
