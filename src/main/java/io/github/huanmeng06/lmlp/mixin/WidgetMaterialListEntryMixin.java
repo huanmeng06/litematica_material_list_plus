@@ -44,6 +44,7 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
     private static final int HOVER_TOOLTIP_HEADER_GAP = 3;
     private static final int HOVER_TOOLTIP_ICON_GAP = 6;
     private static final int HOVER_TOOLTIP_ICON_SIZE = 16;
+    private static final int TOOLTIP_STACK_GAP = 8;
     private static final int CHOICE_TOOLTIP_COLUMN_GAP = 14;
     private static final int CHOICE_TOOLTIP_ROW_HEIGHT = 18;
     private static final int CHOICE_TOOLTIP_TWO_COLUMN_THRESHOLD = 7;
@@ -573,37 +574,33 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         }
 
         TooltipBounds vanilla = this.vanillaTooltipBounds(mouseX, mouseY);
-        if (!intersects(bounds.x(), bounds.y(), panelWidth, panelHeight, vanilla.x(), vanilla.y(), vanilla.width(), vanilla.height())) {
-            return bounds;
-        }
-
         int screenWidth = this.mc.method_22683().method_4486();
         int screenHeight = this.mc.method_22683().method_4502();
         int minX = HOVER_TOOLTIP_MARGIN;
         int minY = HOVER_TOOLTIP_MARGIN;
         int maxX = Math.max(minX, screenWidth - panelWidth - HOVER_TOOLTIP_MARGIN);
         int maxY = Math.max(minY, screenHeight - panelHeight - HOVER_TOOLTIP_MARGIN);
-        int preferredX = clamp(bounds.x(), minX, maxX);
+        int alignedX = clamp(vanilla.x(), minX, maxX);
 
-        int belowY = vanilla.y() + vanilla.height() + HOVER_TOOLTIP_MARGIN;
+        int belowY = vanilla.y() + vanilla.height() + TOOLTIP_STACK_GAP;
         if (belowY <= maxY) {
-            return new PanelBounds(preferredX, belowY);
+            return new PanelBounds(alignedX, belowY);
         }
 
-        int aboveY = vanilla.y() - panelHeight - HOVER_TOOLTIP_MARGIN;
+        int aboveY = vanilla.y() - panelHeight - TOOLTIP_STACK_GAP;
         if (aboveY >= minY) {
-            return new PanelBounds(preferredX, aboveY);
+            return new PanelBounds(alignedX, aboveY);
         }
 
-        int preferredY = clamp(bounds.y(), minY, maxY);
-        int rightX = vanilla.x() + vanilla.width() + HOVER_TOOLTIP_MARGIN;
+        int alignedY = clamp(vanilla.y(), minY, maxY);
+        int rightX = vanilla.x() + vanilla.width() + TOOLTIP_STACK_GAP;
         if (rightX <= maxX) {
-            return new PanelBounds(rightX, preferredY);
+            return new PanelBounds(rightX, alignedY);
         }
 
-        int leftX = vanilla.x() - panelWidth - HOVER_TOOLTIP_MARGIN;
+        int leftX = vanilla.x() - panelWidth - TOOLTIP_STACK_GAP;
         if (leftX >= minX) {
-            return new PanelBounds(leftX, preferredY);
+            return new PanelBounds(leftX, alignedY);
         }
 
         return bounds;
@@ -672,13 +669,6 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
 
     private static int clamp(int value, int min, int max) {
         return Math.max(min, Math.min(max, value));
-    }
-
-    private static boolean intersects(int leftA, int topA, int widthA, int heightA, int leftB, int topB, int widthB, int heightB) {
-        return leftA < leftB + widthB
-                && leftA + widthA > leftB
-                && topA < topB + heightB
-                && topA + heightA > topB;
     }
 
     private boolean handleRecipePanelClick(int mouseX, int mouseY) {
