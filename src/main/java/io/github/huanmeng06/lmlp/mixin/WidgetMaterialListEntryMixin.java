@@ -175,15 +175,15 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
             return true;
         }
 
+        if (MinimalSubMaterialListView.isActive(this.materialList)) {
+            return mouseButton == 0 && this.isMouseOver(mouseX, mouseY);
+        }
+
         if (super.onMouseClickedImpl(mouseX, mouseY, mouseButton)) {
             return true;
         }
 
         if (mouseButton == 0 && this.isMouseOver(mouseX, mouseY)) {
-            if (MinimalSubMaterialListView.isActive(this.materialList)) {
-                return true;
-            }
-
             if (!GuiBase.isShiftDown()) {
                 if (this.handleRecipePanelClick(mouseX, mouseY)) {
                     return true;
@@ -288,7 +288,9 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
             RecipeInlineRenderer.render(this, drawContext, this.x + 28, panelY, Math.max(180, this.width - 64), summaries, visibleOuterHeight, mouseX, mouseY);
         }
 
-        super.render(mouseX, mouseY, selected, drawContext);
+        if (!MinimalSubMaterialListView.isActive(this.materialList)) {
+            super.render(mouseX, mouseY, selected, drawContext);
+        }
     }
 
     /**

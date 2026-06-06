@@ -532,6 +532,9 @@ public final class MinimalSubMaterialListView {
     }
 
     private static String knownAlternativeTranslationKey(List<class_1799> icons) {
+        if (icons.size() < 2) {
+            return "";
+        }
         if (allIconsMatch(icons, MinimalSubMaterialListView::isLogLike)) {
             return "lmlp.label.recipe.any.log";
         }
