@@ -47,7 +47,7 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
     private static final int VANILLA_TOOLTIP_LABEL_VALUE_GAP = 20;
     private static final int VANILLA_TOOLTIP_PADDING_EXTRA = 60;
     private static final int VANILLA_TOOLTIP_LINE_HEIGHT = 16;
-    private static final int COUNT_COLUMN_SAFETY_PADDING = 12;
+    private static final int COUNT_COLUMN_SAFETY_PADDING = 32;
     private static int lmlpMaxTotalDigits;
     private static int lmlpMaxMissingDigits;
     @Shadow
@@ -135,16 +135,16 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
     @Overwrite
     protected int getColumnPosX(int column) {
         int xItem = this.x + 4;
-        int xTotal = xItem + MaterialListColumnLayout.nameWidth() + 40;
-        int xMissing = xTotal + MaterialListColumnLayout.totalWidth() + 24;
-        int xAvailable = xMissing + MaterialListColumnLayout.missingWidth() + 24;
+        int xTotal = xItem + MaterialListColumnLayout.nameWidth() + MaterialListColumnLayout.nameToTotalGap();
+        int xMissing = xTotal + MaterialListColumnLayout.totalWidth() + MaterialListColumnLayout.countColumnGap();
+        int xAvailable = xMissing + MaterialListColumnLayout.missingWidth() + MaterialListColumnLayout.countColumnGap();
 
         return switch (column) {
             case 0 -> xItem;
             case 1 -> xTotal;
             case 2 -> xMissing;
             case 3 -> xAvailable;
-            case 4 -> xAvailable + MaterialListColumnLayout.availableWidth() + 24;
+            case 4 -> xAvailable + MaterialListColumnLayout.availableWidth() + MaterialListColumnLayout.countColumnGap();
             default -> xItem;
         };
     }

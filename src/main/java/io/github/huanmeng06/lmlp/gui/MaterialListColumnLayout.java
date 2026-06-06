@@ -2,6 +2,8 @@ package io.github.huanmeng06.lmlp.gui;
 
 public final class MaterialListColumnLayout {
     private static final long ANIMATION_DURATION_MS = 150L;
+    private static final int NAME_TO_TOTAL_GAP = 44;
+    private static final int COUNT_COLUMN_GAP = 40;
     private static int nameWidth = 1;
     private static int totalWidth = 1;
     private static int missingWidth = 1;
@@ -77,7 +79,7 @@ public final class MaterialListColumnLayout {
     }
 
     public static int requiredEntryWidth() {
-        return 4 + nameWidth() + 40 + totalWidth() + 24 + missingWidth() + 24 + availableWidth() + 24;
+        return 4 + nameWidth() + NAME_TO_TOTAL_GAP + totalWidth() + COUNT_COLUMN_GAP + missingWidth() + COUNT_COLUMN_GAP + availableWidth() + COUNT_COLUMN_GAP;
     }
 
     public static int nameWidth() {
@@ -107,6 +109,14 @@ public final class MaterialListColumnLayout {
 
     public static void setAnimateShrinkForNextUpdate(boolean animateShrink) {
         animateShrinkForNextUpdate = animateShrink;
+    }
+
+    public static int nameToTotalGap() {
+        return NAME_TO_TOTAL_GAP;
+    }
+
+    public static int countColumnGap() {
+        return COUNT_COLUMN_GAP;
     }
 
     private static void setWidths(int nameWidth, int totalWidth, int missingWidth, int availableWidth) {
