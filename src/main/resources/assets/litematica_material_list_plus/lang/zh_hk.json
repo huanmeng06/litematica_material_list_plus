@@ -51,6 +51,7 @@
   "lmlp.label.minimal_sources.none": "暫無來源主材料。",
   "lmlp.label.minimal_sources.header": "需要此子材料的主材料",
   "lmlp.label.minimal_sources.source_materials": "來源主材料",
+  "lmlp.label.minimal_sources.more": "還有 %d 個來源未顯示",
   "lmlp.gui.title.configs": "Litematica Material List Plus 設定 - %s",
   "lmlp.gui.title.recipe_detail_header": "Litematica Material List Plus - %s",
   "lmlp.gui.button.config_gui.generic": "一般",
