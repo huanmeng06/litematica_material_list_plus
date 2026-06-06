@@ -9,7 +9,6 @@ import fi.dy.masa.malilib.gui.widgets.WidgetListBase;
 import fi.dy.masa.malilib.gui.widgets.WidgetListEntryBase;
 import fi.dy.masa.malilib.gui.widgets.WidgetSearchBar;
 import fi.dy.masa.malilib.render.RenderUtils;
-import io.github.huanmeng06.lmlp.access.MinimalChoiceTooltipAccess;
 import io.github.huanmeng06.lmlp.access.WidgetMaterialListAccess;
 import io.github.huanmeng06.lmlp.access.WidgetListBoundsAccess;
 import io.github.huanmeng06.lmlp.config.Configs;
@@ -130,21 +129,6 @@ public abstract class WidgetListBaseMixin implements WidgetListBoundsAccess {
         }
     }
 
-    private void lmlp$renderMinimalChoiceTooltipAfterList(class_332 drawContext, int mouseX, int mouseY) {
-        if (!((Object) this instanceof WidgetMaterialListAccess access) || !MinimalSubMaterialListView.isActive(access.lmlp$getMaterialList())) {
-            return;
-        }
-
-        for (Object listWidget : this.listWidgets) {
-            if (listWidget instanceof WidgetListEntryBase<?> widget
-                    && widget.isMouseOver(mouseX, mouseY)
-                    && listWidget instanceof MinimalChoiceTooltipAccess tooltip) {
-                tooltip.lmlp$renderMinimalChoiceTooltip(drawContext, mouseX, mouseY);
-                return;
-            }
-        }
-    }
-
     @Inject(method = "onMouseScrolled", at = @At("HEAD"), cancellable = true)
     private void lmlp$scrollByPixels(int mouseX, int mouseY, double horizontalAmount, double verticalAmount, CallbackInfoReturnable<Boolean> cir) {
         if (!this.lmlp$isInsideBrowser(mouseX, mouseY)) {
@@ -222,7 +206,6 @@ public abstract class WidgetListBaseMixin implements WidgetListBoundsAccess {
         }
 
         ((GuiBaseHoverAccess) this).lmlp$setHoveredWidget(hovered);
-        this.lmlp$renderMinimalChoiceTooltipAfterList(drawContext, mouseX, mouseY);
         RenderUtils.color(1.0F, 1.0F, 1.0F, 1.0F);
     }
 
