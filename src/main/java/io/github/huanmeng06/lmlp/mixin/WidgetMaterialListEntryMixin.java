@@ -48,6 +48,7 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
     private static final int CHOICE_TOOLTIP_COLUMN_GAP = 14;
     private static final int CHOICE_TOOLTIP_ROW_HEIGHT = 18;
     private static final int CHOICE_TOOLTIP_TWO_COLUMN_THRESHOLD = 7;
+    private static final int CHOICE_TOOLTIP_THREE_COLUMN_THRESHOLD = 10;
     private static final int VANILLA_TOOLTIP_HEIGHT = 60;
     private static final int VANILLA_TOOLTIP_MARGIN = 10;
     private static final int VANILLA_TOOLTIP_LABEL_VALUE_GAP = 20;
@@ -358,16 +359,14 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         }
 
         int naturalColumnWidth = HOVER_TOOLTIP_ICON_SIZE + HOVER_TOOLTIP_ICON_GAP + maxCandidateNameWidth;
-        int minTwoColumnWidth = HOVER_TOOLTIP_ICON_SIZE + HOVER_TOOLTIP_ICON_GAP + 60;
-        boolean twoColumns = candidates.size() >= CHOICE_TOOLTIP_TWO_COLUMN_THRESHOLD
-                && maxContentWidth >= minTwoColumnWidth * 2 + CHOICE_TOOLTIP_COLUMN_GAP;
-        int columns = twoColumns ? 2 : 1;
-        int columnGap = twoColumns ? CHOICE_TOOLTIP_COLUMN_GAP : 0;
-        int columnWidth = twoColumns
-                ? Math.min(naturalColumnWidth, Math.max(minTwoColumnWidth, (maxContentWidth - columnGap) / 2))
+        int minColumnWidth = HOVER_TOOLTIP_ICON_SIZE + HOVER_TOOLTIP_ICON_GAP + 60;
+        int columns = choiceTooltipColumnCount(candidates.size(), maxContentWidth, minColumnWidth);
+        int columnGap = columns > 1 ? CHOICE_TOOLTIP_COLUMN_GAP : 0;
+        int columnWidth = columns > 1
+                ? Math.min(naturalColumnWidth, Math.max(minColumnWidth, (maxContentWidth - columnGap * (columns - 1)) / columns))
                 : Math.min(naturalColumnWidth, maxContentWidth);
         int rowsPerColumn = (candidates.size() + columns - 1) / columns;
-        int candidateContentWidth = columns * columnWidth + columnGap;
+        int candidateContentWidth = columns * columnWidth + columnGap * (columns - 1);
 
         class_1799 headerStack = MinimalSubMaterialListView.displayStack(this.entry);
         String headerText = this.truncateToWidth(
@@ -398,6 +397,10 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         RenderUtils.disableDiffuseLighting();
         this.drawString(contentX + HOVER_TOOLTIP_ICON_SIZE + HOVER_TOOLTIP_ICON_GAP, headerY, 0xFFFFFFFF, headerText, drawContext);
 
+        if (columns > 1) {
+            this.drawChoiceColumnSeparators(contentX, rowsY, rowsPerColumn * CHOICE_TOOLTIP_ROW_HEIGHT, columns, columnWidth, columnGap);
+        }
+
         for (int index = 0; index < candidates.size(); index++) {
             MinimalSubMaterialListView.TooltipCandidate candidate = candidates.get(index);
             int column = index / rowsPerColumn;
@@ -416,6 +419,32 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         }
 
         drawContext.method_51448().method_22909();
+    }
+
+    private static int choiceTooltipColumnCount(int candidateCount, int maxContentWidth, int minColumnWidth) {
+        int columns = candidateCount >= CHOICE_TOOLTIP_THREE_COLUMN_THRESHOLD ? 3 : candidateCount >= CHOICE_TOOLTIP_TWO_COLUMN_THRESHOLD ? 2 : 1;
+        while (columns > 1 && maxContentWidth < minColumnWidth * columns + CHOICE_TOOLTIP_COLUMN_GAP * (columns - 1)) {
+            columns--;
+        }
+        return columns;
+    }
+
+    private void drawChoiceColumnSeparators(int contentX, int rowsY, int rowsHeight, int columns, int columnWidth, int columnGap) {
+        int separatorTop = rowsY - 1;
+        int separatorHeight = Math.max(0, rowsHeight + 2);
+        for (int separator = 1; separator < columns; separator++) {
+            int x = contentX + separator * columnWidth + (separator - 1) * columnGap + columnGap / 2;
+            drawDashedVerticalLine(x, separatorTop, separatorHeight, 0x66FFFFFF);
+        }
+    }
+
+    private static void drawDashedVerticalLine(int x, int y, int height, int color) {
+        int dashHeight = 4;
+        int gapHeight = 4;
+        int endY = y + height;
+        for (int segmentY = y; segmentY < endY; segmentY += dashHeight + gapHeight) {
+            RenderUtils.drawRect(x, segmentY, 1, Math.min(dashHeight, endY - segmentY), color);
+        }
     }
 
     private void renderMaterialHoverTooltip(class_332 drawContext, int mouseX, int mouseY, boolean detailed) {
