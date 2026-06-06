@@ -14,7 +14,6 @@ import fi.dy.masa.malilib.util.StringUtils;
 import io.github.huanmeng06.lmlp.access.MinimalChoiceTooltipAccess;
 import io.github.huanmeng06.lmlp.access.WidgetListBoundsAccess;
 import io.github.huanmeng06.lmlp.config.Configs;
-import io.github.huanmeng06.lmlp.config.HoverTooltipMode;
 import io.github.huanmeng06.lmlp.config.Hotkeys;
 import io.github.huanmeng06.lmlp.gui.MaterialListColumnLayout;
 import io.github.huanmeng06.lmlp.gui.MaterialListPlusState;
@@ -333,21 +332,17 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
             return;
         }
 
-        HoverTooltipMode mode = (HoverTooltipMode) Configs.Generic.HOVER_TOOLTIP_MODE.getOptionListValue();
-        if (mode == HoverTooltipMode.HIDDEN) {
+        if (!Configs.Generic.DISABLE_LITEMATICA_HOVER_TOOLTIP.getBooleanValue()) {
+            this.renderVanillaMaterialHoverTooltip(drawContext, mouseX, mouseY);
             return;
         }
+
         if (MinimalSubMaterialListView.isActive(this.materialList) && !MinimalSubMaterialListView.tooltipCandidates(this.entry).isEmpty()) {
             this.lmlp$renderMinimalChoiceTooltip(drawContext, mouseX, mouseY);
             return;
         }
 
-        switch (mode) {
-            case LMLP -> this.renderMaterialHoverTooltip(drawContext, mouseX, mouseY, this.isDetailHoverKeyDown());
-            case LITEMATICA -> this.renderVanillaMaterialHoverTooltip(drawContext, mouseX, mouseY);
-            case HIDDEN -> {
-            }
-        }
+        this.renderMaterialHoverTooltip(drawContext, mouseX, mouseY, this.isDetailHoverKeyDown());
     }
 
     @Override

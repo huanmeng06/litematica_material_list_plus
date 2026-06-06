@@ -2,13 +2,19 @@
 
 这个 README 只记录 `dev-newFeature` 分支的开发过程和每个小版本做了什么。完整的项目介绍、安装说明、功能说明和截图展示放在 `main` 分支维护。
 
-当前正式版：`v1.4.42`
+当前正式版：`v1.4.43`
 
-当前构建：`1.4.42+mc1.20.6`
+当前构建：`1.4.43+mc1.20.6`
 
 适配目标：Minecraft `1.20.6` / Fabric / Litematica / MaLiLib / REI
 
 ## 版本说明
+
+### v1.4.43
+
+- 移除悬停浮窗的三态模式选项，改为布尔开关 `关闭 Litematica 原版浮窗`。
+- 新开关默认开启；开启时显示 LMLP 简略/详细浮窗，关闭时显示 Litematica 原版浮窗。
+- 兼容迁移旧的 `enableLmlpHoverTooltip` 和 `hoverTooltipMode` 配置值。
 
 ### v1.4.42
 
