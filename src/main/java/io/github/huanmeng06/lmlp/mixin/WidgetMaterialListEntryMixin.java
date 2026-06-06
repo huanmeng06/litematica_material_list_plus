@@ -336,6 +336,10 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
             return;
         }
 
+        if (MinimalSubMaterialListView.isActive(this.materialList) && !MinimalSubMaterialListView.tooltipCandidates(this.entry).isEmpty()) {
+            return;
+        }
+
         this.renderVanillaMaterialHoverTooltip(drawContext, mouseX, mouseY);
     }
 
