@@ -21,24 +21,24 @@ public final class MinimalSourceInlineRenderer {
     private MinimalSourceInlineRenderer() {
     }
 
-    public static int getHeight(List<MinimalSubMaterialListView.SourceContribution> sources) {
+    public static int getHeight(List<MinimalSubMaterialListView.SourceContribution> sources, boolean showAll) {
         if (sources.isEmpty()) {
             return 48;
         }
 
-        return 64 + visibleSourceCount(sources) * ROW_HEIGHT + overflowHeight(sources) + INNER_BOTTOM_PADDING;
+        return 64 + visibleSourceCount(sources, showAll) * ROW_HEIGHT + overflowHeight(sources, showAll) + INNER_BOTTOM_PADDING;
     }
 
-    public static int getOuterHeight(List<MinimalSubMaterialListView.SourceContribution> sources) {
-        return getHeight(sources) + ENTRY_BOTTOM_GAP;
+    public static int getOuterHeight(List<MinimalSubMaterialListView.SourceContribution> sources, boolean showAll) {
+        return getHeight(sources, showAll) + ENTRY_BOTTOM_GAP;
     }
 
-    public static int getOuterHeight(List<MinimalSubMaterialListView.SourceContribution> sources, float progress) {
-        return Math.round(getOuterHeight(sources) * progress);
+    public static int getOuterHeight(List<MinimalSubMaterialListView.SourceContribution> sources, boolean showAll, float progress) {
+        return Math.round(getOuterHeight(sources, showAll) * progress);
     }
 
-    public static void render(WidgetBase widget, class_332 context, int x, int y, int width, class_1799 targetIcon, String targetName, List<MinimalSubMaterialListView.SourceContribution> sources, int visibleOuterHeight) {
-        int height = getHeight(sources);
+    public static void render(WidgetBase widget, class_332 context, int x, int y, int width, class_1799 targetIcon, String targetName, List<MinimalSubMaterialListView.SourceContribution> sources, boolean showAll, int visibleOuterHeight) {
+        int height = getHeight(sources, showAll);
         int panelWidth = Math.max(160, width);
         int visibleHeight = Math.max(0, Math.min(height, visibleOuterHeight));
         if (visibleHeight <= 0) {
@@ -70,12 +70,12 @@ public final class MinimalSourceInlineRenderer {
         cursorY += 18;
 
         int boxY = cursorY;
-        int boxHeight = 18 + visibleSourceCount(sources) * ROW_HEIGHT + overflowHeight(sources);
+        int boxHeight = 18 + visibleSourceCount(sources, showAll) * ROW_HEIGHT + overflowHeight(sources, showAll);
         RenderUtils.drawRect(textX - 2, boxY - 2, panelWidth - PADDING * 2 + 4, boxHeight, 0x66000000);
         widget.drawString(textX, cursorY, 0xFFAAAAAA, StringUtils.translate("lmlp.label.minimal_sources.source_materials"), context);
         cursorY += 18;
 
-        int visibleCount = visibleSourceCount(sources);
+        int visibleCount = visibleSourceCount(sources, showAll);
         for (int index = 0; index < visibleCount; index++) {
             MinimalSubMaterialListView.SourceContribution source = sources.get(index);
             renderSourceRow(widget, context, textX, cursorY, source);
@@ -89,12 +89,12 @@ public final class MinimalSourceInlineRenderer {
         drawOutline(x, y, panelWidth, visibleHeight, 0xFF777777);
     }
 
-    private static int visibleSourceCount(List<MinimalSubMaterialListView.SourceContribution> sources) {
-        return Math.min(sources.size(), MAX_VISIBLE_SOURCE_ROWS);
+    private static int visibleSourceCount(List<MinimalSubMaterialListView.SourceContribution> sources, boolean showAll) {
+        return showAll ? sources.size() : Math.min(sources.size(), MAX_VISIBLE_SOURCE_ROWS);
     }
 
-    private static int overflowHeight(List<MinimalSubMaterialListView.SourceContribution> sources) {
-        return sources.size() > MAX_VISIBLE_SOURCE_ROWS ? OVERFLOW_ROW_HEIGHT : 0;
+    private static int overflowHeight(List<MinimalSubMaterialListView.SourceContribution> sources, boolean showAll) {
+        return !showAll && sources.size() > MAX_VISIBLE_SOURCE_ROWS ? OVERFLOW_ROW_HEIGHT : 0;
     }
 
     private static void renderSourceRow(WidgetBase widget, class_332 context, int textX, int y, MinimalSubMaterialListView.SourceContribution source) {

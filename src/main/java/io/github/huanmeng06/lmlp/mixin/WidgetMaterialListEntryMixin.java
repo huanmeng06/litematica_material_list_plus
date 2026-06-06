@@ -183,7 +183,7 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         if (MinimalSubMaterialListView.isActive(this.materialList)) {
             if (mouseButton == 0 && this.isMouseOver(mouseX, mouseY)) {
                 boolean wasExpanded = MinimalSubMaterialListView.isSourcesExpanded(this.entry);
-                MinimalSubMaterialListView.toggleSources(this.entry);
+                MinimalSubMaterialListView.toggleSources(this.entry, GuiBase.isShiftDown());
                 this.listWidget.refreshEntries();
                 if (!wasExpanded) {
                     this.scrollExpandedEntryIntoView();
@@ -304,9 +304,10 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
 
         if (MinimalSubMaterialListView.isActive(this.materialList) && MinimalSubMaterialListView.isSourcesVisible(this.entry)) {
             List<MinimalSubMaterialListView.SourceContribution> sources = MinimalSubMaterialListView.sourceContributions(this.entry);
+            boolean showAllSources = MinimalSubMaterialListView.isSourcesFull(this.entry);
             int panelY = this.y + 23;
-            int visibleOuterHeight = MinimalSourceInlineRenderer.getOuterHeight(sources, MinimalSubMaterialListView.sourceProgress(this.entry));
-            MinimalSourceInlineRenderer.render(this, drawContext, this.x + 28, panelY, Math.max(180, this.width - 64), stack, name, sources, visibleOuterHeight);
+            int visibleOuterHeight = MinimalSourceInlineRenderer.getOuterHeight(sources, showAllSources, MinimalSubMaterialListView.sourceProgress(this.entry));
+            MinimalSourceInlineRenderer.render(this, drawContext, this.x + 28, panelY, Math.max(180, this.width - 64), stack, name, sources, showAllSources, visibleOuterHeight);
         }
 
         if (!MinimalSubMaterialListView.isActive(this.materialList)) {

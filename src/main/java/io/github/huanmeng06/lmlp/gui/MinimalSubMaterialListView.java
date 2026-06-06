@@ -53,6 +53,7 @@ public final class MinimalSubMaterialListView {
     private static final ExpandAnimationTracker SOURCE_ANIMATIONS = new ExpandAnimationTracker();
     private static String expandedSourceKey = "";
     private static String visibleSourceKey = "";
+    private static String fullSourceKey = "";
     private static long layoutRevision;
 
     private MinimalSubMaterialListView() {
@@ -231,11 +232,15 @@ public final class MinimalSubMaterialListView {
         return !visibleSourceKey.isEmpty() && visibleSourceKey.equals(entryKey(entry));
     }
 
-    public static void toggleSources(MaterialListEntry entry) {
-        if (isSourcesExpanded(entry)) {
+    public static boolean isSourcesFull(MaterialListEntry entry) {
+        return !fullSourceKey.isEmpty() && fullSourceKey.equals(entryKey(entry));
+    }
+
+    public static void toggleSources(MaterialListEntry entry, boolean showAll) {
+        if (isSourcesExpanded(entry) && isSourcesFull(entry) == showAll) {
             clearSources(entry);
         } else {
-            openSources(entry);
+            openSources(entry, showAll);
         }
     }
 
@@ -272,11 +277,12 @@ public final class MinimalSubMaterialListView {
         return display == null ? ENTRY_DISPLAY_KEYS.get(entryKey(entry)) : display;
     }
 
-    private static void openSources(MaterialListEntry entry) {
+    private static void openSources(MaterialListEntry entry, boolean showAll) {
         String key = entryKey(entry);
         float startProgress = visibleSourceKey.equals(key) ? sourceProgress(entry) : 0.0F;
         expandedSourceKey = key;
         visibleSourceKey = key;
+        fullSourceKey = showAll ? key : "";
         SOURCE_ANIMATIONS.start(key, startProgress, 1.0F);
     }
 
@@ -512,6 +518,7 @@ public final class MinimalSubMaterialListView {
     private static void clearSourceState() {
         expandedSourceKey = "";
         visibleSourceKey = "";
+        fullSourceKey = "";
         SOURCE_ANIMATIONS.clear();
     }
 
