@@ -44,6 +44,7 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
     private static final int HOVER_TOOLTIP_HEADER_GAP = 3;
     private static final int HOVER_TOOLTIP_ICON_GAP = 6;
     private static final int HOVER_TOOLTIP_ICON_SIZE = 16;
+    private static final int HOVER_TEXT_HEIGHT = 12;
     private static final int TOOLTIP_STACK_GAP = 8;
     private static final int CHOICE_TOOLTIP_COLUMN_GAP = 14;
     private static final int CHOICE_TOOLTIP_ROW_HEIGHT = 18;
@@ -315,11 +316,12 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         }
 
         if (MinimalSubMaterialListView.isActive(this.materialList) && MinimalSubMaterialListView.isSourcesVisible(this.entry)) {
+            List<MinimalSubMaterialListView.RequirementContribution> requirements = MinimalSubMaterialListView.sourceRequirements(this.entry, total, missing);
             List<MinimalSubMaterialListView.SourceContribution> sources = MinimalSubMaterialListView.sourceContributions(this.entry);
             boolean showAllSources = MinimalSubMaterialListView.isSourcesFull(this.entry);
             int panelY = this.y + 23;
-            int visibleOuterHeight = MinimalSourceInlineRenderer.getOuterHeight(stack, sources, showAllSources, MinimalSubMaterialListView.sourceProgress(this.entry));
-            MinimalSourceInlineRenderer.render(this, drawContext, this.x + 28, panelY, Math.max(180, this.width - 64), stack, name, sources, showAllSources, visibleOuterHeight);
+            int visibleOuterHeight = MinimalSourceInlineRenderer.getOuterHeight(stack, requirements, sources, showAllSources, MinimalSubMaterialListView.sourceProgress(this.entry));
+            MinimalSourceInlineRenderer.render(this, drawContext, this.x + 28, panelY, Math.max(180, this.width - 64), stack, name, requirements, sources, showAllSources, visibleOuterHeight);
         }
     }
 
@@ -347,6 +349,9 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         }
         List<MinimalSubMaterialListView.TooltipCandidate> candidates = MinimalSubMaterialListView.tooltipCandidates(this.entry);
         if (candidates.isEmpty()) {
+            return;
+        }
+        if (!this.isMinimalChoiceTextHovered(mouseX, mouseY)) {
             return;
         }
 
@@ -416,6 +421,35 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         }
 
         drawContext.method_51448().method_22909();
+    }
+
+    private boolean isMinimalChoiceTextHovered(int mouseX, int mouseY) {
+        String name = MinimalSubMaterialListView.displayName(this.entry);
+        int nameWidth = this.getStringWidth(name);
+        if (isTextHovered(this.getColumnPosX(0) + 20, this.y + 7, nameWidth, mouseX, mouseY)) {
+            return true;
+        }
+
+        if (!MinimalSubMaterialListView.isSourcesVisible(this.entry)) {
+            return false;
+        }
+
+        class_1799 stack = MinimalSubMaterialListView.displayStack(this.entry);
+        int total = MaterialCounts.total(this.entry, this.materialList);
+        int missing = MaterialCounts.missing(this.entry, this.materialList);
+        List<MinimalSubMaterialListView.RequirementContribution> requirements = MinimalSubMaterialListView.sourceRequirements(this.entry, total, missing);
+        List<MinimalSubMaterialListView.SourceContribution> sources = MinimalSubMaterialListView.sourceContributions(this.entry);
+        boolean showAllSources = MinimalSubMaterialListView.isSourcesFull(this.entry);
+        int panelY = this.y + 23;
+        int visibleOuterHeight = MinimalSourceInlineRenderer.getOuterHeight(stack, requirements, sources, showAllSources, MinimalSubMaterialListView.sourceProgress(this.entry));
+        return MinimalSourceInlineRenderer.isTargetNameHovered(this.x + 28, panelY, stack, nameWidth, requirements, sources, visibleOuterHeight, mouseX, mouseY);
+    }
+
+    private static boolean isTextHovered(int textX, int textY, int textWidth, int mouseX, int mouseY) {
+        return mouseX >= textX
+                && mouseX < textX + textWidth
+                && mouseY >= textY
+                && mouseY < textY + HOVER_TEXT_HEIGHT;
     }
 
     private void renderMaterialHoverTooltip(class_332 drawContext, int mouseX, int mouseY, boolean detailed) {

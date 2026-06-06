@@ -50,6 +50,7 @@ public final class MinimalSubMaterialListView {
     private static final Map<MaterialListBase, BuildState> BUILD_STATES = new WeakHashMap<>();
     private static final Map<MaterialListEntry, DisplayData> ENTRY_DISPLAYS = new IdentityHashMap<>();
     private static final Map<String, DisplayData> ENTRY_DISPLAY_KEYS = new HashMap<>();
+    private static final Map<String, List<RequirementContribution>> REQUIREMENT_CACHES = new HashMap<>();
     private static final ExpandAnimationTracker SOURCE_ANIMATIONS = new ExpandAnimationTracker();
     private static String expandedSourceKey = "";
     private static String visibleSourceKey = "";
@@ -152,6 +153,7 @@ public final class MinimalSubMaterialListView {
         BUILD_STATES.keySet().forEach(MinimalSubMaterialListView::removeBuildDisplayData);
         BUILD_STATES.clear();
         ENTRY_DISPLAY_KEYS.clear();
+        REQUIREMENT_CACHES.clear();
         layoutRevision++;
     }
 
@@ -222,6 +224,16 @@ public final class MinimalSubMaterialListView {
     public static List<SourceContribution> sourceContributions(MaterialListEntry entry) {
         DisplayData display = displayData(entry);
         return display == null ? List.of() : display.sources();
+    }
+
+    public static List<RequirementContribution> sourceRequirements(MaterialListEntry entry, int totalCount, int missingCount) {
+        DisplayData display = displayData(entry);
+        if (display == null || display.candidates().isEmpty()) {
+            return List.of();
+        }
+
+        String key = entryKey(entry) + '|' + totalCount + '|' + missingCount;
+        return REQUIREMENT_CACHES.computeIfAbsent(key, ignored -> buildRequirements(display.candidates(), totalCount, missingCount));
     }
 
     public static boolean isSourcesExpanded(MaterialListEntry entry) {
@@ -471,8 +483,67 @@ public final class MinimalSubMaterialListView {
         removeBuildDisplayData(materialList);
         ENTRY_CACHES.remove(materialList);
         BUILD_STATES.remove(materialList);
+        REQUIREMENT_CACHES.clear();
         clearSourceState();
         layoutRevision++;
+    }
+
+    private static List<RequirementContribution> buildRequirements(List<Candidate> candidates, int totalCount, int missingCount) {
+        List<List<IngredientSummary>> recipeIngredients = new ArrayList<>();
+        for (Candidate candidate : candidates) {
+            List<RecipeSummary> summaries = RecipeResolvers.findRecipes(candidate.icon(), totalCount, missingCount);
+            if (!summaries.isEmpty() && !summaries.get(0).ingredients().isEmpty()) {
+                recipeIngredients.add(summaries.get(0).ingredients());
+            }
+        }
+
+        if (recipeIngredients.isEmpty()) {
+            return List.of();
+        }
+
+        List<IngredientSummary> baseIngredients = recipeIngredients.get(0);
+        List<RequirementContribution> requirements = new ArrayList<>();
+        for (int index = 0; index < baseIngredients.size(); index++) {
+            IngredientSummary base = baseIngredients.get(index);
+            Map<String, class_1799> iconsById = new LinkedHashMap<>();
+            List<String> names = new ArrayList<>();
+
+            for (List<IngredientSummary> ingredients : recipeIngredients) {
+                if (index >= ingredients.size()) {
+                    continue;
+                }
+
+                IngredientSummary ingredient = ingredients.get(index);
+                List<class_1799> icons = ingredient.icons().isEmpty() ? List.of(ingredient.icon()) : ingredient.icons();
+                for (class_1799 icon : icons) {
+                    if (!icon.method_7960()) {
+                        iconsById.putIfAbsent(ItemStackTexts.id(icon), icon.method_7972());
+                    }
+                }
+                for (String alternative : ingredient.alternatives()) {
+                    if (!alternative.isBlank() && !names.contains(alternative)) {
+                        names.add(alternative);
+                    }
+                }
+            }
+
+            if (iconsById.isEmpty()) {
+                continue;
+            }
+
+            List<class_1799> icons = List.copyOf(iconsById.values());
+            List<String> candidateNames = candidateNames(icons, names);
+            String fallbackName = candidateNames.isEmpty() ? RecipeSummaryFormatter.ingredientName(base) : candidateNames.get(0);
+            String name = groupDisplayName(icons, fallbackName);
+            requirements.add(new RequirementContribution(
+                    icons.get(0).method_7972(),
+                    name,
+                    base.countTotal(),
+                    base.countMissing(),
+                    base.maxStackSize()));
+        }
+
+        return List.copyOf(requirements);
     }
 
     private static BuildState buildState(MaterialListBase materialList, String signature, List<MaterialListEntry> sourceEntries, boolean useInitialBudget) {
@@ -736,6 +807,9 @@ public final class MinimalSubMaterialListView {
     public record TooltipCandidate(class_1799 icon, String name) {
     }
 
+    public record RequirementContribution(class_1799 icon, String name, int totalCount, int missingCount, int maxStackSize) {
+    }
+
     public record SourceContribution(class_1799 icon, String name, int totalCount, int missingCount, int maxStackSize) {
     }
 
@@ -799,7 +873,8 @@ public final class MinimalSubMaterialListView {
         return path.endsWith("_log")
                 || path.endsWith("_wood")
                 || path.endsWith("_stem")
-                || path.endsWith("_hyphae");
+                || path.endsWith("_hyphae")
+                || path.equals("bamboo_block");
     }
 
     private static boolean isPlanksLike(String path) {

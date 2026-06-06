@@ -50,6 +50,7 @@
   "lmlp.label.hover.detail_hint": "按住%s查看詳情",
   "lmlp.label.hover.detail_key_unbound": "未綁定按鍵",
   "lmlp.label.minimal_sources.none": "暫無來源主材料。",
+  "lmlp.label.minimal_sources.requires_named": "%s所需",
   "lmlp.label.minimal_sources.header_named": "%s需求來源",
   "lmlp.label.minimal_sources.self_material": "%s即為主材料",
   "lmlp.label.minimal_sources.detail_title": "所有來源主材料",
