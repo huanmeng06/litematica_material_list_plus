@@ -69,7 +69,6 @@ public final class MinimalSourceInlineRenderer {
         cursorY += 24;
 
         String boldTargetName = GuiBase.TXT_BOLD + targetName + GuiBase.TXT_RST;
-        String goldCountLabel = GuiBase.TXT_GOLD + StringUtils.translate("lmlp.label.minimal_sources.count_word") + GuiBase.TXT_RST;
         if (isSelfSource(targetIcon, sources)) {
             widget.drawString(textX, cursorY + 2, 0xFFFFFFFF, StringUtils.translate("lmlp.label.minimal_sources.self_material", boldTargetName), context);
             context.method_44380();
@@ -77,7 +76,7 @@ public final class MinimalSourceInlineRenderer {
             return;
         }
 
-        widget.drawString(textX, cursorY, 0xFFFFFFFF, StringUtils.translate("lmlp.label.minimal_sources.header_named", boldTargetName, goldCountLabel), context);
+        widget.drawString(textX, cursorY, 0xFFFFFFFF, StringUtils.translate("lmlp.label.minimal_sources.header_named", boldTargetName), context);
         cursorY += 18;
 
         int boxY = cursorY;
