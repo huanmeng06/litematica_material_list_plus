@@ -13,6 +13,7 @@ import io.github.huanmeng06.lmlp.recipe.RecipeSummaryFormatter;
 import net.minecraft.class_1799;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
@@ -33,6 +34,8 @@ public final class MinimalSubMaterialListView {
     private static final Map<MaterialListBase, Cache> ENTRY_CACHES = new WeakHashMap<>();
     private static final Map<MaterialListBase, BuildState> BUILD_STATES = new WeakHashMap<>();
     private static final Map<MaterialListEntry, DisplayData> ENTRY_DISPLAYS = new IdentityHashMap<>();
+    private static final Map<String, DisplayData> ENTRY_DISPLAY_KEYS = new HashMap<>();
+    private static long layoutRevision;
 
     private MinimalSubMaterialListView() {
     }
@@ -114,6 +117,8 @@ public final class MinimalSubMaterialListView {
         ENTRY_CACHES.clear();
         BUILD_STATES.keySet().forEach(MinimalSubMaterialListView::removeBuildDisplayData);
         BUILD_STATES.clear();
+        ENTRY_DISPLAY_KEYS.clear();
+        layoutRevision++;
     }
 
     public static boolean tick(MaterialListBase materialList) {
@@ -135,22 +140,31 @@ public final class MinimalSubMaterialListView {
     }
 
     public static String displayName(MaterialListEntry entry) {
-        DisplayData display = ENTRY_DISPLAYS.get(entry);
+        DisplayData display = displayData(entry);
         return display == null ? ItemStackTexts.name(entry.getStack()) : display.displayName();
     }
 
     public static String widestDisplayName(MaterialListEntry entry) {
-        DisplayData display = ENTRY_DISPLAYS.get(entry);
+        DisplayData display = displayData(entry);
         return display == null ? ItemStackTexts.name(entry.getStack()) : display.widestName();
     }
 
     public static class_1799 displayStack(MaterialListEntry entry) {
-        DisplayData display = ENTRY_DISPLAYS.get(entry);
+        DisplayData display = displayData(entry);
         if (display == null || display.candidates().isEmpty()) {
             return entry.getStack();
         }
 
         return display.currentCandidate().icon().method_7972();
+    }
+
+    public static long layoutRevision() {
+        return layoutRevision;
+    }
+
+    private static DisplayData displayData(MaterialListEntry entry) {
+        DisplayData display = ENTRY_DISPLAYS.get(entry);
+        return display == null ? ENTRY_DISPLAY_KEYS.get(entryKey(entry)) : display;
     }
 
     private static void collectLeaves(class_1799 stack, List<class_1799> icons, List<String> names, String name, int totalCount, int missingCount, int depth, Set<String> seenItems, Map<String, Accumulator> materials) {
@@ -265,6 +279,7 @@ public final class MinimalSubMaterialListView {
         removeBuildDisplayData(materialList);
         ENTRY_CACHES.remove(materialList);
         BUILD_STATES.remove(materialList);
+        layoutRevision++;
     }
 
     private static void removeDisplayData(MaterialListBase materialList) {
@@ -275,6 +290,7 @@ public final class MinimalSubMaterialListView {
 
         for (MaterialListEntry entry : cache.entries()) {
             ENTRY_DISPLAYS.remove(entry);
+            ENTRY_DISPLAY_KEYS.remove(entryKey(entry));
         }
     }
 
@@ -286,6 +302,7 @@ public final class MinimalSubMaterialListView {
 
         for (MaterialListEntry entry : state.entries()) {
             ENTRY_DISPLAYS.remove(entry);
+            ENTRY_DISPLAY_KEYS.remove(entryKey(entry));
         }
     }
 
@@ -393,11 +410,14 @@ public final class MinimalSubMaterialListView {
                 int available = this.multiplied ? 0 : Math.max(0, total - missing);
                 MaterialListEntry entry = new MaterialListEntry(material.stack.method_7972(), total, missing, 0, available);
                 entries.add(entry);
-                displays.put(entry, new DisplayData(material.name, material.candidates()));
+                DisplayData display = new DisplayData(material.name, material.candidates());
+                displays.put(entry, display);
+                ENTRY_DISPLAY_KEYS.put(entryKey(entry), display);
             }
 
             this.entries = entries;
             ENTRY_DISPLAYS.putAll(displays);
+            layoutRevision++;
         }
     }
 
@@ -451,6 +471,16 @@ public final class MinimalSubMaterialListView {
         String id = ItemStackTexts.id(stack);
         int separator = id.indexOf(':');
         return separator >= 0 ? id.substring(separator + 1) : id;
+    }
+
+    private static String entryKey(MaterialListEntry entry) {
+        return ItemStackTexts.id(entry.getStack())
+                + ':'
+                + entry.getCountTotal()
+                + ':'
+                + entry.getCountMissing()
+                + ':'
+                + entry.getCountAvailable();
     }
 
     private static String knownAlternativeTranslationKey(List<class_1799> icons) {
