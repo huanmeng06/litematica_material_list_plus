@@ -220,6 +220,18 @@ public final class MinimalSubMaterialListView {
         for (IngredientSummary ingredient : summaries.get(0).ingredients()) {
             List<class_1799> ingredientIcons = ingredient.icons().isEmpty() ? List.of(ingredient.icon()) : ingredient.icons();
             List<String> ingredientNames = candidateNames(ingredientIcons, ingredient.alternatives());
+            if (ingredient.isChoiceGroup()) {
+                addLeaf(
+                        ingredient.icon(),
+                        ingredientIcons,
+                        ingredientNames,
+                        RecipeSummaryFormatter.ingredientName(ingredient),
+                        ingredient.countTotal(),
+                        ingredient.countMissing(),
+                        materials);
+                continue;
+            }
+
             collectLeaves(
                     ingredient.icon(),
                     ingredientIcons,
