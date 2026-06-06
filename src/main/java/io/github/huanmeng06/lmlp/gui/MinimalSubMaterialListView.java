@@ -188,6 +188,19 @@ public final class MinimalSubMaterialListView {
         return stacks;
     }
 
+    public static List<TooltipCandidate> tooltipCandidates(MaterialListEntry entry) {
+        DisplayData display = displayData(entry);
+        if (display == null || display.candidates().size() < 2) {
+            return List.of();
+        }
+
+        List<TooltipCandidate> candidates = new ArrayList<>(display.candidates().size());
+        for (Candidate candidate : display.candidates()) {
+            candidates.add(new TooltipCandidate(candidate.icon().method_7972(), candidate.name()));
+        }
+        return List.copyOf(candidates);
+    }
+
     public static long layoutRevision() {
         return layoutRevision;
     }
@@ -527,6 +540,9 @@ public final class MinimalSubMaterialListView {
     private record Candidate(class_1799 icon, String name) {
     }
 
+    public record TooltipCandidate(class_1799 icon, String name) {
+    }
+
     private static String itemPath(class_1799 stack) {
         String id = ItemStackTexts.id(stack);
         int separator = id.indexOf(':');
@@ -590,6 +606,9 @@ public final class MinimalSubMaterialListView {
     }
 
     private static String emphasizeAny(String name) {
+        if (name.startsWith("\u4efb\u610f") || name.startsWith("\u6d60\u7ed8\u5270") || name.startsWith("Any ")) {
+            return COMMON_HIGHLIGHT + name + RESET;
+        }
         if (name.startsWith("任意")) {
             return COMMON_HIGHLIGHT + "任意" + RESET + name.substring("任意".length());
         }

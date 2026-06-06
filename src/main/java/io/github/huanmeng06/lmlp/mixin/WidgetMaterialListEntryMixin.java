@@ -42,6 +42,9 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
     private static final int HOVER_TOOLTIP_HEADER_GAP = 3;
     private static final int HOVER_TOOLTIP_ICON_GAP = 6;
     private static final int HOVER_TOOLTIP_ICON_SIZE = 16;
+    private static final int CHOICE_TOOLTIP_COLUMN_GAP = 14;
+    private static final int CHOICE_TOOLTIP_ROW_HEIGHT = 18;
+    private static final int CHOICE_TOOLTIP_TWO_COLUMN_THRESHOLD = 7;
     private static final int VANILLA_TOOLTIP_HEIGHT = 60;
     private static final int VANILLA_TOOLTIP_MARGIN = 10;
     private static final int VANILLA_TOOLTIP_LABEL_VALUE_GAP = 20;
@@ -304,12 +307,94 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         }
 
         HoverTooltipMode mode = (HoverTooltipMode) Configs.Generic.HOVER_TOOLTIP_MODE.getOptionListValue();
+        if (mode == HoverTooltipMode.HIDDEN) {
+            return;
+        }
+        if (MinimalSubMaterialListView.isActive(this.materialList) && !MinimalSubMaterialListView.tooltipCandidates(this.entry).isEmpty()) {
+            this.renderMinimalChoiceTooltip(drawContext, mouseX, mouseY);
+            return;
+        }
+
         switch (mode) {
             case LMLP -> this.renderMaterialHoverTooltip(drawContext, mouseX, mouseY, this.isDetailHoverKeyDown());
             case LITEMATICA -> this.renderVanillaMaterialHoverTooltip(drawContext, mouseX, mouseY);
             case HIDDEN -> {
             }
         }
+    }
+
+    private void renderMinimalChoiceTooltip(class_332 drawContext, int mouseX, int mouseY) {
+        List<MinimalSubMaterialListView.TooltipCandidate> candidates = MinimalSubMaterialListView.tooltipCandidates(this.entry);
+        if (candidates.isEmpty()) {
+            return;
+        }
+
+        int maxPanelWidth = Math.max(120, this.mc.method_22683().method_4486() - HOVER_TOOLTIP_MARGIN * 2);
+        int maxContentWidth = Math.max(80, maxPanelWidth - HOVER_TOOLTIP_PADDING * 2);
+        int maxCandidateNameWidth = 0;
+        for (MinimalSubMaterialListView.TooltipCandidate candidate : candidates) {
+            maxCandidateNameWidth = Math.max(maxCandidateNameWidth, this.getStringWidth(candidate.name()));
+        }
+
+        int naturalColumnWidth = HOVER_TOOLTIP_ICON_SIZE + HOVER_TOOLTIP_ICON_GAP + maxCandidateNameWidth;
+        int minTwoColumnWidth = HOVER_TOOLTIP_ICON_SIZE + HOVER_TOOLTIP_ICON_GAP + 60;
+        boolean twoColumns = candidates.size() >= CHOICE_TOOLTIP_TWO_COLUMN_THRESHOLD
+                && maxContentWidth >= minTwoColumnWidth * 2 + CHOICE_TOOLTIP_COLUMN_GAP;
+        int columns = twoColumns ? 2 : 1;
+        int columnGap = twoColumns ? CHOICE_TOOLTIP_COLUMN_GAP : 0;
+        int columnWidth = twoColumns
+                ? Math.min(naturalColumnWidth, Math.max(minTwoColumnWidth, (maxContentWidth - columnGap) / 2))
+                : Math.min(naturalColumnWidth, maxContentWidth);
+        int rowsPerColumn = (candidates.size() + columns - 1) / columns;
+        int candidateContentWidth = columns * columnWidth + columnGap;
+
+        class_1799 headerStack = MinimalSubMaterialListView.displayStack(this.entry);
+        String headerText = this.truncateToWidth(
+                MinimalSubMaterialListView.displayName(this.entry),
+                Math.max(20, maxContentWidth - HOVER_TOOLTIP_ICON_SIZE - HOVER_TOOLTIP_ICON_GAP));
+        int headerWidth = HOVER_TOOLTIP_ICON_SIZE + HOVER_TOOLTIP_ICON_GAP + this.getStringWidth(headerText);
+        int contentWidth = Math.min(maxContentWidth, Math.max(headerWidth, candidateContentWidth));
+        int panelWidth = contentWidth + HOVER_TOOLTIP_PADDING * 2;
+        int panelHeight = HOVER_TOOLTIP_PADDING * 2
+                + Math.max(HOVER_TOOLTIP_ICON_SIZE, HOVER_TOOLTIP_LINE_HEIGHT)
+                + HOVER_TOOLTIP_HEADER_GAP
+                + rowsPerColumn * CHOICE_TOOLTIP_ROW_HEIGHT;
+
+        PanelBounds bounds = this.hoverTooltipBounds(mouseX, mouseY, panelWidth, panelHeight);
+        int panelX = bounds.x();
+        int panelY = bounds.y();
+        int contentX = panelX + HOVER_TOOLTIP_PADDING;
+        int headerY = panelY + HOVER_TOOLTIP_PADDING + 4;
+        int rowsY = headerY + Math.max(HOVER_TOOLTIP_ICON_SIZE, HOVER_TOOLTIP_LINE_HEIGHT) + HOVER_TOOLTIP_HEADER_GAP;
+
+        drawContext.method_51448().method_22903();
+        drawContext.method_51448().method_46416(0.0F, 0.0F, 200.0F);
+        RenderUtils.drawOutlinedBox(panelX, panelY, panelWidth, panelHeight, 0xF0000000, 0xFF999999);
+
+        RenderUtils.drawRect(contentX, headerY - 4, HOVER_TOOLTIP_ICON_SIZE, HOVER_TOOLTIP_ICON_SIZE, 0x20FFFFFF);
+        RenderUtils.enableDiffuseLightingGui3D();
+        drawContext.method_51427(headerStack, contentX, headerY - 4);
+        RenderUtils.disableDiffuseLighting();
+        this.drawString(contentX + HOVER_TOOLTIP_ICON_SIZE + HOVER_TOOLTIP_ICON_GAP, headerY, 0xFFFFFFFF, headerText, drawContext);
+
+        for (int index = 0; index < candidates.size(); index++) {
+            MinimalSubMaterialListView.TooltipCandidate candidate = candidates.get(index);
+            int column = index / rowsPerColumn;
+            int row = index % rowsPerColumn;
+            int rowX = contentX + column * (columnWidth + columnGap);
+            int rowTop = rowsY + row * CHOICE_TOOLTIP_ROW_HEIGHT;
+            int textX = rowX + HOVER_TOOLTIP_ICON_SIZE + HOVER_TOOLTIP_ICON_GAP;
+            int maxNameWidth = Math.max(20, columnWidth - HOVER_TOOLTIP_ICON_SIZE - HOVER_TOOLTIP_ICON_GAP);
+            String itemName = this.truncateToWidth(candidate.name(), maxNameWidth);
+
+            RenderUtils.drawRect(rowX, rowTop + 1, HOVER_TOOLTIP_ICON_SIZE, HOVER_TOOLTIP_ICON_SIZE, 0x20FFFFFF);
+            RenderUtils.enableDiffuseLightingGui3D();
+            drawContext.method_51427(candidate.icon(), rowX, rowTop + 1);
+            RenderUtils.disableDiffuseLighting();
+            this.drawString(textX, rowTop + 5, 0xFFFFFFFF, itemName, drawContext);
+        }
+
+        drawContext.method_51448().method_22909();
     }
 
     private void renderMaterialHoverTooltip(class_332 drawContext, int mouseX, int mouseY, boolean detailed) {
