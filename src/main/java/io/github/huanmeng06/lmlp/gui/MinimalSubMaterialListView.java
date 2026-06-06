@@ -671,7 +671,8 @@ public final class MinimalSubMaterialListView {
 
     private record DisplayData(String name, List<Candidate> candidates, List<SourceContribution> sources) {
         private String displayName() {
-            return emphasizeAny(this.stableName());
+            String stableName = this.stableName();
+            return this.candidates.size() > 1 ? emphasizeVariable(stableName) : emphasizeAny(stableName);
         }
 
         private String widestName() {
@@ -836,5 +837,9 @@ public final class MinimalSubMaterialListView {
             return COMMON_HIGHLIGHT + "Any" + RESET + name.substring("Any".length());
         }
         return name;
+    }
+
+    private static String emphasizeVariable(String name) {
+        return name.isEmpty() ? name : COMMON_HIGHLIGHT + name + RESET;
     }
 }
