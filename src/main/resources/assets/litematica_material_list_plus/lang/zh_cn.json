@@ -52,7 +52,6 @@
   "lmlp.label.minimal_sources.none": "暂无来源主材料。",
   "lmlp.label.minimal_sources.header": "需要此子材料的主材料",
   "lmlp.label.minimal_sources.source_materials": "来源主材料",
-  "lmlp.label.minimal_sources.more": "已折叠 %d 个；Shift 点击打开详情页",
   "lmlp.label.minimal_sources.detail_title": "所有来源主材料",
   "lmlp.gui.title.configs": "Litematica Material List Plus 配置 - %s",
   "lmlp.gui.minimal_sources.title": "来源主材料详情",

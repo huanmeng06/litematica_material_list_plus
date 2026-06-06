@@ -15,8 +15,6 @@ public final class MinimalSourceInlineRenderer {
     private static final int PADDING = 8;
     private static final int INNER_BOTTOM_PADDING = 4;
     private static final int ENTRY_BOTTOM_GAP = 4;
-    private static final int MAX_VISIBLE_SOURCE_ROWS = 4;
-    private static final int OVERFLOW_ROW_HEIGHT = 16;
 
     private MinimalSourceInlineRenderer() {
     }
@@ -26,7 +24,7 @@ public final class MinimalSourceInlineRenderer {
             return 48;
         }
 
-        return 64 + visibleSourceCount(sources, showAll) * ROW_HEIGHT + overflowHeight(sources, showAll) + INNER_BOTTOM_PADDING;
+        return 64 + visibleSourceCount(sources) * ROW_HEIGHT + INNER_BOTTOM_PADDING;
     }
 
     public static int getOuterHeight(List<MinimalSubMaterialListView.SourceContribution> sources, boolean showAll) {
@@ -70,31 +68,24 @@ public final class MinimalSourceInlineRenderer {
         cursorY += 18;
 
         int boxY = cursorY;
-        int boxHeight = 18 + visibleSourceCount(sources, showAll) * ROW_HEIGHT + overflowHeight(sources, showAll);
+        int boxHeight = 18 + visibleSourceCount(sources) * ROW_HEIGHT;
         RenderUtils.drawRect(textX - 2, boxY - 2, panelWidth - PADDING * 2 + 4, boxHeight, 0x66000000);
         widget.drawString(textX, cursorY, 0xFFAAAAAA, StringUtils.translate("lmlp.label.minimal_sources.source_materials"), context);
         cursorY += 18;
 
-        int visibleCount = visibleSourceCount(sources, showAll);
+        int visibleCount = visibleSourceCount(sources);
         for (int index = 0; index < visibleCount; index++) {
             MinimalSubMaterialListView.SourceContribution source = sources.get(index);
             renderSourceRow(widget, context, textX, cursorY, source);
             cursorY += ROW_HEIGHT;
-        }
-        if (sources.size() > visibleCount) {
-            widget.drawString(textX + 2, cursorY + 1, 0xFFAAAAAA, StringUtils.translate("lmlp.label.minimal_sources.more", sources.size() - visibleCount), context);
         }
 
         context.method_44380();
         drawOutline(x, y, panelWidth, visibleHeight, 0xFF777777);
     }
 
-    private static int visibleSourceCount(List<MinimalSubMaterialListView.SourceContribution> sources, boolean showAll) {
-        return showAll ? sources.size() : Math.min(sources.size(), MAX_VISIBLE_SOURCE_ROWS);
-    }
-
-    private static int overflowHeight(List<MinimalSubMaterialListView.SourceContribution> sources, boolean showAll) {
-        return !showAll && sources.size() > MAX_VISIBLE_SOURCE_ROWS ? OVERFLOW_ROW_HEIGHT : 0;
+    private static int visibleSourceCount(List<MinimalSubMaterialListView.SourceContribution> sources) {
+        return sources.size();
     }
 
     private static void renderSourceRow(WidgetBase widget, class_332 context, int textX, int y, MinimalSubMaterialListView.SourceContribution source) {
