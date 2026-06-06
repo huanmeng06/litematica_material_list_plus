@@ -11,6 +11,7 @@ import fi.dy.masa.malilib.gui.widgets.WidgetListEntrySortable;
 import fi.dy.masa.malilib.render.RenderUtils;
 import fi.dy.masa.malilib.util.GuiUtils;
 import fi.dy.masa.malilib.util.StringUtils;
+import io.github.huanmeng06.lmlp.access.MinimalChoiceTooltipAccess;
 import io.github.huanmeng06.lmlp.access.WidgetListBoundsAccess;
 import io.github.huanmeng06.lmlp.config.Configs;
 import io.github.huanmeng06.lmlp.config.HoverTooltipMode;
@@ -33,7 +34,7 @@ import org.spongepowered.asm.mixin.Shadow;
 import java.util.List;
 
 @Mixin(value = WidgetMaterialListEntry.class, remap = false)
-public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortable<MaterialListEntry> {
+public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortable<MaterialListEntry> implements MinimalChoiceTooltipAccess {
     private static final int EXPANDED_PANEL_BOTTOM_PADDING = 8;
     private static final int HOVER_TOOLTIP_MARGIN = 8;
     private static final int HOVER_TOOLTIP_CURSOR_OFFSET = 12;
@@ -291,11 +292,7 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
             RecipeInlineRenderer.render(this, drawContext, this.x + 28, panelY, Math.max(180, this.width - 64), summaries, visibleOuterHeight, mouseX, mouseY);
         }
 
-        if (MinimalSubMaterialListView.isActive(this.materialList)) {
-            if (this.isMouseOver(mouseX, mouseY)) {
-                this.renderMinimalChoiceTooltip(drawContext, mouseX, mouseY);
-            }
-        } else {
+        if (!MinimalSubMaterialListView.isActive(this.materialList)) {
             super.render(mouseX, mouseY, selected, drawContext);
         }
     }
@@ -315,7 +312,7 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
             return;
         }
         if (MinimalSubMaterialListView.isActive(this.materialList) && !MinimalSubMaterialListView.tooltipCandidates(this.entry).isEmpty()) {
-            this.renderMinimalChoiceTooltip(drawContext, mouseX, mouseY);
+            this.lmlp$renderMinimalChoiceTooltip(drawContext, mouseX, mouseY);
             return;
         }
 
@@ -327,11 +324,11 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         }
     }
 
-    private void renderMinimalChoiceTooltip(class_332 drawContext, int mouseX, int mouseY) {
-        if (Configs.Generic.HOVER_TOOLTIP_MODE.getOptionListValue() == HoverTooltipMode.HIDDEN) {
+    @Override
+    public void lmlp$renderMinimalChoiceTooltip(class_332 drawContext, int mouseX, int mouseY) {
+        if (this.entry == null || !MinimalSubMaterialListView.isActive(this.materialList)) {
             return;
         }
-
         List<MinimalSubMaterialListView.TooltipCandidate> candidates = MinimalSubMaterialListView.tooltipCandidates(this.entry);
         if (candidates.isEmpty()) {
             return;

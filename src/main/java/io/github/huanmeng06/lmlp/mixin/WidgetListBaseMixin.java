@@ -6,6 +6,7 @@ import fi.dy.masa.litematica.materials.MaterialListEntry;
 import fi.dy.masa.malilib.gui.GuiScrollBar;
 import fi.dy.masa.malilib.gui.widgets.WidgetListBase;
 import fi.dy.masa.malilib.gui.widgets.WidgetListEntryBase;
+import io.github.huanmeng06.lmlp.access.MinimalChoiceTooltipAccess;
 import io.github.huanmeng06.lmlp.access.WidgetMaterialListAccess;
 import io.github.huanmeng06.lmlp.access.WidgetListBoundsAccess;
 import io.github.huanmeng06.lmlp.config.Configs;
@@ -83,6 +84,22 @@ public abstract class WidgetListBaseMixin implements WidgetListBoundsAccess {
         MaterialListPlusState.pruneAnimations();
         if (hadActiveAnimations || MaterialListPlusState.hasActiveAnimations() || hadActiveColumnAnimation || MaterialListColumnLayout.hasActiveAnimation()) {
             this.reCreateListEntryWidgets();
+        }
+    }
+
+    @Inject(method = "drawContents", at = @At("TAIL"))
+    private void lmlp$renderMinimalChoiceTooltipAfterList(class_332 drawContext, int mouseX, int mouseY, float partialTicks, CallbackInfo ci) {
+        if (!((Object) this instanceof WidgetMaterialListAccess access) || !MinimalSubMaterialListView.isActive(access.lmlp$getMaterialList())) {
+            return;
+        }
+
+        for (Object listWidget : this.listWidgets) {
+            if (listWidget instanceof WidgetListEntryBase<?> widget
+                    && widget.isMouseOver(mouseX, mouseY)
+                    && listWidget instanceof MinimalChoiceTooltipAccess tooltip) {
+                tooltip.lmlp$renderMinimalChoiceTooltip(drawContext, mouseX, mouseY);
+                return;
+            }
         }
     }
 
