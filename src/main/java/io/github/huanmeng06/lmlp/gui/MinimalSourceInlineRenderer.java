@@ -211,9 +211,6 @@ public final class MinimalSourceInlineRenderer {
         context.method_51427(icon, textX + 1, y + SOURCE_ICON_BOX_Y_OFFSET + 1);
 
         String line = name + ": " + GuiBase.TXT_GOLD + CountFormatter.format(totalCount, maxStackSize);
-        if (missingCount != totalCount) {
-            line += GuiBase.TXT_RST + " / " + GuiBase.TXT_RED + CountFormatter.format(missingCount, maxStackSize);
-        }
         widget.drawString(textX + 26, y + 2, 0xFFFFFFFF, line, context);
     }
 

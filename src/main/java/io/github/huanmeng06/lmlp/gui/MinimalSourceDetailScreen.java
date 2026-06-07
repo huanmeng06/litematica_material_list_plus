@@ -191,9 +191,6 @@ public class MinimalSourceDetailScreen extends class_437 {
         context.method_51433(this.field_22793, source.name(), textX, y + 12, 0xFFFFFFFF, false);
 
         String countText = CountFormatter.format(source.totalCount(), source.maxStackSize());
-        if (source.missingCount() != source.totalCount()) {
-            countText += " / " + CountFormatter.format(source.missingCount(), source.maxStackSize());
-        }
         context.method_51433(this.field_22793, countText, textX, y + 28, 0xFFFFAA00, false);
         context.method_44380();
     }
