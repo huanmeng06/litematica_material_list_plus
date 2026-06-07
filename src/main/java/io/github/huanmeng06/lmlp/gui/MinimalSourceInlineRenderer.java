@@ -24,6 +24,7 @@ public final class MinimalSourceInlineRenderer {
     private static final int TWO_COLUMN_THRESHOLD = 5;
     private static final int THREE_COLUMN_THRESHOLD = 9;
     private static final int COLUMN_SEPARATOR_COLOR = 0xFF999999;
+    private static final long ICON_CYCLE_MILLIS = 900L;
 
     private MinimalSourceInlineRenderer() {
     }
@@ -202,7 +203,7 @@ public final class MinimalSourceInlineRenderer {
     }
 
     private static void renderRequirementRow(WidgetBase widget, class_332 context, int textX, int y, MinimalSubMaterialListView.RequirementContribution requirement) {
-        renderCountRow(widget, context, textX, y, requirement.icon(), requirement.name(), requirement.totalCount(), requirement.missingCount(), requirement.maxStackSize());
+        renderCountRow(widget, context, textX, y, cyclingIcon(requirement.icons(), requirement.icon()), requirement.name(), requirement.totalCount(), requirement.missingCount(), requirement.maxStackSize());
     }
 
     private static void renderCountRow(WidgetBase widget, class_332 context, int textX, int y, class_1799 icon, String name, int totalCount, int missingCount, int maxStackSize) {
@@ -214,6 +215,16 @@ public final class MinimalSourceInlineRenderer {
             line += GuiBase.TXT_RST + " / " + GuiBase.TXT_RED + CountFormatter.format(missingCount, maxStackSize);
         }
         widget.drawString(textX + 26, y + 2, 0xFFFFFFFF, line, context);
+    }
+
+    private static class_1799 cyclingIcon(List<class_1799> icons, class_1799 fallback) {
+        if (icons.isEmpty()) {
+            return fallback;
+        }
+
+        int index = (int) ((System.currentTimeMillis() / ICON_CYCLE_MILLIS) % icons.size());
+        class_1799 icon = icons.get(index);
+        return icon.method_7960() ? fallback : icon;
     }
 
     private static void drawColumnSeparators(int contentX, int boxY, int rowCount, int columns, int columnWidth, int columnGap) {

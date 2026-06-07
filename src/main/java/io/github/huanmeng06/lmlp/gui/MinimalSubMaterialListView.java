@@ -228,7 +228,7 @@ public final class MinimalSubMaterialListView {
 
     public static List<RequirementContribution> sourceRequirements(MaterialListEntry entry, int totalCount, int missingCount) {
         DisplayData display = displayData(entry);
-        if (display == null || display.candidates().isEmpty()) {
+        if (display == null || display.candidates().size() < 2) {
             return List.of();
         }
 
@@ -537,6 +537,7 @@ public final class MinimalSubMaterialListView {
             String name = groupDisplayName(icons, fallbackName);
             requirements.add(new RequirementContribution(
                     icons.get(0).method_7972(),
+                    icons.stream().map(class_1799::method_7972).toList(),
                     name,
                     base.countTotal(),
                     base.countMissing(),
@@ -807,7 +808,7 @@ public final class MinimalSubMaterialListView {
     public record TooltipCandidate(class_1799 icon, String name) {
     }
 
-    public record RequirementContribution(class_1799 icon, String name, int totalCount, int missingCount, int maxStackSize) {
+    public record RequirementContribution(class_1799 icon, List<class_1799> icons, String name, int totalCount, int missingCount, int maxStackSize) {
     }
 
     public record SourceContribution(class_1799 icon, String name, int totalCount, int missingCount, int maxStackSize) {
