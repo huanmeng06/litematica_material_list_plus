@@ -200,7 +200,7 @@ public final class MinimalSourceInlineRenderer {
     }
 
     private static void renderSourceRow(WidgetBase widget, class_332 context, int textX, int y, MinimalSubMaterialListView.SourceContribution source) {
-        renderNameRow(widget, context, textX, y, source.icon(), source.name());
+        renderCountRow(widget, context, textX, y, source.icon(), source.name(), source.totalCount(), source.missingCount(), source.maxStackSize());
     }
 
     private static void renderRequirementRow(WidgetBase widget, class_332 context, int textX, int y, MinimalSubMaterialListView.RequirementContribution requirement) {
