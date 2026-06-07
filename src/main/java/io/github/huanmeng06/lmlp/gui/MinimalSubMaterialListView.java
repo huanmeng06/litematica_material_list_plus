@@ -233,9 +233,28 @@ public final class MinimalSubMaterialListView {
         }
 
         String targetName = display.stableName();
-        boolean targetPlanksGroup = allCandidatesMatch(display.candidates(), path -> isPlanksLike(path));
+        boolean targetPlanksGroup = allCandidatesMatch(display.candidates(), path -> isPlanksLike(path))
+                || targetName.equals(StringUtils.translate("lmlp.label.recipe.any.planks"));
         String key = entryKey(entry) + '|' + targetName + '|' + targetPlanksGroup + '|' + totalCount + '|' + missingCount;
         return REQUIREMENT_CACHES.computeIfAbsent(key, ignored -> buildRequirements(targetPlanksGroup, display.candidates(), totalCount, missingCount));
+    }
+
+    public static String requirementDisplayName(RequirementContribution requirement) {
+        return requirement.icons().size() > 1 && isAnyGroupName(requirement.name()) ? emphasizeVariable(requirement.name()) : requirement.name();
+    }
+
+    public static List<TooltipCandidate> requirementTooltipCandidates(RequirementContribution requirement) {
+        if (requirement.icons().size() < 2) {
+            return List.of();
+        }
+
+        List<TooltipCandidate> candidates = new ArrayList<>(requirement.icons().size());
+        for (int index = 0; index < requirement.icons().size(); index++) {
+            class_1799 icon = requirement.icons().get(index);
+            String name = index < requirement.candidateNames().size() ? requirement.candidateNames().get(index) : ItemStackTexts.name(icon);
+            candidates.add(new TooltipCandidate(icon.method_7972(), name));
+        }
+        return List.copyOf(candidates);
     }
 
     public static boolean isSourcesExpanded(MaterialListEntry entry) {
@@ -536,10 +555,11 @@ public final class MinimalSubMaterialListView {
             List<class_1799> icons = List.copyOf(iconsById.values());
             List<String> candidateNames = candidateNames(icons, names);
             String fallbackName = candidateNames.isEmpty() ? RecipeSummaryFormatter.ingredientName(base) : candidateNames.get(0);
-            String name = requirementDisplayName(targetPlanksGroup, icons, fallbackName);
+            String name = requirementGroupName(targetPlanksGroup, icons, fallbackName);
             requirements.add(new RequirementContribution(
                     icons.get(0).method_7972(),
                     icons.stream().map(class_1799::method_7972).toList(),
+                    candidateNames,
                     name,
                     base.countTotal(),
                     base.countMissing(),
@@ -549,7 +569,7 @@ public final class MinimalSubMaterialListView {
         return List.copyOf(requirements);
     }
 
-    private static String requirementDisplayName(boolean targetPlanksGroup, List<class_1799> icons, String fallbackName) {
+    private static String requirementGroupName(boolean targetPlanksGroup, List<class_1799> icons, String fallbackName) {
         if (targetPlanksGroup && allIconsMatch(icons, MinimalSubMaterialListView::isLogLike)) {
             return StringUtils.translate("lmlp.label.recipe.any.log");
         }
@@ -822,7 +842,7 @@ public final class MinimalSubMaterialListView {
     public record TooltipCandidate(class_1799 icon, String name) {
     }
 
-    public record RequirementContribution(class_1799 icon, List<class_1799> icons, String name, int totalCount, int missingCount, int maxStackSize) {
+    public record RequirementContribution(class_1799 icon, List<class_1799> icons, List<String> candidateNames, String name, int totalCount, int missingCount, int maxStackSize) {
     }
 
     public record SourceContribution(class_1799 icon, String name, int totalCount, int missingCount, int maxStackSize) {
@@ -903,7 +923,8 @@ public final class MinimalSubMaterialListView {
                 || path.endsWith("_wood")
                 || path.endsWith("_stem")
                 || path.endsWith("_hyphae")
-                || path.equals("bamboo_block");
+                || path.equals("bamboo_block")
+                || path.equals("stripped_bamboo_block");
     }
 
     private static boolean isPlanksLike(String path) {

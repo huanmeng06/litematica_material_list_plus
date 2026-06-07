@@ -203,7 +203,7 @@ public final class MinimalSourceInlineRenderer {
     }
 
     private static void renderRequirementRow(WidgetBase widget, class_332 context, int textX, int y, MinimalSubMaterialListView.RequirementContribution requirement) {
-        renderCountRow(widget, context, textX, y, cyclingIcon(requirement.icons(), requirement.icon()), requirement.name(), requirement.totalCount(), requirement.missingCount(), requirement.maxStackSize());
+        renderCountRow(widget, context, textX, y, cyclingIcon(requirement.icons(), requirement.icon()), MinimalSubMaterialListView.requirementDisplayName(requirement), requirement.totalCount(), requirement.missingCount(), requirement.maxStackSize());
     }
 
     private static void renderCountRow(WidgetBase widget, class_332 context, int textX, int y, class_1799 icon, String name, int totalCount, int missingCount, int maxStackSize) {

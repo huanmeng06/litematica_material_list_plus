@@ -347,11 +347,13 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         if (this.entry == null || !MinimalSubMaterialListView.isActive(this.materialList)) {
             return;
         }
-        List<MinimalSubMaterialListView.TooltipCandidate> candidates = MinimalSubMaterialListView.tooltipCandidates(this.entry);
-        if (candidates.isEmpty()) {
+        ChoiceTooltipTarget target = this.minimalChoiceTooltipTarget(mouseX, mouseY);
+        if (target == null) {
             return;
         }
-        if (!this.isMinimalChoiceTextHovered(mouseX, mouseY)) {
+
+        List<MinimalSubMaterialListView.TooltipCandidate> candidates = target.candidates();
+        if (candidates.isEmpty()) {
             return;
         }
 
@@ -374,9 +376,9 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         int rowsPerColumn = (candidates.size() + columns - 1) / columns;
         int candidateContentWidth = columns * columnWidth + columnGap;
 
-        class_1799 headerStack = MinimalSubMaterialListView.displayStack(this.entry);
+        class_1799 headerStack = target.icon();
         String headerText = this.truncateToWidth(
-                MinimalSubMaterialListView.displayName(this.entry),
+                target.name(),
                 Math.max(20, maxContentWidth - HOVER_TOOLTIP_ICON_SIZE - HOVER_TOOLTIP_ICON_GAP));
         int headerWidth = HOVER_TOOLTIP_ICON_SIZE + HOVER_TOOLTIP_ICON_GAP + this.getStringWidth(headerText);
         int contentWidth = Math.min(maxContentWidth, Math.max(headerWidth, candidateContentWidth));
@@ -421,6 +423,56 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         }
 
         drawContext.method_51448().method_22909();
+    }
+
+    private ChoiceTooltipTarget minimalChoiceTooltipTarget(int mouseX, int mouseY) {
+        List<MinimalSubMaterialListView.TooltipCandidate> candidates = MinimalSubMaterialListView.tooltipCandidates(this.entry);
+        if (!candidates.isEmpty() && this.isMinimalChoiceTextHovered(mouseX, mouseY)) {
+            return new ChoiceTooltipTarget(
+                    MinimalSubMaterialListView.displayStack(this.entry),
+                    MinimalSubMaterialListView.displayName(this.entry),
+                    candidates);
+        }
+
+        return this.requirementChoiceTooltipTarget(mouseX, mouseY);
+    }
+
+    private ChoiceTooltipTarget requirementChoiceTooltipTarget(int mouseX, int mouseY) {
+        if (!MinimalSubMaterialListView.isSourcesVisible(this.entry)) {
+            return null;
+        }
+
+        class_1799 stack = MinimalSubMaterialListView.displayStack(this.entry);
+        int total = MaterialCounts.total(this.entry, this.materialList);
+        int missing = MaterialCounts.missing(this.entry, this.materialList);
+        List<MinimalSubMaterialListView.RequirementContribution> requirements = MinimalSubMaterialListView.sourceRequirements(this.entry, total, missing);
+        if (requirements.isEmpty()) {
+            return null;
+        }
+
+        List<MinimalSubMaterialListView.SourceContribution> sources = MinimalSubMaterialListView.sourceContributions(this.entry);
+        boolean showAllSources = MinimalSubMaterialListView.isSourcesFull(this.entry);
+        int panelX = this.x + 28;
+        int panelY = this.y + 23;
+        int visibleOuterHeight = MinimalSourceInlineRenderer.getOuterHeight(stack, requirements, sources, showAllSources, MinimalSubMaterialListView.sourceProgress(this.entry));
+        int visibleHeight = Math.max(0, visibleOuterHeight - 4);
+        int textX = panelX + 8 + 26;
+        int rowY = panelY + 8 + 24 + 18;
+
+        for (MinimalSubMaterialListView.RequirementContribution requirement : requirements) {
+            List<MinimalSubMaterialListView.TooltipCandidate> candidates = MinimalSubMaterialListView.requirementTooltipCandidates(requirement);
+            String name = MinimalSubMaterialListView.requirementDisplayName(requirement);
+            int textY = rowY + 2;
+            if (!candidates.isEmpty()
+                    && isTextHovered(textX, textY, this.getStringWidth(name), mouseX, mouseY)
+                    && mouseY >= panelY
+                    && mouseY < panelY + visibleHeight) {
+                return new ChoiceTooltipTarget(requirement.icon(), name, candidates);
+            }
+            rowY += 22;
+        }
+
+        return null;
     }
 
     private boolean isMinimalChoiceTextHovered(int mouseX, int mouseY) {
@@ -778,5 +830,8 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
     }
 
     private record TooltipBounds(int x, int y, int width, int height) {
+    }
+
+    private record ChoiceTooltipTarget(class_1799 icon, String name, List<MinimalSubMaterialListView.TooltipCandidate> candidates) {
     }
 }
