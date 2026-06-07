@@ -233,8 +233,9 @@ public final class MinimalSubMaterialListView {
         }
 
         String targetName = display.stableName();
-        String key = entryKey(entry) + '|' + targetName + '|' + totalCount + '|' + missingCount;
-        return REQUIREMENT_CACHES.computeIfAbsent(key, ignored -> buildRequirements(targetName, display.candidates(), totalCount, missingCount));
+        boolean targetPlanksGroup = allCandidatesMatch(display.candidates(), path -> isPlanksLike(path));
+        String key = entryKey(entry) + '|' + targetName + '|' + targetPlanksGroup + '|' + totalCount + '|' + missingCount;
+        return REQUIREMENT_CACHES.computeIfAbsent(key, ignored -> buildRequirements(targetPlanksGroup, display.candidates(), totalCount, missingCount));
     }
 
     public static boolean isSourcesExpanded(MaterialListEntry entry) {
@@ -489,7 +490,7 @@ public final class MinimalSubMaterialListView {
         layoutRevision++;
     }
 
-    private static List<RequirementContribution> buildRequirements(String targetName, List<Candidate> candidates, int totalCount, int missingCount) {
+    private static List<RequirementContribution> buildRequirements(boolean targetPlanksGroup, List<Candidate> candidates, int totalCount, int missingCount) {
         List<List<IngredientSummary>> recipeIngredients = new ArrayList<>();
         for (Candidate candidate : candidates) {
             List<RecipeSummary> summaries = RecipeResolvers.findRecipes(candidate.icon(), totalCount, missingCount);
@@ -535,7 +536,7 @@ public final class MinimalSubMaterialListView {
             List<class_1799> icons = List.copyOf(iconsById.values());
             List<String> candidateNames = candidateNames(icons, names);
             String fallbackName = candidateNames.isEmpty() ? RecipeSummaryFormatter.ingredientName(base) : candidateNames.get(0);
-            String name = requirementDisplayName(targetName, icons, fallbackName);
+            String name = requirementDisplayName(targetPlanksGroup, icons, fallbackName);
             requirements.add(new RequirementContribution(
                     icons.get(0).method_7972(),
                     icons.stream().map(class_1799::method_7972).toList(),
@@ -548,8 +549,8 @@ public final class MinimalSubMaterialListView {
         return List.copyOf(requirements);
     }
 
-    private static String requirementDisplayName(String targetName, List<class_1799> icons, String fallbackName) {
-        if (targetName.equals(StringUtils.translate("lmlp.label.recipe.any.planks")) && allIconsMatch(icons, MinimalSubMaterialListView::isLogLike)) {
+    private static String requirementDisplayName(boolean targetPlanksGroup, List<class_1799> icons, String fallbackName) {
+        if (targetPlanksGroup && allIconsMatch(icons, MinimalSubMaterialListView::isLogLike)) {
             return StringUtils.translate("lmlp.label.recipe.any.log");
         }
 
@@ -876,6 +877,20 @@ public final class MinimalSubMaterialListView {
 
         for (class_1799 icon : icons) {
             if (icon.method_7960() || !predicate.test(itemPath(icon))) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static boolean allCandidatesMatch(List<Candidate> candidates, Predicate<String> predicate) {
+        if (candidates.isEmpty()) {
+            return false;
+        }
+
+        for (Candidate candidate : candidates) {
+            if (!predicate.test(itemPath(candidate.icon()))) {
                 return false;
             }
         }
