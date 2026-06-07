@@ -4,7 +4,7 @@
   "lmlp.label.recipe.header": "Recipe %d: produces x%d per craft, craft %d times",
   "lmlp.label.recipe.header.missing": "missing: craft %d times",
   "lmlp.label.recipe.ingredients_total": "Total ingredients",
-  "lmlp.label.recipe.ingredients_missing": "Missing ingredients",
+  "lmlp.label.recipe.ingredients_missing": "Remaining ingredients",
   "lmlp.label.recipe.any": "Any: %s",
   "lmlp.label.recipe.shapeless": "Shapeless",
   "lmlp.label.recipe.back": "Back (Esc)",

@@ -190,7 +190,7 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
                             MinimalSubMaterialListView.displayStack(this.entry),
                             MinimalSubMaterialListView.displayName(this.entry),
                             MaterialCounts.total(this.entry, this.materialList),
-                            MaterialCounts.missing(this.entry, this.materialList),
+                            MaterialCounts.netMissing(this.entry, this.materialList),
                             MinimalSubMaterialListView.sourceContributions(this.entry)));
                     return true;
                 }
@@ -219,7 +219,7 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
 
             if (GuiBase.isShiftDown()) {
                 List<RecipeSummary> summaries = MaterialListPlusState.resolveFor(this.entry, this.materialList);
-                this.mc.method_1507(new RecipeDetailScreen(GuiUtils.getCurrentScreen(), this.entry.getStack(), MaterialCounts.total(this.entry, this.materialList), MaterialCounts.missing(this.entry, this.materialList), summaries));
+                this.mc.method_1507(new RecipeDetailScreen(GuiUtils.getCurrentScreen(), this.entry.getStack(), MaterialCounts.total(this.entry, this.materialList), MaterialCounts.netMissing(this.entry, this.materialList), summaries));
             } else {
                 boolean wasExpanded = MaterialListPlusState.isRecipeExpanded(this.entry);
                 if (wasExpanded) {
@@ -317,7 +317,7 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         }
 
         if (MinimalSubMaterialListView.isActive(this.materialList) && MinimalSubMaterialListView.isSourcesVisible(this.entry)) {
-            List<MinimalSubMaterialListView.RequirementContribution> requirements = MinimalSubMaterialListView.sourceRequirements(this.entry, total, rawMissing);
+            List<MinimalSubMaterialListView.RequirementContribution> requirements = MinimalSubMaterialListView.sourceRequirements(this.entry, total, missing);
             List<MinimalSubMaterialListView.SourceContribution> sources = MinimalSubMaterialListView.sourceContributions(this.entry);
             boolean showAllSources = MinimalSubMaterialListView.isSourcesFull(this.entry);
             int panelY = this.y + 23;
@@ -445,7 +445,7 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
 
         class_1799 stack = MinimalSubMaterialListView.displayStack(this.entry);
         int total = MaterialCounts.total(this.entry, this.materialList);
-        int missing = MaterialCounts.missing(this.entry, this.materialList);
+        int missing = MaterialCounts.netMissing(this.entry, this.materialList);
         List<MinimalSubMaterialListView.RequirementContribution> requirements = MinimalSubMaterialListView.sourceRequirements(this.entry, total, missing);
         if (requirements.isEmpty()) {
             return null;
@@ -489,7 +489,7 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
 
         class_1799 stack = MinimalSubMaterialListView.displayStack(this.entry);
         int total = MaterialCounts.total(this.entry, this.materialList);
-        int missing = MaterialCounts.missing(this.entry, this.materialList);
+        int missing = MaterialCounts.netMissing(this.entry, this.materialList);
         List<MinimalSubMaterialListView.RequirementContribution> requirements = MinimalSubMaterialListView.sourceRequirements(this.entry, total, missing);
         List<MinimalSubMaterialListView.SourceContribution> sources = MinimalSubMaterialListView.sourceContributions(this.entry);
         boolean showAllSources = MinimalSubMaterialListView.isSourcesFull(this.entry);

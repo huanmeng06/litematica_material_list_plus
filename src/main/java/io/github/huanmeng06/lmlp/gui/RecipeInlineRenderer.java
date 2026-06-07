@@ -93,7 +93,7 @@ public final class RecipeInlineRenderer {
         int ingredientBoxY = cursorY;
         int ingredientBoxHeight = 18 + visibleIngredientHeight(summary);
         RenderUtils.drawRect(textX - 2, ingredientBoxY - 2, panelWidth - PADDING * 2 + 4, ingredientBoxHeight, 0x66000000);
-        widget.drawString(textX, cursorY, 0xFFAAAAAA, StringUtils.translate("lmlp.label.recipe.ingredients_total"), context);
+        widget.drawString(textX, cursorY, 0xFFAAAAAA, StringUtils.translate("lmlp.label.recipe.ingredients_missing"), context);
         cursorY += 18;
 
         for (IngredientSummary ingredient : summary.ingredients()) {
@@ -202,10 +202,7 @@ public final class RecipeInlineRenderer {
         RenderUtils.drawRect(iconX, y - 3, 18, 18, 0x30FFFFFF);
         context.method_51427(icon, iconX + 1, iconY);
 
-        String line = name + ": " + GuiBase.TXT_GOLD + CountFormatter.format(totalCount, maxStackSize);
-        if (missingCount != totalCount) {
-            line += GuiBase.TXT_RST + " / " + GuiBase.TXT_RED + CountFormatter.format(missingCount, maxStackSize);
-        }
+        String line = name + ": " + GuiBase.TXT_RED + CountFormatter.format(missingCount, maxStackSize);
         widget.drawString(rowX + INGREDIENT_ICON_OFFSET + 26, y + 2, 0xFFFFFFFF, line, context);
     }
 

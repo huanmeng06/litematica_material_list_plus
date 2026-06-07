@@ -59,7 +59,7 @@ public final class MaterialListPlusState {
         clearIngredientTrees();
         String key = key(entry, materialList);
         float startProgress = visibleRecipeEntry != null && visibleRecipeEntry.equals(entry) ? recipeProgress(entry) : 0.0F;
-        List<RecipeSummary> summaries = RecipeResolvers.findRecipes(entry.getStack(), MaterialCounts.total(entry, materialList), MaterialCounts.missing(entry, materialList));
+        List<RecipeSummary> summaries = RecipeResolvers.findRecipes(entry.getStack(), MaterialCounts.total(entry, materialList), MaterialCounts.netMissing(entry, materialList));
         expandedEntry = entry;
         expandedKey = key;
         expandedSummaries = summaries;
@@ -255,11 +255,11 @@ public final class MaterialListPlusState {
     }
 
     public static List<RecipeSummary> resolveFor(MaterialListEntry entry, MaterialListBase materialList) {
-        return RecipeResolvers.findRecipes(entry.getStack(), MaterialCounts.total(entry, materialList), MaterialCounts.missing(entry, materialList));
+        return RecipeResolvers.findRecipes(entry.getStack(), MaterialCounts.total(entry, materialList), MaterialCounts.netMissing(entry, materialList));
     }
 
     private static String key(MaterialListEntry entry, MaterialListBase materialList) {
-        return key(entry.getStack(), MaterialCounts.total(entry, materialList), MaterialCounts.missing(entry, materialList));
+        return key(entry.getStack(), MaterialCounts.total(entry, materialList), MaterialCounts.netMissing(entry, materialList));
     }
 
     private static String key(IngredientSummary ingredient) {

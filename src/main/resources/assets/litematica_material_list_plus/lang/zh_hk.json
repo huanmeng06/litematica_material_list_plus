@@ -4,7 +4,7 @@
   "lmlp.label.recipe.header": "配方 %d：每次產出 x%d，需要合成 %d 次",
   "lmlp.label.recipe.header.missing": "缺少：需要合成 %d 次",
   "lmlp.label.recipe.ingredients_total": "總計子材料",
-  "lmlp.label.recipe.ingredients_missing": "缺少子材料",
+  "lmlp.label.recipe.ingredients_missing": "仍需子材料",
   "lmlp.label.recipe.any": "任一：%s",
   "lmlp.label.recipe.shapeless": "無序配方",
   "lmlp.label.recipe.back": "返回 (Esc)",

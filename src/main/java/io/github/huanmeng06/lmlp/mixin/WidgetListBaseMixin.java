@@ -237,7 +237,7 @@ public abstract class WidgetListBaseMixin implements WidgetListBoundsAccess {
         if (minimalSubMaterialView && MinimalSubMaterialListView.isSourcesVisible(materialEntry)) {
             boolean showAllSources = MinimalSubMaterialListView.isSourcesFull(materialEntry);
             int total = (Object) this instanceof WidgetMaterialListAccess access ? MaterialCounts.total(materialEntry, access.lmlp$getMaterialList()) : materialEntry.getCountTotal();
-            int missing = (Object) this instanceof WidgetMaterialListAccess access ? MaterialCounts.missing(materialEntry, access.lmlp$getMaterialList()) : materialEntry.getCountMissing();
+            int missing = (Object) this instanceof WidgetMaterialListAccess access ? MaterialCounts.netMissing(materialEntry, access.lmlp$getMaterialList()) : materialEntry.getCountMissing();
             int visibleOuterHeight = MinimalSourceInlineRenderer.getOuterHeight(
                     MinimalSubMaterialListView.displayStack(materialEntry),
                     MinimalSubMaterialListView.sourceRequirements(materialEntry, total, missing),
@@ -442,7 +442,7 @@ public abstract class WidgetListBaseMixin implements WidgetListBoundsAccess {
             boolean minimalSubMaterialView = (Object) this instanceof WidgetMaterialListAccess access && MinimalSubMaterialListView.isActive(access.lmlp$getMaterialList());
             if (minimalSubMaterialView && MinimalSubMaterialListView.isSourcesExpanded(materialEntry)) {
                 int total = (Object) this instanceof WidgetMaterialListAccess access ? MaterialCounts.total(materialEntry, access.lmlp$getMaterialList()) : materialEntry.getCountTotal();
-                int missing = (Object) this instanceof WidgetMaterialListAccess access ? MaterialCounts.missing(materialEntry, access.lmlp$getMaterialList()) : materialEntry.getCountMissing();
+                int missing = (Object) this instanceof WidgetMaterialListAccess access ? MaterialCounts.netMissing(materialEntry, access.lmlp$getMaterialList()) : materialEntry.getCountMissing();
                 return 23 + MinimalSourceInlineRenderer.getOuterHeight(
                         MinimalSubMaterialListView.displayStack(materialEntry),
                         MinimalSubMaterialListView.sourceRequirements(materialEntry, total, missing),

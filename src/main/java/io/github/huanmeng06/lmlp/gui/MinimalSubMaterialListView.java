@@ -5,6 +5,7 @@ import fi.dy.masa.litematica.materials.MaterialListEntry;
 import fi.dy.masa.litematica.util.BlockInfoListType;
 import fi.dy.masa.malilib.util.StringUtils;
 import io.github.huanmeng06.lmlp.config.Configs;
+import io.github.huanmeng06.lmlp.material.InventoryCounts;
 import io.github.huanmeng06.lmlp.material.ItemStackTexts;
 import io.github.huanmeng06.lmlp.recipe.IngredientSummary;
 import io.github.huanmeng06.lmlp.recipe.RecipeResolvers;
@@ -111,13 +112,14 @@ public final class MinimalSubMaterialListView {
 
     public static List<MaterialListEntry> entries(MaterialListBase materialList) {
         List<MaterialListEntry> sourceEntries = new ArrayList<>(materialList.getMaterialsFiltered(true));
-        String signature = signature(materialList, sourceEntries);
+        InventoryCounts.Snapshot inventory = InventoryCounts.current();
+        String signature = signature(materialList, sourceEntries, inventory);
         Cache cache = ENTRY_CACHES.get(materialList);
         if (cache != null && cache.signature().equals(signature)) {
             return cache.entries();
         }
 
-        BuildState state = buildState(materialList, signature, sourceEntries, false);
+        BuildState state = buildState(materialList, signature, sourceEntries, inventory, false);
 
         state.process(materialList, BUILD_BUDGET_NS);
         if (state.isComplete()) {
@@ -134,13 +136,14 @@ public final class MinimalSubMaterialListView {
 
     public static void prepare(MaterialListBase materialList) {
         List<MaterialListEntry> sourceEntries = new ArrayList<>(materialList.getMaterialsFiltered(true));
-        String signature = signature(materialList, sourceEntries);
+        InventoryCounts.Snapshot inventory = InventoryCounts.current();
+        String signature = signature(materialList, sourceEntries, inventory);
         Cache cache = ENTRY_CACHES.get(materialList);
         if (cache != null && cache.signature().equals(signature)) {
             return;
         }
 
-        BuildState state = buildState(materialList, signature, sourceEntries, true);
+        BuildState state = buildState(materialList, signature, sourceEntries, inventory, true);
         if (state.isComplete()) {
             storeCache(materialList, signature, state.entries());
             BUILD_STATES.remove(materialList);
@@ -330,7 +333,7 @@ public final class MinimalSubMaterialListView {
         expandedSourceKey = "";
     }
 
-    private static void collectLeaves(class_1799 stack, List<class_1799> icons, List<String> names, String name, SourceOrigin source, int totalCount, int missingCount, int depth, Set<String> seenItems, Map<String, Accumulator> materials) {
+    private static void collectLeaves(class_1799 stack, List<class_1799> icons, List<String> names, String name, SourceOrigin source, int totalCount, int missingCount, int depth, Set<String> seenItems, Map<String, Accumulator> materials, InventoryCounts.Snapshot inventory) {
         class_1799 icon = stack.method_7972();
         String itemId = ItemStackTexts.id(icon);
         if (totalCount <= 0 && missingCount <= 0) {
@@ -344,7 +347,8 @@ public final class MinimalSubMaterialListView {
 
         Set<String> childSeenItems = new HashSet<>(seenItems);
         childSeenItems.add(itemId);
-        List<RecipeSummary> summaries = RecipeResolvers.findRecipes(icon, totalCount, missingCount);
+        int missingAfterAvailable = Math.max(0, missingCount - inventory.countAny(icons.isEmpty() ? List.of(icon) : icons));
+        List<RecipeSummary> summaries = RecipeResolvers.findRecipes(icon, totalCount, missingAfterAvailable);
         if (summaries.isEmpty() || summaries.get(0).ingredients().isEmpty()) {
             addLeaf(icon, icons, names, name, source, totalCount, missingCount, materials);
             return;
@@ -366,7 +370,8 @@ public final class MinimalSubMaterialListView {
                             ingredient.countMissing(),
                             depth + 1,
                             childSeenItems,
-                            materials);
+                            materials,
+                            inventory);
                     continue;
                 }
 
@@ -392,7 +397,8 @@ public final class MinimalSubMaterialListView {
                     ingredient.countMissing(),
                     depth + 1,
                     childSeenItems,
-                    materials);
+                    materials,
+                    inventory);
         }
     }
 
@@ -477,7 +483,7 @@ public final class MinimalSubMaterialListView {
         return names.isEmpty() ? List.of() : names;
     }
 
-    private static String signature(MaterialListBase materialList, List<MaterialListEntry> entries) {
+    private static String signature(MaterialListBase materialList, List<MaterialListEntry> entries, InventoryCounts.Snapshot inventory) {
         StringBuilder builder = new StringBuilder();
         builder.append(materialList.getMaterialListType().getStringValue())
                 .append('|')
@@ -485,7 +491,9 @@ public final class MinimalSubMaterialListView {
                 .append('|')
                 .append(materialList.getHideAvailable())
                 .append('|')
-                .append(materialList.getMultiplier());
+                .append(materialList.getMultiplier())
+                .append('|')
+                .append(inventory.signature());
         for (MaterialListEntry entry : entries) {
             builder.append('|')
                     .append(ItemStackTexts.id(entry.getStack()))
@@ -580,11 +588,11 @@ public final class MinimalSubMaterialListView {
         return groupDisplayName(icons, fallbackName);
     }
 
-    private static BuildState buildState(MaterialListBase materialList, String signature, List<MaterialListEntry> sourceEntries, boolean useInitialBudget) {
+    private static BuildState buildState(MaterialListBase materialList, String signature, List<MaterialListEntry> sourceEntries, InventoryCounts.Snapshot inventory, boolean useInitialBudget) {
         BuildState state = BUILD_STATES.get(materialList);
         if (state == null || !state.signature().equals(signature)) {
             removeBuildDisplayData(materialList);
-            state = new BuildState(signature, sourceEntries, materialList.getMultiplier() > 1);
+            state = new BuildState(signature, sourceEntries, materialList.getMultiplier() > 1, inventory);
             BUILD_STATES.put(materialList, state);
             if (useInitialBudget) {
                 state.process(materialList, INITIAL_BUILD_BUDGET_NS);
@@ -671,6 +679,14 @@ public final class MinimalSubMaterialListView {
             return List.copyOf(this.candidates.values());
         }
 
+        private List<class_1799> candidateIcons() {
+            List<class_1799> icons = new ArrayList<>(this.candidates.size());
+            for (Candidate candidate : this.candidates.values()) {
+                icons.add(candidate.icon().method_7972());
+            }
+            return List.copyOf(icons);
+        }
+
         private List<SourceContribution> sources() {
             List<SourceContribution> contributions = new ArrayList<>(this.sources.size());
             int maxStackSize = Math.max(1, this.stack.method_7914());
@@ -713,15 +729,17 @@ public final class MinimalSubMaterialListView {
         private final String signature;
         private final List<MaterialListEntry> sourceEntries;
         private final boolean multiplied;
+        private final InventoryCounts.Snapshot inventory;
         private final Map<String, Accumulator> materials = new LinkedHashMap<>();
         private List<MaterialListEntry> entries = List.of();
         private int nextSourceIndex;
         private boolean complete;
 
-        private BuildState(String signature, List<MaterialListEntry> sourceEntries, boolean multiplied) {
+        private BuildState(String signature, List<MaterialListEntry> sourceEntries, boolean multiplied, InventoryCounts.Snapshot inventory) {
             this.signature = signature;
             this.sourceEntries = List.copyOf(sourceEntries);
             this.multiplied = multiplied;
+            this.inventory = inventory;
         }
 
         private String signature() {
@@ -754,7 +772,7 @@ public final class MinimalSubMaterialListView {
                 int total = entry.getCountTotal();
                 int missing = this.multiplied ? total : entry.getCountMissing();
                 SourceOrigin source = new SourceOrigin(ItemStackTexts.id(stack), stack.method_7972(), ItemStackTexts.name(stack));
-                collectLeaves(stack, List.of(stack), List.of(ItemStackTexts.name(stack)), ItemStackTexts.name(stack), source, total, missing, 0, new HashSet<>(), this.materials);
+                collectLeaves(stack, List.of(stack), List.of(ItemStackTexts.name(stack)), ItemStackTexts.name(stack), source, total, missing, 0, new HashSet<>(), this.materials, this.inventory);
                 changed = true;
             } while (System.nanoTime() < deadline);
 
@@ -772,7 +790,7 @@ public final class MinimalSubMaterialListView {
             for (Accumulator material : this.materials.values()) {
                 int total = clampToInt(material.totalCount);
                 int missing = clampToInt(material.missingCount);
-                int available = this.multiplied ? 0 : Math.max(0, total - missing);
+                int available = this.inventory.countAny(material.candidateIcons());
                 MaterialListEntry entry = new MaterialListEntry(material.stack.method_7972(), total, missing, 0, available);
                 entries.add(entry);
                 DisplayData display = new DisplayData(material.name, material.candidates(), material.sources());
