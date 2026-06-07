@@ -228,7 +228,7 @@ public final class MinimalSubMaterialListView {
 
     public static List<RequirementContribution> sourceRequirements(MaterialListEntry entry, int totalCount, int missingCount) {
         DisplayData display = displayData(entry);
-        if (display == null || display.candidates().size() < 2) {
+        if (display == null || !display.hasRequirementSection()) {
             return List.of();
         }
 
@@ -761,6 +761,10 @@ public final class MinimalSubMaterialListView {
             return this.candidates.size() > 1 ? emphasizeVariable(stableName) : emphasizeAny(stableName);
         }
 
+        private boolean hasRequirementSection() {
+            return this.candidates.size() > 1 && isAnyGroupName(this.stableName());
+        }
+
         private String widestName() {
             return this.displayName();
         }
@@ -934,6 +938,13 @@ public final class MinimalSubMaterialListView {
             return COMMON_HIGHLIGHT + "Any" + RESET + name.substring("Any".length());
         }
         return name;
+    }
+
+    private static boolean isAnyGroupName(String name) {
+        String trimmed = name.trim();
+        return trimmed.startsWith("\u4efb\u610f")
+                || trimmed.startsWith("\u6d60\u7ed8\u5270")
+                || trimmed.startsWith("Any ");
     }
 
     private static String emphasizeVariable(String name) {
