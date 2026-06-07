@@ -647,6 +647,12 @@ public final class MinimalSubMaterialListView {
         return (int) value;
     }
 
+    private static int resolvedAvailable(long totalCount, long missingCount, int directAvailable) {
+        long preparedFromSources = Math.max(0L, totalCount - missingCount);
+        long available = Math.min(totalCount, preparedFromSources + Math.max(0, directAvailable));
+        return clampToInt(available);
+    }
+
     private static final class Accumulator {
         private final class_1799 stack;
         private final String name;
@@ -789,9 +795,8 @@ public final class MinimalSubMaterialListView {
             Map<MaterialListEntry, DisplayData> displays = new IdentityHashMap<>();
             for (Accumulator material : this.materials.values()) {
                 int total = clampToInt(material.totalCount);
-                int missing = clampToInt(material.missingCount);
-                int available = this.inventory.countAny(material.candidateIcons());
-                MaterialListEntry entry = new MaterialListEntry(material.stack.method_7972(), total, missing, 0, available);
+                int available = resolvedAvailable(material.totalCount, material.missingCount, this.inventory.countAny(material.candidateIcons()));
+                MaterialListEntry entry = new MaterialListEntry(material.stack.method_7972(), total, total, 0, available);
                 entries.add(entry);
                 DisplayData display = new DisplayData(material.name, material.candidates(), material.sources());
                 displays.put(entry, display);
