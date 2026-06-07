@@ -376,23 +376,23 @@ public final class MinimalSubMaterialListView {
         expandedSourceKey = "";
     }
 
-    private static void collectLeaves(class_1799 stack, List<class_1799> icons, List<String> names, String name, SourceOrigin source, int totalCount, int missingCount, int depth, Set<String> seenItems, Map<String, Accumulator> materials, InventoryCounts.Snapshot inventory) {
+    private static void collectLeaves(class_1799 stack, List<class_1799> icons, List<String> names, String name, SourceOrigin source, int count, int scale, boolean prepared, int depth, Set<String> seenItems, Map<String, Accumulator> materials) {
         class_1799 icon = stack.method_7972();
         String itemId = ItemStackTexts.id(icon);
-        if (totalCount <= 0 && missingCount <= 0) {
+        if (count <= 0 || scale <= 0) {
             return;
         }
 
         if (depth >= MAX_RECIPE_DEPTH || seenItems.contains(itemId) || Configs.shouldStopRecipeDecomposition(itemId)) {
-            addLeaf(icon, icons, names, name, source, totalCount, missingCount, materials);
+            addLeaf(icon, icons, names, name, source, scaledCount(count, scale), prepared, materials);
             return;
         }
 
         Set<String> childSeenItems = new HashSet<>(seenItems);
         childSeenItems.add(itemId);
-        List<RecipeSummary> summaries = RecipeResolvers.findRecipes(icon, totalCount, missingCount);
+        List<RecipeSummary> summaries = RecipeResolvers.findRecipes(icon, count, count);
         if (summaries.isEmpty() || summaries.get(0).ingredients().isEmpty()) {
-            addLeaf(icon, icons, names, name, source, totalCount, missingCount, materials);
+            addLeaf(icon, icons, names, name, source, scaledCount(count, scale), prepared, materials);
             return;
         }
 
@@ -409,11 +409,11 @@ public final class MinimalSubMaterialListView {
                             refinedChoice.names().isEmpty() ? RecipeSummaryFormatter.ingredientName(ingredient) : refinedChoice.names().get(0),
                             source,
                             ingredient.countTotal(),
-                            ingredient.countMissing(),
+                            scale,
+                            prepared,
                             depth + 1,
                             childSeenItems,
-                            materials,
-                            inventory);
+                            materials);
                     continue;
                 }
 
@@ -423,8 +423,8 @@ public final class MinimalSubMaterialListView {
                         ingredientNames,
                         RecipeSummaryFormatter.ingredientName(ingredient),
                         source,
-                        ingredient.countTotal(),
-                        ingredient.countMissing(),
+                        scaledCount(ingredient.countTotal(), scale),
+                        prepared,
                         materials);
                 continue;
             }
@@ -436,22 +436,42 @@ public final class MinimalSubMaterialListView {
                     RecipeSummaryFormatter.ingredientName(ingredient),
                     source,
                     ingredient.countTotal(),
-                    ingredient.countMissing(),
+                    scale,
+                    prepared,
                     depth + 1,
                     childSeenItems,
-                    materials,
-                    inventory);
+                    materials);
         }
     }
 
-    private static void addLeaf(class_1799 stack, List<class_1799> icons, List<String> names, String name, SourceOrigin source, int totalCount, int missingCount, Map<String, Accumulator> materials) {
+    private static void collectPreparedLeaves(class_1799 stack, List<class_1799> icons, List<String> names, String name, SourceOrigin source, int baseCount, int preparedCount, Map<String, Accumulator> materials) {
+        if (preparedCount <= 0) {
+            return;
+        }
+
+        if (baseCount <= 0) {
+            collectLeaves(stack, icons, names, name, source, preparedCount, 1, true, 0, new HashSet<>(), materials);
+            return;
+        }
+
+        int fullCopies = preparedCount / baseCount;
+        int remainder = preparedCount % baseCount;
+        if (fullCopies > 0) {
+            collectLeaves(stack, icons, names, name, source, baseCount, fullCopies, true, 0, new HashSet<>(), materials);
+        }
+        if (remainder > 0) {
+            collectLeaves(stack, icons, names, name, source, remainder, 1, true, 0, new HashSet<>(), materials);
+        }
+    }
+
+    private static void addLeaf(class_1799 stack, List<class_1799> icons, List<String> names, String name, SourceOrigin source, int count, boolean prepared, Map<String, Accumulator> materials) {
         CandidateSet candidates = refineWoodCandidatesForSource(source, icons.isEmpty() ? List.of(stack) : icons, names);
         String displayNameFallback = candidates.names().size() == 1 ? candidates.names().get(0) : name;
         class_1799 displayStack = candidates.icons().isEmpty() ? stack : candidates.icons().get(0);
         String key = groupKey(displayStack, candidates.icons(), displayNameFallback);
         String displayName = groupDisplayName(candidates.icons(), displayNameFallback);
         materials.computeIfAbsent(key, ignored -> new Accumulator(displayStack, displayName))
-                .add(totalCount, missingCount, candidates.icons(), candidates.names(), source);
+                .add(count, prepared, candidates.icons(), candidates.names(), source);
     }
 
     private static boolean shouldDecomposeRefinedChoice(CandidateSet candidates) {
@@ -759,9 +779,12 @@ public final class MinimalSubMaterialListView {
         return (int) value;
     }
 
-    private static int resolvedAvailable(long totalCount, long missingCount, int directAvailable) {
-        long preparedFromSources = Math.max(0L, totalCount - missingCount);
-        long available = preparedFromSources + Math.max(0, directAvailable);
+    private static int scaledCount(int count, int scale) {
+        return clampToInt((long) count * Math.max(1, scale));
+    }
+
+    private static int resolvedAvailable(long preparedCount, int directAvailable) {
+        long available = Math.max(0L, preparedCount) + Math.max(0, directAvailable);
         return clampToInt(available);
     }
 
@@ -771,7 +794,7 @@ public final class MinimalSubMaterialListView {
         private final Map<String, Candidate> candidates = new LinkedHashMap<>();
         private final Map<String, SourceAccumulator> sources = new LinkedHashMap<>();
         private long totalCount;
-        private long missingCount;
+        private long preparedCount;
 
         private Accumulator(class_1799 stack, String name) {
             this.stack = stack.method_7972();
@@ -779,9 +802,12 @@ public final class MinimalSubMaterialListView {
             this.candidates.put(ItemStackTexts.id(stack), new Candidate(stack.method_7972(), ItemStackTexts.name(stack)));
         }
 
-        private void add(int totalCount, int missingCount, List<class_1799> icons, List<String> names, SourceOrigin source) {
-            this.totalCount += totalCount;
-            this.missingCount += missingCount;
+        private void add(int count, boolean prepared, List<class_1799> icons, List<String> names, SourceOrigin source) {
+            if (prepared) {
+                this.preparedCount += count;
+            } else {
+                this.totalCount += count;
+            }
             for (int index = 0; index < icons.size(); index++) {
                 class_1799 icon = icons.get(index);
                 if (!icon.method_7960()) {
@@ -790,7 +816,7 @@ public final class MinimalSubMaterialListView {
                 }
             }
             this.sources.computeIfAbsent(source.id(), ignored -> new SourceAccumulator(source))
-                    .add(totalCount, missingCount);
+                    .add(count, prepared);
         }
 
         private List<Candidate> candidates() {
@@ -822,23 +848,27 @@ public final class MinimalSubMaterialListView {
     private static final class SourceAccumulator {
         private final SourceOrigin origin;
         private long totalCount;
-        private long missingCount;
+        private long preparedCount;
 
         private SourceAccumulator(SourceOrigin origin) {
             this.origin = origin;
         }
 
-        private void add(int totalCount, int missingCount) {
-            this.totalCount += totalCount;
-            this.missingCount += missingCount;
+        private void add(int count, boolean prepared) {
+            if (prepared) {
+                this.preparedCount += count;
+            } else {
+                this.totalCount += count;
+            }
         }
 
         private SourceContribution toContribution(int maxStackSize) {
+            long missingCount = Math.max(0L, this.totalCount - this.preparedCount);
             return new SourceContribution(
                     this.origin.icon().method_7972(),
                     this.origin.name(),
                     clampToInt(this.totalCount),
-                    clampToInt(this.missingCount),
+                    clampToInt(missingCount),
                     maxStackSize);
         }
     }
@@ -887,10 +917,13 @@ public final class MinimalSubMaterialListView {
 
                 MaterialListEntry entry = this.sourceEntries.get(this.nextSourceIndex++);
                 class_1799 stack = entry.getStack();
-                int total = entry.getCountTotal() * this.multiplier;
+                int baseTotal = entry.getCountTotal();
+                int total = scaledCount(baseTotal, this.multiplier);
                 int missing = MaterialCounts.netMissing(entry, this.multiplier);
+                int prepared = Math.max(0, total - Math.min(total, missing));
                 SourceOrigin source = new SourceOrigin(ItemStackTexts.id(stack), stack.method_7972(), ItemStackTexts.name(stack));
-                collectLeaves(stack, List.of(stack), List.of(ItemStackTexts.name(stack)), ItemStackTexts.name(stack), source, total, missing, 0, new HashSet<>(), this.materials, this.inventory);
+                collectLeaves(stack, List.of(stack), List.of(ItemStackTexts.name(stack)), ItemStackTexts.name(stack), source, baseTotal, this.multiplier, false, 0, new HashSet<>(), this.materials);
+                collectPreparedLeaves(stack, List.of(stack), List.of(ItemStackTexts.name(stack)), ItemStackTexts.name(stack), source, baseTotal, prepared, this.materials);
                 changed = true;
             } while (System.nanoTime() < deadline);
 
@@ -907,7 +940,7 @@ public final class MinimalSubMaterialListView {
             Map<MaterialListEntry, DisplayData> displays = new IdentityHashMap<>();
             for (Accumulator material : this.materials.values()) {
                 int total = clampToInt(material.totalCount);
-                int available = resolvedAvailable(material.totalCount, material.missingCount, this.inventory.countAny(material.candidateIcons()));
+                int available = resolvedAvailable(material.preparedCount, this.inventory.countAny(material.candidateIcons()));
                 MaterialListEntry entry = new MaterialListEntry(material.stack.method_7972(), total, total, 0, available);
                 entries.add(entry);
                 DisplayData display = new DisplayData(material.name, material.candidates(), material.sources());
