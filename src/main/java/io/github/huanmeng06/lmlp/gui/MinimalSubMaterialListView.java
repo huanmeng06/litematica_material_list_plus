@@ -7,6 +7,7 @@ import fi.dy.masa.malilib.util.StringUtils;
 import io.github.huanmeng06.lmlp.config.Configs;
 import io.github.huanmeng06.lmlp.material.InventoryCounts;
 import io.github.huanmeng06.lmlp.material.ItemStackTexts;
+import io.github.huanmeng06.lmlp.material.MaterialCounts;
 import io.github.huanmeng06.lmlp.recipe.IngredientSummary;
 import io.github.huanmeng06.lmlp.recipe.RecipeResolvers;
 import io.github.huanmeng06.lmlp.recipe.RecipeSummary;
@@ -680,7 +681,7 @@ public final class MinimalSubMaterialListView {
         BuildState state = BUILD_STATES.get(materialList);
         if (state == null || !state.signature().equals(signature)) {
             removeBuildDisplayData(materialList);
-            state = new BuildState(signature, sourceEntries, materialList.getMultiplier() > 1, inventory);
+            state = new BuildState(signature, sourceEntries, materialList.getMultiplier(), inventory);
             BUILD_STATES.put(materialList, state);
             if (useInitialBudget) {
                 state.process(materialList, INITIAL_BUILD_BUDGET_NS);
@@ -822,17 +823,17 @@ public final class MinimalSubMaterialListView {
     private static final class BuildState {
         private final String signature;
         private final List<MaterialListEntry> sourceEntries;
-        private final boolean multiplied;
+        private final int multiplier;
         private final InventoryCounts.Snapshot inventory;
         private final Map<String, Accumulator> materials = new LinkedHashMap<>();
         private List<MaterialListEntry> entries = List.of();
         private int nextSourceIndex;
         private boolean complete;
 
-        private BuildState(String signature, List<MaterialListEntry> sourceEntries, boolean multiplied, InventoryCounts.Snapshot inventory) {
+        private BuildState(String signature, List<MaterialListEntry> sourceEntries, int multiplier, InventoryCounts.Snapshot inventory) {
             this.signature = signature;
             this.sourceEntries = List.copyOf(sourceEntries);
-            this.multiplied = multiplied;
+            this.multiplier = Math.max(1, multiplier);
             this.inventory = inventory;
         }
 
@@ -863,8 +864,8 @@ public final class MinimalSubMaterialListView {
 
                 MaterialListEntry entry = this.sourceEntries.get(this.nextSourceIndex++);
                 class_1799 stack = entry.getStack();
-                int total = entry.getCountTotal();
-                int missing = this.multiplied ? total : entry.getCountMissing();
+                int total = entry.getCountTotal() * this.multiplier;
+                int missing = MaterialCounts.netMissing(entry, this.multiplier);
                 SourceOrigin source = new SourceOrigin(ItemStackTexts.id(stack), stack.method_7972(), ItemStackTexts.name(stack));
                 collectLeaves(stack, List.of(stack), List.of(ItemStackTexts.name(stack)), ItemStackTexts.name(stack), source, total, missing, 0, new HashSet<>(), this.materials, this.inventory);
                 changed = true;

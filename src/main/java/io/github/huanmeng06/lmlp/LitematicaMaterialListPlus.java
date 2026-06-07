@@ -6,7 +6,7 @@ import net.fabricmc.api.ClientModInitializer;
 public class LitematicaMaterialListPlus implements ClientModInitializer {
     public static final String MOD_ID = "litematica_material_list_plus";
     public static final String MOD_NAME = "Litematica Material List Plus";
-    public static final String MOD_VERSION = "1.4.67+mc1.20.6";
+    public static final String MOD_VERSION = "1.4.68+mc1.20.6";
 
     @Override
     public void onInitializeClient() {
