@@ -417,6 +417,7 @@ public class RecipeDetailScreen extends class_437 {
                 RecipeSummaryFormatter.ingredientName(ingredient),
                 RecipeSummaryFormatter.totalCount(ingredient),
                 RecipeSummaryFormatter.missingCount(ingredient),
+                ingredient.countMissing(),
                 ingredient.countMissing() != ingredient.countTotal(),
                 mouseX,
                 mouseY);
@@ -451,7 +452,7 @@ public class RecipeDetailScreen extends class_437 {
         return lineY;
     }
 
-    private void renderMaterialLine(class_332 context, int left, int y, int depth, String path, boolean hasRecipes, class_1799 icon, String name, String totalText, String missingText, boolean showMissing, int mouseX, int mouseY) {
+    private void renderMaterialLine(class_332 context, int left, int y, int depth, String path, boolean hasRecipes, class_1799 icon, String name, String totalText, String missingText, int missingCount, boolean showMissing, int mouseX, int mouseY) {
         int rowX = left + depth * INGREDIENT_TREE_INDENT_WIDTH;
         int iconX = rowX + INGREDIENT_ICON_OFFSET;
         int iconY = y - 5;
@@ -475,7 +476,8 @@ public class RecipeDetailScreen extends class_437 {
         if (showMissing) {
             context.method_51433(this.field_22793, " / ", textX, y, INGREDIENT_TEXT_COLOR, false);
             textX += this.field_22793.method_1727(" / ");
-            context.method_51433(this.field_22793, missingText, textX, y, INGREDIENT_MISSING_COLOR, false);
+            int missingColor = missingCount == 0 ? 0xFF55FF55 : INGREDIENT_MISSING_COLOR;
+            context.method_51433(this.field_22793, missingText, textX, y, missingColor, false);
         }
     }
 

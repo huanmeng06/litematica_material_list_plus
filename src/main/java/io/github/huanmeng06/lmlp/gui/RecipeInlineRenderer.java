@@ -202,7 +202,8 @@ public final class RecipeInlineRenderer {
         RenderUtils.drawRect(iconX, y - 3, 18, 18, 0x30FFFFFF);
         context.method_51427(icon, iconX + 1, iconY);
 
-        String line = name + ": " + GuiBase.TXT_RED + CountFormatter.format(missingCount, maxStackSize);
+        String countColor = missingCount == 0 ? GuiBase.TXT_GREEN : GuiBase.TXT_RED;
+        String line = name + ": " + countColor + CountFormatter.format(missingCount, maxStackSize);
         widget.drawString(rowX + INGREDIENT_ICON_OFFSET + 26, y + 2, 0xFFFFFFFF, line, context);
     }
 
