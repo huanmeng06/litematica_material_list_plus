@@ -232,8 +232,9 @@ public final class MinimalSubMaterialListView {
             return List.of();
         }
 
-        String key = entryKey(entry) + '|' + totalCount + '|' + missingCount;
-        return REQUIREMENT_CACHES.computeIfAbsent(key, ignored -> buildRequirements(display.candidates(), totalCount, missingCount));
+        String targetName = display.stableName();
+        String key = entryKey(entry) + '|' + targetName + '|' + totalCount + '|' + missingCount;
+        return REQUIREMENT_CACHES.computeIfAbsent(key, ignored -> buildRequirements(targetName, display.candidates(), totalCount, missingCount));
     }
 
     public static boolean isSourcesExpanded(MaterialListEntry entry) {
@@ -488,7 +489,7 @@ public final class MinimalSubMaterialListView {
         layoutRevision++;
     }
 
-    private static List<RequirementContribution> buildRequirements(List<Candidate> candidates, int totalCount, int missingCount) {
+    private static List<RequirementContribution> buildRequirements(String targetName, List<Candidate> candidates, int totalCount, int missingCount) {
         List<List<IngredientSummary>> recipeIngredients = new ArrayList<>();
         for (Candidate candidate : candidates) {
             List<RecipeSummary> summaries = RecipeResolvers.findRecipes(candidate.icon(), totalCount, missingCount);
@@ -534,7 +535,7 @@ public final class MinimalSubMaterialListView {
             List<class_1799> icons = List.copyOf(iconsById.values());
             List<String> candidateNames = candidateNames(icons, names);
             String fallbackName = candidateNames.isEmpty() ? RecipeSummaryFormatter.ingredientName(base) : candidateNames.get(0);
-            String name = groupDisplayName(icons, fallbackName);
+            String name = requirementDisplayName(targetName, icons, fallbackName);
             requirements.add(new RequirementContribution(
                     icons.get(0).method_7972(),
                     icons.stream().map(class_1799::method_7972).toList(),
@@ -545,6 +546,14 @@ public final class MinimalSubMaterialListView {
         }
 
         return List.copyOf(requirements);
+    }
+
+    private static String requirementDisplayName(String targetName, List<class_1799> icons, String fallbackName) {
+        if (targetName.equals(StringUtils.translate("lmlp.label.recipe.any.planks")) && allIconsMatch(icons, MinimalSubMaterialListView::isLogLike)) {
+            return StringUtils.translate("lmlp.label.recipe.any.log");
+        }
+
+        return groupDisplayName(icons, fallbackName);
     }
 
     private static BuildState buildState(MaterialListBase materialList, String signature, List<MaterialListEntry> sourceEntries, boolean useInitialBudget) {
