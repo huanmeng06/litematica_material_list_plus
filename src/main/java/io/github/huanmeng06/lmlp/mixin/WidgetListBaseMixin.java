@@ -21,7 +21,6 @@ import io.github.huanmeng06.lmlp.gui.MinimalSourceInlineRenderer;
 import io.github.huanmeng06.lmlp.gui.RecipeInlineRenderer;
 import io.github.huanmeng06.lmlp.material.InventoryCounts;
 import io.github.huanmeng06.lmlp.material.ItemStackTexts;
-import io.github.huanmeng06.lmlp.material.MaterialCounts;
 import net.minecraft.class_332;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -280,8 +279,8 @@ public abstract class WidgetListBaseMixin implements WidgetListBoundsAccess {
         boolean minimalSubMaterialView = (Object) this instanceof WidgetMaterialListAccess access && MinimalSubMaterialListView.isActive(access.lmlp$getMaterialList());
         if (minimalSubMaterialView && MinimalSubMaterialListView.isSourcesVisible(materialEntry)) {
             boolean showAllSources = MinimalSubMaterialListView.isSourcesFull(materialEntry);
-            int total = (Object) this instanceof WidgetMaterialListAccess access ? MaterialCounts.total(materialEntry, access.lmlp$getMaterialList()) : materialEntry.getCountTotal();
-            int missing = (Object) this instanceof WidgetMaterialListAccess access ? MaterialCounts.netMissing(materialEntry, access.lmlp$getMaterialList()) : materialEntry.getCountMissing();
+            int total = (Object) this instanceof WidgetMaterialListAccess access ? MinimalSubMaterialListView.total(materialEntry, access.lmlp$getMaterialList()) : materialEntry.getCountTotal();
+            int missing = (Object) this instanceof WidgetMaterialListAccess access ? MinimalSubMaterialListView.netMissing(materialEntry, access.lmlp$getMaterialList()) : materialEntry.getCountMissing();
             int visibleOuterHeight = MinimalSourceInlineRenderer.getOuterHeight(
                     MinimalSubMaterialListView.displayStack(materialEntry),
                     MinimalSubMaterialListView.sourceRequirements(materialEntry, total, missing),
@@ -485,8 +484,8 @@ public abstract class WidgetListBaseMixin implements WidgetListBoundsAccess {
         if (entry instanceof MaterialListEntry materialEntry) {
             boolean minimalSubMaterialView = (Object) this instanceof WidgetMaterialListAccess access && MinimalSubMaterialListView.isActive(access.lmlp$getMaterialList());
             if (minimalSubMaterialView && MinimalSubMaterialListView.isSourcesExpanded(materialEntry)) {
-                int total = (Object) this instanceof WidgetMaterialListAccess access ? MaterialCounts.total(materialEntry, access.lmlp$getMaterialList()) : materialEntry.getCountTotal();
-                int missing = (Object) this instanceof WidgetMaterialListAccess access ? MaterialCounts.netMissing(materialEntry, access.lmlp$getMaterialList()) : materialEntry.getCountMissing();
+                int total = (Object) this instanceof WidgetMaterialListAccess access ? MinimalSubMaterialListView.total(materialEntry, access.lmlp$getMaterialList()) : materialEntry.getCountTotal();
+                int missing = (Object) this instanceof WidgetMaterialListAccess access ? MinimalSubMaterialListView.netMissing(materialEntry, access.lmlp$getMaterialList()) : materialEntry.getCountMissing();
                 return 23 + MinimalSourceInlineRenderer.getOuterHeight(
                         MinimalSubMaterialListView.displayStack(materialEntry),
                         MinimalSubMaterialListView.sourceRequirements(materialEntry, total, missing),

@@ -327,6 +327,30 @@ public final class MinimalSubMaterialListView {
         return layoutRevision;
     }
 
+    public static boolean isMinimalEntry(MaterialListEntry entry) {
+        return ENTRY_DISPLAYS.containsKey(entry);
+    }
+
+    public static int total(MaterialListEntry entry, MaterialListBase materialList) {
+        return isActive(materialList) && isMinimalEntry(entry) ? entry.getCountTotal() : MaterialCounts.total(entry, materialList);
+    }
+
+    public static int missing(MaterialListEntry entry, MaterialListBase materialList) {
+        return isActive(materialList) && isMinimalEntry(entry) ? entry.getCountMissing() : MaterialCounts.missing(entry, materialList);
+    }
+
+    public static int netMissing(MaterialListEntry entry, MaterialListBase materialList) {
+        if (isActive(materialList) && isMinimalEntry(entry)) {
+            return Math.max(0, entry.getCountMissing() - entry.getCountAvailable());
+        }
+
+        return MaterialCounts.netMissing(entry, materialList);
+    }
+
+    public static int netMissing(MaterialListEntry entry, int multiplier) {
+        return isMinimalEntry(entry) ? Math.max(0, entry.getCountMissing() - entry.getCountAvailable()) : MaterialCounts.netMissing(entry, multiplier);
+    }
+
     private static DisplayData displayData(MaterialListEntry entry) {
         DisplayData display = ENTRY_DISPLAYS.get(entry);
         return display == null ? ENTRY_DISPLAY_KEYS.get(entryKey(entry)) : display;

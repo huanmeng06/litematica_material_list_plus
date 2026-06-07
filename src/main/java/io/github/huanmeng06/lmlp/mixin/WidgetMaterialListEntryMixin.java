@@ -114,8 +114,9 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         lmlpMaxAvailableDigits = 1;
 
         for (MaterialListEntry entry : entries) {
-            int total = entry.getCountTotal() * multiplier;
-            int missing = MaterialCounts.netMissing(entry, multiplier);
+            int entryMultiplier = MinimalSubMaterialListView.isMinimalEntry(entry) ? 1 : multiplier;
+            int total = entry.getCountTotal() * entryMultiplier;
+            int missing = MinimalSubMaterialListView.netMissing(entry, multiplier);
             int available = entry.getCountAvailable();
             lmlpMaxTotalDigits = Math.max(lmlpMaxTotalDigits, Integer.toString(total).length());
             lmlpMaxMissingDigits = Math.max(lmlpMaxMissingDigits, Integer.toString(missing).length());
@@ -123,8 +124,9 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         }
 
         for (MaterialListEntry entry : entries) {
-            int total = entry.getCountTotal() * multiplier;
-            int missing = MaterialCounts.netMissing(entry, multiplier);
+            int entryMultiplier = MinimalSubMaterialListView.isMinimalEntry(entry) ? 1 : multiplier;
+            int total = entry.getCountTotal() * entryMultiplier;
+            int missing = MinimalSubMaterialListView.netMissing(entry, multiplier);
             int available = entry.getCountAvailable();
             String name = MinimalSubMaterialListView.widestDisplayName(entry);
 
@@ -283,9 +285,9 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
 
         class_1799 stack = MinimalSubMaterialListView.displayStack(this.entry);
         String name = MinimalSubMaterialListView.displayName(this.entry);
-        int total = MaterialCounts.total(this.entry, this.materialList);
-        int rawMissing = MaterialCounts.missing(this.entry, this.materialList);
-        int missing = MaterialCounts.netMissing(this.entry, this.materialList);
+        int total = MinimalSubMaterialListView.total(this.entry, this.materialList);
+        int rawMissing = MinimalSubMaterialListView.missing(this.entry, this.materialList);
+        int missing = MinimalSubMaterialListView.netMissing(this.entry, this.materialList);
         int available = this.entry.getCountAvailable();
 
         int iconX = xItem;
@@ -443,8 +445,8 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         }
 
         class_1799 stack = MinimalSubMaterialListView.displayStack(this.entry);
-        int total = MaterialCounts.total(this.entry, this.materialList);
-        int missing = MaterialCounts.netMissing(this.entry, this.materialList);
+        int total = MinimalSubMaterialListView.total(this.entry, this.materialList);
+        int missing = MinimalSubMaterialListView.netMissing(this.entry, this.materialList);
         List<MinimalSubMaterialListView.RequirementContribution> requirements = MinimalSubMaterialListView.sourceRequirements(this.entry, total, missing);
         if (requirements.isEmpty()) {
             return null;
@@ -505,8 +507,8 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         }
 
         class_1799 stack = MinimalSubMaterialListView.displayStack(this.entry);
-        int total = MaterialCounts.total(this.entry, this.materialList);
-        int missing = MaterialCounts.netMissing(this.entry, this.materialList);
+        int total = MinimalSubMaterialListView.total(this.entry, this.materialList);
+        int missing = MinimalSubMaterialListView.netMissing(this.entry, this.materialList);
         List<MinimalSubMaterialListView.RequirementContribution> requirements = MinimalSubMaterialListView.sourceRequirements(this.entry, total, missing);
         List<MinimalSubMaterialListView.SourceContribution> sources = MinimalSubMaterialListView.sourceContributions(this.entry);
         boolean showAllSources = MinimalSubMaterialListView.isSourcesFull(this.entry);
@@ -528,8 +530,8 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         String missingLabel = StringUtils.translate(detailed ? "litematica.gui.label.material_list.title.missing" : "lmlp.label.recipe.missing_short");
         String availableLabel = StringUtils.translate("litematica.gui.label.material_list.title.available");
         String itemText = MinimalSubMaterialListView.displayName(this.entry);
-        int total = MaterialCounts.total(this.entry, this.materialList);
-        int missing = MaterialCounts.missing(this.entry, this.materialList);
+        int total = MinimalSubMaterialListView.total(this.entry, this.materialList);
+        int missing = MinimalSubMaterialListView.missing(this.entry, this.materialList);
         int available = this.entry.getCountAvailable();
         int maxPanelWidth = Math.max(80, this.mc.method_22683().method_4486() - HOVER_TOOLTIP_MARGIN * 2);
         int maxTextWidth = Math.max(40, maxPanelWidth - HOVER_TOOLTIP_PADDING * 2);
@@ -598,9 +600,8 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         String totalLabel = GuiBase.TXT_BOLD + StringUtils.translate("litematica.gui.label.material_list.title.total");
         String missingLabel = GuiBase.TXT_BOLD + StringUtils.translate("litematica.gui.label.material_list.title.missing");
         String itemText = MinimalSubMaterialListView.displayName(this.entry);
-        int multiplier = this.materialList.getMultiplier();
-        int total = this.entry.getCountTotal() * multiplier;
-        int missing = multiplier == 1 ? this.entry.getCountMissing() : total;
+        int total = MinimalSubMaterialListView.total(this.entry, this.materialList);
+        int missing = MinimalSubMaterialListView.missing(this.entry, this.materialList);
         String totalText = this.formatVanillaCount(total, stack.method_7914());
         String missingText = this.formatVanillaCount(missing, stack.method_7914());
         int labelWidth = Math.max(this.getStringWidth(itemLabel), Math.max(this.getStringWidth(totalLabel), this.getStringWidth(missingLabel)));
@@ -716,9 +717,8 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         String totalLabel = GuiBase.TXT_BOLD + StringUtils.translate("litematica.gui.label.material_list.title.total");
         String missingLabel = GuiBase.TXT_BOLD + StringUtils.translate("litematica.gui.label.material_list.title.missing");
         String itemText = MinimalSubMaterialListView.displayName(this.entry);
-        int multiplier = this.materialList.getMultiplier();
-        int total = this.entry.getCountTotal() * multiplier;
-        int missing = multiplier == 1 ? this.entry.getCountMissing() : total;
+        int total = MinimalSubMaterialListView.total(this.entry, this.materialList);
+        int missing = MinimalSubMaterialListView.missing(this.entry, this.materialList);
         String totalText = this.formatVanillaCount(total, stack.method_7914());
         String missingText = this.formatVanillaCount(missing, stack.method_7914());
         int labelWidth = Math.max(this.getStringWidth(itemLabel), Math.max(this.getStringWidth(totalLabel), this.getStringWidth(missingLabel)));
