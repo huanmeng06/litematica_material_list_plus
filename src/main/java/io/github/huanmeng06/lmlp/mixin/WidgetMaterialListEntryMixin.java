@@ -23,6 +23,7 @@ import io.github.huanmeng06.lmlp.gui.RecipeDetailScreen;
 import io.github.huanmeng06.lmlp.gui.RecipeInlineRenderer;
 import io.github.huanmeng06.lmlp.material.CountFormatter;
 import io.github.huanmeng06.lmlp.material.MaterialCounts;
+import io.github.huanmeng06.lmlp.recipe.RecipeResolvers;
 import io.github.huanmeng06.lmlp.recipe.RecipeSummary;
 import net.minecraft.class_1799;
 import net.minecraft.class_332;
@@ -194,6 +195,10 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
 
         if (MinimalSubMaterialListView.isActive(this.materialList)) {
             if (mouseButton == 0 && this.isMouseOver(mouseX, mouseY)) {
+                if (GuiBase.isShiftDown() && this.openMinimalSourceRecipe(mouseX, mouseY)) {
+                    return true;
+                }
+
                 boolean wasExpanded = MinimalSubMaterialListView.isSourcesExpanded(this.entry);
                 MinimalSubMaterialListView.toggleSources(this.entry, false);
                 this.listWidget.refreshEntries();
@@ -321,7 +326,7 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
             boolean showAllSources = MinimalSubMaterialListView.isSourcesFull(this.entry);
             int panelY = this.y + 23;
             int visibleOuterHeight = MinimalSourceInlineRenderer.getOuterHeight(stack, requirements, sources, showAllSources, MinimalSubMaterialListView.sourceProgress(this.entry));
-            MinimalSourceInlineRenderer.render(this, drawContext, this.x + 28, panelY, Math.max(180, this.width - 64), stack, name, requirements, sources, showAllSources, visibleOuterHeight);
+            MinimalSourceInlineRenderer.render(this, drawContext, this.x + 28, panelY, Math.max(180, this.width - 64), stack, name, requirements, sources, showAllSources, visibleOuterHeight, mouseX, mouseY);
         }
 
         super.render(mouseX, mouseY, selected, drawContext);
@@ -798,6 +803,31 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
 
         this.listWidget.refreshEntries();
         this.scrollExpandedEntryIntoView();
+        return true;
+    }
+
+    private boolean openMinimalSourceRecipe(int mouseX, int mouseY) {
+        if (!MinimalSubMaterialListView.isSourcesVisible(this.entry)) {
+            return false;
+        }
+
+        class_1799 stack = MinimalSubMaterialListView.displayStack(this.entry);
+        int total = MinimalSubMaterialListView.total(this.entry, this.materialList);
+        int missing = MinimalSubMaterialListView.netMissing(this.entry, this.materialList);
+        List<MinimalSubMaterialListView.RequirementContribution> requirements = MinimalSubMaterialListView.sourceRequirements(this.entry, total, missing);
+        List<MinimalSubMaterialListView.SourceContribution> sources = MinimalSubMaterialListView.sourceContributions(this.entry);
+        boolean showAllSources = MinimalSubMaterialListView.isSourcesFull(this.entry);
+        int panelX = this.x + 28;
+        int panelY = this.y + 23;
+        int panelWidth = Math.max(180, this.width - 64);
+        int visibleOuterHeight = MinimalSourceInlineRenderer.getOuterHeight(stack, requirements, sources, showAllSources, MinimalSubMaterialListView.sourceProgress(this.entry));
+        MinimalSubMaterialListView.SourceContribution source = MinimalSourceInlineRenderer.sourceAt(panelX, panelY, panelWidth, stack, requirements, sources, showAllSources, visibleOuterHeight, mouseX, mouseY);
+        if (source == null) {
+            return false;
+        }
+
+        List<RecipeSummary> summaries = RecipeResolvers.findRecipes(source.icon(), source.totalCount(), source.missingCount());
+        this.mc.method_1507(new RecipeDetailScreen(GuiUtils.getCurrentScreen(), source.icon(), source.totalCount(), source.missingCount(), summaries));
         return true;
     }
 

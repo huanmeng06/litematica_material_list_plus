@@ -12,6 +12,7 @@ import net.minecraft.class_1799;
 import net.minecraft.class_332;
 
 public final class MinimalSourceInlineRenderer {
+    private static final String UNDERLINE = "\u00A7n";
     private static final int ROW_HEIGHT = 22;
     private static final int PADDING = 8;
     private static final int INNER_BOTTOM_PADDING = 4;
@@ -78,7 +79,44 @@ public final class MinimalSourceInlineRenderer {
         return isVisibleTextHovered(textX, cursorY, targetNameWidth, y, visibleHeight, mouseX, mouseY);
     }
 
-    public static void render(WidgetBase widget, class_332 context, int x, int y, int width, class_1799 targetIcon, String targetName, List<MinimalSubMaterialListView.RequirementContribution> requirements, List<MinimalSubMaterialListView.SourceContribution> sources, boolean showAll, int visibleOuterHeight) {
+    public static MinimalSubMaterialListView.SourceContribution sourceAt(int x, int y, int width, class_1799 targetIcon, List<MinimalSubMaterialListView.RequirementContribution> requirements, List<MinimalSubMaterialListView.SourceContribution> sources, boolean showAll, int visibleOuterHeight, int mouseX, int mouseY) {
+        if (sources.isEmpty() || isSelfSource(targetIcon, sources)) {
+            return null;
+        }
+
+        int panelWidth = Math.max(160, width);
+        int visibleHeight = Math.max(0, Math.min(getHeight(targetIcon, requirements, sources, showAll), visibleOuterHeight));
+        int cursorY = y + PADDING + 24;
+        if (!requirements.isEmpty()) {
+            cursorY += 18 + requirements.size() * ROW_HEIGHT + SECTION_GAP;
+        }
+        cursorY += 18;
+
+        int visibleCount = visibleSourceCount(sources);
+        int columns = sourceColumnCount(visibleCount);
+        int rowCount = sourceRowCount(visibleCount, columns);
+        int contentWidth = Math.max(1, panelWidth - PADDING * 2);
+        int columnStride = Math.max(1, contentWidth / columns);
+        int contentX = x + PADDING;
+
+        for (int index = 0; index < visibleCount; index++) {
+            MinimalSubMaterialListView.SourceContribution source = sources.get(index);
+            int column = index / rowCount;
+            int row = index % rowCount;
+            int rowX = contentX + column * columnStride + (column == 0 ? 0 : COLUMN_GAP / 2);
+            int rowY = cursorY + row * ROW_HEIGHT;
+            int lineX = rowX + 26;
+            int lineY = rowY + 2;
+            int lineWidth = StringUtils.getStringWidth(countLine(source.name(), source.totalCount(), source.maxStackSize()));
+            if (isVisibleTextHovered(lineX, lineY, lineWidth, y, visibleHeight, mouseX, mouseY)) {
+                return source;
+            }
+        }
+
+        return null;
+    }
+
+    public static void render(WidgetBase widget, class_332 context, int x, int y, int width, class_1799 targetIcon, String targetName, List<MinimalSubMaterialListView.RequirementContribution> requirements, List<MinimalSubMaterialListView.SourceContribution> sources, boolean showAll, int visibleOuterHeight, int mouseX, int mouseY) {
         int height = getHeight(targetIcon, requirements, sources, showAll);
         int panelWidth = Math.max(160, width);
         int visibleHeight = Math.max(0, Math.min(height, visibleOuterHeight));
@@ -141,6 +179,9 @@ public final class MinimalSourceInlineRenderer {
 
         int contentWidth = Math.max(1, panelWidth - PADDING * 2);
         int columnStride = Math.max(1, contentWidth / columns);
+        MinimalSubMaterialListView.SourceContribution hoveredSource = GuiBase.isShiftDown()
+                ? sourceAt(x, y, width, targetIcon, requirements, sources, showAll, visibleOuterHeight, mouseX, mouseY)
+                : null;
         if (columns > 1) {
             drawColumnSeparators(textX, boxY, rowCount, columns, contentWidth);
         }
@@ -151,7 +192,7 @@ public final class MinimalSourceInlineRenderer {
             int row = index % rowCount;
             int rowX = textX + column * columnStride + (column == 0 ? 0 : COLUMN_GAP / 2);
             int rowY = cursorY + row * ROW_HEIGHT;
-            renderSourceRow(widget, context, rowX, rowY, source);
+            renderSourceRow(widget, context, rowX, rowY, source, source == hoveredSource);
         }
 
         context.method_44380();
@@ -199,8 +240,8 @@ public final class MinimalSourceInlineRenderer {
         return sources.size() == 1 && ItemStackTexts.id(targetIcon).equals(ItemStackTexts.id(sources.get(0).icon()));
     }
 
-    private static void renderSourceRow(WidgetBase widget, class_332 context, int textX, int y, MinimalSubMaterialListView.SourceContribution source) {
-        renderCountRow(widget, context, textX, y, source.icon(), source.name(), source.totalCount(), source.missingCount(), source.maxStackSize());
+    private static void renderSourceRow(WidgetBase widget, class_332 context, int textX, int y, MinimalSubMaterialListView.SourceContribution source, boolean underlined) {
+        renderCountRow(widget, context, textX, y, source.icon(), source.name(), source.totalCount(), source.missingCount(), source.maxStackSize(), underlined);
     }
 
     private static void renderRequirementRow(WidgetBase widget, class_332 context, int textX, int y, MinimalSubMaterialListView.RequirementContribution requirement) {
@@ -235,12 +276,24 @@ public final class MinimalSourceInlineRenderer {
     }
 
     private static String renderCountRow(WidgetBase widget, class_332 context, int textX, int y, class_1799 icon, String name, int totalCount, int missingCount, int maxStackSize) {
+        return renderCountRow(widget, context, textX, y, icon, name, totalCount, missingCount, maxStackSize, false);
+    }
+
+    private static String renderCountRow(WidgetBase widget, class_332 context, int textX, int y, class_1799 icon, String name, int totalCount, int missingCount, int maxStackSize, boolean underlined) {
         RenderUtils.drawRect(textX, y + SOURCE_ICON_BOX_Y_OFFSET, SOURCE_ICON_BOX_SIZE, SOURCE_ICON_BOX_SIZE, 0x30FFFFFF);
         context.method_51427(icon, textX + 1, y + SOURCE_ICON_BOX_Y_OFFSET + 1);
 
-        String line = name + ": " + GuiBase.TXT_GOLD + CountFormatter.format(totalCount, maxStackSize);
-        widget.drawString(textX + 26, y + 2, 0xFFFFFFFF, line, context);
+        String count = CountFormatter.format(totalCount, maxStackSize);
+        String line = countLine(name, totalCount, maxStackSize);
+        String renderedLine = underlined
+                ? UNDERLINE + name + ": " + GuiBase.TXT_GOLD + UNDERLINE + count + GuiBase.TXT_RST
+                : name + ": " + GuiBase.TXT_GOLD + count;
+        widget.drawString(textX + 26, y + 2, 0xFFFFFFFF, renderedLine, context);
         return line;
+    }
+
+    private static String countLine(String name, int totalCount, int maxStackSize) {
+        return name + ": " + CountFormatter.format(totalCount, maxStackSize);
     }
 
     private static class_1799 cyclingIcon(List<class_1799> icons, class_1799 fallback) {
