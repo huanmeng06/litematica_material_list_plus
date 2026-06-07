@@ -573,6 +573,9 @@ public final class MinimalSubMaterialListView {
         if (targetPlanksGroup && allIconsMatch(icons, MinimalSubMaterialListView::isLogLike)) {
             return StringUtils.translate("lmlp.label.recipe.any.log");
         }
+        if (allIconsMatch(icons, MinimalSubMaterialListView::isPlanksLike)) {
+            return StringUtils.translate("lmlp.label.recipe.any.planks");
+        }
 
         return groupDisplayName(icons, fallbackName);
     }
