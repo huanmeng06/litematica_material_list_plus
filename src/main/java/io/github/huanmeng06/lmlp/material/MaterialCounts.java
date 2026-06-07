@@ -15,4 +15,14 @@ public final class MaterialCounts {
         int total = total(entry, materialList);
         return materialList.getMultiplier() > 1 ? total : entry.getCountMissing();
     }
+
+    public static int netMissing(MaterialListEntry entry, MaterialListBase materialList) {
+        return netMissing(entry, materialList.getMultiplier());
+    }
+
+    public static int netMissing(MaterialListEntry entry, int multiplier) {
+        int total = entry.getCountTotal() * multiplier;
+        int missing = multiplier > 1 ? total : entry.getCountMissing();
+        return Math.max(0, missing - entry.getCountAvailable());
+    }
 }

@@ -110,14 +110,14 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
 
         for (MaterialListEntry entry : entries) {
             int total = entry.getCountTotal() * multiplier;
-            int missing = multiplier == 1 ? entry.getCountMissing() : total;
+            int missing = MaterialCounts.netMissing(entry, multiplier);
             lmlpMaxTotalDigits = Math.max(lmlpMaxTotalDigits, Integer.toString(total).length());
             lmlpMaxMissingDigits = Math.max(lmlpMaxMissingDigits, Integer.toString(missing).length());
         }
 
         for (MaterialListEntry entry : entries) {
             int total = entry.getCountTotal() * multiplier;
-            int missing = multiplier == 1 ? entry.getCountMissing() : total;
+            int missing = MaterialCounts.netMissing(entry, multiplier);
             String name = MinimalSubMaterialListView.widestDisplayName(entry);
 
             maxNameLength = Math.max(maxNameLength, StringUtils.getStringWidth(name));
@@ -287,14 +287,15 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         class_1799 stack = MinimalSubMaterialListView.displayStack(this.entry);
         String name = MinimalSubMaterialListView.displayName(this.entry);
         int total = MaterialCounts.total(this.entry, this.materialList);
-        int missing = MaterialCounts.missing(this.entry, this.materialList);
+        int rawMissing = MaterialCounts.missing(this.entry, this.materialList);
+        int missing = MaterialCounts.netMissing(this.entry, this.materialList);
         int available = this.entry.getCountAvailable();
 
         int iconX = xItem;
         this.drawString(xItem + 20, yText, -1, name, drawContext);
         this.drawString(xTotal, yText, -1, CountFormatter.formatAligned(stack, total, lmlpMaxTotalDigits), drawContext);
-        this.drawString(xMissing, yText, -1, missingColor(missing, available) + CountFormatter.formatAligned(stack, missing, lmlpMaxMissingDigits), drawContext);
-        this.drawString(xAvailable, yText, -1, availableColor(available, missing) + available, drawContext);
+        this.drawString(xMissing, yText, -1, netMissingColor(missing) + CountFormatter.formatAligned(stack, missing, lmlpMaxMissingDigits), drawContext);
+        this.drawString(xAvailable, yText, -1, availableColor(available, rawMissing) + available, drawContext);
 
         drawContext.method_51448().method_22903();
         RenderUtils.enableDiffuseLightingGui3D();
@@ -316,7 +317,7 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         }
 
         if (MinimalSubMaterialListView.isActive(this.materialList) && MinimalSubMaterialListView.isSourcesVisible(this.entry)) {
-            List<MinimalSubMaterialListView.RequirementContribution> requirements = MinimalSubMaterialListView.sourceRequirements(this.entry, total, missing);
+            List<MinimalSubMaterialListView.RequirementContribution> requirements = MinimalSubMaterialListView.sourceRequirements(this.entry, total, rawMissing);
             List<MinimalSubMaterialListView.SourceContribution> sources = MinimalSubMaterialListView.sourceContributions(this.entry);
             boolean showAllSources = MinimalSubMaterialListView.isSourcesFull(this.entry);
             int panelY = this.y + 23;
@@ -798,6 +799,13 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         }
         if (available >= missing) {
             return GuiBase.TXT_GOLD;
+        }
+        return GuiBase.TXT_RED;
+    }
+
+    private static String netMissingColor(int missing) {
+        if (missing == 0) {
+            return GuiBase.TXT_GREEN;
         }
         return GuiBase.TXT_RED;
     }
