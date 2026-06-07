@@ -762,7 +762,7 @@ public final class MinimalSubMaterialListView {
 
     private static int resolvedAvailable(long totalCount, long missingCount, int directAvailable) {
         long preparedFromSources = Math.max(0L, totalCount - missingCount);
-        long available = Math.min(totalCount, preparedFromSources + Math.max(0, directAvailable));
+        long available = preparedFromSources + Math.max(0, directAvailable);
         return clampToInt(available);
     }
 
