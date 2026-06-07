@@ -19,6 +19,8 @@ import io.github.huanmeng06.lmlp.gui.MaterialListPlusState;
 import io.github.huanmeng06.lmlp.gui.MinimalSubMaterialListView;
 import io.github.huanmeng06.lmlp.gui.MinimalSourceInlineRenderer;
 import io.github.huanmeng06.lmlp.gui.RecipeInlineRenderer;
+import io.github.huanmeng06.lmlp.material.InventoryCounts;
+import io.github.huanmeng06.lmlp.material.ItemStackTexts;
 import io.github.huanmeng06.lmlp.material.MaterialCounts;
 import net.minecraft.class_332;
 import org.spongepowered.asm.mixin.Final;
@@ -45,6 +47,7 @@ public abstract class WidgetListBaseMixin implements WidgetListBoundsAccess {
     private CountDisplayStyle lmlp$lastLayoutCountDisplayStyle;
     private boolean lmlp$lastLayoutMinimalSubMaterialView;
     private long lmlp$lastLayoutMinimalSubMaterialRevision = Long.MIN_VALUE;
+    private String lmlp$lastMaterialDataSignature = "";
     private double lmlp$scrollRemainder;
 
     @Shadow
@@ -110,6 +113,10 @@ public abstract class WidgetListBaseMixin implements WidgetListBoundsAccess {
             return;
         }
 
+        if (this.lmlp$refreshMaterialDataIfNeeded()) {
+            return;
+        }
+
         if ((Object) this instanceof WidgetMaterialListAccess access && MinimalSubMaterialListView.tick(access.lmlp$getMaterialList())) {
             this.refreshEntries();
         }
@@ -129,6 +136,43 @@ public abstract class WidgetListBaseMixin implements WidgetListBoundsAccess {
                 || MaterialListColumnLayout.hasActiveAnimation()) {
             this.reCreateListEntryWidgets();
         }
+    }
+
+    private boolean lmlp$refreshMaterialDataIfNeeded() {
+        if (!((Object) this instanceof WidgetMaterialListAccess access)) {
+            return false;
+        }
+
+        String signature = this.lmlp$materialDataSignature(access);
+        if (signature.equals(this.lmlp$lastMaterialDataSignature)) {
+            return false;
+        }
+
+        this.lmlp$lastMaterialDataSignature = signature;
+        this.refreshEntries();
+        return true;
+    }
+
+    private String lmlp$materialDataSignature(WidgetMaterialListAccess access) {
+        StringBuilder builder = new StringBuilder();
+        builder.append(access.lmlp$getMaterialList().getMaterialListType().getStringValue())
+                .append('|')
+                .append(access.lmlp$getMaterialList().getHideAvailable())
+                .append('|')
+                .append(access.lmlp$getMaterialList().getMultiplier())
+                .append('|')
+                .append(InventoryCounts.current().signature());
+        for (MaterialListEntry entry : access.lmlp$getMaterialList().getMaterialsFiltered(true)) {
+            builder.append('|')
+                    .append(ItemStackTexts.id(entry.getStack()))
+                    .append(':')
+                    .append(entry.getCountTotal())
+                    .append(':')
+                    .append(entry.getCountMissing())
+                    .append(':')
+                    .append(entry.getCountAvailable());
+        }
+        return builder.toString();
     }
 
     private void lmlp$renderMinimalChoiceTooltipAfterList(class_332 drawContext, int mouseX, int mouseY) {

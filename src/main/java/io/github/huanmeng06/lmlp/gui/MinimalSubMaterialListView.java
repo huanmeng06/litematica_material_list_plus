@@ -246,6 +246,10 @@ public final class MinimalSubMaterialListView {
         return requirement.icons().size() > 1 && isAnyGroupName(requirement.name()) ? emphasizeVariable(requirement.name()) : requirement.name();
     }
 
+    public static String upstreamDisplayName(UpstreamRequirement upstream) {
+        return upstream.icons().size() > 1 && isAnyGroupName(upstream.name()) ? emphasizeVariable(upstream.name()) : upstream.name();
+    }
+
     public static List<TooltipCandidate> requirementTooltipCandidates(RequirementContribution requirement) {
         if (requirement.icons().size() < 2) {
             return List.of();
@@ -255,6 +259,20 @@ public final class MinimalSubMaterialListView {
         for (int index = 0; index < requirement.icons().size(); index++) {
             class_1799 icon = requirement.icons().get(index);
             String name = index < requirement.candidateNames().size() ? requirement.candidateNames().get(index) : ItemStackTexts.name(icon);
+            candidates.add(new TooltipCandidate(icon.method_7972(), name));
+        }
+        return List.copyOf(candidates);
+    }
+
+    public static List<TooltipCandidate> upstreamTooltipCandidates(UpstreamRequirement upstream) {
+        if (upstream == null || upstream.icons().size() < 2) {
+            return List.of();
+        }
+
+        List<TooltipCandidate> candidates = new ArrayList<>(upstream.icons().size());
+        for (int index = 0; index < upstream.icons().size(); index++) {
+            class_1799 icon = upstream.icons().get(index);
+            String name = index < upstream.candidateNames().size() ? upstream.candidateNames().get(index) : ItemStackTexts.name(icon);
             candidates.add(new TooltipCandidate(icon.method_7972(), name));
         }
         return List.copyOf(candidates);
@@ -564,17 +582,87 @@ public final class MinimalSubMaterialListView {
             List<String> candidateNames = candidateNames(icons, names);
             String fallbackName = candidateNames.isEmpty() ? RecipeSummaryFormatter.ingredientName(base) : candidateNames.get(0);
             String name = requirementGroupName(targetPlanksGroup, icons, fallbackName);
+            List<class_1799> copiedIcons = icons.stream().map(class_1799::method_7972).toList();
             requirements.add(new RequirementContribution(
                     icons.get(0).method_7972(),
-                    icons.stream().map(class_1799::method_7972).toList(),
+                    copiedIcons,
                     candidateNames,
                     name,
                     base.countTotal(),
                     base.countMissing(),
-                    base.maxStackSize()));
+                    base.maxStackSize(),
+                    upstreamRequirement(copiedIcons, base.countTotal(), base.countMissing())));
         }
 
         return List.copyOf(requirements);
+    }
+
+    private static UpstreamRequirement upstreamRequirement(List<class_1799> icons, int totalCount, int missingCount) {
+        if (!allIconsMatch(icons, MinimalSubMaterialListView::isPlanksLike)) {
+            return null;
+        }
+
+        Map<String, class_1799> iconsById = new LinkedHashMap<>();
+        List<String> names = new ArrayList<>();
+        IngredientSummary firstBase = null;
+        for (class_1799 icon : icons) {
+            List<RecipeSummary> summaries = RecipeResolvers.findRecipes(icon, totalCount, missingCount);
+            if (summaries.isEmpty()) {
+                continue;
+            }
+
+            IngredientSummary ingredient = firstLogIngredient(summaries.get(0).ingredients());
+            if (ingredient == null) {
+                continue;
+            }
+
+            if (firstBase == null) {
+                firstBase = ingredient;
+            }
+
+            List<class_1799> ingredientIcons = ingredient.icons().isEmpty() ? List.of(ingredient.icon()) : ingredient.icons();
+            for (class_1799 ingredientIcon : ingredientIcons) {
+                if (!ingredientIcon.method_7960()) {
+                    iconsById.putIfAbsent(ItemStackTexts.id(ingredientIcon), ingredientIcon.method_7972());
+                }
+            }
+            for (String alternative : ingredient.alternatives()) {
+                if (!alternative.isBlank() && !names.contains(alternative)) {
+                    names.add(alternative);
+                }
+            }
+        }
+
+        if (firstBase == null || iconsById.isEmpty()) {
+            return null;
+        }
+
+        List<class_1799> upstreamIcons = List.copyOf(iconsById.values());
+        if (!allIconsMatch(upstreamIcons, MinimalSubMaterialListView::isLogLike)) {
+            return null;
+        }
+
+        List<String> candidateNames = candidateNames(upstreamIcons, names);
+        String name = StringUtils.translate("lmlp.label.recipe.any.log");
+        return new UpstreamRequirement(
+                upstreamIcons.get(0).method_7972(),
+                upstreamIcons.stream().map(class_1799::method_7972).toList(),
+                candidateNames,
+                name,
+                firstBase.countTotal(),
+                firstBase.countMissing(),
+                firstBase.maxStackSize());
+    }
+
+    private static IngredientSummary firstLogIngredient(List<IngredientSummary> ingredients) {
+        for (IngredientSummary ingredient : ingredients) {
+            List<class_1799> icons = ingredient.icons().isEmpty() ? List.of(ingredient.icon()) : ingredient.icons();
+            if (allIconsMatch(icons, MinimalSubMaterialListView::isLogLike)) {
+                return ingredient;
+            }
+        }
+
+        return null;
     }
 
     private static String requirementGroupName(boolean targetPlanksGroup, List<class_1799> icons, String fallbackName) {
@@ -868,7 +956,10 @@ public final class MinimalSubMaterialListView {
     public record TooltipCandidate(class_1799 icon, String name) {
     }
 
-    public record RequirementContribution(class_1799 icon, List<class_1799> icons, List<String> candidateNames, String name, int totalCount, int missingCount, int maxStackSize) {
+    public record RequirementContribution(class_1799 icon, List<class_1799> icons, List<String> candidateNames, String name, int totalCount, int missingCount, int maxStackSize, UpstreamRequirement upstream) {
+    }
+
+    public record UpstreamRequirement(class_1799 icon, List<class_1799> icons, List<String> candidateNames, String name, int totalCount, int missingCount, int maxStackSize) {
     }
 
     public record SourceContribution(class_1799 icon, String name, int totalCount, int missingCount, int maxStackSize) {

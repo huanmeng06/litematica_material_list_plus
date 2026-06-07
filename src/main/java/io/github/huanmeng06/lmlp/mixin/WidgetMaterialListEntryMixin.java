@@ -48,6 +48,10 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
     private static final int CHOICE_TOOLTIP_COLUMN_GAP = 14;
     private static final int CHOICE_TOOLTIP_ROW_HEIGHT = 18;
     private static final int CHOICE_TOOLTIP_TWO_COLUMN_THRESHOLD = 7;
+    private static final int REQUIREMENT_UPSTREAM_GAP = 18;
+    private static final int REQUIREMENT_UPSTREAM_ARROW_WIDTH = 18;
+    private static final int REQUIREMENT_UPSTREAM_AFTER_ARROW_GAP = 8;
+    private static final int REQUIREMENT_ICON_TEXT_GAP = 26;
     private static final int VANILLA_TOOLTIP_HEIGHT = 60;
     private static final int VANILLA_TOOLTIP_MARGIN = 10;
     private static final int VANILLA_TOOLTIP_LABEL_VALUE_GAP = 20;
@@ -56,6 +60,7 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
     private static final int COUNT_COLUMN_SAFETY_PADDING = 32;
     private static int lmlpMaxTotalDigits;
     private static int lmlpMaxMissingDigits;
+    private static int lmlpMaxAvailableDigits;
     @Shadow
     private static int maxNameLength;
     @Shadow
@@ -106,25 +111,29 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         maxCountLength3 = StringUtils.getStringWidth(GuiBase.TXT_BOLD + StringUtils.translate("litematica.gui.label.material_list.title.available") + GuiBase.TXT_RST);
         lmlpMaxTotalDigits = 1;
         lmlpMaxMissingDigits = 1;
+        lmlpMaxAvailableDigits = 1;
 
         for (MaterialListEntry entry : entries) {
             int total = entry.getCountTotal() * multiplier;
             int missing = MaterialCounts.netMissing(entry, multiplier);
+            int available = entry.getCountAvailable();
             lmlpMaxTotalDigits = Math.max(lmlpMaxTotalDigits, Integer.toString(total).length());
             lmlpMaxMissingDigits = Math.max(lmlpMaxMissingDigits, Integer.toString(missing).length());
+            lmlpMaxAvailableDigits = Math.max(lmlpMaxAvailableDigits, Integer.toString(available).length());
         }
 
         for (MaterialListEntry entry : entries) {
             int total = entry.getCountTotal() * multiplier;
             int missing = MaterialCounts.netMissing(entry, multiplier);
+            int available = entry.getCountAvailable();
             String name = MinimalSubMaterialListView.widestDisplayName(entry);
 
             maxNameLength = Math.max(maxNameLength, StringUtils.getStringWidth(name));
             for (class_1799 stack : MinimalSubMaterialListView.displayStacks(entry)) {
                 maxCountLength1 = Math.max(maxCountLength1, StringUtils.getStringWidth(CountFormatter.formatAligned(stack, total, lmlpMaxTotalDigits)));
                 maxCountLength2 = Math.max(maxCountLength2, StringUtils.getStringWidth(CountFormatter.formatAligned(stack, missing, lmlpMaxMissingDigits)));
+                maxCountLength3 = Math.max(maxCountLength3, StringUtils.getStringWidth(CountFormatter.formatAligned(stack, available, lmlpMaxAvailableDigits)));
             }
-            maxCountLength3 = Math.max(maxCountLength3, StringUtils.getStringWidth(Integer.toString(entry.getCountAvailable())));
         }
 
         MaterialListColumnLayout.updateRequiredEntryWidth(
@@ -283,7 +292,7 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         this.drawString(xItem + 20, yText, -1, name, drawContext);
         this.drawString(xTotal, yText, -1, CountFormatter.formatAligned(stack, total, lmlpMaxTotalDigits), drawContext);
         this.drawString(xMissing, yText, -1, netMissingColor(missing) + CountFormatter.formatAligned(stack, missing, lmlpMaxMissingDigits), drawContext);
-        this.drawString(xAvailable, yText, -1, availableColor(available, rawMissing) + available, drawContext);
+        this.drawString(xAvailable, yText, -1, availableColor(available, rawMissing) + CountFormatter.formatAligned(stack, available, lmlpMaxAvailableDigits), drawContext);
 
         drawContext.method_51448().method_22903();
         RenderUtils.enableDiffuseLightingGui3D();
@@ -460,6 +469,24 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
                     && mouseY < panelY + visibleHeight) {
                 return new ChoiceTooltipTarget(requirement.icon(), name, candidates);
             }
+
+            MinimalSubMaterialListView.UpstreamRequirement upstream = requirement.upstream();
+            List<MinimalSubMaterialListView.TooltipCandidate> upstreamCandidates = MinimalSubMaterialListView.upstreamTooltipCandidates(upstream);
+            if (upstream != null && !upstreamCandidates.isEmpty()) {
+                String primaryLine = name + ": " + GuiBase.TXT_GOLD + CountFormatter.format(requirement.totalCount(), requirement.maxStackSize());
+                String upstreamName = MinimalSubMaterialListView.upstreamDisplayName(upstream);
+                int upstreamTextX = textX
+                        + StringUtils.getStringWidth(primaryLine)
+                        + REQUIREMENT_UPSTREAM_GAP
+                        + REQUIREMENT_UPSTREAM_ARROW_WIDTH
+                        + REQUIREMENT_UPSTREAM_AFTER_ARROW_GAP
+                        + REQUIREMENT_ICON_TEXT_GAP;
+                if (isTextHovered(upstreamTextX, textY, this.getStringWidth(upstreamName), mouseX, mouseY)
+                        && mouseY >= panelY
+                        && mouseY < panelY + visibleHeight) {
+                    return new ChoiceTooltipTarget(upstream.icon(), upstreamName, upstreamCandidates);
+                }
+            }
             rowY += 22;
         }
 
@@ -510,9 +537,9 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         String headerText = this.truncateToWidth(itemText, maxHeaderTextWidth);
         String totalText = detailed ? CountFormatter.format(stack, total) : Integer.toString(total);
         String missingText = detailed ? CountFormatter.format(stack, missing) : Integer.toString(missing);
-        String availableText = Integer.toString(available);
+        String availableText = detailed ? CountFormatter.format(stack, available) : Integer.toString(available);
         String countLine = missingLabel + ": " + missingText + " / " + availableLabel + ": " + availableText;
-        String availableLine = availableLabel + ": " + available;
+        String availableLine = availableLabel + ": " + availableText;
         String hintLine = detailed ? "" : GuiBase.TXT_YELLOW + GuiBase.TXT_ITALIC + StringUtils.translate("lmlp.label.hover.detail_hint", this.detailHoverKeyDisplayName()) + GuiBase.TXT_RST;
 
         if (detailed) {

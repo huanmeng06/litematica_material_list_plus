@@ -20,6 +20,8 @@ public final class MinimalSourceInlineRenderer {
     private static final int SOURCE_ICON_BOX_Y_OFFSET = -3;
     private static final int SECTION_GAP = 6;
     private static final int TEXT_HOVER_HEIGHT = 12;
+    private static final int UPSTREAM_GAP = 18;
+    private static final int UPSTREAM_ARROW_WIDTH = 18;
     private static final int COLUMN_GAP = 28;
     private static final int TWO_COLUMN_THRESHOLD = 5;
     private static final int THREE_COLUMN_THRESHOLD = 9;
@@ -202,7 +204,27 @@ public final class MinimalSourceInlineRenderer {
     }
 
     private static void renderRequirementRow(WidgetBase widget, class_332 context, int textX, int y, MinimalSubMaterialListView.RequirementContribution requirement) {
-        renderCountRow(widget, context, textX, y, cyclingIcon(requirement.icons(), requirement.icon()), MinimalSubMaterialListView.requirementDisplayName(requirement), requirement.totalCount(), requirement.missingCount(), requirement.maxStackSize());
+        String line = renderCountRow(widget, context, textX, y, cyclingIcon(requirement.icons(), requirement.icon()), MinimalSubMaterialListView.requirementDisplayName(requirement), requirement.totalCount(), requirement.missingCount(), requirement.maxStackSize());
+        MinimalSubMaterialListView.UpstreamRequirement upstream = requirement.upstream();
+        if (upstream == null) {
+            return;
+        }
+
+        int arrowX = textX + 26 + StringUtils.getStringWidth(line) + UPSTREAM_GAP;
+        int centerY = y + SOURCE_ICON_BOX_Y_OFFSET + SOURCE_ICON_BOX_SIZE / 2;
+        ToggleArrowRenderer.render(context, arrowX, UPSTREAM_ARROW_WIDTH, centerY, 0.0F, false);
+
+        int upstreamIconX = arrowX + UPSTREAM_ARROW_WIDTH + 8;
+        renderCountRow(
+                widget,
+                context,
+                upstreamIconX,
+                y,
+                cyclingIcon(upstream.icons(), upstream.icon()),
+                MinimalSubMaterialListView.upstreamDisplayName(upstream),
+                upstream.totalCount(),
+                upstream.missingCount(),
+                upstream.maxStackSize());
     }
 
     private static void renderNameRow(WidgetBase widget, class_332 context, int textX, int y, class_1799 icon, String name) {
@@ -212,12 +234,13 @@ public final class MinimalSourceInlineRenderer {
         widget.drawString(textX + 26, y + 2, 0xFFFFFFFF, name, context);
     }
 
-    private static void renderCountRow(WidgetBase widget, class_332 context, int textX, int y, class_1799 icon, String name, int totalCount, int missingCount, int maxStackSize) {
+    private static String renderCountRow(WidgetBase widget, class_332 context, int textX, int y, class_1799 icon, String name, int totalCount, int missingCount, int maxStackSize) {
         RenderUtils.drawRect(textX, y + SOURCE_ICON_BOX_Y_OFFSET, SOURCE_ICON_BOX_SIZE, SOURCE_ICON_BOX_SIZE, 0x30FFFFFF);
         context.method_51427(icon, textX + 1, y + SOURCE_ICON_BOX_Y_OFFSET + 1);
 
         String line = name + ": " + GuiBase.TXT_GOLD + CountFormatter.format(totalCount, maxStackSize);
         widget.drawString(textX + 26, y + 2, 0xFFFFFFFF, line, context);
+        return line;
     }
 
     private static class_1799 cyclingIcon(List<class_1799> icons, class_1799 fallback) {
