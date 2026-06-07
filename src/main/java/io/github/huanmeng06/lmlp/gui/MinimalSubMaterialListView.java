@@ -390,8 +390,7 @@ public final class MinimalSubMaterialListView {
 
         Set<String> childSeenItems = new HashSet<>(seenItems);
         childSeenItems.add(itemId);
-        int missingAfterAvailable = depth == 0 ? missingCount : Math.max(0, missingCount - inventory.countAny(icons.isEmpty() ? List.of(icon) : icons));
-        List<RecipeSummary> summaries = RecipeResolvers.findRecipes(icon, totalCount, missingAfterAvailable);
+        List<RecipeSummary> summaries = RecipeResolvers.findRecipes(icon, totalCount, missingCount);
         if (summaries.isEmpty() || summaries.get(0).ingredients().isEmpty()) {
             addLeaf(icon, icons, names, name, source, totalCount, missingCount, materials);
             return;
