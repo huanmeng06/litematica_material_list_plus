@@ -23,8 +23,8 @@ public final class MinimalSourceInlineRenderer {
     private static final int UPSTREAM_GAP = 18;
     private static final int UPSTREAM_ARROW_WIDTH = 18;
     private static final int COLUMN_GAP = 28;
-    private static final int TWO_COLUMN_THRESHOLD = 5;
-    private static final int THREE_COLUMN_THRESHOLD = 9;
+    private static final int TWO_COLUMN_THRESHOLD = 4;
+    private static final int THREE_COLUMN_THRESHOLD = 7;
     private static final int COLUMN_SEPARATOR_COLOR = 0xFF999999;
     private static final long ICON_CYCLE_MILLIS = 900L;
 
