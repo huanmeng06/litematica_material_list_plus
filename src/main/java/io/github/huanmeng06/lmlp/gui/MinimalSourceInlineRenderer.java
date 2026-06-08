@@ -116,6 +116,58 @@ public final class MinimalSourceInlineRenderer {
         return null;
     }
 
+    public static class_1799 hoveredStackAt(int x, int y, int width, class_1799 targetIcon, List<MinimalSubMaterialListView.RequirementContribution> requirements, List<MinimalSubMaterialListView.SourceContribution> sources, boolean showAll, int visibleOuterHeight, int mouseX, int mouseY) {
+        if (sources.isEmpty()) {
+            return class_1799.field_8037;
+        }
+
+        int panelWidth = Math.max(160, width);
+        int visibleHeight = Math.max(0, Math.min(getHeight(targetIcon, requirements, sources, showAll), visibleOuterHeight));
+        int textX = x + PADDING;
+        int cursorY = y + PADDING;
+        int headerWidth = 24 + StringUtils.getStringWidth(ItemStackTexts.name(targetIcon));
+        if (isVisibleBoxHovered(textX, cursorY, headerWidth, SOURCE_ICON_BOX_SIZE, y, visibleHeight, mouseX, mouseY)) {
+            return targetIcon;
+        }
+
+        cursorY += 24;
+        if (isSelfSource(targetIcon, sources)) {
+            return class_1799.field_8037;
+        }
+
+        if (!requirements.isEmpty()) {
+            cursorY += 18;
+            for (MinimalSubMaterialListView.RequirementContribution requirement : requirements) {
+                class_1799 stack = hoveredRequirementStackAt(requirement, textX, cursorY, y, visibleHeight, mouseX, mouseY);
+                if (!stack.method_7960()) {
+                    return stack;
+                }
+                cursorY += ROW_HEIGHT;
+            }
+            cursorY += SECTION_GAP;
+        }
+
+        cursorY += 18;
+        int visibleCount = visibleSourceCount(sources);
+        int columns = sourceColumnCount(visibleCount);
+        int rowCount = sourceRowCount(visibleCount, columns);
+        int contentWidth = Math.max(1, panelWidth - PADDING * 2);
+        int columnStride = Math.max(1, contentWidth / columns);
+
+        for (int index = 0; index < visibleCount; index++) {
+            MinimalSubMaterialListView.SourceContribution source = sources.get(index);
+            int column = index / rowCount;
+            int row = index % rowCount;
+            int rowX = textX + column * columnStride + (column == 0 ? 0 : COLUMN_GAP / 2);
+            int rowY = cursorY + row * ROW_HEIGHT;
+            if (isCountRowHovered(rowX, rowY, countLine(source.name(), source.totalCount(), source.missingCount(), source.maxStackSize()), y, visibleHeight, mouseX, mouseY)) {
+                return source.icon();
+            }
+        }
+
+        return class_1799.field_8037;
+    }
+
     public static void render(WidgetBase widget, class_332 context, int x, int y, int width, class_1799 targetIcon, String targetName, List<MinimalSubMaterialListView.RequirementContribution> requirements, List<MinimalSubMaterialListView.SourceContribution> sources, boolean showAll, int visibleOuterHeight, int mouseX, int mouseY) {
         int height = getHeight(targetIcon, requirements, sources, showAll);
         int panelWidth = Math.max(160, width);
@@ -269,6 +321,27 @@ public final class MinimalSourceInlineRenderer {
                 upstream.maxStackSize());
     }
 
+    private static class_1799 hoveredRequirementStackAt(MinimalSubMaterialListView.RequirementContribution requirement, int textX, int y, int panelY, int visibleHeight, int mouseX, int mouseY) {
+        String line = countLine(MinimalSubMaterialListView.requirementDisplayName(requirement), requirement.totalCount(), requirement.missingCount(), requirement.maxStackSize());
+        if (isCountRowHovered(textX, y, line, panelY, visibleHeight, mouseX, mouseY)) {
+            return cyclingIcon(requirement.icons(), requirement.icon());
+        }
+
+        MinimalSubMaterialListView.UpstreamRequirement upstream = requirement.upstream();
+        if (upstream == null) {
+            return class_1799.field_8037;
+        }
+
+        int arrowX = textX + 26 + StringUtils.getStringWidth(line) + UPSTREAM_GAP;
+        int upstreamIconX = arrowX + UPSTREAM_ARROW_WIDTH + 8;
+        String upstreamLine = countLine(MinimalSubMaterialListView.upstreamDisplayName(upstream), upstream.totalCount(), upstream.missingCount(), upstream.maxStackSize());
+        if (isCountRowHovered(upstreamIconX, y, upstreamLine, panelY, visibleHeight, mouseX, mouseY)) {
+            return cyclingIcon(upstream.icons(), upstream.icon());
+        }
+
+        return class_1799.field_8037;
+    }
+
     private static void renderNameRow(WidgetBase widget, class_332 context, int textX, int y, class_1799 icon, String name) {
         RenderUtils.drawRect(textX, y + SOURCE_ICON_BOX_Y_OFFSET, SOURCE_ICON_BOX_SIZE, SOURCE_ICON_BOX_SIZE, 0x30FFFFFF);
         context.method_51427(icon, textX + 1, y + SOURCE_ICON_BOX_Y_OFFSET + 1);
@@ -305,6 +378,22 @@ public final class MinimalSourceInlineRenderer {
 
     private static String countLine(String name, int totalCount, int missingCount, int maxStackSize) {
         return name + ": " + CountFormatter.format(totalCount, maxStackSize) + " / " + CountFormatter.format(missingCount, maxStackSize);
+    }
+
+    private static boolean isCountRowHovered(int textX, int y, String line, int panelY, int visibleHeight, int mouseX, int mouseY) {
+        int lineWidth = SOURCE_ICON_BOX_SIZE + 8 + StringUtils.getStringWidth(line);
+        return isVisibleBoxHovered(textX, y + SOURCE_ICON_BOX_Y_OFFSET, lineWidth, SOURCE_ICON_BOX_SIZE, panelY, visibleHeight, mouseX, mouseY);
+    }
+
+    private static boolean isVisibleBoxHovered(int x, int y, int width, int height, int panelY, int visibleHeight, int mouseX, int mouseY) {
+        return width > 0
+                && height > 0
+                && mouseX >= x
+                && mouseX < x + width
+                && mouseY >= y
+                && mouseY < y + height
+                && mouseY >= panelY
+                && mouseY < panelY + visibleHeight;
     }
 
     private static class_1799 cyclingIcon(List<class_1799> icons, class_1799 fallback) {

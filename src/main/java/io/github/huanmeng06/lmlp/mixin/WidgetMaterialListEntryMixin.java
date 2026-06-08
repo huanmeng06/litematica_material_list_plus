@@ -17,6 +17,7 @@ import io.github.huanmeng06.lmlp.config.Configs;
 import io.github.huanmeng06.lmlp.config.Hotkeys;
 import io.github.huanmeng06.lmlp.gui.MaterialListColumnLayout;
 import io.github.huanmeng06.lmlp.gui.MaterialListPlusState;
+import io.github.huanmeng06.lmlp.gui.ItemTooltipRenderer;
 import io.github.huanmeng06.lmlp.gui.MinimalSubMaterialListView;
 import io.github.huanmeng06.lmlp.gui.MinimalSourceInlineRenderer;
 import io.github.huanmeng06.lmlp.gui.RecipeDetailScreen;
@@ -342,6 +343,14 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
             return;
         }
 
+        if (MinimalSubMaterialListView.isActive(this.materialList) && this.minimalChoiceTooltipTarget(mouseX, mouseY) != null) {
+            return;
+        }
+
+        if (this.lmlp$renderPanelItemTooltip(drawContext, mouseX, mouseY)) {
+            return;
+        }
+
         if (Configs.Generic.DISABLE_LITEMATICA_HOVER_TOOLTIP.getBooleanValue()) {
             return;
         }
@@ -350,18 +359,18 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
     }
 
     @Override
-    public void lmlp$renderMinimalChoiceTooltip(class_332 drawContext, int mouseX, int mouseY) {
+    public boolean lmlp$renderMinimalChoiceTooltip(class_332 drawContext, int mouseX, int mouseY) {
         if (this.entry == null || !MinimalSubMaterialListView.isActive(this.materialList)) {
-            return;
+            return false;
         }
         ChoiceTooltipTarget target = this.minimalChoiceTooltipTarget(mouseX, mouseY);
         if (target == null) {
-            return;
+            return false;
         }
 
         List<MinimalSubMaterialListView.TooltipCandidate> candidates = target.candidates();
         if (candidates.isEmpty()) {
-            return;
+            return false;
         }
 
         int maxPanelWidth = Math.max(120, this.mc.method_22683().method_4486() - HOVER_TOOLTIP_MARGIN * 2);
@@ -430,6 +439,21 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         }
 
         drawContext.method_51448().method_22909();
+        return true;
+    }
+
+    @Override
+    public boolean lmlp$renderPanelItemTooltip(class_332 drawContext, int mouseX, int mouseY) {
+        if (this.entry == null) {
+            return false;
+        }
+
+        class_1799 stack = this.panelHoveredStack(mouseX, mouseY);
+        if (stack.method_7960()) {
+            return false;
+        }
+
+        return ItemTooltipRenderer.render(drawContext, this.mc.field_1772, stack, mouseX, mouseY);
     }
 
     private ChoiceTooltipTarget minimalChoiceTooltipTarget(int mouseX, int mouseY) {
@@ -527,6 +551,40 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
                 && mouseX < textX + textWidth
                 && mouseY >= textY
                 && mouseY < textY + HOVER_TEXT_HEIGHT;
+    }
+
+    private class_1799 panelHoveredStack(int mouseX, int mouseY) {
+        class_1799 rowStack = MinimalSubMaterialListView.displayStack(this.entry);
+        if (isTextHovered(this.getColumnPosX(0), this.y + 3, this.getStringWidth(MinimalSubMaterialListView.displayName(this.entry)) + 20, mouseX, mouseY)) {
+            return rowStack;
+        }
+
+        if (MaterialListPlusState.isRecipeVisible(this.entry)) {
+            List<RecipeSummary> summaries = MaterialListPlusState.getSummaries(this.entry, this.materialList);
+            if (summaries.isEmpty()) {
+                summaries = MaterialListPlusState.getCachedSummaries(this.entry);
+            }
+            int panelX = this.x + 28;
+            int panelY = this.y + 23;
+            int panelWidth = Math.max(180, this.width - 64);
+            int visibleOuterHeight = RecipeInlineRenderer.getOuterHeight(summaries, MaterialListPlusState.recipeProgress(this.entry));
+            return RecipeInlineRenderer.hoveredStackAt(summaries, panelX, panelY, panelWidth, visibleOuterHeight, mouseX, mouseY);
+        }
+
+        if (MinimalSubMaterialListView.isActive(this.materialList) && MinimalSubMaterialListView.isSourcesVisible(this.entry)) {
+            int total = MinimalSubMaterialListView.total(this.entry, this.materialList);
+            int missing = MinimalSubMaterialListView.netMissing(this.entry, this.materialList);
+            List<MinimalSubMaterialListView.RequirementContribution> requirements = MinimalSubMaterialListView.sourceRequirements(this.entry, total, missing);
+            List<MinimalSubMaterialListView.SourceContribution> sources = MinimalSubMaterialListView.sourceContributions(this.entry);
+            boolean showAllSources = MinimalSubMaterialListView.isSourcesFull(this.entry);
+            int panelX = this.x + 28;
+            int panelY = this.y + 23;
+            int panelWidth = Math.max(180, this.width - 64);
+            int visibleOuterHeight = MinimalSourceInlineRenderer.getOuterHeight(rowStack, requirements, sources, showAllSources, MinimalSubMaterialListView.sourceProgress(this.entry));
+            return MinimalSourceInlineRenderer.hoveredStackAt(panelX, panelY, panelWidth, rowStack, requirements, sources, showAllSources, visibleOuterHeight, mouseX, mouseY);
+        }
+
+        return class_1799.field_8037;
     }
 
     private void renderMaterialHoverTooltip(class_332 drawContext, int mouseX, int mouseY, boolean detailed) {

@@ -136,7 +136,7 @@ public class MinimalSourceDetailScreen extends class_437 {
 
         this.renderScrollbar(context, mouseX, mouseY, delta, contentTop, contentBottom);
         if (!this.hoveredStack.method_7960()) {
-            context.method_51446(this.field_22793, this.hoveredStack, mouseX, mouseY);
+            ItemTooltipRenderer.render(context, this.field_22793, this.hoveredStack, mouseX, mouseY);
         }
     }
 
@@ -161,6 +161,9 @@ public class MinimalSourceDetailScreen extends class_437 {
         int textRight = Math.max(textX + 1, left + width - 6);
         context.method_44379(textX, top + 4, textRight, top + height - 4);
         context.method_51433(this.field_22793, this.targetName, textX, top + 8, 0xFFFFFFFF, false);
+        if (isInside(mouseX, mouseY, textX, top + 8, this.field_22793.method_1727(this.targetName), 12)) {
+            this.hoveredStack = this.target;
+        }
 
         String total = StringUtils.translate("lmlp.label.recipe.total_short") + ": " + CountFormatter.format(this.target, this.totalCount);
         String missing = StringUtils.translate("lmlp.label.recipe.missing_short") + ": " + CountFormatter.format(this.target, this.missingCount);
@@ -192,6 +195,10 @@ public class MinimalSourceDetailScreen extends class_437 {
 
         String countText = CountFormatter.format(source.totalCount(), source.maxStackSize());
         context.method_51433(this.field_22793, countText, textX, y + 28, 0xFFFFAA00, false);
+        int lineWidth = Math.max(this.field_22793.method_1727(source.name()), this.field_22793.method_1727(countText));
+        if (isInside(mouseX, mouseY, textX, y + 10, lineWidth, 32)) {
+            this.hoveredStack = source.icon();
+        }
         context.method_44380();
     }
 

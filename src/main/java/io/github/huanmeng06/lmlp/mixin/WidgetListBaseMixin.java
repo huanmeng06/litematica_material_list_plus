@@ -174,8 +174,8 @@ public abstract class WidgetListBaseMixin implements WidgetListBoundsAccess {
         return builder.toString();
     }
 
-    private void lmlp$renderMinimalChoiceTooltipAfterList(class_332 drawContext, int mouseX, int mouseY) {
-        if (!((Object) this instanceof WidgetMaterialListAccess access) || !MinimalSubMaterialListView.isActive(access.lmlp$getMaterialList())) {
+    private void lmlp$renderPanelTooltipAfterList(class_332 drawContext, int mouseX, int mouseY) {
+        if (!((Object) this instanceof WidgetMaterialListAccess)) {
             return;
         }
 
@@ -266,7 +266,7 @@ public abstract class WidgetListBaseMixin implements WidgetListBoundsAccess {
         }
 
         ((GuiBaseHoverAccess) this).lmlp$setHoveredWidget(hovered);
-        this.lmlp$renderMinimalChoiceTooltipAfterList(drawContext, mouseX, mouseY);
+        this.lmlp$renderPanelTooltipAfterList(drawContext, mouseX, mouseY);
         RenderUtils.color(1.0F, 1.0F, 1.0F, 1.0F);
     }
 

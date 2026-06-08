@@ -95,7 +95,6 @@ public class RecipeDetailScreen extends class_437 {
     private final GuiScrollBar scrollBar = new GuiScrollBar();
     private final ButtonGeneric backButton = new ButtonGeneric(0, 0, BACK_BUTTON_WIDTH, BACK_BUTTON_HEIGHT, "");
     private final RecipeNativeDisplayBridge nativeDisplayBridge = createNativeDisplayBridge();
-    private final RecipeTooltipBridge tooltipBridge = createTooltipBridge();
     private final List<NativeDisplayArea> nativeDisplayAreas = new ArrayList<>();
     private final List<TransferButtonEntry> transferButtons = new ArrayList<>();
     private final List<PreferredRecipeButtonArea> preferredRecipeButtons = new ArrayList<>();
@@ -291,9 +290,7 @@ public class RecipeDetailScreen extends class_437 {
         }
 
         if (!this.hoveredStack.method_7960()) {
-            if (!this.tooltipBridge.renderTooltip(context, this.field_22793, this.hoveredStack, mouseX, mouseY)) {
-                context.method_51446(this.field_22793, this.hoveredStack, mouseX, mouseY);
-            }
+            ItemTooltipRenderer.render(context, this.field_22793, this.hoveredStack, mouseX, mouseY);
         }
     }
 
@@ -316,7 +313,11 @@ public class RecipeDetailScreen extends class_437 {
         int textX = left + 36;
         int textRight = Math.max(textX + 1, left + width - 6);
         context.method_44379(textX, top + 4, textRight, top + height - 4);
-        context.method_51433(this.field_22793, ItemStackTexts.name(this.target), textX, top + 8, 0xFFFFFFFF, false);
+        String targetName = ItemStackTexts.name(this.target);
+        context.method_51433(this.field_22793, targetName, textX, top + 8, 0xFFFFFFFF, false);
+        if (isInside(mouseX, mouseY, textX, top + 8, this.field_22793.method_1727(targetName), 12)) {
+            this.hoveredStack = this.target;
+        }
 
         String total = StringUtils.translate("lmlp.label.recipe.total_short") + ": " + CountFormatter.format(this.target, this.totalCount);
         String missing = StringUtils.translate("lmlp.label.recipe.missing_short") + ": " + CountFormatter.format(this.target, this.missingCount);
@@ -468,6 +469,7 @@ public class RecipeDetailScreen extends class_437 {
         this.captureHoveredStack(icon, mouseX, mouseY, iconX, iconY, 16, 16);
 
         int textX = rowX + INGREDIENT_ICON_OFFSET + 24;
+        int lineStartX = iconX;
         String prefix = name + ": ";
         context.method_51433(this.field_22793, prefix, textX, y, INGREDIENT_TEXT_COLOR, false);
         textX += this.field_22793.method_1727(prefix);
@@ -478,6 +480,10 @@ public class RecipeDetailScreen extends class_437 {
             textX += this.field_22793.method_1727(" / ");
             int missingColor = missingCount == 0 ? 0xFF55FF55 : INGREDIENT_MISSING_COLOR;
             context.method_51433(this.field_22793, missingText, textX, y, missingColor, false);
+            textX += this.field_22793.method_1727(missingText);
+        }
+        if (isInside(mouseX, mouseY, lineStartX, y - 5, Math.max(16, textX - lineStartX), INGREDIENT_ROW_HEIGHT)) {
+            this.captureHoveredStack(icon, mouseX, mouseY, lineStartX, y - 5, Math.max(16, textX - lineStartX), INGREDIENT_ROW_HEIGHT);
         }
     }
 
@@ -1119,15 +1125,6 @@ public class RecipeDetailScreen extends class_437 {
             return (RecipeNativeDisplayBridge) bridgeClass.getDeclaredConstructor().newInstance();
         } catch (Throwable throwable) {
             return RecipeNativeDisplayBridge.DISABLED;
-        }
-    }
-
-    private static RecipeTooltipBridge createTooltipBridge() {
-        try {
-            Class<?> bridgeClass = Class.forName("io.github.huanmeng06.lmlp.recipe.rei.ReiTooltipBridge");
-            return (RecipeTooltipBridge) bridgeClass.getDeclaredConstructor().newInstance();
-        } catch (Throwable throwable) {
-            return RecipeTooltipBridge.DISABLED;
         }
     }
 
