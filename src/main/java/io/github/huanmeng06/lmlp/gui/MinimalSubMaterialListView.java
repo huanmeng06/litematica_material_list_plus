@@ -869,6 +869,8 @@ public final class MinimalSubMaterialListView {
                     this.origin.name(),
                     clampToInt(this.totalCount),
                     clampToInt(missingCount),
+                    this.origin.totalCount(),
+                    this.origin.missingCount(),
                     maxStackSize);
         }
     }
@@ -921,7 +923,7 @@ public final class MinimalSubMaterialListView {
                 int total = scaledCount(baseTotal, this.multiplier);
                 int missing = MaterialCounts.netMissing(entry, this.multiplier);
                 int prepared = Math.max(0, total - Math.min(total, missing));
-                SourceOrigin source = new SourceOrigin(ItemStackTexts.id(stack), stack.method_7972(), ItemStackTexts.name(stack));
+                SourceOrigin source = new SourceOrigin(ItemStackTexts.id(stack), stack.method_7972(), ItemStackTexts.name(stack), total, missing);
                 collectLeaves(stack, List.of(stack), List.of(ItemStackTexts.name(stack)), ItemStackTexts.name(stack), source, baseTotal, this.multiplier, false, 0, new HashSet<>(), this.materials);
                 collectPreparedLeaves(stack, List.of(stack), List.of(ItemStackTexts.name(stack)), ItemStackTexts.name(stack), source, baseTotal, prepared, this.materials);
                 changed = true;
@@ -1004,7 +1006,7 @@ public final class MinimalSubMaterialListView {
     private record Candidate(class_1799 icon, String name) {
     }
 
-    private record SourceOrigin(String id, class_1799 icon, String name) {
+    private record SourceOrigin(String id, class_1799 icon, String name, int totalCount, int missingCount) {
     }
 
     private record CandidateSet(List<class_1799> icons, List<String> names) {
@@ -1019,7 +1021,7 @@ public final class MinimalSubMaterialListView {
     public record UpstreamRequirement(class_1799 icon, List<class_1799> icons, List<String> candidateNames, String name, int totalCount, int missingCount, int maxStackSize) {
     }
 
-    public record SourceContribution(class_1799 icon, String name, int totalCount, int missingCount, int maxStackSize) {
+    public record SourceContribution(class_1799 icon, String name, int totalCount, int missingCount, int sourceTotalCount, int sourceMissingCount, int maxStackSize) {
     }
 
     private static String itemPath(class_1799 stack) {

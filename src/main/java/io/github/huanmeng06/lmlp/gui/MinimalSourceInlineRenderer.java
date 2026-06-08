@@ -179,9 +179,10 @@ public final class MinimalSourceInlineRenderer {
 
         int contentWidth = Math.max(1, panelWidth - PADDING * 2);
         int columnStride = Math.max(1, contentWidth / columns);
-        MinimalSubMaterialListView.SourceContribution hoveredSource = GuiBase.isShiftDown()
-                ? sourceAt(x, y, width, targetIcon, requirements, sources, showAll, visibleOuterHeight, mouseX, mouseY)
-                : null;
+        MinimalSubMaterialListView.SourceContribution hoveredSource = sourceAt(x, y, width, targetIcon, requirements, sources, showAll, visibleOuterHeight, mouseX, mouseY);
+        if (hoveredSource != null) {
+            ClickableCursor.requestHand();
+        }
         if (columns > 1) {
             drawColumnSeparators(textX, boxY, rowCount, columns, contentWidth);
         }

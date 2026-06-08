@@ -195,7 +195,7 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
 
         if (MinimalSubMaterialListView.isActive(this.materialList)) {
             if (mouseButton == 0 && this.isMouseOver(mouseX, mouseY)) {
-                if (GuiBase.isShiftDown() && this.openMinimalSourceRecipe(mouseX, mouseY)) {
+                if (this.openMinimalSourceRecipe(mouseX, mouseY)) {
                     return true;
                 }
 
@@ -826,8 +826,8 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
             return false;
         }
 
-        List<RecipeSummary> summaries = RecipeResolvers.findRecipes(source.icon(), source.totalCount(), source.missingCount());
-        this.mc.method_1507(new RecipeDetailScreen(GuiUtils.getCurrentScreen(), source.icon(), source.totalCount(), source.missingCount(), summaries));
+        List<RecipeSummary> summaries = RecipeResolvers.findRecipes(source.icon(), source.sourceTotalCount(), source.sourceMissingCount());
+        this.mc.method_1507(new RecipeDetailScreen(GuiUtils.getCurrentScreen(), source.icon(), source.sourceTotalCount(), source.sourceMissingCount(), summaries));
         return true;
     }
 
