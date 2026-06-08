@@ -12,6 +12,7 @@ import io.github.huanmeng06.lmlp.recipe.IngredientSummary;
 import io.github.huanmeng06.lmlp.recipe.MaterialTreeNode;
 import io.github.huanmeng06.lmlp.recipe.RecipeSummary;
 import io.github.huanmeng06.lmlp.recipe.RecipeSummaryFormatter;
+import net.minecraft.class_1799;
 import net.minecraft.class_332;
 
 public final class RecipeInlineRenderer {
@@ -93,7 +94,7 @@ public final class RecipeInlineRenderer {
         int ingredientBoxY = cursorY;
         int ingredientBoxHeight = 18 + visibleIngredientHeight(summary);
         RenderUtils.drawRect(textX - 2, ingredientBoxY - 2, panelWidth - PADDING * 2 + 4, ingredientBoxHeight, 0x66000000);
-        widget.drawString(textX, cursorY, 0xFFAAAAAA, StringUtils.translate("lmlp.label.recipe.ingredients_total"), context);
+        widget.drawString(textX, cursorY, 0xFFAAAAAA, StringUtils.translate("lmlp.label.recipe.ingredients_missing"), context);
         cursorY += 18;
 
         for (IngredientSummary ingredient : summary.ingredients()) {
@@ -156,6 +157,25 @@ public final class RecipeInlineRenderer {
         return ToggleTarget.NONE;
     }
 
+    public static class_1799 hoveredStackAt(List<RecipeSummary> summaries, int x, int y, int width, int visibleOuterHeight, int mouseX, int mouseY) {
+        int panelWidth = Math.max(160, width);
+        int height = Math.min(getHeight(summaries), Math.max(0, visibleOuterHeight));
+        if (mouseX < x || mouseX >= x + panelWidth || mouseY < y || mouseY >= y + height || summaries.isEmpty()) {
+            return class_1799.field_8037;
+        }
+
+        RecipeSummary summary = summaries.get(0);
+        int textX = x + PADDING;
+        int cursorY = y + PADDING;
+        if (isInside(mouseX, mouseY, textX, cursorY, 16, 16)) {
+            return summary.outputIcon();
+        }
+
+        cursorY += 24 + 18 + 18;
+        class_1799 stack = hoveredIngredientStackAt(summary.ingredients(), textX, cursorY, 0, Integer.MAX_VALUE, mouseX, mouseY);
+        return stack == null ? class_1799.field_8037 : stack;
+    }
+
     private static void renderIngredient(WidgetBase widget, class_332 context, int textX, int y, IngredientSummary ingredient, int mouseX, int mouseY) {
         boolean hasTree = MaterialListPlusState.hasTree(ingredient);
         MaterialTreeNode root = MaterialListPlusState.getVisibleIngredientTree(ingredient);
@@ -190,6 +210,87 @@ public final class RecipeInlineRenderer {
         return cursorY;
     }
 
+    private static class_1799 hoveredIngredientStackAt(List<IngredientSummary> ingredients, int textX, int y, int depth, int visibleHeight, int mouseX, int mouseY) {
+        int cursorY = y;
+        int remainingHeight = visibleHeight;
+        for (IngredientSummary ingredient : ingredients) {
+            if (remainingHeight <= 0) {
+                break;
+            }
+
+            int visibleRowHeight = Math.min(INGREDIENT_HEIGHT, remainingHeight);
+            class_1799 icon = AlternativeItemDisplay.icon(ingredient);
+            String name = RecipeSummaryFormatter.ingredientName(ingredient);
+            if (isRowStackHovered(textX, cursorY, depth, name, visibleRowHeight, mouseX, mouseY)) {
+                return icon;
+            }
+
+            cursorY += INGREDIENT_HEIGHT;
+            remainingHeight -= visibleRowHeight;
+            MaterialTreeNode root = MaterialListPlusState.getVisibleIngredientTree(ingredient);
+            if (root != null && remainingHeight > 0) {
+                int fullChildrenHeight = visibleChildrenHeight(root.children());
+                int childVisibleHeight = Math.min(fullChildrenHeight, Math.round(fullChildrenHeight * MaterialListPlusState.treeProgress(root.path())));
+                childVisibleHeight = Math.min(childVisibleHeight, remainingHeight);
+                if (childVisibleHeight > 0) {
+                    class_1799 childStack = hoveredNodeStackAt(root.children(), textX, cursorY, depth + 1, childVisibleHeight, mouseX, mouseY);
+                    if (childStack != null) {
+                        return childStack;
+                    }
+                    cursorY += childVisibleHeight;
+                    remainingHeight -= childVisibleHeight;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private static class_1799 hoveredNodeStackAt(List<MaterialTreeNode> nodes, int textX, int y, int depth, int visibleHeight, int mouseX, int mouseY) {
+        int cursorY = y;
+        int remainingHeight = visibleHeight;
+        for (MaterialTreeNode node : nodes) {
+            if (remainingHeight <= 0) {
+                break;
+            }
+
+            int visibleRowHeight = Math.min(INGREDIENT_HEIGHT, remainingHeight);
+            class_1799 icon = AlternativeItemDisplay.icon(node);
+            if (isRowStackHovered(textX, cursorY, depth, node.name(), visibleRowHeight, mouseX, mouseY)) {
+                return icon;
+            }
+
+            cursorY += INGREDIENT_HEIGHT;
+            remainingHeight -= visibleRowHeight;
+            if (node.hasChildren() && remainingHeight > 0) {
+                int fullChildrenHeight = visibleChildrenHeight(node.children());
+                int childVisibleHeight = Math.min(fullChildrenHeight, Math.round(fullChildrenHeight * MaterialListPlusState.treeProgress(node.path())));
+                childVisibleHeight = Math.min(childVisibleHeight, remainingHeight);
+                if (childVisibleHeight > 0) {
+                    class_1799 childStack = hoveredNodeStackAt(node.children(), textX, cursorY, depth + 1, childVisibleHeight, mouseX, mouseY);
+                    if (childStack != null) {
+                        return childStack;
+                    }
+                    cursorY += childVisibleHeight;
+                    remainingHeight -= childVisibleHeight;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private static boolean isRowStackHovered(int textX, int y, int depth, String name, int visibleRowHeight, int mouseX, int mouseY) {
+        int rowX = textX + depth * TREE_INDENT_WIDTH;
+        int iconX = rowX + INGREDIENT_ICON_OFFSET;
+        int rowRight = iconX + 18;
+        return visibleRowHeight > 0
+                && mouseX >= iconX
+                && mouseX < rowRight
+                && mouseY >= y - 3
+                && mouseY < y - 3 + Math.min(18, visibleRowHeight);
+    }
+
     private static void renderRow(WidgetBase widget, class_332 context, int textX, int y, int depth, boolean hasTree, float expandProgress, net.minecraft.class_1799 icon, String name, int totalCount, int missingCount, int maxStackSize, int mouseX, int mouseY) {
         int rowX = textX + depth * TREE_INDENT_WIDTH;
         int iconX = rowX + INGREDIENT_ICON_OFFSET;
@@ -202,10 +303,8 @@ public final class RecipeInlineRenderer {
         RenderUtils.drawRect(iconX, y - 3, 18, 18, 0x30FFFFFF);
         context.method_51427(icon, iconX + 1, iconY);
 
-        String line = name + ": " + GuiBase.TXT_GOLD + CountFormatter.format(totalCount, maxStackSize);
-        if (missingCount != totalCount) {
-            line += GuiBase.TXT_RST + " / " + GuiBase.TXT_RED + CountFormatter.format(missingCount, maxStackSize);
-        }
+        String countColor = missingCount == 0 ? GuiBase.TXT_GREEN : GuiBase.TXT_RED;
+        String line = name + ": " + countColor + CountFormatter.format(missingCount, maxStackSize);
         widget.drawString(rowX + INGREDIENT_ICON_OFFSET + 26, y + 2, 0xFFFFFFFF, line, context);
     }
 
@@ -303,6 +402,10 @@ public final class RecipeInlineRenderer {
     private static boolean isToggleHit(int textX, int y, int depth, int mouseX, int mouseY) {
         int toggleX = textX + depth * TREE_INDENT_WIDTH;
         return mouseX >= toggleX && mouseX < toggleX + INGREDIENT_TOGGLE_WIDTH && mouseY >= y - 2 && mouseY < y + INGREDIENT_HEIGHT - 2;
+    }
+
+    private static boolean isInside(int mouseX, int mouseY, int x, int y, int width, int height) {
+        return mouseX >= x && mouseX < x + width && mouseY >= y && mouseY < y + height;
     }
 
     private static void drawOutline(int x, int y, int width, int height, int color) {

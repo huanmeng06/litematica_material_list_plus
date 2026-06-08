@@ -6,6 +6,7 @@ import com.google.gson.JsonObject;
 import fi.dy.masa.malilib.config.ConfigUtils;
 import fi.dy.masa.malilib.config.IConfigBase;
 import fi.dy.masa.malilib.config.IConfigHandler;
+import fi.dy.masa.malilib.config.options.ConfigBoolean;
 import fi.dy.masa.malilib.config.options.ConfigOptionList;
 import fi.dy.masa.malilib.config.options.ConfigStringList;
 import fi.dy.masa.malilib.util.FileUtils;
@@ -14,11 +15,14 @@ import io.github.huanmeng06.lmlp.LitematicaMaterialListPlus;
 import io.github.huanmeng06.lmlp.gui.MaterialListPlusState;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 
 public class Configs implements IConfigHandler {
     private static final String FILE_NAME = LitematicaMaterialListPlus.MOD_ID + ".json";
@@ -26,13 +30,32 @@ public class Configs implements IConfigHandler {
     private static final String HOTKEYS = "Hotkeys";
     private static final String PREFERRED_RECIPES = "PreferredRecipes";
     private static final Map<String, String> preferredRecipes = new HashMap<>();
+    private static final List<String> COLOR_NAMES = List.of(
+            "white",
+            "orange",
+            "magenta",
+            "light_blue",
+            "yellow",
+            "lime",
+            "pink",
+            "gray",
+            "light_gray",
+            "cyan",
+            "purple",
+            "blue",
+            "brown",
+            "green",
+            "red",
+            "black"
+    );
+    private static final List<String> COLOR_PATTERN_SUFFIXES = List.of("dye", "wool", "carpet", "terracotta");
 
     public static final class Generic {
-        public static final ConfigOptionList HOVER_TOOLTIP_MODE = new ConfigOptionList(
-                "enableLmlpHoverTooltip",
-                HoverTooltipMode.LMLP,
-                "Choose which material hover tooltip to show.",
-                "lmlp.config.name.enable_lmlp_hover_tooltip"
+        public static final ConfigBoolean DISABLE_LITEMATICA_HOVER_TOOLTIP = new ConfigBoolean(
+                "disableLitematicaHoverTooltip",
+                true,
+                "Disable Litematica's original material hover tooltip. Turn this off to show Litematica's original tooltip.",
+                "lmlp.config.name.disable_litematica_hover_tooltip"
         );
 
         public static final ConfigOptionList COUNT_DISPLAY_STYLE = new ConfigOptionList(
@@ -50,13 +73,17 @@ public class Configs implements IConfigHandler {
                         "minecraft:slime_ball",
                         "minecraft:quartz",
                         "minecraft:honey_bottle",
-                        "minecraft:redstone"
+                        "minecraft:redstone",
+                        "minecraft:{color}_dye",
+                        "minecraft:{color}_wool",
+                        "minecraft:{color}_carpet",
+                        "minecraft:{color}_terracotta"
                 ),
-                "Items in this list are treated as base materials."
+                "Items in this list are treated as base materials. Use {color} to match all 16 Minecraft colors, for example minecraft:{color}_wool."
         );
 
         public static final List<IConfigBase> OPTIONS = ImmutableList.of(
-                HOVER_TOOLTIP_MODE,
+                DISABLE_LITEMATICA_HOVER_TOOLTIP,
                 COUNT_DISPLAY_STYLE,
                 RECIPE_STOP_ITEMS
         );
@@ -78,7 +105,8 @@ public class Configs implements IConfigHandler {
                 ConfigUtils.readConfigBase(root, GENERIC, Generic.OPTIONS);
                 ConfigUtils.readConfigBase(root, HOTKEYS, Hotkeys.HOTKEY_LIST);
                 readPreferredRecipes(root);
-                migrateHoverTooltipModeConfig(root);
+                migrateDisableLitematicaHoverTooltipConfig(root);
+                migrateRecipeStopColorPatterns();
             }
         }
     }
@@ -97,7 +125,22 @@ public class Configs implements IConfigHandler {
     public static boolean shouldStopRecipeDecomposition(String itemId) {
         String normalizedItemId = normalizeItemId(itemId);
         for (String configuredId : Generic.RECIPE_STOP_ITEMS.getStrings()) {
-            if (normalizeItemId(configuredId).equals(normalizedItemId)) {
+            if (matchesRecipeStopItem(configuredId, normalizedItemId)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static boolean matchesRecipeStopItem(String configuredId, String normalizedItemId) {
+        String normalizedConfiguredId = normalizeItemId(configuredId);
+        if (!normalizedConfiguredId.contains("{color}")) {
+            return normalizedConfiguredId.equals(normalizedItemId);
+        }
+
+        for (String color : COLOR_NAMES) {
+            if (normalizedConfiguredId.replace("{color}", color).equals(normalizedItemId)) {
                 return true;
             }
         }
@@ -144,6 +187,62 @@ public class Configs implements IConfigHandler {
         return "minecraft:" + trimmed;
     }
 
+    private static void migrateRecipeStopColorPatterns() {
+        List<String> values = new ArrayList<>(Generic.RECIPE_STOP_ITEMS.getStrings());
+        boolean modified = false;
+        for (String suffix : COLOR_PATTERN_SUFFIXES) {
+            if (compactColorPattern(values, suffix)) {
+                modified = true;
+            }
+        }
+
+        if (modified) {
+            Generic.RECIPE_STOP_ITEMS.setStrings(values);
+        }
+    }
+
+    private static boolean compactColorPattern(List<String> values, String suffix) {
+        String pattern = "minecraft:{color}_" + suffix;
+        Set<String> colorIds = new HashSet<>();
+        for (String color : COLOR_NAMES) {
+            colorIds.add("minecraft:" + color + "_" + suffix);
+        }
+
+        Set<String> normalizedValues = new HashSet<>();
+        boolean hasPattern = false;
+        for (String value : values) {
+            String normalized = normalizeItemId(value);
+            normalizedValues.add(normalized);
+            if (normalized.equals(pattern)) {
+                hasPattern = true;
+            }
+        }
+
+        if (!normalizedValues.containsAll(colorIds)) {
+            return false;
+        }
+
+        int insertIndex = values.size();
+        for (int index = 0; index < values.size(); index++) {
+            if (colorIds.contains(normalizeItemId(values.get(index)))) {
+                insertIndex = index;
+                break;
+            }
+        }
+
+        for (int index = values.size() - 1; index >= 0; index--) {
+            if (colorIds.contains(normalizeItemId(values.get(index)))) {
+                values.remove(index);
+            }
+        }
+
+        if (!hasPattern) {
+            values.add(Math.min(insertIndex, values.size()), pattern);
+        }
+
+        return true;
+    }
+
     private static void readPreferredRecipes(JsonObject root) {
         preferredRecipes.clear();
         if (!root.has(PREFERRED_RECIPES) || !root.get(PREFERRED_RECIPES).isJsonObject()) {
@@ -176,20 +275,35 @@ public class Configs implements IConfigHandler {
         root.add(PREFERRED_RECIPES, preferred);
     }
 
-    private static void migrateHoverTooltipModeConfig(JsonObject root) {
+    private static void migrateDisableLitematicaHoverTooltipConfig(JsonObject root) {
         if (!root.has(GENERIC) || !root.get(GENERIC).isJsonObject()) {
             return;
         }
 
         JsonObject generic = root.getAsJsonObject(GENERIC);
-        if (generic.has("enableLmlpHoverTooltip") || !generic.has("hoverTooltipMode")) {
+        if (generic.has("disableLitematicaHoverTooltip")) {
             return;
         }
 
-        JsonElement previousValue = generic.get("hoverTooltipMode");
-        if (previousValue.isJsonPrimitive()) {
-            Generic.HOVER_TOOLTIP_MODE.setOptionListValue(HoverTooltipMode.LMLP.fromString(previousValue.getAsString()));
+        if (generic.has("enableLmlpHoverTooltip")) {
+            JsonElement previousValue = generic.get("enableLmlpHoverTooltip");
+            if (previousValue.isJsonPrimitive()) {
+                Generic.DISABLE_LITEMATICA_HOVER_TOOLTIP.setBooleanValue(disablesLitematicaHoverTooltip(previousValue.getAsString()));
+            }
+            return;
         }
+
+        if (generic.has("hoverTooltipMode")) {
+            JsonElement previousValue = generic.get("hoverTooltipMode");
+            if (previousValue.isJsonPrimitive()) {
+                Generic.DISABLE_LITEMATICA_HOVER_TOOLTIP.setBooleanValue(disablesLitematicaHoverTooltip(previousValue.getAsString()));
+            }
+        }
+    }
+
+    private static boolean disablesLitematicaHoverTooltip(String value) {
+        String normalized = value == null ? "" : value.trim().toLowerCase(Locale.ROOT);
+        return !"false".equals(normalized) && !"litematica".equals(normalized);
     }
 
     @Override

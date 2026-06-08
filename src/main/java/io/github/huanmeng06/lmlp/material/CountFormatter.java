@@ -41,8 +41,11 @@ public final class CountFormatter {
         if (style == CountDisplayStyle.STYLE_4) {
             return raw;
         }
+        if (count == 0) {
+            return countPart("lmlp.label.count.items", 0);
+        }
 
-        if (style == CountDisplayStyle.STYLE_2 && (count <= 0 || maxStackSize <= 1 || count <= maxStackSize)) {
+        if (style == CountDisplayStyle.STYLE_2 && (count < 0 || maxStackSize <= 1 || count <= maxStackSize)) {
             return raw;
         }
 
@@ -65,6 +68,9 @@ public final class CountFormatter {
 
     public static String compact(long count, int maxStackSize) {
         CountDisplayStyle style = (CountDisplayStyle) Configs.Generic.COUNT_DISPLAY_STYLE.getOptionListValue();
+        if (count == 0 && style != CountDisplayStyle.STYLE_4) {
+            return countPart("lmlp.label.count.items", 0);
+        }
         if (style == CountDisplayStyle.STYLE_4 || (style == CountDisplayStyle.STYLE_2 && (count <= 0 || maxStackSize <= 1 || count <= maxStackSize))) {
             return Long.toString(count);
         }
@@ -96,7 +102,7 @@ public final class CountFormatter {
 
         private String grouped() {
             if (this.count <= 0) {
-                return Long.toString(this.count);
+                return this.count == 0 ? countPart("lmlp.label.count.items", 0) : Long.toString(this.count);
             }
 
             if (this.maxStackSize <= 1) {
@@ -110,7 +116,7 @@ public final class CountFormatter {
 
         private String formula() {
             if (this.count <= 0 || this.maxStackSize <= 1) {
-                return Long.toString(this.count);
+                return this.count == 0 ? countPart("lmlp.label.count.items", 0) : Long.toString(this.count);
             }
 
             StringBuilder builder = new StringBuilder();
