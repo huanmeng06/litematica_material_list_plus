@@ -20,6 +20,20 @@ import net.minecraft.class_1799;
 import net.minecraft.class_2960;
 
 public final class ReiRecipeResolver implements RecipeResolver {
+    private static final List<String> WOOD_FAMILIES = List.of(
+            "dark_oak",
+            "pale_oak",
+            "oak",
+            "spruce",
+            "birch",
+            "jungle",
+            "acacia",
+            "mangrove",
+            "cherry",
+            "bamboo",
+            "crimson",
+            "warped");
+
     @Override
     public List<RecipeSummary> findRecipes(class_1799 target, int totalCount, int missingCount) {
         List<RecipeSummary> summaries = new ArrayList<>();
@@ -39,6 +53,7 @@ public final class ReiRecipeResolver implements RecipeResolver {
                 int outputCount = Math.max(1, output.method_7947());
                 int craftsTotal = divideRoundUp(totalCount, outputCount);
                 int craftsMissing = divideRoundUp(missingCount, outputCount);
+                List<RecipeSlotSummary> inputSlots = summarizeSlots(display, output);
                 summaries.add(new RecipeSummary(
                         display.getCategoryIdentifier().getIdentifier().toString(),
                         display.getDisplayLocation().map(class_2960::toString).orElse("unknown"),
@@ -46,8 +61,8 @@ public final class ReiRecipeResolver implements RecipeResolver {
                         outputCount,
                         craftsTotal,
                         craftsMissing,
-                        summarizeInputs(display, craftsTotal, craftsMissing),
-                        summarizeSlots(display),
+                        summarizeInputs(inputSlots, craftsTotal, craftsMissing),
+                        inputSlots,
                         3,
                         3,
                         display instanceof DefaultCraftingDisplay craftingDisplay && craftingDisplay.isShapeless(),
@@ -77,10 +92,10 @@ public final class ReiRecipeResolver implements RecipeResolver {
         return class_1799.field_8037;
     }
 
-    private static List<IngredientSummary> summarizeInputs(Display display, int craftsTotal, int craftsMissing) {
+    private static List<IngredientSummary> summarizeInputs(List<RecipeSlotSummary> slots, int craftsTotal, int craftsMissing) {
         Map<String, IngredientAccumulator> ingredients = new LinkedHashMap<>();
 
-        for (RecipeSlotSummary slot : summarizeSlots(display)) {
+        for (RecipeSlotSummary slot : slots) {
             if (slot.isEmpty()) {
                 continue;
             }
@@ -98,7 +113,7 @@ public final class ReiRecipeResolver implements RecipeResolver {
         return summaries;
     }
 
-    private static List<RecipeSlotSummary> summarizeSlots(Display display) {
+    private static List<RecipeSlotSummary> summarizeSlots(Display display, class_1799 output) {
         List<EntryIngredient> inputs;
         if (display instanceof DefaultCraftingDisplay craftingDisplay) {
             inputs = craftingDisplay.getOrganisedInputEntries(3, 3);
@@ -108,7 +123,7 @@ public final class ReiRecipeResolver implements RecipeResolver {
 
         List<RecipeSlotSummary> slots = new ArrayList<>();
         for (EntryIngredient input : inputs) {
-            slots.add(toSlot(input));
+            slots.add(toSlot(input, output));
         }
 
         while (slots.size() < 9) {
@@ -122,11 +137,13 @@ public final class ReiRecipeResolver implements RecipeResolver {
         return slots;
     }
 
-    private static RecipeSlotSummary toSlot(EntryIngredient ingredient) {
+    private static RecipeSlotSummary toSlot(EntryIngredient ingredient, class_1799 output) {
         List<class_1799> alternatives = collectAlternatives(ingredient);
         if (alternatives.isEmpty()) {
             return RecipeSlotSummary.EMPTY;
         }
+
+        alternatives = refineWoodVariantAlternatives(output, alternatives);
 
         class_1799 first = alternatives.get(0);
         List<String> names = new ArrayList<>();
@@ -138,6 +155,47 @@ public final class ReiRecipeResolver implements RecipeResolver {
         }
 
         return new RecipeSlotSummary(first.method_7972(), alternatives, names, Math.max(1, first.method_7947()));
+    }
+
+    private static List<class_1799> refineWoodVariantAlternatives(class_1799 output, List<class_1799> alternatives) {
+        if (alternatives.size() < 2) {
+            return alternatives;
+        }
+
+        String family = woodFamily(output);
+        if (family.isEmpty()) {
+            return alternatives;
+        }
+
+        List<class_1799> refined = new ArrayList<>();
+        for (class_1799 alternative : alternatives) {
+            if (woodFamily(alternative).equals(family)) {
+                refined.add(alternative);
+            }
+        }
+
+        return refined.isEmpty() ? alternatives : List.copyOf(refined);
+    }
+
+    private static String woodFamily(class_1799 stack) {
+        String path = itemPath(stack);
+        if (path.startsWith("stripped_")) {
+            path = path.substring("stripped_".length());
+        }
+
+        for (String family : WOOD_FAMILIES) {
+            if (path.equals(family) || path.startsWith(family + "_")) {
+                return family;
+            }
+        }
+
+        return "";
+    }
+
+    private static String itemPath(class_1799 stack) {
+        String id = ItemStackTexts.id(stack);
+        int separator = id.indexOf(':');
+        return separator >= 0 ? id.substring(separator + 1) : id;
     }
 
     private static List<class_1799> collectAlternatives(EntryIngredient ingredient) {
