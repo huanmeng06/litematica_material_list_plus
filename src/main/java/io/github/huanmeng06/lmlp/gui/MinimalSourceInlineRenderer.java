@@ -125,8 +125,7 @@ public final class MinimalSourceInlineRenderer {
         int visibleHeight = Math.max(0, Math.min(getHeight(targetIcon, requirements, sources, showAll), visibleOuterHeight));
         int textX = x + PADDING;
         int cursorY = y + PADDING;
-        int headerWidth = 24 + StringUtils.getStringWidth(ItemStackTexts.name(targetIcon));
-        if (isVisibleBoxHovered(textX, cursorY, headerWidth, SOURCE_ICON_BOX_SIZE, y, visibleHeight, mouseX, mouseY)) {
+        if (isVisibleBoxHovered(textX, cursorY, SOURCE_ICON_BOX_SIZE, SOURCE_ICON_BOX_SIZE, y, visibleHeight, mouseX, mouseY)) {
             return targetIcon;
         }
 
@@ -381,7 +380,7 @@ public final class MinimalSourceInlineRenderer {
     }
 
     private static boolean isCountRowHovered(int textX, int y, String line, int panelY, int visibleHeight, int mouseX, int mouseY) {
-        int lineWidth = SOURCE_ICON_BOX_SIZE + 8 + StringUtils.getStringWidth(line);
+        int lineWidth = SOURCE_ICON_BOX_SIZE;
         return isVisibleBoxHovered(textX, y + SOURCE_ICON_BOX_Y_OFFSET, lineWidth, SOURCE_ICON_BOX_SIZE, panelY, visibleHeight, mouseX, mouseY);
     }
 

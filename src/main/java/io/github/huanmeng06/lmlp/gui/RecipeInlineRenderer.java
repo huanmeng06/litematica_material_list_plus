@@ -222,7 +222,8 @@ public final class RecipeInlineRenderer {
 
             int visibleRowHeight = Math.min(INGREDIENT_HEIGHT, remainingHeight);
             class_1799 icon = AlternativeItemDisplay.icon(ingredient);
-            if (isRowStackHovered(textX, cursorY, depth, visibleRowHeight, mouseX, mouseY)) {
+            String name = RecipeSummaryFormatter.ingredientName(ingredient);
+            if (isRowStackHovered(textX, cursorY, depth, name, visibleRowHeight, mouseX, mouseY)) {
                 return icon;
             }
 
@@ -257,7 +258,7 @@ public final class RecipeInlineRenderer {
 
             int visibleRowHeight = Math.min(INGREDIENT_HEIGHT, remainingHeight);
             class_1799 icon = AlternativeItemDisplay.icon(node);
-            if (isRowStackHovered(textX, cursorY, depth, visibleRowHeight, mouseX, mouseY)) {
+            if (isRowStackHovered(textX, cursorY, depth, node.name(), visibleRowHeight, mouseX, mouseY)) {
                 return icon;
             }
 
@@ -281,10 +282,10 @@ public final class RecipeInlineRenderer {
         return null;
     }
 
-    private static boolean isRowStackHovered(int textX, int y, int depth, int visibleRowHeight, int mouseX, int mouseY) {
+    private static boolean isRowStackHovered(int textX, int y, int depth, String name, int visibleRowHeight, int mouseX, int mouseY) {
         int rowX = textX + depth * TREE_INDENT_WIDTH;
         int iconX = rowX + INGREDIENT_ICON_OFFSET;
-        int rowRight = iconX + 26 + 160;
+        int rowRight = iconX + 18;
         return visibleRowHeight > 0
                 && mouseX >= iconX
                 && mouseX < rowRight
