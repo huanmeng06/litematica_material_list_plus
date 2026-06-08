@@ -315,9 +315,6 @@ public class RecipeDetailScreen extends class_437 {
         context.method_44379(textX, top + 4, textRight, top + height - 4);
         String targetName = ItemStackTexts.name(this.target);
         context.method_51433(this.field_22793, targetName, textX, top + 8, 0xFFFFFFFF, false);
-        if (isInside(mouseX, mouseY, textX, top + 8, this.field_22793.method_1727(targetName), 12)) {
-            this.hoveredStack = this.target;
-        }
 
         String total = StringUtils.translate("lmlp.label.recipe.total_short") + ": " + CountFormatter.format(this.target, this.totalCount);
         String missing = StringUtils.translate("lmlp.label.recipe.missing_short") + ": " + CountFormatter.format(this.target, this.missingCount);
@@ -469,7 +466,6 @@ public class RecipeDetailScreen extends class_437 {
         this.captureHoveredStack(icon, mouseX, mouseY, iconX, iconY, 16, 16);
 
         int textX = rowX + INGREDIENT_ICON_OFFSET + 24;
-        int lineStartX = iconX;
         String prefix = name + ": ";
         context.method_51433(this.field_22793, prefix, textX, y, INGREDIENT_TEXT_COLOR, false);
         textX += this.field_22793.method_1727(prefix);
@@ -480,10 +476,6 @@ public class RecipeDetailScreen extends class_437 {
             textX += this.field_22793.method_1727(" / ");
             int missingColor = missingCount == 0 ? 0xFF55FF55 : INGREDIENT_MISSING_COLOR;
             context.method_51433(this.field_22793, missingText, textX, y, missingColor, false);
-            textX += this.field_22793.method_1727(missingText);
-        }
-        if (isInside(mouseX, mouseY, lineStartX, y - 5, Math.max(16, textX - lineStartX), INGREDIENT_ROW_HEIGHT)) {
-            this.captureHoveredStack(icon, mouseX, mouseY, lineStartX, y - 5, Math.max(16, textX - lineStartX), INGREDIENT_ROW_HEIGHT);
         }
     }
 
@@ -511,7 +503,7 @@ public class RecipeDetailScreen extends class_437 {
         int outputX = x + 166;
         int outputY = y + 35;
         drawOutputSlot(context, outputX, outputY);
-        drawSlotItem(context, outputX + 5, outputY + 5, new RecipeSlotSummary(summary.outputIcon(), List.of(ItemStackTexts.name(summary.outputIcon())), summary.outputCount()), mouseX, mouseY, 26, 26);
+        drawSlotItem(context, outputX + 5, outputY + 5, new RecipeSlotSummary(summary.outputIcon(), List.of(ItemStackTexts.name(summary.outputIcon())), summary.outputCount()), mouseX, mouseY, 16, 16);
     }
 
     private void drawOutputSlot(class_332 context, int x, int y) {

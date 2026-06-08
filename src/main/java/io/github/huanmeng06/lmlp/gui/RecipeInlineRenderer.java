@@ -167,9 +167,7 @@ public final class RecipeInlineRenderer {
         RecipeSummary summary = summaries.get(0);
         int textX = x + PADDING;
         int cursorY = y + PADDING;
-        String itemName = ItemStackTexts.name(summary.outputIcon());
-        int headerWidth = 24 + StringUtils.getStringWidth(GuiBase.TXT_BOLD + itemName);
-        if (isInside(mouseX, mouseY, textX, cursorY, headerWidth, 16)) {
+        if (isInside(mouseX, mouseY, textX, cursorY, 16, 16)) {
             return summary.outputIcon();
         }
 

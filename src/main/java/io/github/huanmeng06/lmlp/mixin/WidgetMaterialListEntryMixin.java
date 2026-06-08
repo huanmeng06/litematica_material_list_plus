@@ -590,11 +590,7 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
     private boolean isRowItemHovered(int mouseX, int mouseY) {
         int iconX = this.getColumnPosX(0);
         int iconY = this.y + 3;
-        int textX = iconX + 20;
-        int textY = this.y + 7;
-        String name = MinimalSubMaterialListView.displayName(this.entry);
-        return isBoxHovered(iconX, iconY, 16, 16, mouseX, mouseY)
-                || isTextHovered(textX, textY, this.getStringWidth(name), mouseX, mouseY);
+        return isBoxHovered(iconX, iconY, 16, 16, mouseX, mouseY);
     }
 
     private static boolean isBoxHovered(int x, int y, int width, int height, int mouseX, int mouseY) {
