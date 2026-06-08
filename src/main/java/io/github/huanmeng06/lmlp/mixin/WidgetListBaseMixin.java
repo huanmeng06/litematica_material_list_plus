@@ -192,7 +192,7 @@ public abstract class WidgetListBaseMixin implements WidgetListBoundsAccess {
     }
 
     @Inject(method = "onMouseScrolled", at = @At("HEAD"), cancellable = true)
-    private void lmlp$scrollByPixels(int mouseX, int mouseY, double horizontalAmount, double verticalAmount, CallbackInfoReturnable<Boolean> cir) {
+    private void lmlp$scrollByPixels(int mouseX, int mouseY, double verticalAmount, CallbackInfoReturnable<Boolean> cir) {
         if (!this.lmlp$isInsideBrowser(mouseX, mouseY)) {
             return;
         }
