@@ -39,6 +39,7 @@ import java.util.Set;
 @SuppressWarnings({"rawtypes", "unchecked"})
 public abstract class WidgetListBaseMixin implements WidgetListBoundsAccess {
     private static final int WHEEL_SCROLL_PIXELS = 36;
+    private static final int BROWSER_BOTTOM_INSET = 8;
 
     private int lmlp$lastLayoutMultiplier = Integer.MIN_VALUE;
     private int lmlp$lastLayoutEntryCount = -1;
@@ -222,11 +223,11 @@ public abstract class WidgetListBaseMixin implements WidgetListBoundsAccess {
 
         WidgetBase hovered = null;
         int viewportHeight = this.lmlp$getListViewportHeight();
-        int contentHeight = Math.max(this.lmlp$totalEntryHeight(), Math.max(0, this.browserHeight - this.browserEntriesOffsetY - 8));
+        int contentHeight = Math.max(this.lmlp$totalEntryHeight(), this.lmlp$getListViewportHeight());
         int scrollbarX = this.posX + this.browserWidth - 9;
         int scrollbarY = this.browserEntriesStartY + this.browserEntriesOffsetY;
         this.scrollBar.setMaxValue(this.lmlp$getPixelScrollbarMaxValue(0));
-        this.scrollBar.render(mouseX, mouseY, partialTicks, scrollbarX, scrollbarY, 8, Math.max(0, this.browserHeight - this.browserEntriesOffsetY - 8), contentHeight);
+        this.scrollBar.render(mouseX, mouseY, partialTicks, scrollbarX, scrollbarY, 8, this.lmlp$getListViewportHeight(), contentHeight);
 
         if (this.scrollBar.getValue() != this.lastScrollbarPosition) {
             this.lastScrollbarPosition = this.scrollBar.getValue();
@@ -433,7 +434,7 @@ public abstract class WidgetListBaseMixin implements WidgetListBoundsAccess {
     }
 
     private int lmlp$getListViewportHeight() {
-        return Math.max(1, this.browserHeight - this.browserPaddingY - this.browserEntriesOffsetY);
+        return Math.max(1, this.browserHeight - this.browserEntriesOffsetY - BROWSER_BOTTOM_INSET);
     }
 
     private int lmlp$getEntryViewportHeight(int bottomPadding) {
