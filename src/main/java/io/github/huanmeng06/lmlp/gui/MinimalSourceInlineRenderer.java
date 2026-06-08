@@ -107,7 +107,7 @@ public final class MinimalSourceInlineRenderer {
             int rowY = cursorY + row * ROW_HEIGHT;
             int lineX = rowX + 26;
             int lineY = rowY + 2;
-            int lineWidth = StringUtils.getStringWidth(countLine(source.name(), source.totalCount(), source.maxStackSize()));
+            int lineWidth = StringUtils.getStringWidth(countLine(source.name(), source.totalCount(), source.missingCount(), source.maxStackSize()));
             if (isVisibleTextHovered(lineX, lineY, lineWidth, y, visibleHeight, mouseX, mouseY)) {
                 return source;
             }
@@ -284,17 +284,27 @@ public final class MinimalSourceInlineRenderer {
         RenderUtils.drawRect(textX, y + SOURCE_ICON_BOX_Y_OFFSET, SOURCE_ICON_BOX_SIZE, SOURCE_ICON_BOX_SIZE, 0x30FFFFFF);
         context.method_51427(icon, textX + 1, y + SOURCE_ICON_BOX_Y_OFFSET + 1);
 
-        String count = CountFormatter.format(totalCount, maxStackSize);
-        String line = countLine(name, totalCount, maxStackSize);
+        String total = CountFormatter.format(totalCount, maxStackSize);
+        String missing = CountFormatter.format(missingCount, maxStackSize);
+        String missingColor = missingCount == 0 ? GuiBase.TXT_GREEN : GuiBase.TXT_RED;
+        String line = countLine(name, totalCount, missingCount, maxStackSize);
         String renderedLine = underlined
-                ? UNDERLINE + name + ": " + GuiBase.TXT_GOLD + UNDERLINE + count + GuiBase.TXT_RST
-                : name + ": " + GuiBase.TXT_GOLD + count;
+                ? UNDERLINE + name + ": "
+                        + GuiBase.TXT_GOLD + UNDERLINE + total
+                        + GuiBase.TXT_RST + UNDERLINE + " / "
+                        + missingColor + UNDERLINE + missing
+                        + GuiBase.TXT_RST
+                : name + ": "
+                        + GuiBase.TXT_GOLD + total
+                        + GuiBase.TXT_RST + " / "
+                        + missingColor + missing
+                        + GuiBase.TXT_RST;
         widget.drawString(textX + 26, y + 2, 0xFFFFFFFF, renderedLine, context);
         return line;
     }
 
-    private static String countLine(String name, int totalCount, int maxStackSize) {
-        return name + ": " + CountFormatter.format(totalCount, maxStackSize);
+    private static String countLine(String name, int totalCount, int missingCount, int maxStackSize) {
+        return name + ": " + CountFormatter.format(totalCount, maxStackSize) + " / " + CountFormatter.format(missingCount, maxStackSize);
     }
 
     private static class_1799 cyclingIcon(List<class_1799> icons, class_1799 fallback) {
