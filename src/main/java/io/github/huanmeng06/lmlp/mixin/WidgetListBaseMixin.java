@@ -40,6 +40,7 @@ import java.util.Set;
 public abstract class WidgetListBaseMixin implements WidgetListBoundsAccess {
     private static final int WHEEL_SCROLL_PIXELS = 36;
     private static final int BROWSER_BOTTOM_INSET = 8;
+    private static final int MINIMAL_SOURCE_PANEL_SIDE_WIDTH = 50;
 
     private int lmlp$lastLayoutMultiplier = Integer.MIN_VALUE;
     private int lmlp$lastLayoutEntryCount = -1;
@@ -287,6 +288,7 @@ public abstract class WidgetListBaseMixin implements WidgetListBoundsAccess {
                     MinimalSubMaterialListView.sourceRequirements(materialEntry, total, missing),
                     MinimalSubMaterialListView.sourceContributions(materialEntry),
                     showAllSources,
+                    this.lmlp$getMinimalSourcePanelWidthForHeight(),
                     MinimalSubMaterialListView.sourceProgress(materialEntry));
             cir.setReturnValue(23 + visibleOuterHeight);
         } else if (MaterialListPlusState.isRecipeVisible(materialEntry)) {
@@ -319,7 +321,7 @@ public abstract class WidgetListBaseMixin implements WidgetListBoundsAccess {
             return;
         }
 
-        this.browserWidth = Math.max(this.totalWidth, MaterialListColumnLayout.requiredEntryWidth() + 14);
+        this.browserWidth = Math.max(this.totalWidth, Math.max(MaterialListColumnLayout.requiredEntryWidth() + 14, this.lmlp$getRequiredMinimalSourceBrowserWidth()));
         this.browserEntryWidth = this.browserWidth - 14;
         this.lmlp$reCreateListEntryWidgetsByPixels();
     }
@@ -491,7 +493,8 @@ public abstract class WidgetListBaseMixin implements WidgetListBoundsAccess {
                         MinimalSubMaterialListView.displayStack(materialEntry),
                         MinimalSubMaterialListView.sourceRequirements(materialEntry, total, missing),
                         MinimalSubMaterialListView.sourceContributions(materialEntry),
-                        MinimalSubMaterialListView.isSourcesFull(materialEntry));
+                        MinimalSubMaterialListView.isSourcesFull(materialEntry),
+                        this.lmlp$getMinimalSourcePanelWidthForHeight());
             }
             if (MaterialListPlusState.isRecipeExpanded(materialEntry)) {
                 return 23 + RecipeInlineRenderer.getTargetOuterHeight(MaterialListPlusState.getCachedSummaries(materialEntry));
@@ -507,6 +510,25 @@ public abstract class WidgetListBaseMixin implements WidgetListBoundsAccess {
         }
 
         return 0;
+    }
+
+    private int lmlp$getMinimalSourcePanelWidthForHeight() {
+        return Math.max(180, this.browserEntryWidth - 36);
+    }
+
+    private int lmlp$getRequiredMinimalSourceBrowserWidth() {
+        if (!((Object) this instanceof WidgetMaterialListAccess access) || !MinimalSubMaterialListView.isActive(access.lmlp$getMaterialList())) {
+            return 0;
+        }
+
+        int requiredWidth = 0;
+        for (Object entry : this.listContents) {
+            if (entry instanceof MaterialListEntry materialEntry && MinimalSubMaterialListView.isSourcesExpanded(materialEntry)) {
+                requiredWidth = Math.max(requiredWidth, MinimalSourceInlineRenderer.getRequiredPanelWidth(MinimalSubMaterialListView.sourceContributions(materialEntry)));
+            }
+        }
+
+        return requiredWidth <= 0 ? 0 : requiredWidth + MINIMAL_SOURCE_PANEL_SIDE_WIDTH;
     }
 
     private void lmlp$refreshMaterialListColumnLayoutIfNeeded(boolean recreateAfterUpdate) {

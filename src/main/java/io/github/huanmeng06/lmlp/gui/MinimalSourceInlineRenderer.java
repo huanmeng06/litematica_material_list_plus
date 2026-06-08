@@ -24,7 +24,6 @@ public final class MinimalSourceInlineRenderer {
     private static final int UPSTREAM_GAP = 18;
     private static final int UPSTREAM_ARROW_WIDTH = 18;
     private static final int COLUMN_GAP = 28;
-    private static final int COLUMN_CLIP_PADDING = 4;
     private static final int TWO_COLUMN_THRESHOLD = 4;
     private static final int THREE_COLUMN_THRESHOLD = 7;
     private static final int COLUMN_SEPARATOR_COLOR = 0xFF999999;
@@ -34,6 +33,10 @@ public final class MinimalSourceInlineRenderer {
     }
 
     public static int getHeight(class_1799 targetIcon, List<MinimalSubMaterialListView.RequirementContribution> requirements, List<MinimalSubMaterialListView.SourceContribution> sources, boolean showAll) {
+        return getHeight(targetIcon, requirements, sources, showAll, 0);
+    }
+
+    public static int getHeight(class_1799 targetIcon, List<MinimalSubMaterialListView.RequirementContribution> requirements, List<MinimalSubMaterialListView.SourceContribution> sources, boolean showAll, int width) {
         if (sources.isEmpty()) {
             return 48;
         }
@@ -41,15 +44,29 @@ public final class MinimalSourceInlineRenderer {
             return 56;
         }
 
-        return 50 + requirementHeight(requirements) + sourceRowCount(sources) * ROW_HEIGHT + INNER_BOTTOM_PADDING;
+        int panelWidth = panelWidthFor(width, sources);
+        SourceColumnLayout layout = sourceColumnLayout(panelWidth - PADDING * 2, sources);
+        return 50 + requirementHeight(requirements) + layout.rowCount() * ROW_HEIGHT + INNER_BOTTOM_PADDING;
     }
 
     public static int getOuterHeight(class_1799 targetIcon, List<MinimalSubMaterialListView.RequirementContribution> requirements, List<MinimalSubMaterialListView.SourceContribution> sources, boolean showAll) {
         return getHeight(targetIcon, requirements, sources, showAll) + ENTRY_BOTTOM_GAP;
     }
 
+    public static int getOuterHeight(class_1799 targetIcon, List<MinimalSubMaterialListView.RequirementContribution> requirements, List<MinimalSubMaterialListView.SourceContribution> sources, boolean showAll, int width) {
+        return getHeight(targetIcon, requirements, sources, showAll, width) + ENTRY_BOTTOM_GAP;
+    }
+
     public static int getOuterHeight(class_1799 targetIcon, List<MinimalSubMaterialListView.RequirementContribution> requirements, List<MinimalSubMaterialListView.SourceContribution> sources, boolean showAll, float progress) {
         return Math.round(getOuterHeight(targetIcon, requirements, sources, showAll) * progress);
+    }
+
+    public static int getOuterHeight(class_1799 targetIcon, List<MinimalSubMaterialListView.RequirementContribution> requirements, List<MinimalSubMaterialListView.SourceContribution> sources, boolean showAll, int width, float progress) {
+        return Math.round(getOuterHeight(targetIcon, requirements, sources, showAll, width) * progress);
+    }
+
+    public static int getRequiredPanelWidth(List<MinimalSubMaterialListView.SourceContribution> sources) {
+        return panelWidthFor(0, sources);
     }
 
     public static boolean isTargetNameHovered(int x, int y, class_1799 targetIcon, int targetNameWidth, List<MinimalSubMaterialListView.RequirementContribution> requirements, List<MinimalSubMaterialListView.SourceContribution> sources, int visibleOuterHeight, int mouseX, int mouseY) {
@@ -85,33 +102,28 @@ public final class MinimalSourceInlineRenderer {
             return null;
         }
 
-        int panelWidth = Math.max(160, width);
-        int visibleHeight = Math.max(0, Math.min(getHeight(targetIcon, requirements, sources, showAll), visibleOuterHeight));
+        int panelWidth = panelWidthFor(width, sources);
+        int visibleHeight = Math.max(0, Math.min(getHeight(targetIcon, requirements, sources, showAll, width), visibleOuterHeight));
         int cursorY = y + PADDING + 24;
         if (!requirements.isEmpty()) {
             cursorY += 18 + requirements.size() * ROW_HEIGHT + SECTION_GAP;
         }
         cursorY += 18;
 
-        int visibleCount = visibleSourceCount(sources);
-        int columns = sourceColumnCount(visibleCount);
-        int rowCount = sourceRowCount(visibleCount, columns);
         int contentWidth = Math.max(1, panelWidth - PADDING * 2);
-        int columnStride = Math.max(1, contentWidth / columns);
         int contentX = x + PADDING;
+        SourceColumnLayout layout = sourceColumnLayout(contentWidth, sources);
+        int visibleCount = visibleSourceCount(sources);
 
         for (int index = 0; index < visibleCount; index++) {
             MinimalSubMaterialListView.SourceContribution source = sources.get(index);
-            int column = index / rowCount;
-            int row = index % rowCount;
-            int rowX = contentX + column * columnStride + (column == 0 ? 0 : COLUMN_GAP / 2);
+            int column = index / layout.rowCount();
+            int row = index % layout.rowCount();
+            int rowX = contentX + layout.columnX(column);
             int rowY = cursorY + row * ROW_HEIGHT;
             int lineX = rowX + 26;
             int lineY = rowY + 2;
-            int clipRight = sourceColumnClipRight(contentX, contentWidth, columns, column);
-            int lineWidth = Math.min(
-                    StringUtils.getStringWidth(countLine(source.name(), source.totalCount(), source.missingCount(), source.maxStackSize())),
-                    Math.max(0, clipRight - lineX));
+            int lineWidth = StringUtils.getStringWidth(countLine(source.name(), source.totalCount(), source.missingCount(), source.maxStackSize()));
             if (isVisibleTextHovered(lineX, lineY, lineWidth, y, visibleHeight, mouseX, mouseY)) {
                 return source;
             }
@@ -125,8 +137,8 @@ public final class MinimalSourceInlineRenderer {
             return class_1799.field_8037;
         }
 
-        int panelWidth = Math.max(160, width);
-        int visibleHeight = Math.max(0, Math.min(getHeight(targetIcon, requirements, sources, showAll), visibleOuterHeight));
+        int panelWidth = panelWidthFor(width, sources);
+        int visibleHeight = Math.max(0, Math.min(getHeight(targetIcon, requirements, sources, showAll, width), visibleOuterHeight));
         int textX = x + PADDING;
         int cursorY = y + PADDING;
         if (isVisibleBoxHovered(textX, cursorY, SOURCE_ICON_BOX_SIZE, SOURCE_ICON_BOX_SIZE, y, visibleHeight, mouseX, mouseY)) {
@@ -151,17 +163,15 @@ public final class MinimalSourceInlineRenderer {
         }
 
         cursorY += 18;
-        int visibleCount = visibleSourceCount(sources);
-        int columns = sourceColumnCount(visibleCount);
-        int rowCount = sourceRowCount(visibleCount, columns);
         int contentWidth = Math.max(1, panelWidth - PADDING * 2);
-        int columnStride = Math.max(1, contentWidth / columns);
+        SourceColumnLayout layout = sourceColumnLayout(contentWidth, sources);
+        int visibleCount = visibleSourceCount(sources);
 
         for (int index = 0; index < visibleCount; index++) {
             MinimalSubMaterialListView.SourceContribution source = sources.get(index);
-            int column = index / rowCount;
-            int row = index % rowCount;
-            int rowX = textX + column * columnStride + (column == 0 ? 0 : COLUMN_GAP / 2);
+            int column = index / layout.rowCount();
+            int row = index % layout.rowCount();
+            int rowX = textX + layout.columnX(column);
             int rowY = cursorY + row * ROW_HEIGHT;
             if (isCountRowHovered(rowX, rowY, countLine(source.name(), source.totalCount(), source.missingCount(), source.maxStackSize()), y, visibleHeight, mouseX, mouseY)) {
                 return source.icon();
@@ -172,8 +182,8 @@ public final class MinimalSourceInlineRenderer {
     }
 
     public static void render(WidgetBase widget, class_332 context, int x, int y, int width, class_1799 targetIcon, String targetName, List<MinimalSubMaterialListView.RequirementContribution> requirements, List<MinimalSubMaterialListView.SourceContribution> sources, boolean showAll, int visibleOuterHeight, int mouseX, int mouseY) {
-        int height = getHeight(targetIcon, requirements, sources, showAll);
-        int panelWidth = Math.max(160, width);
+        int height = getHeight(targetIcon, requirements, sources, showAll, width);
+        int panelWidth = panelWidthFor(width, sources);
         int visibleHeight = Math.max(0, Math.min(height, visibleOuterHeight));
         if (visibleHeight <= 0) {
             return;
@@ -226,32 +236,27 @@ public final class MinimalSourceInlineRenderer {
         cursorY += 18;
 
         int boxY = cursorY;
+        int contentWidth = Math.max(1, panelWidth - PADDING * 2);
+        SourceColumnLayout layout = sourceColumnLayout(contentWidth, sources);
         int visibleCount = visibleSourceCount(sources);
-        int columns = sourceColumnCount(visibleCount);
-        int rowCount = sourceRowCount(visibleCount, columns);
-        int boxHeight = rowCount * ROW_HEIGHT;
+        int boxHeight = layout.rowCount() * ROW_HEIGHT;
         RenderUtils.drawRect(textX - 2, boxY - 2, panelWidth - PADDING * 2 + 4, boxHeight, 0x66000000);
 
-        int contentWidth = Math.max(1, panelWidth - PADDING * 2);
-        int columnStride = Math.max(1, contentWidth / columns);
         MinimalSubMaterialListView.SourceContribution hoveredSource = sourceAt(x, y, width, targetIcon, requirements, sources, showAll, visibleOuterHeight, mouseX, mouseY);
         if (hoveredSource != null) {
             ClickableCursor.requestHand();
         }
-        if (columns > 1) {
-            drawColumnSeparators(textX, boxY, rowCount, columns, contentWidth);
+        if (layout.columns() > 1) {
+            drawColumnSeparators(textX, boxY, layout);
         }
 
         for (int index = 0; index < visibleCount; index++) {
             MinimalSubMaterialListView.SourceContribution source = sources.get(index);
-            int column = index / rowCount;
-            int row = index % rowCount;
-            int rowX = textX + column * columnStride + (column == 0 ? 0 : COLUMN_GAP / 2);
+            int column = index / layout.rowCount();
+            int row = index % layout.rowCount();
+            int rowX = textX + layout.columnX(column);
             int rowY = cursorY + row * ROW_HEIGHT;
-            int clipRight = sourceColumnClipRight(textX, contentWidth, columns, column);
-            context.method_44379(rowX, rowY + SOURCE_ICON_BOX_Y_OFFSET, clipRight, rowY + ROW_HEIGHT);
             renderSourceRow(widget, context, rowX, rowY, source, source == hoveredSource);
-            context.method_44380();
         }
 
         context.method_44380();
@@ -412,22 +417,64 @@ public final class MinimalSourceInlineRenderer {
         return icon.method_7960() ? fallback : icon;
     }
 
-    private static void drawColumnSeparators(int contentX, int boxY, int rowCount, int columns, int contentWidth) {
+    private static void drawColumnSeparators(int contentX, int boxY, SourceColumnLayout layout) {
         int separatorY = boxY + SOURCE_ICON_BOX_Y_OFFSET;
-        int separatorHeight = Math.max(0, (rowCount - 1) * ROW_HEIGHT + SOURCE_ICON_BOX_SIZE);
-        for (int separator = 1; separator < columns; separator++) {
-            int x = contentX + Math.round(contentWidth * (separator / (float) columns));
+        int separatorHeight = Math.max(0, (layout.rowCount() - 1) * ROW_HEIGHT + SOURCE_ICON_BOX_SIZE);
+        for (int column = 0; column < layout.columns() - 1; column++) {
+            int x = contentX + layout.columnX(column) + layout.columnWidth(column) + COLUMN_GAP / 2;
             RenderUtils.drawRect(x, separatorY, 1, separatorHeight, COLUMN_SEPARATOR_COLOR);
         }
     }
 
-    private static int sourceColumnClipRight(int contentX, int contentWidth, int columns, int column) {
-        if (column >= columns - 1) {
-            return contentX + contentWidth;
+    private static int panelWidthFor(int width, List<MinimalSubMaterialListView.SourceContribution> sources) {
+        return Math.max(160, Math.max(width, widestSourceRowWidth(sources) + PADDING * 2));
+    }
+
+    private static SourceColumnLayout sourceColumnLayout(int contentWidth, List<MinimalSubMaterialListView.SourceContribution> sources) {
+        int visibleCount = visibleSourceCount(sources);
+        int preferredColumns = sourceColumnCount(visibleCount);
+        for (int columns = preferredColumns; columns > 1; columns--) {
+            SourceColumnLayout layout = sourceColumnLayout(sources, visibleCount, columns);
+            if (layout.totalWidth() <= contentWidth) {
+                return layout;
+            }
         }
 
-        int separatorX = contentX + Math.round(contentWidth * ((column + 1) / (float) columns));
-        return Math.max(contentX, separatorX - COLUMN_CLIP_PADDING);
+        return sourceColumnLayout(sources, visibleCount, 1);
+    }
+
+    private static SourceColumnLayout sourceColumnLayout(List<MinimalSubMaterialListView.SourceContribution> sources, int visibleCount, int columns) {
+        int rowCount = sourceRowCount(visibleCount, columns);
+        int[] columnX = new int[columns];
+        int[] columnWidths = new int[columns];
+
+        for (int index = 0; index < visibleCount; index++) {
+            int column = index / rowCount;
+            columnWidths[column] = Math.max(columnWidths[column], sourceRowWidth(sources.get(index)));
+        }
+
+        int x = 0;
+        for (int column = 0; column < columns; column++) {
+            columnX[column] = x;
+            x += columnWidths[column];
+            if (column < columns - 1) {
+                x += COLUMN_GAP;
+            }
+        }
+
+        return new SourceColumnLayout(columnX, columnWidths, rowCount, columns, x);
+    }
+
+    private static int widestSourceRowWidth(List<MinimalSubMaterialListView.SourceContribution> sources) {
+        int width = 1;
+        for (MinimalSubMaterialListView.SourceContribution source : sources) {
+            width = Math.max(width, sourceRowWidth(source));
+        }
+        return width;
+    }
+
+    private static int sourceRowWidth(MinimalSubMaterialListView.SourceContribution source) {
+        return 26 + StringUtils.getStringWidth(countLine(source.name(), source.totalCount(), source.missingCount(), source.maxStackSize()));
     }
 
     private static void drawOutline(int x, int y, int width, int height, int color) {
@@ -439,5 +486,15 @@ public final class MinimalSourceInlineRenderer {
         RenderUtils.drawRect(x, y + height - 1, width, 1, color);
         RenderUtils.drawRect(x, y, 1, height, color);
         RenderUtils.drawRect(x + width - 1, y, 1, height, color);
+    }
+
+    private record SourceColumnLayout(int[] columnX, int[] columnWidths, int rowCount, int columns, int totalWidth) {
+        private int columnX(int column) {
+            return this.columnX[column];
+        }
+
+        private int columnWidth(int column) {
+            return this.columnWidths[column];
+        }
     }
 }

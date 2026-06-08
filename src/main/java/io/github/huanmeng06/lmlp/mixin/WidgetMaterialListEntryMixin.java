@@ -61,7 +61,6 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
     private static final int VANILLA_TOOLTIP_LINE_HEIGHT = 16;
     private static final int VANILLA_TOOLTIP_HEADER_GAP = 8;
     private static final int COUNT_COLUMN_SAFETY_PADDING = 32;
-    private static final int COLUMN_TEXT_CLIP_PADDING = 6;
     private static int lmlpMaxTotalDigits;
     private static int lmlpMaxMissingDigits;
     private static int lmlpMaxAvailableDigits;
@@ -300,17 +299,10 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         boolean minimalSubMaterialView = MinimalSubMaterialListView.isActive(this.materialList);
 
         int iconX = xItem;
-        if (minimalSubMaterialView) {
-            this.drawClippedString(xItem + 20, yText, -1, name, drawContext, xTotal - COLUMN_TEXT_CLIP_PADDING);
-            this.drawClippedString(xTotal, yText, -1, CountFormatter.formatAligned(stack, total, lmlpMaxTotalDigits), drawContext, xMissing - COLUMN_TEXT_CLIP_PADDING);
-            this.drawClippedString(xMissing, yText, -1, netMissingColor(missing) + CountFormatter.formatAligned(stack, missing, lmlpMaxMissingDigits), drawContext, xAvailable - COLUMN_TEXT_CLIP_PADDING);
-            this.drawClippedString(xAvailable, yText, -1, availableColor(available, rawMissing) + CountFormatter.formatAligned(stack, available, lmlpMaxAvailableDigits), drawContext, this.x + this.width - COLUMN_TEXT_CLIP_PADDING);
-        } else {
-            this.drawString(xItem + 20, yText, -1, name, drawContext);
-            this.drawString(xTotal, yText, -1, CountFormatter.formatAligned(stack, total, lmlpMaxTotalDigits), drawContext);
-            this.drawString(xMissing, yText, -1, netMissingColor(missing) + CountFormatter.formatAligned(stack, missing, lmlpMaxMissingDigits), drawContext);
-            this.drawString(xAvailable, yText, -1, availableColor(available, rawMissing) + CountFormatter.formatAligned(stack, available, lmlpMaxAvailableDigits), drawContext);
-        }
+        this.drawString(xItem + 20, yText, -1, name, drawContext);
+        this.drawString(xTotal, yText, -1, CountFormatter.formatAligned(stack, total, lmlpMaxTotalDigits), drawContext);
+        this.drawString(xMissing, yText, -1, netMissingColor(missing) + CountFormatter.formatAligned(stack, missing, lmlpMaxMissingDigits), drawContext);
+        this.drawString(xAvailable, yText, -1, availableColor(available, rawMissing) + CountFormatter.formatAligned(stack, available, lmlpMaxAvailableDigits), drawContext);
 
         drawContext.method_51448().method_22903();
         RenderUtils.enableDiffuseLightingGui3D();
@@ -336,8 +328,9 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
             List<MinimalSubMaterialListView.SourceContribution> sources = MinimalSubMaterialListView.sourceContributions(this.entry);
             boolean showAllSources = MinimalSubMaterialListView.isSourcesFull(this.entry);
             int panelY = this.y + 23;
-            int visibleOuterHeight = MinimalSourceInlineRenderer.getOuterHeight(stack, requirements, sources, showAllSources, MinimalSubMaterialListView.sourceProgress(this.entry));
-            MinimalSourceInlineRenderer.render(this, drawContext, this.x + 28, panelY, Math.max(180, this.width - 64), stack, name, requirements, sources, showAllSources, visibleOuterHeight, mouseX, mouseY);
+            int panelWidth = this.minimalSourcePanelWidth();
+            int visibleOuterHeight = MinimalSourceInlineRenderer.getOuterHeight(stack, requirements, sources, showAllSources, panelWidth, MinimalSubMaterialListView.sourceProgress(this.entry));
+            MinimalSourceInlineRenderer.render(this, drawContext, this.x + 28, panelY, panelWidth, stack, name, requirements, sources, showAllSources, visibleOuterHeight, mouseX, mouseY);
         }
 
         if (!minimalSubMaterialView) {
@@ -497,7 +490,8 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         boolean showAllSources = MinimalSubMaterialListView.isSourcesFull(this.entry);
         int panelX = this.x + 28;
         int panelY = this.y + 23;
-        int visibleOuterHeight = MinimalSourceInlineRenderer.getOuterHeight(stack, requirements, sources, showAllSources, MinimalSubMaterialListView.sourceProgress(this.entry));
+        int panelWidth = this.minimalSourcePanelWidth();
+        int visibleOuterHeight = MinimalSourceInlineRenderer.getOuterHeight(stack, requirements, sources, showAllSources, panelWidth, MinimalSubMaterialListView.sourceProgress(this.entry));
         int visibleHeight = Math.max(0, visibleOuterHeight - 4);
         int textX = panelX + 8 + 26;
         int rowY = panelY + 8 + 24 + 18;
@@ -553,8 +547,9 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         List<MinimalSubMaterialListView.RequirementContribution> requirements = MinimalSubMaterialListView.sourceRequirements(this.entry, total, missing);
         List<MinimalSubMaterialListView.SourceContribution> sources = MinimalSubMaterialListView.sourceContributions(this.entry);
         boolean showAllSources = MinimalSubMaterialListView.isSourcesFull(this.entry);
+        int panelWidth = this.minimalSourcePanelWidth();
         int panelY = this.y + 23;
-        int visibleOuterHeight = MinimalSourceInlineRenderer.getOuterHeight(stack, requirements, sources, showAllSources, MinimalSubMaterialListView.sourceProgress(this.entry));
+        int visibleOuterHeight = MinimalSourceInlineRenderer.getOuterHeight(stack, requirements, sources, showAllSources, panelWidth, MinimalSubMaterialListView.sourceProgress(this.entry));
         return MinimalSourceInlineRenderer.isTargetNameHovered(this.x + 28, panelY, stack, nameWidth, requirements, sources, visibleOuterHeight, mouseX, mouseY);
     }
 
@@ -591,8 +586,8 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
             boolean showAllSources = MinimalSubMaterialListView.isSourcesFull(this.entry);
             int panelX = this.x + 28;
             int panelY = this.y + 23;
-            int panelWidth = Math.max(180, this.width - 64);
-            int visibleOuterHeight = MinimalSourceInlineRenderer.getOuterHeight(rowStack, requirements, sources, showAllSources, MinimalSubMaterialListView.sourceProgress(this.entry));
+            int panelWidth = this.minimalSourcePanelWidth();
+            int visibleOuterHeight = MinimalSourceInlineRenderer.getOuterHeight(rowStack, requirements, sources, showAllSources, panelWidth, MinimalSubMaterialListView.sourceProgress(this.entry));
             return MinimalSourceInlineRenderer.hoveredStackAt(panelX, panelY, panelWidth, rowStack, requirements, sources, showAllSources, visibleOuterHeight, mouseX, mouseY);
         }
 
@@ -603,16 +598,6 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         int iconX = this.getColumnPosX(0);
         int iconY = this.y + 3;
         return isBoxHovered(iconX, iconY, 16, 16, mouseX, mouseY);
-    }
-
-    private void drawClippedString(int x, int y, int color, String text, class_332 drawContext, int clipRight) {
-        if (clipRight <= x) {
-            return;
-        }
-
-        drawContext.method_44379(x, y - 2, clipRight, y + HOVER_TEXT_HEIGHT + 2);
-        this.drawString(x, y, color, text, drawContext);
-        drawContext.method_44380();
     }
 
     private static boolean isBoxHovered(int x, int y, int width, int height, int mouseX, int mouseY) {
@@ -912,8 +897,8 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         boolean showAllSources = MinimalSubMaterialListView.isSourcesFull(this.entry);
         int panelX = this.x + 28;
         int panelY = this.y + 23;
-        int panelWidth = Math.max(180, this.width - 64);
-        int visibleOuterHeight = MinimalSourceInlineRenderer.getOuterHeight(stack, requirements, sources, showAllSources, MinimalSubMaterialListView.sourceProgress(this.entry));
+        int panelWidth = this.minimalSourcePanelWidth();
+        int visibleOuterHeight = MinimalSourceInlineRenderer.getOuterHeight(stack, requirements, sources, showAllSources, panelWidth, MinimalSubMaterialListView.sourceProgress(this.entry));
         MinimalSubMaterialListView.SourceContribution source = MinimalSourceInlineRenderer.sourceAt(panelX, panelY, panelWidth, stack, requirements, sources, showAllSources, visibleOuterHeight, mouseX, mouseY);
         if (source == null) {
             return false;
@@ -931,6 +916,10 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
 
         access.lmlp$scrollEntryIntoView(this.entry, EXPANDED_PANEL_BOTTOM_PADDING);
         this.listWidget.refreshEntries();
+    }
+
+    private int minimalSourcePanelWidth() {
+        return Math.max(180, this.width - 36);
     }
 
     private static String missingColor(int missing, int available) {
