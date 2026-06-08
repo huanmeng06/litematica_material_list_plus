@@ -61,6 +61,7 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
     private static final int VANILLA_TOOLTIP_LINE_HEIGHT = 16;
     private static final int VANILLA_TOOLTIP_HEADER_GAP = 8;
     private static final int COUNT_COLUMN_SAFETY_PADDING = 32;
+    private static final int COLUMN_TEXT_CLIP_PADDING = 6;
     private static int lmlpMaxTotalDigits;
     private static int lmlpMaxMissingDigits;
     private static int lmlpMaxAvailableDigits;
@@ -296,12 +297,20 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         int rawMissing = MinimalSubMaterialListView.missing(this.entry, this.materialList);
         int missing = MinimalSubMaterialListView.netMissing(this.entry, this.materialList);
         int available = this.entry.getCountAvailable();
+        boolean minimalSubMaterialView = MinimalSubMaterialListView.isActive(this.materialList);
 
         int iconX = xItem;
-        this.drawString(xItem + 20, yText, -1, name, drawContext);
-        this.drawString(xTotal, yText, -1, CountFormatter.formatAligned(stack, total, lmlpMaxTotalDigits), drawContext);
-        this.drawString(xMissing, yText, -1, netMissingColor(missing) + CountFormatter.formatAligned(stack, missing, lmlpMaxMissingDigits), drawContext);
-        this.drawString(xAvailable, yText, -1, availableColor(available, rawMissing) + CountFormatter.formatAligned(stack, available, lmlpMaxAvailableDigits), drawContext);
+        if (minimalSubMaterialView) {
+            this.drawClippedString(xItem + 20, yText, -1, name, drawContext, xTotal - COLUMN_TEXT_CLIP_PADDING);
+            this.drawClippedString(xTotal, yText, -1, CountFormatter.formatAligned(stack, total, lmlpMaxTotalDigits), drawContext, xMissing - COLUMN_TEXT_CLIP_PADDING);
+            this.drawClippedString(xMissing, yText, -1, netMissingColor(missing) + CountFormatter.formatAligned(stack, missing, lmlpMaxMissingDigits), drawContext, xAvailable - COLUMN_TEXT_CLIP_PADDING);
+            this.drawClippedString(xAvailable, yText, -1, availableColor(available, rawMissing) + CountFormatter.formatAligned(stack, available, lmlpMaxAvailableDigits), drawContext, this.x + this.width - COLUMN_TEXT_CLIP_PADDING);
+        } else {
+            this.drawString(xItem + 20, yText, -1, name, drawContext);
+            this.drawString(xTotal, yText, -1, CountFormatter.formatAligned(stack, total, lmlpMaxTotalDigits), drawContext);
+            this.drawString(xMissing, yText, -1, netMissingColor(missing) + CountFormatter.formatAligned(stack, missing, lmlpMaxMissingDigits), drawContext);
+            this.drawString(xAvailable, yText, -1, availableColor(available, rawMissing) + CountFormatter.formatAligned(stack, available, lmlpMaxAvailableDigits), drawContext);
+        }
 
         drawContext.method_51448().method_22903();
         RenderUtils.enableDiffuseLightingGui3D();
@@ -322,7 +331,7 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
             RecipeInlineRenderer.render(this, drawContext, this.x + 28, panelY, Math.max(180, this.width - 64), summaries, visibleOuterHeight, mouseX, mouseY);
         }
 
-        if (MinimalSubMaterialListView.isActive(this.materialList) && MinimalSubMaterialListView.isSourcesVisible(this.entry)) {
+        if (minimalSubMaterialView && MinimalSubMaterialListView.isSourcesVisible(this.entry)) {
             List<MinimalSubMaterialListView.RequirementContribution> requirements = MinimalSubMaterialListView.sourceRequirements(this.entry, total, missing);
             List<MinimalSubMaterialListView.SourceContribution> sources = MinimalSubMaterialListView.sourceContributions(this.entry);
             boolean showAllSources = MinimalSubMaterialListView.isSourcesFull(this.entry);
@@ -331,7 +340,9 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
             MinimalSourceInlineRenderer.render(this, drawContext, this.x + 28, panelY, Math.max(180, this.width - 64), stack, name, requirements, sources, showAllSources, visibleOuterHeight, mouseX, mouseY);
         }
 
-        super.render(mouseX, mouseY, selected, drawContext);
+        if (!minimalSubMaterialView) {
+            super.render(mouseX, mouseY, selected, drawContext);
+        }
     }
 
     /**
@@ -592,6 +603,16 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         int iconX = this.getColumnPosX(0);
         int iconY = this.y + 3;
         return isBoxHovered(iconX, iconY, 16, 16, mouseX, mouseY);
+    }
+
+    private void drawClippedString(int x, int y, int color, String text, class_332 drawContext, int clipRight) {
+        if (clipRight <= x) {
+            return;
+        }
+
+        drawContext.method_44379(x, y - 2, clipRight, y + HOVER_TEXT_HEIGHT + 2);
+        this.drawString(x, y, color, text, drawContext);
+        drawContext.method_44380();
     }
 
     private static boolean isBoxHovered(int x, int y, int width, int height, int mouseX, int mouseY) {

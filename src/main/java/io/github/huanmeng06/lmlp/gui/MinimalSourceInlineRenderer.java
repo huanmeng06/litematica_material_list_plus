@@ -24,6 +24,7 @@ public final class MinimalSourceInlineRenderer {
     private static final int UPSTREAM_GAP = 18;
     private static final int UPSTREAM_ARROW_WIDTH = 18;
     private static final int COLUMN_GAP = 28;
+    private static final int COLUMN_CLIP_PADDING = 4;
     private static final int TWO_COLUMN_THRESHOLD = 4;
     private static final int THREE_COLUMN_THRESHOLD = 7;
     private static final int COLUMN_SEPARATOR_COLOR = 0xFF999999;
@@ -107,7 +108,10 @@ public final class MinimalSourceInlineRenderer {
             int rowY = cursorY + row * ROW_HEIGHT;
             int lineX = rowX + 26;
             int lineY = rowY + 2;
-            int lineWidth = StringUtils.getStringWidth(countLine(source.name(), source.totalCount(), source.missingCount(), source.maxStackSize()));
+            int clipRight = sourceColumnClipRight(contentX, contentWidth, columns, column);
+            int lineWidth = Math.min(
+                    StringUtils.getStringWidth(countLine(source.name(), source.totalCount(), source.missingCount(), source.maxStackSize())),
+                    Math.max(0, clipRight - lineX));
             if (isVisibleTextHovered(lineX, lineY, lineWidth, y, visibleHeight, mouseX, mouseY)) {
                 return source;
             }
@@ -244,7 +248,10 @@ public final class MinimalSourceInlineRenderer {
             int row = index % rowCount;
             int rowX = textX + column * columnStride + (column == 0 ? 0 : COLUMN_GAP / 2);
             int rowY = cursorY + row * ROW_HEIGHT;
+            int clipRight = sourceColumnClipRight(textX, contentWidth, columns, column);
+            context.method_44379(rowX, rowY + SOURCE_ICON_BOX_Y_OFFSET, clipRight, rowY + ROW_HEIGHT);
             renderSourceRow(widget, context, rowX, rowY, source, source == hoveredSource);
+            context.method_44380();
         }
 
         context.method_44380();
@@ -412,6 +419,15 @@ public final class MinimalSourceInlineRenderer {
             int x = contentX + Math.round(contentWidth * (separator / (float) columns));
             RenderUtils.drawRect(x, separatorY, 1, separatorHeight, COLUMN_SEPARATOR_COLOR);
         }
+    }
+
+    private static int sourceColumnClipRight(int contentX, int contentWidth, int columns, int column) {
+        if (column >= columns - 1) {
+            return contentX + contentWidth;
+        }
+
+        int separatorX = contentX + Math.round(contentWidth * ((column + 1) / (float) columns));
+        return Math.max(contentX, separatorX - COLUMN_CLIP_PADDING);
     }
 
     private static void drawOutline(int x, int y, int width, int height, int color) {
