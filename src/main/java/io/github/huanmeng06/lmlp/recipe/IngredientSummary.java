@@ -39,6 +39,10 @@ public final class IngredientSummary {
         return this.alternatives;
     }
 
+    public boolean isChoiceGroup() {
+        return this.icons.size() > 1 || this.alternatives.size() > 1;
+    }
+
     public int countPerCraft() {
         return this.countPerCraft;
     }

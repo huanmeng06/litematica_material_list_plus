@@ -3,6 +3,7 @@ package io.github.huanmeng06.lmlp.recipe;
 import java.util.List;
 import java.util.StringJoiner;
 
+import fi.dy.masa.malilib.gui.GuiBase;
 import fi.dy.masa.malilib.util.StringUtils;
 import io.github.huanmeng06.lmlp.material.CountFormatter;
 
@@ -12,10 +13,11 @@ public final class RecipeSummaryFormatter {
 
     public static String header(RecipeSummary summary, int index) {
         String base = StringUtils.translate("lmlp.label.recipe.header", index, summary.outputCount(), summary.craftsTotal());
-        if (summary.craftsMissing() != summary.craftsTotal()) {
-            return base + " / " + StringUtils.translate("lmlp.label.recipe.header.missing", summary.craftsMissing());
+        String missing = StringUtils.translate("lmlp.label.recipe.header.missing", summary.craftsMissing());
+        if (summary.craftsMissing() == 0) {
+            missing = GuiBase.TXT_GREEN + missing + GuiBase.TXT_RST;
         }
-        return base;
+        return base + " / " + missing;
     }
 
     public static String ingredientName(IngredientSummary ingredient) {
