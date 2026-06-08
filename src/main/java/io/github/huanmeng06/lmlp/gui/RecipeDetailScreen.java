@@ -27,8 +27,8 @@ import io.github.huanmeng06.lmlp.recipe.RecipeSlotSummary;
 import io.github.huanmeng06.lmlp.recipe.RecipeSummary;
 import io.github.huanmeng06.lmlp.recipe.RecipeSummaryFormatter;
 import net.minecraft.class_1799;
-import net.minecraft.class_124;
 import net.minecraft.class_1921;
+import net.minecraft.class_124;
 import net.minecraft.class_2561;
 import net.minecraft.class_2960;
 import net.minecraft.class_332;
@@ -83,6 +83,7 @@ public class RecipeDetailScreen extends class_437 {
     private static final int NESTED_RECIPE_GAP = 8;
     private static final int NESTED_RECIPE_INDENT = 24;
     private static final int MAX_NESTED_DEPTH = 3;
+    private static final int WHEEL_SCROLL_PIXELS = 36;
     private static final String ROOT_RECIPE_LIST = "root";
     private static final class_2960 REI_DISPLAY_TEXTURE = class_2960.method_60655("roughlyenoughitems", "textures/gui/display.png");
     private static final class_2960 PREFERRED_WIDGETS_TEXTURE = class_2960.method_60655(LitematicaMaterialListPlus.MOD_ID, "textures/gui/gui_widgets.png");
@@ -95,7 +96,6 @@ public class RecipeDetailScreen extends class_437 {
     private final GuiScrollBar scrollBar = new GuiScrollBar();
     private final ButtonGeneric backButton = new ButtonGeneric(0, 0, BACK_BUTTON_WIDTH, BACK_BUTTON_HEIGHT, "");
     private final RecipeNativeDisplayBridge nativeDisplayBridge = createNativeDisplayBridge();
-    private final RecipeTooltipBridge tooltipBridge = createTooltipBridge();
     private final List<NativeDisplayArea> nativeDisplayAreas = new ArrayList<>();
     private final List<TransferButtonEntry> transferButtons = new ArrayList<>();
     private final List<PreferredRecipeButtonArea> preferredRecipeButtons = new ArrayList<>();
@@ -114,6 +114,7 @@ public class RecipeDetailScreen extends class_437 {
     private int nativeDisplaysRenderedThisFrame;
     private boolean nativeDisplayLimitLoggedThisFrame;
     private boolean draggingScrollbar;
+    private double scrollRemainder;
     private final class_465<?> transferContainerScreen;
     private List<Tooltip.Entry> hoveredTransferTooltip = List.of();
     private List<class_2561> hoveredPreferredRecipeTooltip = List.of();
@@ -160,7 +161,7 @@ public class RecipeDetailScreen extends class_437 {
             return true;
         }
 
-        this.scrollBar.offsetValue(-(int) (verticalAmount * 24));
+        this.offsetScroll(verticalAmount);
         return true;
     }
 
@@ -290,9 +291,7 @@ public class RecipeDetailScreen extends class_437 {
         }
 
         if (!this.hoveredStack.method_7960()) {
-            if (!this.tooltipBridge.renderTooltip(context, this.field_22793, this.hoveredStack, mouseX, mouseY)) {
-                context.method_51446(this.field_22793, this.hoveredStack, mouseX, mouseY);
-            }
+            ItemTooltipRenderer.render(context, this.field_22793, this.hoveredStack, mouseX, mouseY);
         }
     }
 
@@ -315,7 +314,8 @@ public class RecipeDetailScreen extends class_437 {
         int textX = left + 36;
         int textRight = Math.max(textX + 1, left + width - 6);
         context.method_44379(textX, top + 4, textRight, top + height - 4);
-        context.method_51433(this.field_22793, ItemStackTexts.name(this.target), textX, top + 8, 0xFFFFFFFF, false);
+        String targetName = ItemStackTexts.name(this.target);
+        context.method_51433(this.field_22793, targetName, textX, top + 8, 0xFFFFFFFF, false);
 
         String total = StringUtils.translate("lmlp.label.recipe.total_short") + ": " + CountFormatter.format(this.target, this.totalCount);
         String missing = StringUtils.translate("lmlp.label.recipe.missing_short") + ": " + CountFormatter.format(this.target, this.missingCount);
@@ -416,7 +416,8 @@ public class RecipeDetailScreen extends class_437 {
                 RecipeSummaryFormatter.ingredientName(ingredient),
                 RecipeSummaryFormatter.totalCount(ingredient),
                 RecipeSummaryFormatter.missingCount(ingredient),
-                ingredient.countMissing() != ingredient.countTotal(),
+                ingredient.countMissing(),
+                true,
                 mouseX,
                 mouseY);
     }
@@ -450,7 +451,7 @@ public class RecipeDetailScreen extends class_437 {
         return lineY;
     }
 
-    private void renderMaterialLine(class_332 context, int left, int y, int depth, String path, boolean hasRecipes, class_1799 icon, String name, String totalText, String missingText, boolean showMissing, int mouseX, int mouseY) {
+    private void renderMaterialLine(class_332 context, int left, int y, int depth, String path, boolean hasRecipes, class_1799 icon, String name, String totalText, String missingText, int missingCount, boolean showMissing, int mouseX, int mouseY) {
         int rowX = left + depth * INGREDIENT_TREE_INDENT_WIDTH;
         int iconX = rowX + INGREDIENT_ICON_OFFSET;
         int iconY = y - 5;
@@ -474,7 +475,8 @@ public class RecipeDetailScreen extends class_437 {
         if (showMissing) {
             context.method_51433(this.field_22793, " / ", textX, y, INGREDIENT_TEXT_COLOR, false);
             textX += this.field_22793.method_1727(" / ");
-            context.method_51433(this.field_22793, missingText, textX, y, INGREDIENT_MISSING_COLOR, false);
+            int missingColor = missingCount == 0 ? 0xFF55FF55 : INGREDIENT_MISSING_COLOR;
+            context.method_51433(this.field_22793, missingText, textX, y, missingColor, false);
         }
     }
 
@@ -502,7 +504,7 @@ public class RecipeDetailScreen extends class_437 {
         int outputX = x + 166;
         int outputY = y + 35;
         drawOutputSlot(context, outputX, outputY);
-        drawSlotItem(context, outputX + 5, outputY + 5, new RecipeSlotSummary(summary.outputIcon(), List.of(ItemStackTexts.name(summary.outputIcon())), summary.outputCount()), mouseX, mouseY, 26, 26);
+        drawSlotItem(context, outputX + 5, outputY + 5, new RecipeSlotSummary(summary.outputIcon(), List.of(ItemStackTexts.name(summary.outputIcon())), summary.outputCount()), mouseX, mouseY, 16, 16);
     }
 
     private void drawOutputSlot(class_332 context, int x, int y) {
@@ -985,6 +987,17 @@ public class RecipeDetailScreen extends class_437 {
         this.scrollBar.render(mouseX, mouseY, delta, this.scrollbarX(), top, 8, bottom - top, this.contentHeight(), context);
     }
 
+    private void offsetScroll(double verticalAmount) {
+        double target = this.scrollRemainder - verticalAmount * WHEEL_SCROLL_PIXELS;
+        int pixels = (int) target;
+        this.scrollRemainder = target - pixels;
+        if (pixels == 0 && verticalAmount != 0.0D) {
+            pixels = verticalAmount > 0.0D ? -1 : 1;
+            this.scrollRemainder = 0.0D;
+        }
+        this.scrollBar.offsetValue(pixels);
+    }
+
     private void captureHoveredStack(class_1799 stack, int mouseX, int mouseY, int x, int y, int width, int height) {
         if (mouseY >= this.activeClipTop && mouseY <= this.activeClipBottom && isInside(mouseX, mouseY, x, y, width, height)) {
             this.hoveredStack = stack;
@@ -1105,15 +1118,6 @@ public class RecipeDetailScreen extends class_437 {
             return (RecipeNativeDisplayBridge) bridgeClass.getDeclaredConstructor().newInstance();
         } catch (Throwable throwable) {
             return RecipeNativeDisplayBridge.DISABLED;
-        }
-    }
-
-    private static RecipeTooltipBridge createTooltipBridge() {
-        try {
-            Class<?> bridgeClass = Class.forName("io.github.huanmeng06.lmlp.recipe.rei.ReiTooltipBridge");
-            return (RecipeTooltipBridge) bridgeClass.getDeclaredConstructor().newInstance();
-        } catch (Throwable throwable) {
-            return RecipeTooltipBridge.DISABLED;
         }
     }
 

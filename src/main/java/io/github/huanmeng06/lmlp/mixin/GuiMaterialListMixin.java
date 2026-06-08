@@ -2,6 +2,7 @@ package io.github.huanmeng06.lmlp.mixin;
 
 import fi.dy.masa.litematica.gui.GuiMaterialList;
 import fi.dy.masa.litematica.materials.MaterialListBase;
+import fi.dy.masa.litematica.materials.MaterialListEntry;
 import fi.dy.masa.litematica.util.BlockInfoListType;
 import fi.dy.masa.malilib.gui.GuiListBase;
 import fi.dy.masa.malilib.gui.Message.MessageType;
@@ -11,15 +12,19 @@ import fi.dy.masa.malilib.gui.button.ButtonOnOff;
 import fi.dy.masa.malilib.gui.button.IButtonActionListener;
 import fi.dy.masa.malilib.util.StringUtils;
 import io.github.huanmeng06.lmlp.export.SubMaterialExporter;
+import io.github.huanmeng06.lmlp.gui.MinimalSubMaterialListView;
 import net.minecraft.class_437;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.ModifyArg;
+import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.io.File;
+import java.util.List;
 
 @Mixin(value = GuiMaterialList.class, remap = false)
 public abstract class GuiMaterialListMixin extends GuiListBase {
@@ -33,6 +38,32 @@ public abstract class GuiMaterialListMixin extends GuiListBase {
 
     protected GuiMaterialListMixin(int listX, int listY) {
         super(listX, listY);
+    }
+
+    @Redirect(
+            method = {"<init>", "onTaskCompleted"},
+            at = @At(
+                    value = "INVOKE",
+                    target = "Lfi/dy/masa/litematica/gui/widgets/WidgetMaterialListEntry;setMaxNameLength(Ljava/util/List;I)V"))
+    private void lmlp$skipGlobalMaterialListColumnSizing(List<MaterialListEntry> entries, int multiplier) {
+        // LMLP fits columns after WidgetListBase has built the current page's visible rows.
+    }
+
+    @ModifyArg(
+            method = "createButton",
+            at = @At(
+                    value = "INVOKE",
+                    target = "Lfi/dy/masa/malilib/gui/button/ButtonGeneric;<init>(IIIILjava/lang/String;[Ljava/lang/String;)V"),
+            index = 4)
+    private String lmlp$useMinimalSubMaterialListTypeLabel(String label) {
+        String currentListTypeLabel = StringUtils.translate(
+                "litematica.gui.button.material_list.list_type",
+                this.materialList.getMaterialListType().getDisplayName());
+        if (label.equals(currentListTypeLabel)) {
+            return MinimalSubMaterialListView.displayName(this.materialList, label);
+        }
+
+        return label;
     }
 
     @Inject(method = "initGui", at = @At("TAIL"))
@@ -49,8 +80,7 @@ public abstract class GuiMaterialListMixin extends GuiListBase {
         int x = 12;
         x += this.lmlp$genericButtonWidth(StringUtils.translate("litematica.gui.button.material_list.refresh_list")) + BUTTON_SPACING;
         if (this.materialList.supportsRenderLayers()) {
-            BlockInfoListType listType = this.materialList.getMaterialListType();
-            x += this.lmlp$genericButtonWidth(StringUtils.translate("litematica.gui.button.material_list.list_type", listType.getDisplayName())) + BUTTON_SPACING;
+            x += this.lmlp$genericButtonWidth(this.lmlp$listTypeDisplayName()) + BUTTON_SPACING;
         }
         x += this.lmlp$onOffButtonWidth("litematica.gui.button.material_list.hide_available", this.materialList.getHideAvailable()) + BUTTON_SPACING;
         x += this.lmlp$onOffButtonWidth("litematica.gui.button.material_list.toggle_info_hud", this.materialList.getHudRenderer().getShouldRenderCustom()) + BUTTON_SPACING;
@@ -67,7 +97,7 @@ public abstract class GuiMaterialListMixin extends GuiListBase {
     private int lmlp$originalElementTotalWidth() {
         int width = 0;
         width += this.getStringWidth(StringUtils.translate("litematica.gui.button.material_list.refresh_list"));
-        width += this.getStringWidth(StringUtils.translate("litematica.gui.button.material_list.list_type", this.materialList.getMaterialListType().getDisplayName()));
+        width += this.getStringWidth(this.lmlp$listTypeDisplayName());
         width += this.getStringWidth(StringUtils.translate("litematica.gui.button.material_list.clear_ignored"));
         width += this.getStringWidth(StringUtils.translate("litematica.gui.button.material_list.clear_cache"));
         width += this.getStringWidth(StringUtils.translate("litematica.gui.button.material_list.write_to_file"));
@@ -79,6 +109,12 @@ public abstract class GuiMaterialListMixin extends GuiListBase {
 
     private int lmlp$genericButtonWidth(String label) {
         return new ButtonGeneric(0, 0, -1, 20, label, new String[0]).getWidth();
+    }
+
+    private String lmlp$listTypeDisplayName() {
+        BlockInfoListType listType = this.materialList.getMaterialListType();
+        String label = StringUtils.translate("litematica.gui.button.material_list.list_type", listType.getDisplayName());
+        return MinimalSubMaterialListView.displayName(this.materialList, label);
     }
 
     private int lmlp$onOffButtonWidth(String translationKey, boolean value) {
