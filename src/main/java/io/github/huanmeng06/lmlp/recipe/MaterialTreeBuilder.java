@@ -68,15 +68,28 @@ public final class MaterialTreeBuilder {
 
             class_1799 icon = ingredient.icon().method_7972();
             String path = parentPath + "/" + index + ":" + ItemStackTexts.id(icon);
-            children.add(build(
-                    icon,
-                    ingredient.icons(),
-                    RecipeSummaryFormatter.ingredientName(ingredient),
-                    ingredient.countTotal(),
-                    ingredient.countMissing(),
-                    path,
-                    depth,
-                    seenItems));
+            if (ingredient.isChoiceGroup()) {
+                children.add(new MaterialTreeNode(
+                        path,
+                        icon,
+                        ingredient.icons().isEmpty() ? List.of(icon) : ingredient.icons(),
+                        RecipeSummaryFormatter.ingredientName(ingredient),
+                        ingredient.countTotal(),
+                        ingredient.countMissing(),
+                        Math.max(1, icon.method_7914()),
+                        depth,
+                        List.of()));
+            } else {
+                children.add(build(
+                        icon,
+                        ingredient.icons(),
+                        RecipeSummaryFormatter.ingredientName(ingredient),
+                        ingredient.countTotal(),
+                        ingredient.countMissing(),
+                        path,
+                        depth,
+                        seenItems));
+            }
             index++;
         }
 
