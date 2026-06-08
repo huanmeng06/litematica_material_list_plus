@@ -54,11 +54,12 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
     private static final int REQUIREMENT_UPSTREAM_ARROW_WIDTH = 18;
     private static final int REQUIREMENT_UPSTREAM_AFTER_ARROW_GAP = 8;
     private static final int REQUIREMENT_ICON_TEXT_GAP = 26;
-    private static final int VANILLA_TOOLTIP_HEIGHT = 60;
+    private static final int VANILLA_TOOLTIP_HEIGHT = 68;
     private static final int VANILLA_TOOLTIP_MARGIN = 10;
     private static final int VANILLA_TOOLTIP_LABEL_VALUE_GAP = 20;
     private static final int VANILLA_TOOLTIP_PADDING_EXTRA = 60;
     private static final int VANILLA_TOOLTIP_LINE_HEIGHT = 16;
+    private static final int VANILLA_TOOLTIP_HEADER_GAP = 8;
     private static final int COUNT_COLUMN_SAFETY_PADDING = 32;
     private static int lmlpMaxTotalDigits;
     private static int lmlpMaxMissingDigits;
@@ -703,7 +704,7 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         this.drawString(labelX, lineY, 0xFFFFFFFF, itemLabel, drawContext);
         this.drawString(valueX + 20, lineY, 0xFFFFFFFF, itemText, drawContext);
 
-        lineY += VANILLA_TOOLTIP_LINE_HEIGHT;
+        lineY += VANILLA_TOOLTIP_LINE_HEIGHT + VANILLA_TOOLTIP_HEADER_GAP;
         this.drawString(labelX, lineY, 0xFFFFFFFF, totalLabel, drawContext);
         this.drawString(valueX, lineY, 0xFFFFFFFF, totalText, drawContext);
 
