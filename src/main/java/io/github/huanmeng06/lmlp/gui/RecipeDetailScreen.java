@@ -418,7 +418,7 @@ public class RecipeDetailScreen extends class_437 {
                 RecipeSummaryFormatter.totalCount(ingredient),
                 RecipeSummaryFormatter.missingCount(ingredient),
                 ingredient.countMissing(),
-                ingredient.countMissing() != ingredient.countTotal(),
+                true,
                 mouseX,
                 mouseY);
     }
