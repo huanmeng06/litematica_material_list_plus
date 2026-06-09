@@ -90,6 +90,7 @@ public final class ChunkMissingMaterialListCache {
         }
 
         DataManager.setMaterialList(materialList);
+        fillSchematicCacheIfEmpty(placement, materialList);
         scheduleLiveScan(placement, materialList, true, false);
         return materialList;
     }
@@ -106,6 +107,7 @@ public final class ChunkMissingMaterialListCache {
             return true;
         }
 
+        fillSchematicCacheIfEmpty(placement, materialList);
         scheduleLiveScan(placement, materialList, true, showLiveMessage);
         return true;
     }
@@ -248,6 +250,12 @@ public final class ChunkMissingMaterialListCache {
         }
 
         return placement.getMaterialList();
+    }
+
+    private static void fillSchematicCacheIfEmpty(SchematicPlacement placement, MaterialListBase materialList) {
+        if (materialList.getMaterialsAll().isEmpty()) {
+            refreshPlacementList(placement, materialList);
+        }
     }
 
     private static String liveScanSignature(SchematicPlacement placement, MaterialListBase materialList) {
