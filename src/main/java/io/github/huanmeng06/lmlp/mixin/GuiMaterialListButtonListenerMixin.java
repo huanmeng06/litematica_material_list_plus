@@ -26,6 +26,10 @@ public abstract class GuiMaterialListButtonListenerMixin {
                     value = "INVOKE",
                     target = "Lfi/dy/masa/litematica/materials/MaterialListBase;reCreateMaterialList()V"))
     private void lmlp$refreshChunkMissingMaterialList(MaterialListBase materialList) {
+        if (ChunkMissingMaterialListCache.refreshWithSchematicCacheIfMissing(materialList)) {
+            return;
+        }
+
         if (ChunkMissingMaterialListCache.refreshWithLiveScanIfLoaded(materialList)) {
             return;
         }

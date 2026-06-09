@@ -101,6 +101,16 @@ public final class ChunkMissingMaterialListCache {
         return true;
     }
 
+    public static boolean refreshWithSchematicCacheIfMissing(MaterialListBase materialList) {
+        SchematicPlacement placement = placementFor(materialList);
+        if (isApplyingSchematicCache() || isSchematicCacheSource(materialList) || placement == null || arePlacementChunksLoaded(placement)) {
+            return false;
+        }
+
+        refreshPlacementList(placement, materialList);
+        return true;
+    }
+
     public static void markLiveScanCompleted(MaterialListBase materialList) {
         SchematicPlacement placement = placementFor(materialList);
         if (placement != null) {
@@ -187,6 +197,7 @@ public final class ChunkMissingMaterialListCache {
         if (materialList instanceof MaterialListSourceAccess access) {
             access.lmlp$setDataSource(MaterialListDataSource.SCHEMATIC_CACHE);
         }
+        LIVE_SCANS.remove(placement);
     }
 
     private static void scheduleLiveScan(SchematicPlacement placement, MaterialListBase materialList, boolean manual, boolean showMessage) {

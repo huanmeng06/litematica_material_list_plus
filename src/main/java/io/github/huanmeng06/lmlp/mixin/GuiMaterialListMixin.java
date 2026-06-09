@@ -69,6 +69,11 @@ public abstract class GuiMaterialListMixin extends GuiListBase {
         return label;
     }
 
+    @Inject(method = "initGui", at = @At("HEAD"))
+    private void lmlp$refreshSchematicCacheWhenChunksUnload(CallbackInfo ci) {
+        ChunkMissingMaterialListCache.refreshWithSchematicCacheIfMissing(this.materialList);
+    }
+
     @Inject(method = "getBrowserHeight", at = @At("RETURN"), cancellable = true)
     private void lmlp$makeRoomForChunkMissingStatus(CallbackInfoReturnable<Integer> cir) {
         if (ChunkMissingMaterialListCache.hasKnownDataSource(this.materialList)) {
