@@ -93,6 +93,14 @@ public abstract class GuiMaterialListMixin extends GuiListBase {
         this.addButton(button, new SubMaterialExportButtonListener((GuiMaterialList) (Object) this));
     }
 
+    @Inject(method = "initGui", at = @At("TAIL"))
+    private void lmlp$addChunkMissingStatusLabel(CallbackInfo ci) {
+        if (ChunkMissingMaterialListCache.isChunkMissingState(this.materialList)) {
+            String status = StringUtils.translate("lmlp.gui.material_list.chunk_missing_status");
+            this.addLabel(12, this.field_22790 - 24, this.getStringWidth(status), 12, 0xFFFFCC66, status);
+        }
+    }
+
     private int lmlp$subMaterialExportButtonX() {
         int x = 12;
         x += this.lmlp$genericButtonWidth(StringUtils.translate("litematica.gui.button.material_list.refresh_list")) + BUTTON_SPACING;

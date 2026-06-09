@@ -89,7 +89,12 @@ public final class ChunkMissingMaterialListCache {
             return false;
         }
 
-        for (class_1923 chunk : placement.getTouchedChunks()) {
+        Collection<class_1923> touchedChunks = placement.getTouchedChunks();
+        if (touchedChunks.isEmpty()) {
+            return false;
+        }
+
+        for (class_1923 chunk : touchedChunks) {
             if (!world.method_8393(chunk.field_9181, chunk.field_9180)) {
                 return false;
             }
