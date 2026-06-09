@@ -2,8 +2,6 @@ package io.github.huanmeng06.lmlp.mixin;
 
 import fi.dy.masa.litematica.materials.MaterialListPlacement;
 import fi.dy.masa.litematica.schematic.placement.SchematicPlacement;
-import fi.dy.masa.malilib.gui.Message.MessageType;
-import fi.dy.masa.malilib.util.InfoUtils;
 import io.github.huanmeng06.lmlp.access.MaterialListPlacementAccess;
 import io.github.huanmeng06.lmlp.cache.ChunkMissingMaterialListCache;
 import org.spongepowered.asm.mixin.Final;
@@ -11,7 +9,6 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(value = MaterialListPlacement.class, remap = false)
@@ -30,17 +27,6 @@ public abstract class MaterialListPlacementMixin implements MaterialListPlacemen
         if (ChunkMissingMaterialListCache.shouldUseSchematicCache(this.placement, (fi.dy.masa.litematica.materials.MaterialListBase) (Object) this)) {
             ChunkMissingMaterialListCache.refreshPlacementList(this.placement, (fi.dy.masa.litematica.materials.MaterialListBase) (Object) this);
             ci.cancel();
-        }
-    }
-
-    @Redirect(
-            method = "reCreateMaterialList",
-            at = @At(
-                    value = "INVOKE",
-                    target = "Lfi/dy/masa/malilib/util/InfoUtils;showGuiOrInGameMessage(Lfi/dy/masa/malilib/gui/Message$MessageType;Ljava/lang/String;[Ljava/lang/Object;)V"))
-    private void lmlp$suppressAutoWorldScanScheduledMessage(MessageType type, String messageKey, Object[] args) {
-        if (!ChunkMissingMaterialListCache.isAutoWorldScanScheduling()) {
-            InfoUtils.showGuiOrInGameMessage(type, messageKey, args);
         }
     }
 }

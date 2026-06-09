@@ -12,7 +12,6 @@ import fi.dy.masa.malilib.gui.button.ButtonOnOff;
 import fi.dy.masa.malilib.gui.button.IButtonActionListener;
 import fi.dy.masa.malilib.util.StringUtils;
 import io.github.huanmeng06.lmlp.cache.ChunkMissingMaterialListCache;
-import io.github.huanmeng06.lmlp.cache.MaterialListDataSource;
 import io.github.huanmeng06.lmlp.export.SubMaterialExporter;
 import io.github.huanmeng06.lmlp.gui.MinimalSubMaterialListView;
 import net.minecraft.class_437;
@@ -71,7 +70,7 @@ public abstract class GuiMaterialListMixin extends GuiListBase {
 
     @Inject(method = "getBrowserHeight", at = @At("RETURN"), cancellable = true)
     private void lmlp$makeRoomForChunkMissingStatus(CallbackInfoReturnable<Integer> cir) {
-        if (ChunkMissingMaterialListCache.isKnownMaterialSource(this.materialList)) {
+        if (ChunkMissingMaterialListCache.isSchematicCacheSource(this.materialList)) {
             cir.setReturnValue(Math.max(0, cir.getReturnValue() - 12));
         }
     }
@@ -88,17 +87,10 @@ public abstract class GuiMaterialListMixin extends GuiListBase {
 
     @Inject(method = "initGui", at = @At("TAIL"))
     private void lmlp$addSchematicCacheStatus(CallbackInfo ci) {
-        MaterialListDataSource source = ChunkMissingMaterialListCache.dataSource(this.materialList);
-        if (source == MaterialListDataSource.SCHEMATIC_CACHE) {
-            this.lmlp$addSourceLabel("lmlp.gui.material_list.source_cache", 0xFFFFCC66);
-        } else if (source == MaterialListDataSource.WORLD_SCAN) {
-            this.lmlp$addSourceLabel("lmlp.gui.material_list.source_realtime", 0xFF55FF55);
+        if (ChunkMissingMaterialListCache.isSchematicCacheSource(this.materialList)) {
+            String status = StringUtils.translate("lmlp.gui.material_list.chunk_missing_status");
+            this.addLabel(12, this.field_22790 - 24, this.getStringWidth(status), 12, 0xFFFFCC66, status);
         }
-    }
-
-    private void lmlp$addSourceLabel(String translationKey, int color) {
-        String status = StringUtils.translate(translationKey);
-        this.addLabel(12, this.field_22790 - 24, this.getStringWidth(status), 12, color, status);
     }
 
     private int lmlp$subMaterialExportButtonX() {

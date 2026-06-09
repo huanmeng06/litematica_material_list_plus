@@ -16,7 +16,6 @@ import fi.dy.masa.litematica.util.PositionUtils;
 import fi.dy.masa.malilib.util.LayerRange;
 import io.github.huanmeng06.lmlp.access.MaterialListPlacementAccess;
 import io.github.huanmeng06.lmlp.access.MaterialListSourceAccess;
-import io.github.huanmeng06.lmlp.access.SchematicPlacementMaterialListAccess;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import net.minecraft.class_1923;
 import net.minecraft.class_2338;
@@ -35,9 +34,7 @@ import java.util.Map;
 
 public final class ChunkMissingMaterialListCache {
     private static final Map<SchematicPlacement, ChunkMissingMaterialList> LISTS = new IdentityHashMap<>();
-    private static final Map<SchematicPlacement, String> PENDING_WORLD_SCANS = new IdentityHashMap<>();
     private static final ThreadLocal<Boolean> APPLYING_SCHEMATIC_CACHE = ThreadLocal.withInitial(() -> false);
-    private static final ThreadLocal<Boolean> AUTO_WORLD_SCAN_SCHEDULING = ThreadLocal.withInitial(() -> false);
 
     private ChunkMissingMaterialListCache() {
     }
@@ -59,34 +56,10 @@ public final class ChunkMissingMaterialListCache {
         return list;
     }
 
-    public static MaterialListBase getOrCreateRealtimeList(SchematicPlacement placement, MaterialListBase optionsSource) {
-        MaterialListBase existing = placementMaterialList(placement);
-        MaterialListBase list = isListForPlacement(existing, placement) ? existing : null;
-        if (list == null && isListForPlacement(optionsSource, placement)) {
-            list = optionsSource;
-        }
-
-        if (list == null || list instanceof ChunkMissingMaterialList) {
-            list = new MaterialListPlacement(placement, false);
-            copyOptions(optionsSource, list);
-            setPlacementMaterialList(placement, list);
-            setSchematicEntries(list, placement, list.getMaterialListType());
-        } else if (list.getMaterialsAll().isEmpty()) {
-            setSchematicEntries(list, placement, list.getMaterialListType());
-        }
-
-        DataManager.setMaterialList(list);
-        if (dataSource(list) != MaterialListDataSource.WORLD_SCAN || list.getMaterialsAll().isEmpty()) {
-            scheduleWorldScanIfNeeded(placement, list);
-        }
-        return list;
-    }
-
     public static void rememberIfPlacementList(MaterialListBase materialList) {
         if (materialList instanceof MaterialListPlacement && materialList instanceof MaterialListPlacementAccess access) {
             SchematicPlacement placement = access.lmlp$getPlacement();
             if (placement != null && !materialList.getMaterialsAll().isEmpty()) {
-                PENDING_WORLD_SCANS.remove(placement);
                 LISTS.put(placement, new ChunkMissingMaterialList(placement, materialList));
             }
         }
@@ -101,31 +74,16 @@ public final class ChunkMissingMaterialListCache {
     }
 
     public static boolean shouldUseSchematicCache(SchematicPlacement placement, MaterialListBase materialList) {
-        return !arePlacementChunksLoaded(placement);
+        return !arePlacementChunksLoaded(placement) || materialList == null || materialList.getMaterialsAll().isEmpty();
     }
 
     public static boolean isApplyingSchematicCache() {
         return APPLYING_SCHEMATIC_CACHE.get();
     }
 
-    public static boolean isAutoWorldScanScheduling() {
-        return AUTO_WORLD_SCAN_SCHEDULING.get();
-    }
-
-    public static MaterialListDataSource dataSource(MaterialListBase materialList) {
-        if (materialList instanceof MaterialListSourceAccess access) {
-            return access.lmlp$getDataSource();
-        }
-
-        return MaterialListDataSource.UNKNOWN;
-    }
-
     public static boolean isSchematicCacheSource(MaterialListBase materialList) {
-        return dataSource(materialList) == MaterialListDataSource.SCHEMATIC_CACHE;
-    }
-
-    public static boolean isKnownMaterialSource(MaterialListBase materialList) {
-        return dataSource(materialList) != MaterialListDataSource.UNKNOWN;
+        return materialList instanceof MaterialListSourceAccess access
+                && access.lmlp$getDataSource() == MaterialListDataSource.SCHEMATIC_CACHE;
     }
 
     public static boolean isChunkMissingState(MaterialListBase materialList) {
@@ -187,57 +145,6 @@ public final class ChunkMissingMaterialListCache {
         if (materialList instanceof MaterialListSourceAccess access) {
             access.lmlp$setDataSource(MaterialListDataSource.SCHEMATIC_CACHE);
         }
-    }
-
-    private static void scheduleWorldScanIfNeeded(SchematicPlacement placement, MaterialListBase materialList) {
-        if (!(materialList instanceof MaterialListPlacement)) {
-            return;
-        }
-
-        String signature = signature(placement);
-        if (signature.equals(PENDING_WORLD_SCANS.get(placement))) {
-            return;
-        }
-
-        PENDING_WORLD_SCANS.put(placement, signature);
-        AUTO_WORLD_SCAN_SCHEDULING.set(true);
-        try {
-            materialList.reCreateMaterialList();
-        } finally {
-            AUTO_WORLD_SCAN_SCHEDULING.set(false);
-        }
-    }
-
-    private static MaterialListBase placementMaterialList(SchematicPlacement placement) {
-        if (placement instanceof SchematicPlacementMaterialListAccess access) {
-            return access.lmlp$getMaterialListField();
-        }
-
-        return null;
-    }
-
-    private static void setPlacementMaterialList(SchematicPlacement placement, MaterialListBase materialList) {
-        if (placement instanceof SchematicPlacementMaterialListAccess access) {
-            access.lmlp$setMaterialListField(materialList);
-        }
-    }
-
-    private static void copyOptions(MaterialListBase source, MaterialListBase target) {
-        if (source != null) {
-            target.fromJson(source.toJson());
-        }
-    }
-
-    private static boolean isListForPlacement(MaterialListBase materialList, SchematicPlacement placement) {
-        if (materialList instanceof ChunkMissingMaterialList cachedList) {
-            return cachedList.placement() == placement;
-        }
-
-        if (materialList instanceof MaterialListPlacement && materialList instanceof MaterialListPlacementAccess access) {
-            return access.lmlp$getPlacement() == placement;
-        }
-
-        return false;
     }
 
     private static LitematicaSchematic schematicFor(SchematicPlacement placement) {

@@ -85,7 +85,11 @@ public final class MaterialListOpener {
             return ChunkMissingMaterialListCache.getOrCreate(placement, materialList);
         }
 
-        return ChunkMissingMaterialListCache.getOrCreateRealtimeList(placement, materialList);
+        if (materialList == null) {
+            materialList = placement.getMaterialList();
+            DataManager.setMaterialList(materialList);
+        }
+        return materialList;
     }
 
     private static GuiMaterialList getHandledScreenGui(class_465<?> parent, MaterialListBase materialList) {
