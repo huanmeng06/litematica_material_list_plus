@@ -4,7 +4,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
-import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -26,7 +26,7 @@ import net.minecraft.class_310;
 import net.minecraft.class_638;
 
 public final class PlacementMaterialListCache {
-    private static final Map<String, PlacementMaterialListSnapshot> SNAPSHOTS = new HashMap<>();
+    private static final Map<SchematicPlacement, PlacementMaterialListSnapshot> SNAPSHOTS = new IdentityHashMap<>();
 
     private PlacementMaterialListCache() {
     }
@@ -41,12 +41,31 @@ public final class PlacementMaterialListCache {
     }
 
     public static void remember(SchematicPlacement placement, MaterialListBase materialList) {
-        SNAPSHOTS.put(key(placement), PlacementMaterialListSnapshot.from(placement, materialList));
+        SNAPSHOTS.put(placement, PlacementMaterialListSnapshot.from(placement, materialList));
     }
 
     public static Optional<CachedMaterialList> cachedListFor(SchematicPlacement placement) {
-        PlacementMaterialListSnapshot snapshot = SNAPSHOTS.get(key(placement));
+        PlacementMaterialListSnapshot snapshot = SNAPSHOTS.get(placement);
+        if (snapshot != null && !snapshot.matchesCurrentState()) {
+            return Optional.empty();
+        }
         return snapshot == null ? Optional.empty() : Optional.of(new CachedMaterialList(snapshot));
+    }
+
+    public static MaterialListBase getCachedOrShowMissing(SchematicPlacement placement) {
+        Optional<CachedMaterialList> cached = cachedListFor(placement);
+        if (cached.isPresent()) {
+            CachedMaterialList cachedList = cached.get();
+            DataManager.setMaterialList(cachedList);
+            return cachedList;
+        }
+
+        InfoUtils.showGuiOrInGameMessage(MessageType.ERROR, "lmlp.message.material_list_cache.no_cache_unloaded");
+        return null;
+    }
+
+    public static void showUsingCachedMessage() {
+        InfoUtils.showGuiOrInGameMessage(MessageType.WARNING, "lmlp.message.material_list_cache.using_cached");
     }
 
     public static boolean arePlacementChunksLoaded(SchematicPlacement placement) {
@@ -80,16 +99,7 @@ public final class PlacementMaterialListCache {
             return materialList;
         }
 
-        Optional<CachedMaterialList> cached = cachedListFor(placement);
-        if (cached.isPresent()) {
-            CachedMaterialList cachedList = cached.get();
-            DataManager.setMaterialList(cachedList);
-            InfoUtils.showGuiOrInGameMessage(MessageType.WARNING, "lmlp.message.material_list_cache.using_cached");
-            return cachedList;
-        }
-
-        InfoUtils.showGuiOrInGameMessage(MessageType.ERROR, "lmlp.message.material_list_cache.no_cache_unloaded");
-        return null;
+        return getCachedOrShowMissing(placement);
     }
 
     private static MaterialListBase getLiveList(SchematicPlacement placement) {
@@ -109,7 +119,7 @@ public final class PlacementMaterialListCache {
         target.fromJson(source.toJson());
     }
 
-    private static String key(SchematicPlacement placement) {
+    static String signature(SchematicPlacement placement) {
         StringBuilder builder = new StringBuilder();
         builder.append(schematicPath(placement)).append('|');
         builder.append(placement.getName()).append('|');

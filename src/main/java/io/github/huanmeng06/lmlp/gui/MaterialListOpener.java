@@ -3,10 +3,12 @@ package io.github.huanmeng06.lmlp.gui;
 import fi.dy.masa.litematica.data.DataManager;
 import fi.dy.masa.litematica.gui.GuiMaterialList;
 import fi.dy.masa.litematica.materials.MaterialListBase;
+import fi.dy.masa.litematica.materials.MaterialListPlacement;
 import fi.dy.masa.litematica.schematic.placement.SchematicPlacement;
 import fi.dy.masa.malilib.gui.GuiBase;
 import fi.dy.masa.malilib.gui.Message.MessageType;
 import fi.dy.masa.malilib.util.InfoUtils;
+import io.github.huanmeng06.lmlp.access.MaterialListPlacementAccess;
 import io.github.huanmeng06.lmlp.cache.CachedMaterialList;
 import io.github.huanmeng06.lmlp.cache.PlacementMaterialListCache;
 import net.minecraft.class_437;
@@ -29,6 +31,9 @@ public final class MaterialListOpener {
         }
 
         GuiBase.openGui(new GuiMaterialList(materialList));
+        if (materialList instanceof CachedMaterialList) {
+            PlacementMaterialListCache.showUsingCachedMessage();
+        }
         return true;
     }
 
@@ -44,6 +49,9 @@ public final class MaterialListOpener {
         HandledScreenMaterialListBridge.preserveOnce(parent);
         MaterialListHotkeyMatcher.suppressNextCharInput();
         GuiBase.openGui(screen);
+        if (materialList instanceof CachedMaterialList) {
+            PlacementMaterialListCache.showUsingCachedMessage();
+        }
         return true;
     }
 
@@ -69,8 +77,23 @@ public final class MaterialListOpener {
     public static MaterialListBase getOrCreateMaterialList() {
         MaterialListBase materialList = DataManager.getMaterialList();
 
-        if (materialList instanceof CachedMaterialList cachedList && cachedList.canRefreshLive()) {
-            return PlacementMaterialListCache.refreshLive(cachedList.placement(), cachedList);
+        if (materialList instanceof CachedMaterialList cachedList) {
+            if (cachedList.canRefreshLive()) {
+                return PlacementMaterialListCache.refreshLive(cachedList.placement(), cachedList);
+            }
+
+            if (cachedList.matchesCurrentPlacementState()) {
+                return cachedList;
+            }
+
+            materialList = null;
+        }
+
+        if (materialList instanceof MaterialListPlacement && materialList instanceof MaterialListPlacementAccess access) {
+            SchematicPlacement placement = access.lmlp$getPlacement();
+            if (placement != null && !PlacementMaterialListCache.arePlacementChunksLoaded(placement)) {
+                return PlacementMaterialListCache.getCachedOrShowMissing(placement);
+            }
         }
 
         if (materialList == null) {
@@ -83,7 +106,6 @@ public final class MaterialListOpener {
             materialList = PlacementMaterialListCache.getOrCreate(placement);
         }
 
-        PlacementMaterialListCache.rememberIfPlacementList(materialList);
         return materialList;
     }
 

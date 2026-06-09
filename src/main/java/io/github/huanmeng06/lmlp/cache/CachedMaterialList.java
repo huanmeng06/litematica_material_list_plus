@@ -24,8 +24,12 @@ public class CachedMaterialList extends MaterialListBase {
         return this.snapshot.placement();
     }
 
+    public boolean matchesCurrentPlacementState() {
+        return this.snapshot.matchesCurrentState();
+    }
+
     public boolean canRefreshLive() {
-        return PlacementMaterialListCache.arePlacementChunksLoaded(this.snapshot.placement());
+        return this.matchesCurrentPlacementState() && PlacementMaterialListCache.arePlacementChunksLoaded(this.snapshot.placement());
     }
 
     @Override
@@ -45,6 +49,11 @@ public class CachedMaterialList extends MaterialListBase {
 
     @Override
     public void reCreateMaterialList() {
+        if (!this.matchesCurrentPlacementState()) {
+            InfoUtils.showGuiOrInGameMessage(MessageType.ERROR, "lmlp.message.material_list_cache.no_cache_unloaded");
+            return;
+        }
+
         if (this.canRefreshLive()) {
             PlacementMaterialListCache.refreshLive(this.snapshot.placement(), this);
             return;

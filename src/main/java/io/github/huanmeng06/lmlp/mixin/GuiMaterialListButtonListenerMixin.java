@@ -1,14 +1,11 @@
 package io.github.huanmeng06.lmlp.mixin;
 
-import fi.dy.masa.litematica.data.DataManager;
 import fi.dy.masa.litematica.gui.GuiMaterialList;
 import fi.dy.masa.litematica.materials.MaterialListBase;
 import fi.dy.masa.litematica.materials.MaterialListPlacement;
 import fi.dy.masa.litematica.util.BlockInfoListType;
 import fi.dy.masa.malilib.gui.GuiBase;
-import fi.dy.masa.malilib.gui.Message.MessageType;
 import fi.dy.masa.malilib.gui.button.ButtonBase;
-import fi.dy.masa.malilib.util.InfoUtils;
 import io.github.huanmeng06.lmlp.access.ButtonBaseAccess;
 import io.github.huanmeng06.lmlp.access.MaterialListPlacementAccess;
 import io.github.huanmeng06.lmlp.cache.CachedMaterialList;
@@ -21,8 +18,6 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-
-import java.util.Optional;
 
 @Mixin(targets = "fi.dy.masa.litematica.gui.GuiMaterialList$ButtonListener", remap = false)
 public abstract class GuiMaterialListButtonListenerMixin {
@@ -50,15 +45,10 @@ public abstract class GuiMaterialListButtonListenerMixin {
                 return;
             }
 
-            PlacementMaterialListCache.rememberIfPlacementList(materialList);
-            Optional<CachedMaterialList> cachedList = PlacementMaterialListCache.cachedListFor(access.lmlp$getPlacement());
-            if (cachedList.isPresent()) {
-                CachedMaterialList cached = cachedList.get();
-                DataManager.setMaterialList(cached);
-                GuiBase.openGui(new GuiMaterialList(cached));
-                InfoUtils.showGuiOrInGameMessage(MessageType.WARNING, "lmlp.message.material_list_cache.using_cached");
-            } else {
-                InfoUtils.showGuiOrInGameMessage(MessageType.ERROR, "lmlp.message.material_list_cache.no_cache_unloaded");
+            MaterialListBase cachedList = PlacementMaterialListCache.getCachedOrShowMissing(access.lmlp$getPlacement());
+            if (cachedList != null) {
+                GuiBase.openGui(new GuiMaterialList(cachedList));
+                PlacementMaterialListCache.showUsingCachedMessage();
             }
             ci.cancel();
         }

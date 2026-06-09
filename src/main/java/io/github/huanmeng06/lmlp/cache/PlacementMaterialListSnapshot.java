@@ -9,6 +9,7 @@ import fi.dy.masa.litematica.schematic.placement.SchematicPlacement;
 
 record PlacementMaterialListSnapshot(
         SchematicPlacement placement,
+        String signature,
         String name,
         String title,
         JsonObject options,
@@ -16,10 +17,15 @@ record PlacementMaterialListSnapshot(
     static PlacementMaterialListSnapshot from(SchematicPlacement placement, MaterialListBase materialList) {
         return new PlacementMaterialListSnapshot(
                 placement,
+                PlacementMaterialListCache.signature(placement),
                 materialList.getName(),
                 materialList.getTitle(),
                 PlacementMaterialListCache.copyOptions(materialList),
                 PlacementMaterialListCache.copyEntries(materialList.getMaterialsAll()));
+    }
+
+    boolean matchesCurrentState() {
+        return this.signature.equals(PlacementMaterialListCache.signature(this.placement));
     }
 
     List<MaterialListEntry> createEntries() {
