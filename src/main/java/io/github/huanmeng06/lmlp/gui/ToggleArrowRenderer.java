@@ -10,8 +10,8 @@ final class ToggleArrowRenderer {
     private static final int ICON_WIDTH = 10;
     private static final int ICON_HEIGHT = 14;
     private static final float EXPANDED_ROTATION = (float) (Math.PI / 2.0D);
-    private static final class_2960 TEXTURE = new class_2960(LitematicaMaterialListPlus.MOD_ID, "recipe_book/page_forward");
-    private static final class_2960 HIGHLIGHTED_TEXTURE = new class_2960(LitematicaMaterialListPlus.MOD_ID, "recipe_book/page_forward_highlighted");
+    private static final class_2960 TEXTURE = new class_2960(LitematicaMaterialListPlus.MOD_ID, "textures/gui/sprites/recipe_book/page_forward.png");
+    private static final class_2960 HIGHLIGHTED_TEXTURE = new class_2960(LitematicaMaterialListPlus.MOD_ID, "textures/gui/sprites/recipe_book/page_forward_highlighted.png");
 
     private ToggleArrowRenderer() {
     }
@@ -21,14 +21,18 @@ final class ToggleArrowRenderer {
         int centerX = slotX + slotWidth / 2;
         float rotation = EXPANDED_ROTATION * Math.max(0.0F, Math.min(1.0F, expandProgress));
         if (rotation <= 0.001F) {
-            context.method_52706(texture, centerX - ICON_WIDTH / 2, centerY - ICON_HEIGHT / 2, ICON_WIDTH, ICON_HEIGHT);
+            drawIcon(context, texture, centerX - ICON_WIDTH / 2, centerY - ICON_HEIGHT / 2);
             return;
         }
 
         context.method_51448().method_22903();
         context.method_51448().method_22904(centerX, centerY, 0.0D);
         context.method_51448().method_22907(new Quaternionf().rotateZ(rotation));
-        context.method_52706(texture, -ICON_WIDTH / 2, -ICON_HEIGHT / 2, ICON_WIDTH, ICON_HEIGHT);
+        drawIcon(context, texture, -ICON_WIDTH / 2, -ICON_HEIGHT / 2);
         context.method_51448().method_22909();
+    }
+
+    private static void drawIcon(class_332 context, class_2960 texture, int x, int y) {
+        context.method_25290(texture, x, y, 0.0F, 0.0F, ICON_WIDTH, ICON_HEIGHT, ICON_WIDTH, ICON_HEIGHT);
     }
 }

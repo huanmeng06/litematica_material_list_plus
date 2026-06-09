@@ -2,13 +2,19 @@
 
 这个 README 只记录 `dev-newFeature` 分支的开发过程和每个小版本做了什么。完整的项目介绍、安装说明、功能说明和截图展示放在 `main` 分支维护。
 
-当前正式版：`v1.5.15`
+当前正式版：`v1.5.16`
 
-当前构建：`1.5.15+mc1.20.6`
+当前构建：`1.5.16+mc1.20.1`
 
-适配目标：Minecraft `1.20.6` / Fabric / Litematica / MaLiLib / REI
+适配目标：Minecraft `1.20.1` / Fabric / Litematica / MaLiLib / REI
 
 ## 版本说明
+
+### v1.5.16
+
+- 将当前材料列表“进入时判断一次”的实现切到 Minecraft `1.20.1` 构建目标。
+- 适配 1.20.1 / REI 12 的 tooltip、滚轮事件和 GUI 贴图绘制 API，移除 1.20.6 专属调用。
+- 构建产物改为 `1.5.16+mc1.20.1`，并将 `fabric.mod.json` 的 Minecraft 依赖改为 `1.20.1`。
 
 ### v1.5.15
 

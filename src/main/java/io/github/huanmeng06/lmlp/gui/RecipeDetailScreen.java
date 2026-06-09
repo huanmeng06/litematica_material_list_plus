@@ -154,13 +154,13 @@ public class RecipeDetailScreen extends class_437 {
     }
 
     @Override
-    public boolean method_25401(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
+    public boolean method_25401(double mouseX, double mouseY, double amount) {
         NativeDisplayArea area = this.nativeDisplayAreaAt(mouseX, mouseY);
-        if (this.dispatchNativeDisplay(area, "mouse scroll", summary -> this.nativeDisplayBridge.mouseScrolled(summary, mouseX, mouseY, verticalAmount))) {
+        if (this.dispatchNativeDisplay(area, "mouse scroll", summary -> this.nativeDisplayBridge.mouseScrolled(summary, mouseX, mouseY, amount))) {
             return true;
         }
 
-        this.offsetScroll(verticalAmount);
+        this.offsetScroll(amount);
         return true;
     }
 
