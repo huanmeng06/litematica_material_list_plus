@@ -3,6 +3,8 @@ package io.github.huanmeng06.lmlp.mixin;
 import fi.dy.masa.litematica.gui.GuiMaterialList;
 import fi.dy.masa.litematica.materials.MaterialListBase;
 import fi.dy.masa.litematica.materials.MaterialListEntry;
+import fi.dy.masa.litematica.materials.MaterialListPlacement;
+import fi.dy.masa.litematica.schematic.placement.SchematicPlacement;
 import fi.dy.masa.litematica.util.BlockInfoListType;
 import fi.dy.masa.malilib.gui.GuiListBase;
 import fi.dy.masa.malilib.gui.Message.MessageType;
@@ -11,6 +13,7 @@ import fi.dy.masa.malilib.gui.button.ButtonGeneric;
 import fi.dy.masa.malilib.gui.button.ButtonOnOff;
 import fi.dy.masa.malilib.gui.button.IButtonActionListener;
 import fi.dy.masa.malilib.util.StringUtils;
+import io.github.huanmeng06.lmlp.access.MaterialListPlacementAccess;
 import io.github.huanmeng06.lmlp.cache.ChunkMissingMaterialListCache;
 import io.github.huanmeng06.lmlp.export.SubMaterialExporter;
 import io.github.huanmeng06.lmlp.gui.MinimalSubMaterialListView;
@@ -21,6 +24,7 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyArg;
+import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
@@ -39,6 +43,18 @@ public abstract class GuiMaterialListMixin extends GuiListBase {
 
     protected GuiMaterialListMixin(int listX, int listY) {
         super(listX, listY);
+    }
+
+    @ModifyVariable(method = "<init>", at = @At("HEAD"), argsOnly = true)
+    private static MaterialListBase lmlp$useChunkMissingListForGui(MaterialListBase materialList) {
+        if (materialList instanceof MaterialListPlacement && materialList instanceof MaterialListPlacementAccess access) {
+            SchematicPlacement placement = access.lmlp$getPlacement();
+            if (placement != null && !ChunkMissingMaterialListCache.arePlacementChunksLoaded(placement)) {
+                return ChunkMissingMaterialListCache.getOrCreate(placement, materialList);
+            }
+        }
+
+        return materialList;
     }
 
     @Redirect(
@@ -75,13 +91,6 @@ public abstract class GuiMaterialListMixin extends GuiListBase {
         ButtonGeneric button = new ButtonGeneric(x, y, -1, 20, label, new String[0]);
         button.setHoverStrings("lmlp.gui.button.hover.material_list.write_sub_materials");
         this.addButton(button, new SubMaterialExportButtonListener((GuiMaterialList) (Object) this));
-    }
-
-    @Inject(method = "initGui", at = @At("TAIL"))
-    private void lmlp$addChunkMissingStatus(CallbackInfo ci) {
-        if (ChunkMissingMaterialListCache.isChunkMissingState(this.materialList)) {
-            this.addLabel(12, this.field_22790 - 28, 420, 12, 0xFFFFCC66, StringUtils.translate("lmlp.gui.material_list.chunk_missing_status"));
-        }
     }
 
     private int lmlp$subMaterialExportButtonX() {
