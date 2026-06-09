@@ -3,8 +3,6 @@ package io.github.huanmeng06.lmlp.mixin;
 import fi.dy.masa.litematica.gui.GuiMaterialList;
 import fi.dy.masa.litematica.materials.MaterialListBase;
 import fi.dy.masa.litematica.materials.MaterialListEntry;
-import fi.dy.masa.litematica.materials.MaterialListPlacement;
-import fi.dy.masa.litematica.schematic.placement.SchematicPlacement;
 import fi.dy.masa.litematica.util.BlockInfoListType;
 import fi.dy.masa.malilib.gui.GuiListBase;
 import fi.dy.masa.malilib.gui.Message.MessageType;
@@ -12,9 +10,7 @@ import fi.dy.masa.malilib.gui.button.ButtonBase;
 import fi.dy.masa.malilib.gui.button.ButtonGeneric;
 import fi.dy.masa.malilib.gui.button.ButtonOnOff;
 import fi.dy.masa.malilib.gui.button.IButtonActionListener;
-import fi.dy.masa.malilib.gui.widgets.WidgetLabel;
 import fi.dy.masa.malilib.util.StringUtils;
-import io.github.huanmeng06.lmlp.access.MaterialListPlacementAccess;
 import io.github.huanmeng06.lmlp.cache.ChunkMissingMaterialListCache;
 import io.github.huanmeng06.lmlp.export.SubMaterialExporter;
 import io.github.huanmeng06.lmlp.gui.MinimalSubMaterialListView;
@@ -25,7 +21,6 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyArg;
-import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
@@ -45,18 +40,6 @@ public abstract class GuiMaterialListMixin extends GuiListBase {
 
     protected GuiMaterialListMixin(int listX, int listY) {
         super(listX, listY);
-    }
-
-    @ModifyVariable(method = "<init>", at = @At("HEAD"), argsOnly = true)
-    private static MaterialListBase lmlp$useChunkMissingListForGui(MaterialListBase materialList) {
-        if (materialList instanceof MaterialListPlacement && materialList instanceof MaterialListPlacementAccess access) {
-            SchematicPlacement placement = access.lmlp$getPlacement();
-            if (placement != null && !ChunkMissingMaterialListCache.arePlacementChunksLoaded(placement)) {
-                return ChunkMissingMaterialListCache.getOrCreate(placement, materialList);
-            }
-        }
-
-        return materialList;
     }
 
     @Redirect(
@@ -87,7 +70,7 @@ public abstract class GuiMaterialListMixin extends GuiListBase {
 
     @Inject(method = "getBrowserHeight", at = @At("RETURN"), cancellable = true)
     private void lmlp$makeRoomForChunkMissingStatus(CallbackInfoReturnable<Integer> cir) {
-        if (ChunkMissingMaterialListCache.isChunkMissingState(this.materialList)) {
+        if (ChunkMissingMaterialListCache.isSchematicCacheSource(this.materialList)) {
             cir.setReturnValue(Math.max(0, cir.getReturnValue() - 12));
         }
     }
@@ -103,33 +86,11 @@ public abstract class GuiMaterialListMixin extends GuiListBase {
     }
 
     @Inject(method = "initGui", at = @At("TAIL"))
-    private void lmlp$addChunkMissingStatusWhenStatsAreEmpty(CallbackInfo ci) {
-        if (this.materialList.getCountTotal() == 0L && ChunkMissingMaterialListCache.isChunkMissingState(this.materialList)) {
+    private void lmlp$addSchematicCacheStatus(CallbackInfo ci) {
+        if (ChunkMissingMaterialListCache.isSchematicCacheSource(this.materialList)) {
             String status = StringUtils.translate("lmlp.gui.material_list.chunk_missing_status");
-            this.addLabel(12, this.field_22790 - 36, this.getStringWidth(status), 12, 0xFFFFCC66, status);
+            this.addLabel(12, this.field_22790 - 24, this.getStringWidth(status), 12, 0xFFFFCC66, status);
         }
-    }
-
-    @Redirect(
-            method = "initGui",
-            at = @At(
-                    value = "INVOKE",
-                    target = "Lfi/dy/masa/litematica/gui/GuiMaterialList;addLabel(IIIII[Ljava/lang/String;)Lfi/dy/masa/malilib/gui/widgets/WidgetLabel;"))
-    private WidgetLabel lmlp$addChunkMissingStatusAfterStats(
-            GuiMaterialList gui,
-            int x,
-            int y,
-            int width,
-            int height,
-            int textColor,
-            String[] labels) {
-        WidgetLabel label = this.addLabel(x, y, width, height, textColor, labels);
-        if (x == 12 && y == this.field_22790 - 36 && ChunkMissingMaterialListCache.isChunkMissingState(this.materialList)) {
-            String status = StringUtils.translate("lmlp.gui.material_list.chunk_missing_status");
-            this.addLabel(x, y + height, this.getStringWidth(status), height, 0xFFFFCC66, status);
-        }
-
-        return label;
     }
 
     private int lmlp$subMaterialExportButtonX() {

@@ -62,7 +62,7 @@
   "lmlp.gui.button.material_list.write_sub_materials": "寫入子材料文件",
   "lmlp.gui.button.hover.material_list.write_sub_materials": "寫入樹狀子材料 XLSX。",
   "lmlp.gui.material_list.display_type.minimal_sub_materials": "最小子材料",
-  "lmlp.gui.material_list.chunk_missing_status": "\u7576\u524d\u6309\u7167\u539f\u7406\u5716\u5feb\u53d6\u8a08\u7b97",
+  "lmlp.gui.material_list.chunk_missing_status": "\u7576\u524d\u6750\u6599\u5217\u8868\u662f\u4f9d\u7167\u539f\u7406\u5716\u5feb\u53d6\u8b80\u53d6\u7684",
   "lmlp.message.sub_material_list_export_failed": "寫入子材料文件失敗。",
   "lmlp.hotkeys.category.material_list": "材料清單",
   "lmlp.config.name.disable_litematica_hover_tooltip": "關閉 Litematica 原版提示",

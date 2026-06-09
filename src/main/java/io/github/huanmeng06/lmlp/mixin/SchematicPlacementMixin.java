@@ -17,7 +17,7 @@ public abstract class SchematicPlacementMixin {
     @Inject(method = "getMaterialList", at = @At("HEAD"), cancellable = true)
     private void lmlp$getChunkMissingMaterialList(CallbackInfoReturnable<MaterialListBase> cir) {
         SchematicPlacement placement = (SchematicPlacement) (Object) this;
-        if (!ChunkMissingMaterialListCache.arePlacementChunksLoaded(placement)) {
+        if (ChunkMissingMaterialListCache.shouldUseSchematicCache(placement, this.materialList)) {
             cir.setReturnValue(ChunkMissingMaterialListCache.getOrCreate(placement, this.materialList));
         }
     }

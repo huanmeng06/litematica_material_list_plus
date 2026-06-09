@@ -8,7 +8,6 @@ import fi.dy.masa.litematica.schematic.placement.SchematicPlacementManager;
 import fi.dy.masa.malilib.gui.GuiBase;
 import fi.dy.masa.malilib.gui.Message.MessageType;
 import fi.dy.masa.malilib.util.InfoUtils;
-import io.github.huanmeng06.lmlp.cache.ChunkMissingMaterialList;
 import io.github.huanmeng06.lmlp.cache.ChunkMissingMaterialListCache;
 import net.minecraft.class_437;
 import net.minecraft.class_465;
@@ -82,24 +81,13 @@ public final class MaterialListOpener {
             return null;
         }
 
-        if (!ChunkMissingMaterialListCache.arePlacementChunksLoaded(placement)) {
+        if (ChunkMissingMaterialListCache.shouldUseSchematicCache(placement, materialList)) {
             return ChunkMissingMaterialListCache.getOrCreate(placement, materialList);
-        }
-
-        boolean refresh = false;
-        if (materialList instanceof ChunkMissingMaterialList) {
-            materialList = null;
-            refresh = true;
         }
 
         if (materialList == null) {
             materialList = placement.getMaterialList();
             DataManager.setMaterialList(materialList);
-            refresh = true;
-        }
-
-        if (refresh) {
-            materialList.reCreateMaterialList();
         }
         return materialList;
     }

@@ -15,6 +15,7 @@ import fi.dy.masa.litematica.util.BlockInfoListType;
 import fi.dy.masa.litematica.util.PositionUtils;
 import fi.dy.masa.malilib.util.LayerRange;
 import io.github.huanmeng06.lmlp.access.MaterialListPlacementAccess;
+import io.github.huanmeng06.lmlp.access.MaterialListSourceAccess;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import net.minecraft.class_1923;
 import net.minecraft.class_2338;
@@ -33,6 +34,7 @@ import java.util.Map;
 
 public final class ChunkMissingMaterialListCache {
     private static final Map<SchematicPlacement, ChunkMissingMaterialList> LISTS = new IdentityHashMap<>();
+    private static final ThreadLocal<Boolean> APPLYING_SCHEMATIC_CACHE = ThreadLocal.withInitial(() -> false);
 
     private ChunkMissingMaterialListCache() {
     }
@@ -64,24 +66,28 @@ public final class ChunkMissingMaterialListCache {
     }
 
     static void refresh(ChunkMissingMaterialList list) {
-        list.setMaterialListEntries(createEntries(list.placement(), list.getMaterialListType()));
+        setSchematicEntries(list, list.placement(), list.getMaterialListType());
     }
 
     public static void refreshPlacementList(SchematicPlacement placement, MaterialListBase materialList) {
-        materialList.setMaterialListEntries(createEntries(placement, materialList.getMaterialListType()));
+        setSchematicEntries(materialList, placement, materialList.getMaterialListType());
+    }
+
+    public static boolean shouldUseSchematicCache(SchematicPlacement placement, MaterialListBase materialList) {
+        return !arePlacementChunksLoaded(placement) || materialList == null || materialList.getMaterialsAll().isEmpty();
+    }
+
+    public static boolean isApplyingSchematicCache() {
+        return APPLYING_SCHEMATIC_CACHE.get();
+    }
+
+    public static boolean isSchematicCacheSource(MaterialListBase materialList) {
+        return materialList instanceof MaterialListSourceAccess access
+                && access.lmlp$getDataSource() == MaterialListDataSource.SCHEMATIC_CACHE;
     }
 
     public static boolean isChunkMissingState(MaterialListBase materialList) {
-        if (materialList instanceof ChunkMissingMaterialList) {
-            return true;
-        }
-
-        if (materialList instanceof MaterialListPlacement && materialList instanceof MaterialListPlacementAccess access) {
-            SchematicPlacement placement = access.lmlp$getPlacement();
-            return placement != null && !arePlacementChunksLoaded(placement);
-        }
-
-        return false;
+        return isSchematicCacheSource(materialList);
     }
 
     public static boolean arePlacementChunksLoaded(SchematicPlacement placement) {
@@ -126,6 +132,19 @@ public final class ChunkMissingMaterialListCache {
                 counts,
                 new Object2IntOpenHashMap<>(),
                 class_310.method_1551().field_1724);
+    }
+
+    private static void setSchematicEntries(MaterialListBase materialList, SchematicPlacement placement, BlockInfoListType type) {
+        APPLYING_SCHEMATIC_CACHE.set(true);
+        try {
+            materialList.setMaterialListEntries(createEntries(placement, type));
+        } finally {
+            APPLYING_SCHEMATIC_CACHE.set(false);
+        }
+
+        if (materialList instanceof MaterialListSourceAccess access) {
+            access.lmlp$setDataSource(MaterialListDataSource.SCHEMATIC_CACHE);
+        }
     }
 
     private static LitematicaSchematic schematicFor(SchematicPlacement placement) {
