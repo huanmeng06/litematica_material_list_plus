@@ -62,6 +62,7 @@
   "lmlp.gui.button.material_list.write_sub_materials": "写入子材料文件",
   "lmlp.gui.button.hover.material_list.write_sub_materials": "写入树状子材料 XLSX。",
   "lmlp.gui.material_list.display_type.minimal_sub_materials": "最小子材料",
+  "lmlp.gui.material_list.cache_status": "使用材料列表缓存中",
   "lmlp.message.material_list_cache.using_cached": "正在使用缓存材料列表；投影所在区块未加载。",
   "lmlp.message.material_list_cache.no_cache_unloaded": "投影所在区块未加载，且没有可用的缓存材料列表。请先在区块加载时刷新一次。",
   "lmlp.message.material_list_cache.refresh_requires_loaded_chunks": "已保留缓存材料列表。请加载投影所在区块后再刷新实时数量。",

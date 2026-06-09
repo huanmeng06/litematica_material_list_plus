@@ -64,10 +64,6 @@ public final class PlacementMaterialListCache {
         return null;
     }
 
-    public static void showUsingCachedMessage() {
-        InfoUtils.showGuiOrInGameMessage(MessageType.WARNING, "lmlp.message.material_list_cache.using_cached");
-    }
-
     public static boolean arePlacementChunksLoaded(SchematicPlacement placement) {
         class_638 world = class_310.method_1551().field_1687;
         if (world == null) {

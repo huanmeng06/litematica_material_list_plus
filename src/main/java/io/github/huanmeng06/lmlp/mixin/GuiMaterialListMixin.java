@@ -11,6 +11,8 @@ import fi.dy.masa.malilib.gui.button.ButtonGeneric;
 import fi.dy.masa.malilib.gui.button.ButtonOnOff;
 import fi.dy.masa.malilib.gui.button.IButtonActionListener;
 import fi.dy.masa.malilib.util.StringUtils;
+import io.github.huanmeng06.lmlp.cache.CachedMaterialList;
+import io.github.huanmeng06.lmlp.cache.PlacementMaterialListCache;
 import io.github.huanmeng06.lmlp.export.SubMaterialExporter;
 import io.github.huanmeng06.lmlp.gui.MinimalSubMaterialListView;
 import net.minecraft.class_437;
@@ -74,6 +76,20 @@ public abstract class GuiMaterialListMixin extends GuiListBase {
         ButtonGeneric button = new ButtonGeneric(x, y, -1, 20, label, new String[0]);
         button.setHoverStrings("lmlp.gui.button.hover.material_list.write_sub_materials");
         this.addButton(button, new SubMaterialExportButtonListener((GuiMaterialList) (Object) this));
+        this.lmlp$addCacheStatusLabel();
+    }
+
+    private void lmlp$addCacheStatusLabel() {
+        if (!(this.materialList instanceof CachedMaterialList cachedList)) {
+            return;
+        }
+
+        if (PlacementMaterialListCache.arePlacementChunksLoaded(cachedList.placement())) {
+            return;
+        }
+
+        String label = StringUtils.translate("lmlp.gui.material_list.cache_status");
+        this.addLabel(12, this.field_22790 - 24, this.getStringWidth(label), 12, 0xFFFFCC66, label);
     }
 
     private int lmlp$subMaterialExportButtonX() {

@@ -48,7 +48,6 @@ public abstract class GuiMaterialListButtonListenerMixin {
             MaterialListBase cachedList = PlacementMaterialListCache.getCachedOrShowMissing(access.lmlp$getPlacement());
             if (cachedList != null) {
                 GuiBase.openGui(new GuiMaterialList(cachedList));
-                PlacementMaterialListCache.showUsingCachedMessage();
             }
             ci.cancel();
         }

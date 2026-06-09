@@ -31,9 +31,6 @@ public final class MaterialListOpener {
         }
 
         GuiBase.openGui(new GuiMaterialList(materialList));
-        if (materialList instanceof CachedMaterialList) {
-            PlacementMaterialListCache.showUsingCachedMessage();
-        }
         return true;
     }
 
@@ -49,9 +46,6 @@ public final class MaterialListOpener {
         HandledScreenMaterialListBridge.preserveOnce(parent);
         MaterialListHotkeyMatcher.suppressNextCharInput();
         GuiBase.openGui(screen);
-        if (materialList instanceof CachedMaterialList) {
-            PlacementMaterialListCache.showUsingCachedMessage();
-        }
         return true;
     }
 
