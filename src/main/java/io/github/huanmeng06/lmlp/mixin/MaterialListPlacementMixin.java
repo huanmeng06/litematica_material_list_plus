@@ -26,7 +26,6 @@ public abstract class MaterialListPlacementMixin implements MaterialListPlacemen
     private void lmlp$useSchematicCacheWhenChunksMissing(CallbackInfo ci) {
         if (ChunkMissingMaterialListCache.shouldUseSchematicCache(this.placement, (fi.dy.masa.litematica.materials.MaterialListBase) (Object) this)) {
             ChunkMissingMaterialListCache.refreshPlacementList(this.placement, (fi.dy.masa.litematica.materials.MaterialListBase) (Object) this);
-            ChunkMissingMaterialListCache.scheduleLiveScanIfNeeded(this.placement, (fi.dy.masa.litematica.materials.MaterialListBase) (Object) this);
             ci.cancel();
         }
     }

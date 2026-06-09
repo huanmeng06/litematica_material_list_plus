@@ -81,18 +81,7 @@ public final class MaterialListOpener {
             return null;
         }
 
-        if (ChunkMissingMaterialListCache.shouldUseSchematicCache(placement, materialList)) {
-            materialList = ChunkMissingMaterialListCache.getOrCreate(placement, materialList);
-            ChunkMissingMaterialListCache.scheduleLiveScanIfNeeded(placement, materialList);
-            return materialList;
-        }
-
-        if (materialList == null) {
-            materialList = placement.getMaterialList();
-            DataManager.setMaterialList(materialList);
-        }
-        ChunkMissingMaterialListCache.scheduleLiveScanIfNeeded(placement, materialList);
-        return materialList;
+        return ChunkMissingMaterialListCache.refreshForPlacementState(placement, materialList);
     }
 
     private static GuiMaterialList getHandledScreenGui(class_465<?> parent, MaterialListBase materialList) {

@@ -21,6 +21,7 @@ import fi.dy.masa.malilib.util.InfoUtils;
 import fi.dy.masa.malilib.util.LayerRange;
 import io.github.huanmeng06.lmlp.access.MaterialListPlacementAccess;
 import io.github.huanmeng06.lmlp.access.MaterialListSourceAccess;
+import io.github.huanmeng06.lmlp.access.SchematicPlacementMaterialListAccess;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import net.minecraft.class_1923;
 import net.minecraft.class_2338;
@@ -79,36 +80,38 @@ public final class ChunkMissingMaterialListCache {
         setSchematicEntries(materialList, placement, materialList.getMaterialListType());
     }
 
+    public static MaterialListBase refreshForPlacementState(SchematicPlacement placement, MaterialListBase materialList) {
+        if (!arePlacementChunksLoaded(placement)) {
+            return getOrCreate(placement, materialList);
+        }
+
+        if (materialList == null || placementFor(materialList) != placement) {
+            materialList = getOrCreatePlacementMaterialList(placement, materialList);
+        }
+
+        DataManager.setMaterialList(materialList);
+        scheduleLiveScan(placement, materialList, true, false);
+        return materialList;
+    }
+
+    public static boolean refreshForCurrentState(MaterialListBase materialList, boolean showLiveMessage) {
+        SchematicPlacement placement = placementFor(materialList);
+        if (placement == null) {
+            return false;
+        }
+
+        DataManager.setMaterialList(materialList);
+        if (!arePlacementChunksLoaded(placement)) {
+            refreshPlacementList(placement, materialList);
+            return true;
+        }
+
+        scheduleLiveScan(placement, materialList, true, showLiveMessage);
+        return true;
+    }
+
     public static boolean shouldUseSchematicCache(SchematicPlacement placement, MaterialListBase materialList) {
-        return !arePlacementChunksLoaded(placement) || materialList == null || materialList.getMaterialsAll().isEmpty();
-    }
-
-    public static void scheduleLiveScanIfNeeded(SchematicPlacement placement, MaterialListBase materialList) {
-        if (placement == null || materialList == null || !arePlacementChunksLoaded(placement) || isWorldScanSource(materialList)) {
-            return;
-        }
-
-        scheduleLiveScan(placement, materialList, false, false);
-    }
-
-    public static boolean refreshWithLiveScanIfLoaded(MaterialListBase materialList) {
-        SchematicPlacement placement = placementFor(materialList);
-        if (placement == null || !arePlacementChunksLoaded(placement)) {
-            return false;
-        }
-
-        scheduleLiveScan(placement, materialList, true, true);
-        return true;
-    }
-
-    public static boolean refreshWithSchematicCacheIfMissing(MaterialListBase materialList) {
-        SchematicPlacement placement = placementFor(materialList);
-        if (isApplyingSchematicCache() || isSchematicCacheSource(materialList) || placement == null || arePlacementChunksLoaded(placement)) {
-            return false;
-        }
-
-        refreshPlacementList(placement, materialList);
-        return true;
+        return !arePlacementChunksLoaded(placement);
     }
 
     public static void markLiveScanCompleted(MaterialListBase materialList) {
@@ -229,6 +232,22 @@ public final class ChunkMissingMaterialListCache {
         }
 
         return null;
+    }
+
+    private static MaterialListBase getOrCreatePlacementMaterialList(SchematicPlacement placement, MaterialListBase optionsSource) {
+        if (placement instanceof SchematicPlacementMaterialListAccess access) {
+            MaterialListBase materialList = access.lmlp$getMaterialList();
+            if (materialList == null) {
+                materialList = new MaterialListPlacement(placement);
+                if (optionsSource != null) {
+                    materialList.fromJson(optionsSource.toJson());
+                }
+                access.lmlp$setMaterialList(materialList);
+            }
+            return materialList;
+        }
+
+        return placement.getMaterialList();
     }
 
     private static String liveScanSignature(SchematicPlacement placement, MaterialListBase materialList) {

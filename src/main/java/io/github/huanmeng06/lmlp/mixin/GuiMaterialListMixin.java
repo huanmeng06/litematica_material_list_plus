@@ -3,6 +3,7 @@ package io.github.huanmeng06.lmlp.mixin;
 import fi.dy.masa.litematica.gui.GuiMaterialList;
 import fi.dy.masa.litematica.materials.MaterialListBase;
 import fi.dy.masa.litematica.materials.MaterialListEntry;
+import fi.dy.masa.litematica.materials.MaterialListUtils;
 import fi.dy.masa.litematica.util.BlockInfoListType;
 import fi.dy.masa.malilib.gui.GuiListBase;
 import fi.dy.masa.malilib.gui.Message.MessageType;
@@ -43,6 +44,13 @@ public abstract class GuiMaterialListMixin extends GuiListBase {
         super(listX, listY);
     }
 
+    @Inject(method = "<init>", at = @At("TAIL"))
+    private void lmlp$refreshForCurrentStateOnEntry(MaterialListBase materialList, CallbackInfo ci) {
+        if (ChunkMissingMaterialListCache.refreshForCurrentState(this.materialList, false) && this.mc.field_1724 != null) {
+            MaterialListUtils.updateAvailableCounts(this.materialList.getMaterialsAll(), this.mc.field_1724);
+        }
+    }
+
     @Redirect(
             method = {"<init>", "onTaskCompleted"},
             at = @At(
@@ -67,11 +75,6 @@ public abstract class GuiMaterialListMixin extends GuiListBase {
         }
 
         return label;
-    }
-
-    @Inject(method = "initGui", at = @At("HEAD"))
-    private void lmlp$refreshSchematicCacheWhenChunksUnload(CallbackInfo ci) {
-        ChunkMissingMaterialListCache.refreshWithSchematicCacheIfMissing(this.materialList);
     }
 
     @Inject(method = "getBrowserHeight", at = @At("RETURN"), cancellable = true)
