@@ -36,5 +36,6 @@ public abstract class MaterialListBaseMixin implements MaterialListSourceAccess 
 
         this.lmlp$setDataSource(MaterialListDataSource.WORLD_SCAN);
         ChunkMissingMaterialListCache.rememberIfPlacementList((fi.dy.masa.litematica.materials.MaterialListBase) (Object) this);
+        ChunkMissingMaterialListCache.markLiveScanCompleted((fi.dy.masa.litematica.materials.MaterialListBase) (Object) this);
     }
 }

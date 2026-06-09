@@ -1,18 +1,23 @@
 package io.github.huanmeng06.lmlp.cache;
 
 import com.google.gson.JsonObject;
+import fi.dy.masa.litematica.config.Configs;
 import fi.dy.masa.litematica.data.DataManager;
 import fi.dy.masa.litematica.data.SchematicHolder;
 import fi.dy.masa.litematica.materials.MaterialListBase;
 import fi.dy.masa.litematica.materials.MaterialListEntry;
 import fi.dy.masa.litematica.materials.MaterialListPlacement;
 import fi.dy.masa.litematica.materials.MaterialListUtils;
+import fi.dy.masa.litematica.scheduler.TaskScheduler;
+import fi.dy.masa.litematica.scheduler.tasks.TaskCountBlocksPlacement;
 import fi.dy.masa.litematica.schematic.LitematicaSchematic;
 import fi.dy.masa.litematica.schematic.container.LitematicaBlockStateContainer;
 import fi.dy.masa.litematica.schematic.placement.SchematicPlacement;
 import fi.dy.masa.litematica.schematic.placement.SubRegionPlacement;
 import fi.dy.masa.litematica.util.BlockInfoListType;
 import fi.dy.masa.litematica.util.PositionUtils;
+import fi.dy.masa.malilib.gui.Message.MessageType;
+import fi.dy.masa.malilib.util.InfoUtils;
 import fi.dy.masa.malilib.util.LayerRange;
 import io.github.huanmeng06.lmlp.access.MaterialListPlacementAccess;
 import io.github.huanmeng06.lmlp.access.MaterialListSourceAccess;
@@ -34,6 +39,7 @@ import java.util.Map;
 
 public final class ChunkMissingMaterialListCache {
     private static final Map<SchematicPlacement, ChunkMissingMaterialList> LISTS = new IdentityHashMap<>();
+    private static final Map<SchematicPlacement, LiveScanState> LIVE_SCANS = new IdentityHashMap<>();
     private static final ThreadLocal<Boolean> APPLYING_SCHEMATIC_CACHE = ThreadLocal.withInitial(() -> false);
 
     private ChunkMissingMaterialListCache() {
@@ -77,13 +83,49 @@ public final class ChunkMissingMaterialListCache {
         return !arePlacementChunksLoaded(placement) || materialList == null || materialList.getMaterialsAll().isEmpty();
     }
 
+    public static void scheduleLiveScanIfNeeded(SchematicPlacement placement, MaterialListBase materialList) {
+        if (placement == null || materialList == null || !arePlacementChunksLoaded(placement) || isWorldScanSource(materialList)) {
+            return;
+        }
+
+        scheduleLiveScan(placement, materialList, false, false);
+    }
+
+    public static boolean refreshWithLiveScanIfLoaded(MaterialListBase materialList) {
+        SchematicPlacement placement = placementFor(materialList);
+        if (placement == null || !arePlacementChunksLoaded(placement)) {
+            return false;
+        }
+
+        scheduleLiveScan(placement, materialList, true, true);
+        return true;
+    }
+
+    public static void markLiveScanCompleted(MaterialListBase materialList) {
+        SchematicPlacement placement = placementFor(materialList);
+        if (placement != null) {
+            LIVE_SCANS.put(placement, new LiveScanState(liveScanSignature(placement, materialList), LiveScanStatus.COMPLETED));
+        }
+    }
+
     public static boolean isApplyingSchematicCache() {
         return APPLYING_SCHEMATIC_CACHE.get();
     }
 
+    public static MaterialListDataSource dataSource(MaterialListBase materialList) {
+        return materialList instanceof MaterialListSourceAccess access ? access.lmlp$getDataSource() : MaterialListDataSource.UNKNOWN;
+    }
+
+    public static boolean hasKnownDataSource(MaterialListBase materialList) {
+        return dataSource(materialList) != MaterialListDataSource.UNKNOWN;
+    }
+
     public static boolean isSchematicCacheSource(MaterialListBase materialList) {
-        return materialList instanceof MaterialListSourceAccess access
-                && access.lmlp$getDataSource() == MaterialListDataSource.SCHEMATIC_CACHE;
+        return dataSource(materialList) == MaterialListDataSource.SCHEMATIC_CACHE;
+    }
+
+    public static boolean isWorldScanSource(MaterialListBase materialList) {
+        return dataSource(materialList) == MaterialListDataSource.WORLD_SCAN;
     }
 
     public static boolean isChunkMissingState(MaterialListBase materialList) {
@@ -145,6 +187,41 @@ public final class ChunkMissingMaterialListCache {
         if (materialList instanceof MaterialListSourceAccess access) {
             access.lmlp$setDataSource(MaterialListDataSource.SCHEMATIC_CACHE);
         }
+    }
+
+    private static void scheduleLiveScan(SchematicPlacement placement, MaterialListBase materialList, boolean manual, boolean showMessage) {
+        String signature = liveScanSignature(placement, materialList);
+        LiveScanState state = LIVE_SCANS.get(placement);
+        if (state != null && state.matches(signature)) {
+            if (state.status == LiveScanStatus.SCHEDULED || (!manual && state.status == LiveScanStatus.COMPLETED)) {
+                return;
+            }
+        }
+
+        boolean ignoreState = Configs.Generic.MATERIAL_LIST_IGNORE_STATE.getBooleanValue();
+        TaskCountBlocksPlacement task = new TaskCountBlocksPlacement(placement, materialList, ignoreState);
+        TaskScheduler.getInstanceClient().scheduleTask(task, 20);
+        LIVE_SCANS.put(placement, new LiveScanState(signature, LiveScanStatus.SCHEDULED));
+
+        if (showMessage) {
+            InfoUtils.showGuiOrInGameMessage(MessageType.INFO, "litematica.message.scheduled_task_added");
+        }
+    }
+
+    private static SchematicPlacement placementFor(MaterialListBase materialList) {
+        if (materialList instanceof ChunkMissingMaterialList list) {
+            return list.placement();
+        }
+
+        if (materialList instanceof MaterialListPlacement && materialList instanceof MaterialListPlacementAccess access) {
+            return access.lmlp$getPlacement();
+        }
+
+        return null;
+    }
+
+    private static String liveScanSignature(SchematicPlacement placement, MaterialListBase materialList) {
+        return signature(placement) + '|' + materialList.getMaterialListType().getStringValue();
     }
 
     private static LitematicaSchematic schematicFor(SchematicPlacement placement) {
@@ -238,5 +315,24 @@ public final class ChunkMissingMaterialListCache {
 
     private static void appendPos(StringBuilder builder, class_2338 pos) {
         builder.append(pos.method_10263()).append(',').append(pos.method_10264()).append(',').append(pos.method_10260());
+    }
+
+    private enum LiveScanStatus {
+        SCHEDULED,
+        COMPLETED
+    }
+
+    private static final class LiveScanState {
+        private final String signature;
+        private final LiveScanStatus status;
+
+        private LiveScanState(String signature, LiveScanStatus status) {
+            this.signature = signature;
+            this.status = status;
+        }
+
+        private boolean matches(String signature) {
+            return this.signature.equals(signature);
+        }
     }
 }

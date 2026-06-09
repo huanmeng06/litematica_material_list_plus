@@ -63,6 +63,8 @@
   "lmlp.gui.button.hover.material_list.write_sub_materials": "Write a tree-structured sub-material XLSX.",
   "lmlp.gui.material_list.display_type.minimal_sub_materials": "Minimal sub-materials",
   "lmlp.gui.material_list.chunk_missing_status": "Current material list is loaded from schematic cache",
+  "lmlp.gui.material_list.source.cache": "Schematic reading: cache",
+  "lmlp.gui.material_list.source.live": "Schematic reading: live",
   "lmlp.message.sub_material_list_export_failed": "Failed to write sub-material file.",
   "lmlp.hotkeys.category.material_list": "Material List",
   "lmlp.config.name.disable_litematica_hover_tooltip": "Disable Litematica original tooltip",

@@ -82,13 +82,16 @@ public final class MaterialListOpener {
         }
 
         if (ChunkMissingMaterialListCache.shouldUseSchematicCache(placement, materialList)) {
-            return ChunkMissingMaterialListCache.getOrCreate(placement, materialList);
+            materialList = ChunkMissingMaterialListCache.getOrCreate(placement, materialList);
+            ChunkMissingMaterialListCache.scheduleLiveScanIfNeeded(placement, materialList);
+            return materialList;
         }
 
         if (materialList == null) {
             materialList = placement.getMaterialList();
             DataManager.setMaterialList(materialList);
         }
+        ChunkMissingMaterialListCache.scheduleLiveScanIfNeeded(placement, materialList);
         return materialList;
     }
 

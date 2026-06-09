@@ -3,7 +3,7 @@ package io.github.huanmeng06.lmlp.mixin;
 import fi.dy.masa.litematica.materials.MaterialListBase;
 import fi.dy.masa.litematica.util.BlockInfoListType;
 import fi.dy.masa.malilib.gui.button.ButtonBase;
-import io.github.huanmeng06.lmlp.cache.ChunkMissingMaterialList;
+import io.github.huanmeng06.lmlp.cache.ChunkMissingMaterialListCache;
 import io.github.huanmeng06.lmlp.gui.MinimalSubMaterialListView;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -26,8 +26,7 @@ public abstract class GuiMaterialListButtonListenerMixin {
                     value = "INVOKE",
                     target = "Lfi/dy/masa/litematica/materials/MaterialListBase;reCreateMaterialList()V"))
     private void lmlp$refreshChunkMissingMaterialList(MaterialListBase materialList) {
-        if (materialList instanceof ChunkMissingMaterialList) {
-            materialList.reCreateMaterialList();
+        if (ChunkMissingMaterialListCache.refreshWithLiveScanIfLoaded(materialList)) {
             return;
         }
 
