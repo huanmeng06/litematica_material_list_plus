@@ -14,7 +14,6 @@ import fi.dy.masa.malilib.util.StringUtils;
 import io.github.huanmeng06.lmlp.cache.ChunkMissingMaterialListCache;
 import io.github.huanmeng06.lmlp.export.SubMaterialExporter;
 import io.github.huanmeng06.lmlp.gui.MinimalSubMaterialListView;
-import net.minecraft.class_332;
 import net.minecraft.class_437;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -82,13 +81,6 @@ public abstract class GuiMaterialListMixin extends GuiListBase {
     private void lmlp$addChunkMissingStatus(CallbackInfo ci) {
         if (ChunkMissingMaterialListCache.isChunkMissingState(this.materialList)) {
             this.addLabel(12, this.field_22790 - 28, 420, 12, 0xFFFFCC66, StringUtils.translate("lmlp.gui.material_list.chunk_missing_status"));
-        }
-    }
-
-    @Inject(method = "render", at = @At("TAIL"))
-    private void lmlp$renderChunkMissingStatus(class_332 drawContext, int mouseX, int mouseY, float partialTicks, CallbackInfo ci) {
-        if (ChunkMissingMaterialListCache.isChunkMissingState(this.materialList)) {
-            this.drawString(drawContext, StringUtils.translate("lmlp.gui.material_list.chunk_missing_status"), 12, this.field_22790 - 28, 0xFFFFCC66);
         }
     }
 

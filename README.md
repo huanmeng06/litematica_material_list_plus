@@ -2,13 +2,18 @@
 
 这个 README 只记录 `dev-newFeature` 分支的开发过程和每个小版本做了什么。完整的项目介绍、安装说明、功能说明和截图展示放在 `main` 分支维护。
 
-当前正式版：`v1.5.4`
+当前正式版：`v1.5.5`
 
-当前构建：`1.5.4+mc1.20.6`
+当前构建：`1.5.5+mc1.20.6`
 
 适配目标：Minecraft `1.20.6` / Fabric / Litematica / MaLiLib / REI
 
 ## 版本说明
+
+### v1.5.5
+
+- 修复 `v1.5.4` 启动崩溃：移除对 `GuiMaterialList.render` 的错误 Mixin 注入，避免 `GuiMaterialList` 类转换失败。
+- 保留区块缺失状态底部提示的 `initGui` label，并让该提示同时适用于原版 `MaterialListPlacement` 被区块缺失兜底接管的情况。
 
 ### v1.5.4
 
