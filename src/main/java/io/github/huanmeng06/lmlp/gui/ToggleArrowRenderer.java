@@ -10,8 +10,8 @@ final class ToggleArrowRenderer {
     private static final int ICON_WIDTH = 10;
     private static final int ICON_HEIGHT = 14;
     private static final float EXPANDED_ROTATION = (float) (Math.PI / 2.0D);
-    private static final class_2960 TEXTURE = new class_2960(LitematicaMaterialListPlus.MOD_ID, "textures/gui/recipe_book/page_forward.png");
-    private static final class_2960 HIGHLIGHTED_TEXTURE = new class_2960(LitematicaMaterialListPlus.MOD_ID, "textures/gui/recipe_book/page_forward_highlighted.png");
+    private static final class_2960 TEXTURE = new class_2960(LitematicaMaterialListPlus.MOD_ID, "textures/gui/sprites/recipe_book/page_forward.png");
+    private static final class_2960 HIGHLIGHTED_TEXTURE = new class_2960(LitematicaMaterialListPlus.MOD_ID, "textures/gui/sprites/recipe_book/page_forward_highlighted.png");
 
     private ToggleArrowRenderer() {
     }
