@@ -12,6 +12,7 @@ import fi.dy.masa.malilib.gui.button.ButtonBase;
 import fi.dy.masa.malilib.gui.button.ButtonGeneric;
 import fi.dy.masa.malilib.gui.button.ButtonOnOff;
 import fi.dy.masa.malilib.gui.button.IButtonActionListener;
+import fi.dy.masa.malilib.gui.widgets.WidgetLabel;
 import fi.dy.masa.malilib.util.StringUtils;
 import io.github.huanmeng06.lmlp.access.MaterialListPlacementAccess;
 import io.github.huanmeng06.lmlp.cache.ChunkMissingMaterialListCache;
@@ -93,12 +94,26 @@ public abstract class GuiMaterialListMixin extends GuiListBase {
         this.addButton(button, new SubMaterialExportButtonListener((GuiMaterialList) (Object) this));
     }
 
-    @Inject(method = "initGui", at = @At("TAIL"))
-    private void lmlp$addChunkMissingStatusLabel(CallbackInfo ci) {
-        if (ChunkMissingMaterialListCache.isChunkMissingState(this.materialList)) {
+    @Redirect(
+            method = "initGui",
+            at = @At(
+                    value = "INVOKE",
+                    target = "Lfi/dy/masa/litematica/gui/GuiMaterialList;addLabel(IIIII[Ljava/lang/String;)Lfi/dy/masa/malilib/gui/widgets/WidgetLabel;"))
+    private WidgetLabel lmlp$addChunkMissingStatusAfterStats(
+            GuiMaterialList gui,
+            int x,
+            int y,
+            int width,
+            int height,
+            int textColor,
+            String[] labels) {
+        WidgetLabel label = this.addLabel(x, y, width, height, textColor, labels);
+        if (x == 12 && y == this.field_22790 - 36 && ChunkMissingMaterialListCache.isChunkMissingState(this.materialList)) {
             String status = StringUtils.translate("lmlp.gui.material_list.chunk_missing_status");
-            this.addLabel(12, this.field_22790 - 24, this.getStringWidth(status), 12, 0xFFFFCC66, status);
+            this.addLabel(x, y + height, this.getStringWidth(status), height, 0xFFFFCC66, status);
         }
+
+        return label;
     }
 
     private int lmlp$subMaterialExportButtonX() {

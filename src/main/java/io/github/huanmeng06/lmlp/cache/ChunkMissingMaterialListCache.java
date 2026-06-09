@@ -2,6 +2,7 @@ package io.github.huanmeng06.lmlp.cache;
 
 import com.google.gson.JsonObject;
 import fi.dy.masa.litematica.data.DataManager;
+import fi.dy.masa.litematica.data.SchematicHolder;
 import fi.dy.masa.litematica.materials.MaterialListBase;
 import fi.dy.masa.litematica.materials.MaterialListEntry;
 import fi.dy.masa.litematica.materials.MaterialListPlacement;
@@ -104,12 +105,12 @@ public final class ChunkMissingMaterialListCache {
     }
 
     private static List<MaterialListEntry> createEntries(SchematicPlacement placement, BlockInfoListType type) {
-        LitematicaSchematic schematic = placement.getSchematic();
+        LitematicaSchematic schematic = schematicFor(placement);
         if (schematic == null) {
             return List.of();
         }
 
-        Collection<String> enabledRegions = enabledRegionNames(placement);
+        Collection<String> enabledRegions = enabledRegionNames(placement, schematic);
         if (type == BlockInfoListType.ALL) {
             return MaterialListUtils.createMaterialListFor(schematic, enabledRegions);
         }
@@ -127,13 +128,32 @@ public final class ChunkMissingMaterialListCache {
                 class_310.method_1551().field_1724);
     }
 
-    private static Collection<String> enabledRegionNames(SchematicPlacement placement) {
+    private static LitematicaSchematic schematicFor(SchematicPlacement placement) {
+        LitematicaSchematic schematic = placement.getSchematic();
+        if (schematic != null) {
+            return schematic;
+        }
+
+        File file = placement.getSchematicFile();
+        if (file != null) {
+            return SchematicHolder.getInstance().getOrLoad(file);
+        }
+
+        return null;
+    }
+
+    private static Collection<String> enabledRegionNames(SchematicPlacement placement, LitematicaSchematic schematic) {
         List<String> names = new ArrayList<>();
         for (SubRegionPlacement region : placement.getAllSubRegionsPlacements()) {
             if (region.isEnabled()) {
                 names.add(region.getName());
             }
         }
+
+        if (names.isEmpty() && placement.getAllSubRegionsPlacements().isEmpty()) {
+            names.addAll(schematic.getAreas().keySet());
+        }
+
         names.sort(String::compareTo);
         return names;
     }
