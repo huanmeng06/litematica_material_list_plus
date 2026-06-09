@@ -66,6 +66,23 @@ public final class ChunkMissingMaterialListCache {
         list.setMaterialListEntries(createEntries(list.placement(), list.getMaterialListType()));
     }
 
+    public static void refreshPlacementList(SchematicPlacement placement, MaterialListBase materialList) {
+        materialList.setMaterialListEntries(createEntries(placement, materialList.getMaterialListType()));
+    }
+
+    public static boolean isChunkMissingState(MaterialListBase materialList) {
+        if (materialList instanceof ChunkMissingMaterialList) {
+            return true;
+        }
+
+        if (materialList instanceof MaterialListPlacement && materialList instanceof MaterialListPlacementAccess access) {
+            SchematicPlacement placement = access.lmlp$getPlacement();
+            return placement != null && !arePlacementChunksLoaded(placement);
+        }
+
+        return false;
+    }
+
     public static boolean arePlacementChunksLoaded(SchematicPlacement placement) {
         class_638 world = class_310.method_1551().field_1687;
         if (world == null) {
