@@ -28,6 +28,7 @@ import org.spongepowered.asm.mixin.injection.ModifyArg;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.io.File;
 import java.util.List;
@@ -84,6 +85,13 @@ public abstract class GuiMaterialListMixin extends GuiListBase {
         return label;
     }
 
+    @Inject(method = "getBrowserHeight", at = @At("RETURN"), cancellable = true)
+    private void lmlp$makeRoomForChunkMissingStatus(CallbackInfoReturnable<Integer> cir) {
+        if (ChunkMissingMaterialListCache.isChunkMissingState(this.materialList)) {
+            cir.setReturnValue(Math.max(0, cir.getReturnValue() - 12));
+        }
+    }
+
     @Inject(method = "initGui", at = @At("TAIL"))
     private void lmlp$addSubMaterialExportButton(CallbackInfo ci) {
         int x = this.lmlp$subMaterialExportButtonX();
@@ -92,6 +100,14 @@ public abstract class GuiMaterialListMixin extends GuiListBase {
         ButtonGeneric button = new ButtonGeneric(x, y, -1, 20, label, new String[0]);
         button.setHoverStrings("lmlp.gui.button.hover.material_list.write_sub_materials");
         this.addButton(button, new SubMaterialExportButtonListener((GuiMaterialList) (Object) this));
+    }
+
+    @Inject(method = "initGui", at = @At("TAIL"))
+    private void lmlp$addChunkMissingStatusWhenStatsAreEmpty(CallbackInfo ci) {
+        if (this.materialList.getCountTotal() == 0L && ChunkMissingMaterialListCache.isChunkMissingState(this.materialList)) {
+            String status = StringUtils.translate("lmlp.gui.material_list.chunk_missing_status");
+            this.addLabel(12, this.field_22790 - 36, this.getStringWidth(status), 12, 0xFFFFCC66, status);
+        }
     }
 
     @Redirect(

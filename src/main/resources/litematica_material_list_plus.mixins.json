@@ -12,6 +12,7 @@
     "InfoHudMixin",
     "MaterialListBaseMixin",
     "MaterialListPlacementMixin",
+    "SchematicPlacementMixin",
     "WidgetListBaseMixin",
     "WidgetListMaterialListMixin",
     "WidgetMaterialListEntryMixin"
