@@ -3,14 +3,12 @@ package io.github.huanmeng06.lmlp.gui;
 import fi.dy.masa.litematica.data.DataManager;
 import fi.dy.masa.litematica.gui.GuiMaterialList;
 import fi.dy.masa.litematica.materials.MaterialListBase;
-import fi.dy.masa.litematica.materials.MaterialListPlacement;
 import fi.dy.masa.litematica.schematic.placement.SchematicPlacement;
 import fi.dy.masa.malilib.gui.GuiBase;
 import fi.dy.masa.malilib.gui.Message.MessageType;
 import fi.dy.masa.malilib.util.InfoUtils;
-import io.github.huanmeng06.lmlp.access.MaterialListPlacementAccess;
-import io.github.huanmeng06.lmlp.cache.CachedMaterialList;
-import io.github.huanmeng06.lmlp.cache.PlacementMaterialListCache;
+import io.github.huanmeng06.lmlp.cache.ChunkMissingMaterialList;
+import io.github.huanmeng06.lmlp.cache.ChunkMissingMaterialListCache;
 import net.minecraft.class_437;
 import net.minecraft.class_465;
 
@@ -71,35 +69,31 @@ public final class MaterialListOpener {
     public static MaterialListBase getOrCreateMaterialList() {
         MaterialListBase materialList = DataManager.getMaterialList();
 
-        if (materialList instanceof CachedMaterialList cachedList) {
-            if (cachedList.canRefreshLive()) {
-                return PlacementMaterialListCache.refreshLive(cachedList.placement(), cachedList);
-            }
-
-            if (cachedList.matchesCurrentPlacementState()) {
-                return cachedList;
-            }
-
-            materialList = null;
+        SchematicPlacement placement = DataManager.getSchematicPlacementManager().getSelectedSchematicPlacement();
+        if (placement == null) {
+            InfoUtils.showGuiOrInGameMessage(MessageType.ERROR, "litematica.message.error.no_placement_selected");
+            return null;
         }
 
-        if (materialList instanceof MaterialListPlacement && materialList instanceof MaterialListPlacementAccess access) {
-            SchematicPlacement placement = access.lmlp$getPlacement();
-            if (placement != null && !PlacementMaterialListCache.arePlacementChunksLoaded(placement)) {
-                return PlacementMaterialListCache.getCachedOrShowMissing(placement);
-            }
+        if (!ChunkMissingMaterialListCache.arePlacementChunksLoaded(placement)) {
+            return ChunkMissingMaterialListCache.getOrCreate(placement, materialList);
+        }
+
+        boolean refresh = false;
+        if (materialList instanceof ChunkMissingMaterialList) {
+            materialList = null;
+            refresh = true;
         }
 
         if (materialList == null) {
-            SchematicPlacement placement = DataManager.getSchematicPlacementManager().getSelectedSchematicPlacement();
-            if (placement == null) {
-                InfoUtils.showGuiOrInGameMessage(MessageType.ERROR, "litematica.message.error.no_placement_selected");
-                return null;
-            }
-
-            materialList = PlacementMaterialListCache.getOrCreate(placement);
+            materialList = placement.getMaterialList();
+            DataManager.setMaterialList(materialList);
+            refresh = true;
         }
 
+        if (refresh) {
+            materialList.reCreateMaterialList();
+        }
         return materialList;
     }
 
