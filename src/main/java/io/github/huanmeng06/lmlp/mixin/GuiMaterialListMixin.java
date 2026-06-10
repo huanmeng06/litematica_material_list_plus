@@ -81,6 +81,9 @@ public abstract class GuiMaterialListMixin extends GuiListBase {
 
     @Inject(method = "getBrowserHeight", at = @At("RETURN"), cancellable = true)
     private void lmlp$makeRoomForChunkMissingStatus(CallbackInfoReturnable<Integer> cir) {
+        if (KnownPlacementRows.readStatus(ChunkMissingMaterialListCache.dataSource(this.materialList)) != null) {
+            cir.setReturnValue(Math.max(0, cir.getReturnValue() - 12));
+        }
     }
 
     @Inject(method = "initGui", at = @At("TAIL"))
@@ -100,7 +103,7 @@ public abstract class GuiMaterialListMixin extends GuiListBase {
         if (readStatus != null) {
             String status = StringUtils.translate("lmlp.gui.material_list.read_status", readStatus.label());
             int width = this.getStringWidth(status);
-            this.addLabel(Math.max(12, this.field_22789 - width - 12), 8, width, 12, readStatus.color(), status);
+            this.addLabel(12, this.field_22790 - 24, width, 12, readStatus.color(), status);
         }
     }
 
