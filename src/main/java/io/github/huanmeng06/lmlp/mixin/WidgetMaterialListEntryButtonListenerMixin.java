@@ -4,6 +4,7 @@ import fi.dy.masa.litematica.gui.widgets.WidgetListMaterialList;
 import fi.dy.masa.litematica.materials.MaterialListBase;
 import fi.dy.masa.litematica.materials.MaterialListEntry;
 import fi.dy.masa.malilib.gui.button.ButtonBase;
+import io.github.huanmeng06.lmlp.gui.IgnoredMaterialRegistry;
 import io.github.huanmeng06.lmlp.gui.MaterialListPlusState;
 import io.github.huanmeng06.lmlp.gui.MinimalSubMaterialListView;
 import org.spongepowered.asm.mixin.Mixin;
@@ -16,7 +17,7 @@ import java.lang.reflect.Field;
 @Mixin(targets = "fi.dy.masa.litematica.gui.widgets.WidgetMaterialListEntry$ButtonListener", remap = false)
 public abstract class WidgetMaterialListEntryButtonListenerMixin {
     @Inject(method = "actionPerformedWithButton", at = @At("HEAD"), cancellable = true)
-    private void lmlp$handleMinimalSubMaterialIgnore(ButtonBase button, int mouseButton, CallbackInfo ci) {
+    private void lmlp$handleStableMaterialIgnore(ButtonBase button, int mouseButton, CallbackInfo ci) {
         MaterialListBase materialList = this.lmlp$getField("materialList", MaterialListBase.class);
         MaterialListEntry entry = this.lmlp$getField("entry", MaterialListEntry.class);
         WidgetListMaterialList listWidget = this.lmlp$getField("listWidget", WidgetListMaterialList.class);
@@ -24,16 +25,21 @@ public abstract class WidgetMaterialListEntryButtonListenerMixin {
         if (materialList == null
                 || entry == null
                 || listWidget == null
-                || !this.lmlp$isIgnoreButton()
-                || !MinimalSubMaterialListView.isActive(materialList)
-                || !MinimalSubMaterialListView.isMinimalEntry(entry)) {
+                || !this.lmlp$isIgnoreButton()) {
             return;
         }
 
-        MinimalSubMaterialListView.ignoreEntry(materialList, entry, "original-button-listener", true);
-        MaterialListPlusState.clear();
-        listWidget.refreshEntries();
-        ci.cancel();
+        if (MinimalSubMaterialListView.isActive(materialList)) {
+            if (MinimalSubMaterialListView.isMinimalEntry(entry)) {
+                MinimalSubMaterialListView.ignoreEntry(materialList, entry, "original-button-listener", true);
+                MaterialListPlusState.clear();
+                listWidget.refreshEntries();
+                ci.cancel();
+            }
+            return;
+        }
+
+        IgnoredMaterialRegistry.ignore(materialList, entry);
     }
 
     private boolean lmlp$isIgnoreButton() {

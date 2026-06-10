@@ -4,7 +4,6 @@ import fi.dy.masa.litematica.materials.MaterialListBase;
 import fi.dy.masa.litematica.materials.MaterialListEntry;
 import fi.dy.masa.litematica.util.BlockInfoListType;
 import fi.dy.masa.malilib.util.StringUtils;
-import io.github.huanmeng06.lmlp.cache.ChunkMissingMaterialListCache;
 import io.github.huanmeng06.lmlp.config.Configs;
 import io.github.huanmeng06.lmlp.material.InventoryCounts;
 import io.github.huanmeng06.lmlp.material.ItemStackTexts;
@@ -57,7 +56,6 @@ public final class MinimalSubMaterialListView {
     private static final Map<MaterialListEntry, DisplayData> ENTRY_DISPLAYS = new IdentityHashMap<>();
     private static final Map<String, DisplayData> ENTRY_DISPLAY_KEYS = new HashMap<>();
     private static final Map<String, List<RequirementContribution>> REQUIREMENT_CACHES = new HashMap<>();
-    private static final Map<String, Set<String>> IGNORED_ENTRY_KEYS_BY_PLACEMENT = new LinkedHashMap<>();
     private static final ExpandAnimationTracker SOURCE_ANIMATIONS = new ExpandAnimationTracker();
     private static String expandedSourceKey = "";
     private static String visibleSourceKey = "";
@@ -171,8 +169,8 @@ public final class MinimalSubMaterialListView {
     }
 
     public static boolean ignoreEntry(MaterialListBase materialList, MaterialListEntry entry, String clickPath, boolean clickedHitbox) {
-        String placementKey = placementKey(materialList);
-        int beforeSize = ignoredSize(placementKey);
+        String placementKey = IgnoredMaterialRegistry.placementKey(materialList);
+        int beforeSize = ignoredSize(materialList);
         String key = stableEntryKey(entry);
         if (!isMinimalEntry(entry)) {
             LOGGER.info("[minimal ignore] placementKey={} subMaterialKey={} beforeIgnoredSize={} afterIgnoredSize={}",
@@ -192,24 +190,19 @@ public final class MinimalSubMaterialListView {
             return false;
         }
 
-        boolean changed = IGNORED_ENTRY_KEYS_BY_PLACEMENT.computeIfAbsent(placementKey, ignored -> new HashSet<>()).add(key);
+        boolean changed = IgnoredMaterialRegistry.ignoreMinimal(materialList, key);
         if (changed) {
             clearCaches();
         }
-        LOGGER.info("[minimal ignore] placementKey={} subMaterialKey={} beforeIgnoredSize={} afterIgnoredSize={}",
-                placementKey, key, beforeSize, ignoredSize(placementKey));
         return changed;
     }
 
     public static void clearIgnored(MaterialListBase materialList) {
-        String placementKey = placementKey(materialList);
-        int beforeSize = ignoredSize(placementKey);
-        Set<String> ignored = placementKey.isEmpty() ? null : IGNORED_ENTRY_KEYS_BY_PLACEMENT.remove(placementKey);
-        if (ignored != null && !ignored.isEmpty()) {
+        int beforeSize = ignoredSize(materialList);
+        IgnoredMaterialRegistry.clearMinimalIgnored(materialList);
+        if (beforeSize > 0) {
             clearCaches();
         }
-        LOGGER.info("[minimal clear] placementKey={} beforeIgnoredSize={} afterIgnoredSize={}",
-                placementKey, beforeSize, ignoredSize(placementKey));
     }
 
     public static String debugStableKey(MaterialListEntry entry) {
@@ -217,20 +210,7 @@ public final class MinimalSubMaterialListView {
     }
 
     public static int ignoredSize(MaterialListBase materialList) {
-        return ignoredSize(placementKey(materialList));
-    }
-
-    private static int ignoredSize(String placementKey) {
-        Set<String> ignored = ignoredSet(placementKey);
-        return ignored == null ? 0 : ignored.size();
-    }
-
-    private static Set<String> ignoredSet(String placementKey) {
-        return placementKey == null || placementKey.isEmpty() ? null : IGNORED_ENTRY_KEYS_BY_PLACEMENT.get(placementKey);
-    }
-
-    private static String placementKey(MaterialListBase materialList) {
-        return ChunkMissingMaterialListCache.materialListContextKey(materialList, "minimal_sub_material");
+        return IgnoredMaterialRegistry.minimalIgnoredSize(materialList);
     }
 
     public static boolean tick(MaterialListBase materialList) {
@@ -618,7 +598,7 @@ public final class MinimalSubMaterialListView {
     }
 
     private static String signature(MaterialListBase materialList, List<MaterialListEntry> entries, InventoryCounts.Snapshot inventory) {
-        String placementKey = placementKey(materialList);
+        String placementKey = IgnoredMaterialRegistry.placementKey(materialList);
         StringBuilder builder = new StringBuilder();
         builder.append(materialList.getMaterialListType().getStringValue())
                 .append('|')
@@ -642,7 +622,7 @@ public final class MinimalSubMaterialListView {
                     .append(':')
                     .append(entry.getCountAvailable());
         }
-        Set<String> ignored = ignoredSet(placementKey);
+        Set<String> ignored = IgnoredMaterialRegistry.minimalIgnoredKeys(materialList);
         if (ignored != null && !ignored.isEmpty()) {
             ignored.stream().sorted().forEach(key -> builder.append("|ignored:").append(key));
         }
@@ -1018,9 +998,9 @@ public final class MinimalSubMaterialListView {
         private void publish(MaterialListBase materialList) {
             removeDisplayData(materialList);
             removeBuildDisplayData(materialList);
-            String placementKey = placementKey(materialList);
-            Set<String> ignored = ignoredSet(placementKey);
-            int ignoredSize = ignored == null ? 0 : ignored.size();
+            String placementKey = IgnoredMaterialRegistry.placementKey(materialList);
+            Set<String> ignored = IgnoredMaterialRegistry.minimalIgnoredKeys(materialList);
+            int ignoredSize = ignored.size();
             int filteredEntryCount = 0;
             List<MaterialListEntry> entries = new ArrayList<>(this.materials.size());
             Map<MaterialListEntry, DisplayData> displays = new IdentityHashMap<>();
@@ -1047,7 +1027,7 @@ public final class MinimalSubMaterialListView {
     }
 
     private static boolean isIgnored(MaterialListBase materialList, Accumulator material) {
-        return isIgnored(ignoredSet(placementKey(materialList)), material);
+        return isIgnored(IgnoredMaterialRegistry.minimalIgnoredKeys(materialList), material);
     }
 
     private static boolean isIgnored(Set<String> ignored, Accumulator material) {
@@ -1055,7 +1035,7 @@ public final class MinimalSubMaterialListView {
     }
 
     private static List<String> ignoredKeys(MaterialListBase materialList) {
-        Set<String> ignored = ignoredSet(placementKey(materialList));
+        Set<String> ignored = IgnoredMaterialRegistry.minimalIgnoredKeys(materialList);
         if (ignored == null || ignored.isEmpty()) {
             return List.of();
         }

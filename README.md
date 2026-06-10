@@ -2,13 +2,23 @@
 
 这个 README 只记录 `dev-newFeature` 分支的开发过程和每个小版本做了什么。完整的项目介绍、安装说明、功能说明和截图展示放在 `main` 分支维护。
 
-当前正式版：`v1.5.34`
+当前正式版：`v1.5.35`
 
-当前构建：`1.5.34+mc1.20.6`
+当前构建：`1.5.35+mc1.20.6`
 
 适配目标：Minecraft `1.20.6` / Fabric / Litematica / MaLiLib / REI
 
 ## 版本说明
+
+### v1.5.35
+
+- 新增统一忽略状态注册表 `IgnoredMaterialRegistry`，将 All / 全部材料、渲染层、最小子材料三类视图的忽略状态统一为 `PlacementKey + ViewType + MaterialKey` 模型。
+- All / 全部材料页面点击“忽略”时，会同时写入 LMLP 稳定 registry 和原版 `materialList.ignoreEntry(...)`；当前 GUI 仍由原版立即刷新，后续实时、缓存、离线缓存重建后由 LMLP registry 继续过滤。
+- 渲染层页面的忽略 key 会额外包含当前 `LayerRange` 签名：layer mode、axis、single、min、max，避免不同渲染层范围互相误伤。
+- `MaterialKey` 对普通材料使用 `item:<item id>`，不依赖 `MaterialListEntry` 对象引用、排序位置或数量统计；最小子材料继续使用上一版的稳定子材料签名。
+- 顶部“清除忽略”在 All / 渲染层页面会清理当前投影当前视图的 LMLP registry；在最小子材料页面继续清理当前投影的 `MINIMAL_SUB_MATERIAL` 记录并重建 minimal 缓存。
+- 同步 `fabric.mod.json` 和运行时 `MOD_VERSION` 到 `1.5.35+mc1.20.6`。
+- 构建产物改为 `1.5.35+mc1.20.6`。
 
 ### v1.5.34
 

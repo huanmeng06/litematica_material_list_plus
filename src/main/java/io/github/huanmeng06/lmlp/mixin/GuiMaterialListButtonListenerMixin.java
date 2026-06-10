@@ -4,6 +4,7 @@ import fi.dy.masa.litematica.materials.MaterialListBase;
 import fi.dy.masa.litematica.util.BlockInfoListType;
 import fi.dy.masa.malilib.gui.button.ButtonBase;
 import io.github.huanmeng06.lmlp.cache.ChunkMissingMaterialListCache;
+import io.github.huanmeng06.lmlp.gui.IgnoredMaterialRegistry;
 import io.github.huanmeng06.lmlp.gui.MinimalSubMaterialListView;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -23,7 +24,11 @@ public abstract class GuiMaterialListButtonListenerMixin {
 
         MaterialListBase materialList = this.lmlp$materialListFromParent();
         if (materialList != null) {
-            MinimalSubMaterialListView.clearIgnored(materialList);
+            if (MinimalSubMaterialListView.isActive(materialList)) {
+                MinimalSubMaterialListView.clearIgnored(materialList);
+            } else {
+                IgnoredMaterialRegistry.clearIgnored(materialList);
+            }
         }
     }
 
