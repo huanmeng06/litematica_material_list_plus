@@ -44,7 +44,7 @@ public class KnownPlacementListEntry extends WidgetSchematicPlacement {
 
     private void createButtons() {
         int buttonX = this.x + this.width - 2;
-        int buttonY = this.y + 1;
+        int buttonY = KnownPlacementRows.buttonY(this.y);
         buttonX = this.addRemoveButton(buttonX, buttonY);
         if (this.context != null && this.context.canEdit()) {
             buttonX = this.addToggleButton(buttonX, buttonY);

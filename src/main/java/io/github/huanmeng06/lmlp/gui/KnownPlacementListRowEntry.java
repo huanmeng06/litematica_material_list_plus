@@ -47,7 +47,7 @@ public class KnownPlacementListRowEntry extends WidgetListEntryBase<KnownPlaceme
 
         KnownPlacementContext context = this.row.context();
         int buttonX = this.x + this.width - 2;
-        int buttonY = this.y + 1;
+        int buttonY = KnownPlacementRows.buttonY(this.y);
         buttonX = this.addRemoveButton(buttonX, buttonY, context);
         if (context.canEdit() && context.placement() != null) {
             buttonX = this.addToggleButton(buttonX, buttonY, context.placement());

@@ -18,15 +18,16 @@ import java.util.Locale;
 import java.util.Map;
 
 public final class KnownPlacementRows {
-    public static final int ROW_HEIGHT = 22;
+    public static final int ROW_HEIGHT = 24;
     public static final int ICON_SIZE = 16;
-    public static final int PLACEMENT_INDENT = 22;
-    public static final int STATUS_X = 170;
+    public static final int PLACEMENT_INDENT = 50;
+    public static final int STATUS_X = 190;
 
-    private static final int ARROW_SLOT_X = 2;
+    private static final int BUTTON_HEIGHT = 20;
+    private static final int ARROW_SLOT_X = 6;
     private static final int ARROW_SLOT_WIDTH = 14;
-    private static final int ICON_X = 18;
-    private static final int HEADER_TEXT_X = 39;
+    private static final int ICON_X = 28;
+    private static final int HEADER_TEXT_X = 50;
     private static final int TEXT_HEIGHT = 8;
 
     private static final class_2960 OVERWORLD_ICON = new class_2960(LitematicaMaterialListPlus.MOD_ID, "textures/gui/dimensions/overworld.png");
@@ -34,6 +35,7 @@ public final class KnownPlacementRows {
     private static final class_2960 END_ICON = new class_2960(LitematicaMaterialListPlus.MOD_ID, "textures/gui/dimensions/end.png");
     private static final class_2960 DIM_ICON = new class_2960(LitematicaMaterialListPlus.MOD_ID, "textures/gui/dimensions/dim.png");
     private static final Map<String, Boolean> COLLAPSED_GROUPS = new LinkedHashMap<>();
+    private static final ExpandAnimationTracker GROUP_ANIMATIONS = new ExpandAnimationTracker();
 
     private KnownPlacementRows() {
     }
@@ -74,7 +76,11 @@ public final class KnownPlacementRows {
 
     public static void toggle(String pageId, String dimension) {
         String key = collapseKey(pageId, dimension);
-        COLLAPSED_GROUPS.put(key, !COLLAPSED_GROUPS.getOrDefault(key, false));
+        boolean expanded = !COLLAPSED_GROUPS.getOrDefault(key, false);
+        float startProgress = GROUP_ANIMATIONS.progress(key, expanded);
+        boolean nextExpanded = !expanded;
+        COLLAPSED_GROUPS.put(key, !nextExpanded);
+        GROUP_ANIMATIONS.start(key, startProgress, nextExpanded ? 1.0F : 0.0F);
     }
 
     public static List<String> filterStrings(KnownPlacementRow row) {
@@ -105,9 +111,10 @@ public final class KnownPlacementRows {
         RenderUtils.drawRect(widget.getX(), widget.getY(), widget.getWidth(), widget.getHeight(), background);
 
         int centerY = widget.getY() + widget.getHeight() / 2;
-        ToggleArrowRenderer.render(drawContext, widget.getX() + ARROW_SLOT_X, ARROW_SLOT_WIDTH, centerY, row.expanded() ? 1.0F : 0.0F, hovered);
+        ToggleArrowRenderer.render(drawContext, widget.getX() + ARROW_SLOT_X, ARROW_SLOT_WIDTH, centerY, arrowProgress(row), hovered);
         drawIcon(row.dimension(), widget.getX() + ICON_X, widget.getY() + (widget.getHeight() - ICON_SIZE) / 2, drawContext);
         widget.drawString(widget.getX() + HEADER_TEXT_X, textY(widget), 0xFFE0E0E0, row.displayName(), drawContext);
+        GROUP_ANIMATIONS.prune();
     }
 
     public static void renderSelectedOutline(WidgetBase widget) {
@@ -116,6 +123,14 @@ public final class KnownPlacementRows {
 
     public static int textY(WidgetBase widget) {
         return widget.getY() + (widget.getHeight() - TEXT_HEIGHT) / 2;
+    }
+
+    public static int buttonY(int rowY) {
+        return rowY + Math.max(2, (ROW_HEIGHT - BUTTON_HEIGHT) / 2);
+    }
+
+    private static float arrowProgress(KnownPlacementRow row) {
+        return GROUP_ANIMATIONS.progress(collapseKey(row.pageId(), row.dimension()), row.expanded());
     }
 
     public static String displayName(String dimension) {
