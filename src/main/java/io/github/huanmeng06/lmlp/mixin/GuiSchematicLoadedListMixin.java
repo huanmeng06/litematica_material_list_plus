@@ -19,6 +19,11 @@ public abstract class GuiSchematicLoadedListMixin {
 
     @Inject(method = "createListWidget(II)Lfi/dy/masa/litematica/gui/widgets/WidgetListLoadedSchematics;", at = @At("HEAD"), cancellable = true)
     private void lmlp$createKnownLoadedSchematicsList(int listX, int listY, CallbackInfoReturnable<WidgetListLoadedSchematics> cir) {
-        cir.setReturnValue(new KnownLoadedSchematicsList(listX, listY, this.getBrowserWidth(), this.getBrowserHeight()));
+        cir.setReturnValue(new KnownLoadedSchematicsList(
+                listX,
+                listY,
+                this.getBrowserWidth(),
+                this.getBrowserHeight(),
+                (GuiSchematicLoadedList) (Object) this));
     }
 }

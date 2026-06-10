@@ -29,6 +29,10 @@ public final class MaterialListOpener {
     }
 
     public static boolean openContext(String contextKey, String reason) {
+        return openContext(contextKey, reason, null);
+    }
+
+    public static boolean openContext(String contextKey, String reason, class_437 parentGui) {
         ChunkMissingMaterialListCache.selectMaterialListContext(contextKey, reason);
         MaterialListBase materialList = ChunkMissingMaterialListCache.getOrCreateMaterialListForOpen(DataManager.getMaterialList(), reason);
 
@@ -36,7 +40,11 @@ public final class MaterialListOpener {
             return true;
         }
 
-        GuiBase.openGui(new GuiMaterialList(materialList));
+        GuiMaterialList gui = new GuiMaterialList(materialList);
+        if (parentGui != null) {
+            gui.setParent(parentGui);
+        }
+        GuiBase.openGui(gui);
         return true;
     }
 

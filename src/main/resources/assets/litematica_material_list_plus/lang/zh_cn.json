@@ -74,6 +74,8 @@
   "lmlp.gui.known_placement.offline_cache_hint": "该条目来自 LMLP 上次保存的缓存索引。\n真实投影当前未在此维度加载。",
   "lmlp.gui.known_placement.offline_cache_delete_hint": "删除该条目只会移除 LMLP 缓存记录。",
   "lmlp.gui.known_placement.offline_cache_empty": "该缓存记录没有已保存的材料列表条目。",
+  "lmlp.gui.known_placement.status_schematic_missing": "文件缺失",
+  "lmlp.gui.known_placement.status_cache_empty": "缓存为空",
   "lmlp.gui.known_placement.schematic_missing": "原理图文件缺失，已禁用实时刷新。",
   "lmlp.gui.known_placement.dimension": "维度：%s",
   "lmlp.gui.known_placement.schematic": "原理图：%s",

@@ -12,9 +12,9 @@ import fi.dy.masa.malilib.render.RenderUtils;
 import fi.dy.masa.malilib.util.StringUtils;
 import io.github.huanmeng06.lmlp.cache.ChunkMissingMaterialListCache;
 import io.github.huanmeng06.lmlp.cache.ChunkMissingMaterialListCache.KnownPlacementContext;
+import io.github.huanmeng06.lmlp.gui.KnownPlacementRows.PlacementLine;
 import net.minecraft.class_332;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -102,7 +102,7 @@ public class KnownPlacementListEntry extends WidgetSchematicPlacement {
     @Override
     public boolean onMouseClicked(int mouseX, int mouseY, int mouseButton) {
         if (mouseButton == 0 && this.isPlacementNameHovered(mouseX, mouseY) && this.context != null) {
-            return MaterialListOpener.openContext(this.context.key(), "schematic_placements_list.name_click_legacy");
+            return MaterialListOpener.openContext(this.context.key(), "schematic_placements_list.name_click_legacy", this.parent.getParentGui());
         }
 
         return super.onMouseClicked(mouseX, mouseY, mouseButton);
@@ -124,43 +124,34 @@ public class KnownPlacementListEntry extends WidgetSchematicPlacement {
         }
 
         String enabledColor = this.placement.isEnabled() ? GuiBase.TXT_GREEN : GuiBase.TXT_RED;
-        boolean nameHovered = this.isPlacementNameHovered(mouseX, mouseY);
+        KnownPlacementContext context = this.context;
+        PlacementLine line = KnownPlacementRows.placementLine(this, context, this.placement.getName(), KnownPlacementRows.contentRight(this, this.buttonsStartX));
+        boolean nameHovered = line.nameHovered(this, mouseX, mouseY);
         if (nameHovered) {
             ClickableCursor.requestHand();
         }
-        String name = enabledColor + (nameHovered ? KnownPlacementRows.UNDERLINE : "") + this.placement.getName() + GuiBase.TXT_RST;
-        int textY = KnownPlacementRows.textY(this);
-        KnownPlacementRows.renderPlacementIcon(this, this.zLevel, drawContext);
-        this.drawString(this.x + KnownPlacementRows.PLACEMENT_INDENT, textY, 0xFFFFFFFF, name, drawContext);
-
-        if (this.context != null && !this.context.canEdit()) {
-            this.drawString(this.x + KnownPlacementRows.STATUS_X, textY, 0xFFAAAAAA, StringUtils.translate("lmlp.gui.known_placement.cache_only"), drawContext);
-        }
+        KnownPlacementRows.renderPlacementLine(this, this.zLevel, drawContext, line, enabledColor, nameHovered);
 
         this.drawSubWidgets(mouseX, mouseY, drawContext);
     }
 
     @Override
     public void postRenderHovered(int mouseX, int mouseY, boolean selected, class_332 drawContext) {
-        if (this.isMouseOver(mouseX, mouseY) && mouseX < this.buttonsStartX) {
+        if (this.isMouseOver(mouseX, mouseY) && mouseX < this.buttonsStartX && this.context != null) {
+            PlacementLine line = KnownPlacementRows.placementLine(this, this.context, this.placement.getName(), KnownPlacementRows.contentRight(this, this.buttonsStartX));
             List<String> lines = new ArrayList<>();
-            lines.add(StringUtils.translate("lmlp.gui.known_placement.dimension", this.context == null ? "?" : KnownPlacementRows.displayName(this.context.dimension())));
-            lines.add(StringUtils.translate("lmlp.gui.known_placement.schematic", this.schematicName()));
-            if (this.context != null && !this.context.canEdit()) {
-                lines.add(StringUtils.translate("lmlp.gui.known_placement.cache_only_hint"));
+            if (line.statusHovered(this, mouseX, mouseY)) {
+                lines.addAll(line.status().tooltipLines());
+            } else if (line.fileHovered(this, mouseX, mouseY) && !line.fileHoverText().isEmpty()) {
+                lines.add(line.fileHoverText());
             }
-            RenderUtils.drawHoverText(mouseX, mouseY, lines, drawContext);
+
+            if (!lines.isEmpty()) {
+                RenderUtils.drawHoverText(mouseX, mouseY, lines, drawContext);
+            }
         }
 
-        super.postRenderHovered(mouseX, mouseY, selected, drawContext);
-    }
-
-    private String schematicName() {
-        if (this.context == null || this.context.schematicPath().isEmpty()) {
-            return StringUtils.translate("litematica.gui.label.schematic_placement.in_memory");
-        }
-
-        return new File(this.context.schematicPath()).getName();
+        this.drawHoveredSubWidget(mouseX, mouseY, drawContext);
     }
 
     private boolean isPlacementNameHovered(int mouseX, int mouseY) {
@@ -168,6 +159,7 @@ public class KnownPlacementListEntry extends WidgetSchematicPlacement {
             return false;
         }
 
-        return KnownPlacementRows.isPlacementNameHovered(this, this.getStringWidth(this.placement.getName()), mouseX, mouseY);
+        PlacementLine line = KnownPlacementRows.placementLine(this, this.context, this.placement.getName(), KnownPlacementRows.contentRight(this, this.buttonsStartX));
+        return line.nameHovered(this, mouseX, mouseY);
     }
 }

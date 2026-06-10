@@ -11,6 +11,7 @@ import io.github.huanmeng06.lmlp.cache.ChunkMissingMaterialListCache.KnownPlacem
 import net.minecraft.class_2960;
 import net.minecraft.class_332;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
@@ -24,7 +25,6 @@ public final class KnownPlacementRows {
     public static final int ICON_SIZE = 16;
     public static final int PLACEMENT_INDENT = 50;
     public static final int PLACEMENT_ICON_X = PLACEMENT_INDENT - 16;
-    public static final int STATUS_X = 190;
     public static final String UNDERLINE = "\u00A7n";
 
     private static final int BUTTON_HEIGHT = 20;
@@ -33,6 +33,12 @@ public final class KnownPlacementRows {
     private static final int ICON_X = 28;
     private static final int HEADER_TEXT_X = 50;
     private static final int TEXT_HEIGHT = 8;
+    private static final int ROW_RIGHT_PADDING = 8;
+    private static final int COLUMN_GAP = 16;
+    private static final int MIN_NAME_WIDTH = 48;
+    private static final int MIN_FILE_WIDTH = 48;
+    private static final int FILE_COLUMN_MIN_X = 190;
+    private static final int FILE_TEXT_COLOR = 0xFFB8B8B8;
 
     private static final class_2960 OVERWORLD_ICON = new class_2960(LitematicaMaterialListPlus.MOD_ID, "textures/gui/dimensions/overworld.png");
     private static final class_2960 NETHER_ICON = new class_2960(LitematicaMaterialListPlus.MOD_ID, "textures/gui/dimensions/nether.png");
@@ -136,14 +142,53 @@ public final class KnownPlacementRows {
                 false);
     }
 
-    public static boolean isPlacementNameHovered(WidgetBase widget, int nameWidth, int mouseX, int mouseY) {
-        int textX = widget.getX() + PLACEMENT_INDENT;
+    public static PlacementLine placementLine(WidgetBase widget, KnownPlacementContext context, String placementName, int contentRight) {
+        PlacementStatus status = placementStatus(context);
+        int statusWidth = status == null ? 0 : widget.getStringWidth(status.text());
+        PlacementLineLayout layout = placementLineLayout(widget, contentRight, statusWidth);
+        String nameText = truncateToWidth(widget, placementName == null ? "" : placementName, layout.nameWidth());
+        String fileName = schematicDisplayName(context);
+        String fileText = truncateToWidth(widget, fileName, layout.fileWidth());
+        boolean fileTruncated = !fileText.equals(fileName);
+
+        return new PlacementLine(
+                layout,
+                nameText,
+                widget.getStringWidth(nameText),
+                fileText,
+                widget.getStringWidth(fileText),
+                fileTruncated,
+                schematicHoverText(context),
+                status);
+    }
+
+    public static void renderPlacementLine(WidgetBase widget, float zLevel, class_332 drawContext, PlacementLine line, String nameColor, boolean nameHovered) {
+        renderPlacementIcon(widget, zLevel, drawContext);
+
         int textY = textY(widget);
-        return nameWidth > 0
-                && mouseX >= textX
-                && mouseX < textX + nameWidth
-                && mouseY >= textY
-                && mouseY < textY + TEXT_HEIGHT;
+        String formattedName = nameColor + (nameHovered ? UNDERLINE : "") + line.nameText() + GuiBase.TXT_RST;
+        widget.drawString(line.layout().nameX(), textY, 0xFFFFFFFF, formattedName, drawContext);
+
+        if (!line.fileText().isEmpty()) {
+            widget.drawString(line.layout().fileX(), textY, FILE_TEXT_COLOR, line.fileText(), drawContext);
+        }
+
+        if (line.status() != null) {
+            widget.drawString(line.layout().statusX(), textY, line.status().color(), line.status().text(), drawContext);
+        }
+    }
+
+    public static int contentRight(WidgetBase widget) {
+        return widget.getX() + widget.getWidth() - ROW_RIGHT_PADDING;
+    }
+
+    public static int contentRight(WidgetBase widget, int buttonsStartX) {
+        int fallback = contentRight(widget);
+        if (buttonsStartX <= widget.getX() || buttonsStartX > widget.getX() + widget.getWidth()) {
+            return fallback;
+        }
+
+        return Math.max(widget.getX() + PLACEMENT_INDENT + MIN_NAME_WIDTH, Math.min(fallback, buttonsStartX - ROW_RIGHT_PADDING));
     }
 
     public static void addTranslatedTooltipLines(List<String> lines, String key) {
@@ -250,6 +295,158 @@ public final class KnownPlacementRows {
             case "minecraft:the_end" -> END_ICON;
             default -> DIM_ICON;
         };
+    }
+
+    private static PlacementLineLayout placementLineLayout(WidgetBase widget, int contentRight, int statusWidth) {
+        int rowLeft = widget.getX();
+        int nameX = rowLeft + PLACEMENT_INDENT;
+        int right = Math.max(nameX + MIN_NAME_WIDTH, contentRight);
+        int preferredFileX = Math.max(rowLeft + FILE_COLUMN_MIN_X, rowLeft + widget.getWidth() * 42 / 100);
+        int maxFileX = Math.max(nameX + MIN_NAME_WIDTH + COLUMN_GAP, right - MIN_FILE_WIDTH);
+        int fileX = Math.min(Math.max(nameX + MIN_NAME_WIDTH + COLUMN_GAP, preferredFileX), maxFileX);
+
+        int statusX = -1;
+        int fileRight = right;
+        if (statusWidth > 0) {
+            statusX = Math.max(fileX + MIN_FILE_WIDTH + COLUMN_GAP, right - statusWidth);
+            statusX = Math.min(statusX, Math.max(nameX + MIN_NAME_WIDTH + COLUMN_GAP, right - statusWidth));
+            fileRight = statusX - COLUMN_GAP;
+        }
+
+        int nameWidth = Math.max(0, fileX - nameX - COLUMN_GAP);
+        int fileWidth = Math.max(0, fileRight - fileX);
+        return new PlacementLineLayout(nameX, nameWidth, fileX, fileWidth, statusX, statusWidth);
+    }
+
+    private static PlacementStatus placementStatus(KnownPlacementContext context) {
+        if (context == null) {
+            return null;
+        }
+
+        if (context.offlineCache()) {
+            List<String> lines = new ArrayList<>();
+            addTranslatedTooltipLines(lines, "lmlp.gui.known_placement.offline_cache_hint");
+            StringBuilder statusText = new StringBuilder(StringUtils.translate("lmlp.gui.known_placement.offline_cache"));
+            if (context.schematicMissing()) {
+                statusText.append(" / ").append(StringUtils.translate("lmlp.gui.known_placement.status_schematic_missing"));
+                lines.add(StringUtils.translate("lmlp.gui.known_placement.schematic_missing"));
+            }
+            if (!context.hasMaterialCache()) {
+                statusText.append(" / ").append(StringUtils.translate("lmlp.gui.known_placement.status_cache_empty"));
+                lines.add(StringUtils.translate("lmlp.gui.known_placement.offline_cache_empty"));
+            }
+            return new PlacementStatus(statusText.toString(), 0xFFFFAA66, lines);
+        }
+
+        if (context.schematicMissing()) {
+            return new PlacementStatus(
+                    StringUtils.translate("lmlp.gui.known_placement.status_schematic_missing"),
+                    0xFFFF5555,
+                    List.of(StringUtils.translate("lmlp.gui.known_placement.schematic_missing")));
+        }
+
+        if (!context.canEdit()) {
+            return new PlacementStatus(
+                    StringUtils.translate("lmlp.gui.known_placement.cache_only"),
+                    0xFFAAAAAA,
+                    List.of(StringUtils.translate("lmlp.gui.known_placement.cache_only_hint")));
+        }
+
+        return null;
+    }
+
+    private static String schematicDisplayName(KnownPlacementContext context) {
+        if (context == null) {
+            return "";
+        }
+
+        if (!context.schematicPath().isEmpty()) {
+            return new File(context.schematicPath()).getName();
+        }
+
+        if (!context.schematicName().isEmpty()) {
+            return context.schematicName();
+        }
+
+        return StringUtils.translate("litematica.gui.label.schematic_placement.in_memory");
+    }
+
+    private static String schematicHoverText(KnownPlacementContext context) {
+        if (context == null) {
+            return "";
+        }
+
+        if (!context.schematicPath().isEmpty()) {
+            return context.schematicPath();
+        }
+
+        return schematicDisplayName(context);
+    }
+
+    private static String truncateToWidth(WidgetBase widget, String text, int maxWidth) {
+        if (text == null || text.isEmpty() || maxWidth <= 0) {
+            return "";
+        }
+
+        if (widget.getStringWidth(text) <= maxWidth) {
+            return text;
+        }
+
+        String suffix = "...";
+        int suffixWidth = widget.getStringWidth(suffix);
+        if (suffixWidth > maxWidth) {
+            return "";
+        }
+
+        int end = text.length();
+        while (end > 0 && widget.getStringWidth(text.substring(0, end)) + suffixWidth > maxWidth) {
+            end--;
+        }
+
+        return end > 0 ? text.substring(0, end) + suffix : suffix;
+    }
+
+    private static boolean isTextHovered(WidgetBase widget, int x, int width, int mouseX, int mouseY) {
+        int textY = textY(widget);
+        return width > 0
+                && mouseX >= x
+                && mouseX < x + width
+                && mouseY >= textY
+                && mouseY < textY + TEXT_HEIGHT;
+    }
+
+    public record PlacementLine(
+            PlacementLineLayout layout,
+            String nameText,
+            int nameTextWidth,
+            String fileText,
+            int fileTextWidth,
+            boolean fileTruncated,
+            String fileHoverText,
+            PlacementStatus status) {
+        public boolean nameHovered(WidgetBase widget, int mouseX, int mouseY) {
+            return isTextHovered(widget, this.layout.nameX(), this.nameTextWidth, mouseX, mouseY);
+        }
+
+        public boolean fileHovered(WidgetBase widget, int mouseX, int mouseY) {
+            return this.fileTruncated && isTextHovered(widget, this.layout.fileX(), this.fileTextWidth, mouseX, mouseY);
+        }
+
+        public boolean statusHovered(WidgetBase widget, int mouseX, int mouseY) {
+            return this.status != null && isTextHovered(widget, this.layout.statusX(), this.layout.statusWidth(), mouseX, mouseY);
+        }
+    }
+
+    public record PlacementLineLayout(
+            int nameX,
+            int nameWidth,
+            int fileX,
+            int fileWidth,
+            int statusX,
+            int statusWidth) {
+    }
+
+    public record PlacementStatus(String text, int color, List<String> tooltipLines) {
     }
 
     public record KnownPlacementRow(

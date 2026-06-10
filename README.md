@@ -2,13 +2,22 @@
 
 这个 README 只记录 `dev-newFeature` 分支的开发过程和每个小版本做了什么。完整的项目介绍、安装说明、功能说明和截图展示放在 `main` 分支维护。
 
-当前正式版：`v1.5.23`
+当前正式版：`v1.5.24`
 
-当前构建：`1.5.23+mc1.20.6`
+当前构建：`1.5.24+mc1.20.6`
 
 适配目标：Minecraft `1.20.6` / Fabric / Litematica / MaLiLib / REI
 
 ## 版本说明
+
+### v1.5.24
+
+- “已加载原理图”和“原理图编辑”页面的 placement 行改为近似三列布局，直接显示 placement 名称、`.litematic` 短文件名和状态文字。
+- placement 行的文件名来自已记录的 `schematicPath`，长文件名会截断；只有被截断的文件名 hover 时才显示完整路径。
+- 移除 placement 整行 hover 的大块说明，状态说明只在 hover 到“离线缓存 / 文件缺失 / 缓存为空 / 仅缓存”等状态文字时显示。
+- 从“已加载原理图”或“原理图编辑”点击 placement 名称打开材料列表时，会设置 `GuiMaterialList` parent，按 ESC 返回来源页面；普通热键打开材料列表的 ESC 行为不变。
+- 同步 `fabric.mod.json` 和运行时 `MOD_VERSION` 到 `1.5.24+mc1.20.6`。
+- 构建产物改为 `1.5.24+mc1.20.6`。
 
 ### v1.5.23
 

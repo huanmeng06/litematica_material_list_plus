@@ -1,5 +1,6 @@
 package io.github.huanmeng06.lmlp.gui;
 
+import fi.dy.masa.litematica.gui.GuiSchematicLoadedList;
 import fi.dy.masa.litematica.gui.widgets.WidgetListLoadedSchematics;
 import fi.dy.masa.litematica.gui.widgets.WidgetSchematicEntry;
 import fi.dy.masa.litematica.schematic.LitematicaSchematic;
@@ -15,9 +16,15 @@ public class KnownLoadedSchematicsList extends WidgetListLoadedSchematics {
     private static final String PAGE_ID = "loaded_schematics";
 
     private final List<KnownPlacementRow> visibleRows = new ArrayList<>();
+    private final GuiSchematicLoadedList parentGui;
 
-    public KnownLoadedSchematicsList(int x, int y, int width, int height) {
+    public KnownLoadedSchematicsList(int x, int y, int width, int height, GuiSchematicLoadedList parentGui) {
         super(x, y, width, height, null);
+        this.parentGui = parentGui;
+    }
+
+    public GuiSchematicLoadedList getParentGui() {
+        return this.parentGui;
     }
 
     @Override

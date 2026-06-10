@@ -11,10 +11,10 @@ import fi.dy.masa.malilib.util.StringUtils;
 import fi.dy.masa.malilib.gui.widgets.WidgetListEntryBase;
 import io.github.huanmeng06.lmlp.cache.ChunkMissingMaterialListCache;
 import io.github.huanmeng06.lmlp.cache.ChunkMissingMaterialListCache.KnownPlacementContext;
+import io.github.huanmeng06.lmlp.gui.KnownPlacementRows.PlacementLine;
 import io.github.huanmeng06.lmlp.gui.KnownPlacementRows.KnownPlacementRow;
 import net.minecraft.class_332;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -123,7 +123,7 @@ public class KnownPlacementListRowEntry extends WidgetListEntryBase<KnownPlaceme
 
         if (this.row.isPlacement() && this.isPlacementNameHovered(mouseX, mouseY)) {
             KnownPlacementContext context = this.row.context();
-            return MaterialListOpener.openContext(context.key(), "schematic_placements_list.name_click");
+            return MaterialListOpener.openContext(context.key(), "schematic_placements_list.name_click", this.parent.getParentGui());
         }
 
         if (this.row.isPlacement() && mouseX < this.buttonsStartX) {
@@ -164,23 +164,15 @@ public class KnownPlacementListRowEntry extends WidgetListEntryBase<KnownPlaceme
             KnownPlacementRows.renderSelectedOutline(this);
         }
 
-        int textY = KnownPlacementRows.textY(this);
         String color = context.placement() == null
                 ? GuiBase.TXT_GRAY
                 : context.placement().isEnabled() ? GuiBase.TXT_GREEN : GuiBase.TXT_RED;
-        boolean nameHovered = this.isPlacementNameHovered(mouseX, mouseY);
+        PlacementLine line = KnownPlacementRows.placementLine(this, context, context.name(), KnownPlacementRows.contentRight(this, this.buttonsStartX));
+        boolean nameHovered = line.nameHovered(this, mouseX, mouseY);
         if (nameHovered) {
             ClickableCursor.requestHand();
         }
-        KnownPlacementRows.renderPlacementIcon(this, this.zLevel, drawContext);
-        this.drawString(this.x + KnownPlacementRows.PLACEMENT_INDENT, textY, 0xFFFFFFFF,
-                color + (nameHovered ? KnownPlacementRows.UNDERLINE : "") + context.name() + GuiBase.TXT_RST, drawContext);
-
-        if (context.offlineCache()) {
-            this.drawString(this.x + KnownPlacementRows.STATUS_X, textY, 0xFFFFAA66, StringUtils.translate("lmlp.gui.known_placement.offline_cache"), drawContext);
-        } else if (!context.canEdit()) {
-            this.drawString(this.x + KnownPlacementRows.STATUS_X, textY, 0xFFAAAAAA, StringUtils.translate("lmlp.gui.known_placement.cache_only"), drawContext);
-        }
+        KnownPlacementRows.renderPlacementLine(this, this.zLevel, drawContext, line, color, nameHovered);
 
         this.drawSubWidgets(mouseX, mouseY, drawContext);
     }
@@ -191,39 +183,27 @@ public class KnownPlacementListRowEntry extends WidgetListEntryBase<KnownPlaceme
             return;
         }
 
-        List<String> lines = new ArrayList<>();
         if (this.row.isHeader()) {
+            List<String> lines = new ArrayList<>();
             lines.add(this.row.displayName());
-        } else if (mouseX < this.buttonsStartX) {
+            RenderUtils.drawHoverText(mouseX, mouseY, lines, drawContext);
+            return;
+        } else if (this.row.isPlacement() && mouseX < this.buttonsStartX) {
             KnownPlacementContext context = this.row.context();
-            lines.add(StringUtils.translate("lmlp.gui.known_placement.dimension", KnownPlacementRows.displayName(context.dimension())));
-            lines.add(StringUtils.translate("lmlp.gui.known_placement.schematic", this.schematicName(context)));
-            if (context.offlineCache()) {
-                KnownPlacementRows.addTranslatedTooltipLines(lines, "lmlp.gui.known_placement.offline_cache_hint");
-                lines.add(StringUtils.translate("lmlp.gui.known_placement.offline_cache_delete_hint"));
-                if (context.schematicMissing()) {
-                    lines.add(StringUtils.translate("lmlp.gui.known_placement.schematic_missing"));
-                }
-            } else if (!context.canEdit()) {
-                lines.add(StringUtils.translate("lmlp.gui.known_placement.cache_only_hint"));
+            PlacementLine line = KnownPlacementRows.placementLine(this, context, context.name(), KnownPlacementRows.contentRight(this, this.buttonsStartX));
+            List<String> lines = new ArrayList<>();
+            if (line.statusHovered(this, mouseX, mouseY)) {
+                lines.addAll(line.status().tooltipLines());
+            } else if (line.fileHovered(this, mouseX, mouseY) && !line.fileHoverText().isEmpty()) {
+                lines.add(line.fileHoverText());
+            }
+
+            if (!lines.isEmpty()) {
+                RenderUtils.drawHoverText(mouseX, mouseY, lines, drawContext);
             }
         }
 
-        if (!lines.isEmpty()) {
-            RenderUtils.drawHoverText(mouseX, mouseY, lines, drawContext);
-        }
-
         this.drawHoveredSubWidget(mouseX, mouseY, drawContext);
-    }
-
-    private String schematicName(KnownPlacementContext context) {
-        if (context == null || context.schematicPath().isEmpty()) {
-            return context != null && !context.schematicName().isEmpty()
-                    ? context.schematicName()
-                    : StringUtils.translate("litematica.gui.label.schematic_placement.in_memory");
-        }
-
-        return new File(context.schematicPath()).getName();
     }
 
     private boolean isPlacementNameHovered(int mouseX, int mouseY) {
@@ -231,6 +211,8 @@ public class KnownPlacementListRowEntry extends WidgetListEntryBase<KnownPlaceme
             return false;
         }
 
-        return KnownPlacementRows.isPlacementNameHovered(this, this.getStringWidth(this.row.context().name()), mouseX, mouseY);
+        KnownPlacementContext context = this.row.context();
+        PlacementLine line = KnownPlacementRows.placementLine(this, context, context.name(), KnownPlacementRows.contentRight(this, this.buttonsStartX));
+        return line.nameHovered(this, mouseX, mouseY);
     }
 }
