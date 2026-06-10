@@ -36,8 +36,8 @@ public abstract class WidgetListSchematicPlacementsMixin {
         List<String> strings = new ArrayList<>();
         strings.add(placement == null ? "" : placement.getName().toLowerCase());
         if (context != null) {
-            strings.add(context.displayDimension().toLowerCase());
-            strings.add(context.dimension() == null ? "" : context.dimension().toLowerCase());
+            strings.add(KnownPlacementRows.displayName(context.dimension()).toLowerCase());
+            strings.add(KnownPlacementRows.normalizedDimension(context.dimension()).toLowerCase());
             strings.add(context.schematicPath().toLowerCase());
         }
         cir.setReturnValue(strings);

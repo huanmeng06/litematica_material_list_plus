@@ -18,9 +18,16 @@ import java.util.Locale;
 import java.util.Map;
 
 public final class KnownPlacementRows {
-    public static final int ROW_HEIGHT = 26;
+    public static final int ROW_HEIGHT = 22;
     public static final int ICON_SIZE = 16;
-    public static final int PLACEMENT_INDENT = 24;
+    public static final int PLACEMENT_INDENT = 22;
+    public static final int STATUS_X = 170;
+
+    private static final int ARROW_SLOT_X = 2;
+    private static final int ARROW_SLOT_WIDTH = 14;
+    private static final int ICON_X = 18;
+    private static final int HEADER_TEXT_X = 39;
+    private static final int TEXT_HEIGHT = 8;
 
     private static final class_2960 OVERWORLD_ICON = new class_2960(LitematicaMaterialListPlus.MOD_ID, "textures/gui/dimensions/overworld.png");
     private static final class_2960 NETHER_ICON = new class_2960(LitematicaMaterialListPlus.MOD_ID, "textures/gui/dimensions/nether.png");
@@ -94,22 +101,29 @@ public final class KnownPlacementRows {
 
     public static void renderHeader(WidgetBase widget, KnownPlacementRow row, int mouseX, int mouseY, class_332 drawContext) {
         boolean hovered = widget.isMouseOver(mouseX, mouseY);
-        int background = hovered ? 0xA0707070 : 0xA0202020;
+        int background = hovered ? 0xA0707070 : 0xA0303030;
         RenderUtils.drawRect(widget.getX(), widget.getY(), widget.getWidth(), widget.getHeight(), background);
 
-        String arrow = row.expanded() ? "\u25BE" : "\u25B8";
-        int centerY = widget.getY() + (widget.getHeight() - 8) / 2;
-        widget.drawString(widget.getX() + 6, centerY, 0xFFFFFFFF, arrow, drawContext);
-        drawIcon(row.dimension(), widget.getX() + 18, widget.getY() + 5, drawContext);
-        widget.drawString(widget.getX() + 39, centerY, 0xFFE0E0E0, row.displayName(), drawContext);
+        int centerY = widget.getY() + widget.getHeight() / 2;
+        ToggleArrowRenderer.render(drawContext, widget.getX() + ARROW_SLOT_X, ARROW_SLOT_WIDTH, centerY, row.expanded() ? 1.0F : 0.0F, hovered);
+        drawIcon(row.dimension(), widget.getX() + ICON_X, widget.getY() + (widget.getHeight() - ICON_SIZE) / 2, drawContext);
+        widget.drawString(widget.getX() + HEADER_TEXT_X, textY(widget), 0xFFE0E0E0, row.displayName(), drawContext);
     }
 
     public static void renderSelectedOutline(WidgetBase widget) {
         RenderUtils.drawOutline(widget.getX() + 1, widget.getY() + 1, widget.getWidth() - 2, widget.getHeight() - 2, 0xFFFFFFFF);
     }
 
+    public static int textY(WidgetBase widget) {
+        return widget.getY() + (widget.getHeight() - TEXT_HEIGHT) / 2;
+    }
+
     public static String displayName(String dimension) {
         String normalized = normalizedDimension(dimension);
+        if ("unknown".equals(normalized)) {
+            return StringUtils.translate("lmlp.dimension.unknown");
+        }
+
         String key = "lmlp.dimension." + normalized.replace(':', '.');
         String translated = StringUtils.translate(key);
         if (!translated.equals(key)) {
@@ -122,7 +136,38 @@ public final class KnownPlacementRows {
     }
 
     public static String normalizedDimension(String dimension) {
-        return dimension == null || dimension.isEmpty() ? "unknown" : dimension;
+        if (dimension == null) {
+            return "unknown";
+        }
+
+        String normalized = dimension.trim();
+        if (normalized.isEmpty()) {
+            return "unknown";
+        }
+
+        int slash = normalized.lastIndexOf('/');
+        if (slash >= 0) {
+            normalized = normalized.substring(slash + 1).trim();
+        }
+
+        while (normalized.endsWith("]")) {
+            normalized = normalized.substring(0, normalized.length() - 1).trim();
+        }
+
+        if (normalized.startsWith("ResourceKey[")) {
+            normalized = normalized.substring("ResourceKey[".length()).trim();
+        }
+
+        if (normalized.startsWith("minecraft:dimension ")) {
+            normalized = normalized.substring("minecraft:dimension ".length()).trim();
+        }
+
+        int space = normalized.lastIndexOf(' ');
+        if (space >= 0 && normalized.substring(space + 1).contains(":")) {
+            normalized = normalized.substring(space + 1).trim();
+        }
+
+        return normalized.isEmpty() ? "unknown" : normalized;
     }
 
     public static int dimensionSortKey(String dimension) {

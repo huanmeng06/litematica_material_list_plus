@@ -674,24 +674,48 @@ public final class ChunkMissingMaterialListCache {
 
     private static String currentDimensionId() {
         class_638 world = class_310.method_1551().field_1687;
-        return world == null ? null : world.method_27983().toString();
+        return world == null ? null : world.method_27983().method_29177().toString();
     }
 
     private static String displayDimension(String dimension) {
-        if (dimension == null || dimension.isEmpty()) {
+        String normalized = normalizedDimension(dimension);
+        if (normalized.isEmpty()) {
             return "?";
         }
-        if (dimension.endsWith(":overworld")) {
+        if (normalized.equals("minecraft:overworld")) {
             return "Overworld";
         }
-        if (dimension.endsWith(":the_nether")) {
+        if (normalized.equals("minecraft:the_nether")) {
             return "Nether";
         }
-        if (dimension.endsWith(":the_end")) {
+        if (normalized.equals("minecraft:the_end")) {
             return "End";
         }
-        int colon = dimension.indexOf(':');
-        return colon >= 0 ? dimension.substring(colon + 1) : dimension;
+        int colon = normalized.indexOf(':');
+        return colon >= 0 ? normalized.substring(colon + 1) : normalized;
+    }
+
+    private static String normalizedDimension(String dimension) {
+        if (dimension == null) {
+            return "";
+        }
+
+        String normalized = dimension.trim();
+        int slash = normalized.lastIndexOf('/');
+        if (slash >= 0) {
+            normalized = normalized.substring(slash + 1).trim();
+        }
+
+        while (normalized.endsWith("]")) {
+            normalized = normalized.substring(0, normalized.length() - 1).trim();
+        }
+
+        int space = normalized.lastIndexOf(' ');
+        if (space >= 0 && normalized.substring(space + 1).contains(":")) {
+            normalized = normalized.substring(space + 1).trim();
+        }
+
+        return normalized;
     }
 
     private static List<MaterialListEntry> createEntries(SchematicPlacement placement, BlockInfoListType type) {

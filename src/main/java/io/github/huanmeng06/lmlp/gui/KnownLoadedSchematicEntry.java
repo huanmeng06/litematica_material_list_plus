@@ -58,13 +58,14 @@ public class KnownLoadedSchematicEntry extends WidgetSchematicEntry {
             KnownPlacementRows.renderSelectedOutline(this);
         }
 
+        int textY = KnownPlacementRows.textY(this);
         String name = context == null ? "" : context.name();
-        this.drawString(this.x + KnownPlacementRows.PLACEMENT_INDENT, this.y + 8, 0xFFFFFFFF, name, drawContext);
+        this.drawString(this.x + KnownPlacementRows.PLACEMENT_INDENT, textY, 0xFFFFFFFF, name, drawContext);
 
         if (context != null && context.offlineCache()) {
-            this.drawString(this.x + 180, this.y + 8, 0xFFFFAA66, StringUtils.translate("lmlp.gui.known_placement.offline_cache"), drawContext);
+            this.drawString(this.x + KnownPlacementRows.STATUS_X, textY, 0xFFFFAA66, StringUtils.translate("lmlp.gui.known_placement.offline_cache"), drawContext);
         } else if (context != null && !context.canEdit()) {
-            this.drawString(this.x + 180, this.y + 8, 0xFFAAAAAA, StringUtils.translate("lmlp.gui.known_placement.cache_only"), drawContext);
+            this.drawString(this.x + KnownPlacementRows.STATUS_X, textY, 0xFFAAAAAA, StringUtils.translate("lmlp.gui.known_placement.cache_only"), drawContext);
         }
     }
 

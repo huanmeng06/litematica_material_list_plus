@@ -19,7 +19,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class KnownPlacementListEntry extends WidgetSchematicPlacement {
-    private static final int ROW_HEIGHT = 34;
+    private static final int ROW_HEIGHT = KnownPlacementRows.ROW_HEIGHT;
 
     private final KnownPlacementContext context;
 
@@ -44,7 +44,7 @@ public class KnownPlacementListEntry extends WidgetSchematicPlacement {
 
     private void createButtons() {
         int buttonX = this.x + this.width - 2;
-        int buttonY = this.y + 7;
+        int buttonY = this.y + 1;
         buttonX = this.addRemoveButton(buttonX, buttonY);
         if (this.context != null && this.context.canEdit()) {
             buttonX = this.addToggleButton(buttonX, buttonY);
@@ -116,10 +116,11 @@ public class KnownPlacementListEntry extends WidgetSchematicPlacement {
 
         String enabledColor = this.placement.isEnabled() ? GuiBase.TXT_GREEN : GuiBase.TXT_RED;
         String name = enabledColor + this.placement.getName() + GuiBase.TXT_RST;
-        this.drawString(this.x + KnownPlacementRows.PLACEMENT_INDENT, this.y + 12, 0xFFFFFFFF, name, drawContext);
+        int textY = KnownPlacementRows.textY(this);
+        this.drawString(this.x + KnownPlacementRows.PLACEMENT_INDENT, textY, 0xFFFFFFFF, name, drawContext);
 
         if (this.context != null && !this.context.canEdit()) {
-            this.drawString(this.x + 180, this.y + 12, 0xFFAAAAAA, StringUtils.translate("lmlp.gui.known_placement.cache_only"), drawContext);
+            this.drawString(this.x + KnownPlacementRows.STATUS_X, textY, 0xFFAAAAAA, StringUtils.translate("lmlp.gui.known_placement.cache_only"), drawContext);
         }
 
         this.drawSubWidgets(mouseX, mouseY, drawContext);
@@ -129,7 +130,7 @@ public class KnownPlacementListEntry extends WidgetSchematicPlacement {
     public void postRenderHovered(int mouseX, int mouseY, boolean selected, class_332 drawContext) {
         if (this.isMouseOver(mouseX, mouseY) && mouseX < this.buttonsStartX) {
             List<String> lines = new ArrayList<>();
-            lines.add(StringUtils.translate("lmlp.gui.known_placement.dimension", this.context == null ? "?" : this.context.displayDimension()));
+            lines.add(StringUtils.translate("lmlp.gui.known_placement.dimension", this.context == null ? "?" : KnownPlacementRows.displayName(this.context.dimension())));
             lines.add(StringUtils.translate("lmlp.gui.known_placement.schematic", this.schematicName()));
             if (this.context != null && !this.context.canEdit()) {
                 lines.add(StringUtils.translate("lmlp.gui.known_placement.cache_only_hint"));
