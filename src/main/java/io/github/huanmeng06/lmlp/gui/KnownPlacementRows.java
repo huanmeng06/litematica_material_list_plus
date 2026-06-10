@@ -4,11 +4,13 @@ import fi.dy.masa.malilib.gui.GuiBase;
 import fi.dy.masa.malilib.gui.widgets.WidgetListEntrySortable;
 import fi.dy.masa.malilib.gui.widgets.WidgetBase;
 import fi.dy.masa.litematica.gui.Icons;
+import fi.dy.masa.litematica.materials.MaterialListBase;
 import fi.dy.masa.malilib.render.RenderUtils;
 import fi.dy.masa.malilib.util.StringUtils;
 import io.github.huanmeng06.lmlp.LitematicaMaterialListPlus;
 import io.github.huanmeng06.lmlp.cache.ChunkMissingMaterialListCache;
 import io.github.huanmeng06.lmlp.cache.ChunkMissingMaterialListCache.KnownPlacementContext;
+import io.github.huanmeng06.lmlp.cache.ChunkMissingMaterialListCache.ReadMode;
 import io.github.huanmeng06.lmlp.cache.MaterialListDataSource;
 import net.minecraft.class_2960;
 import net.minecraft.class_310;
@@ -105,35 +107,15 @@ public final class KnownPlacementRows {
     }
 
     public static ReadStatus readStatus(KnownPlacementContext context) {
-        if (context == null || context.offlineCache() || context.placement() == null || context.sourceState() != ChunkMissingMaterialListCache.SourceState.ONLINE) {
-            return ReadStatus.OFFLINE;
-        }
+        return ReadStatus.from(ChunkMissingMaterialListCache.resolveReadMode(context));
+    }
 
-        if (!normalizedDimension(context.dimension()).equals(normalizedDimension(currentDimensionId()))) {
-            return ReadStatus.DIMENSION_CACHE;
-        }
-
-        if (!context.canEdit()) {
-            return ReadStatus.OFFLINE;
-        }
-
-        return ChunkMissingMaterialListCache.arePlacementChunksLoaded(context.placement())
-                ? ReadStatus.LIVE
-                : ReadStatus.CHUNK_CACHE;
+    public static ReadStatus readStatus(MaterialListBase materialList) {
+        return ReadStatus.from(ChunkMissingMaterialListCache.resolveReadMode(materialList));
     }
 
     public static ReadStatus readStatus(MaterialListDataSource dataSource) {
-        if (dataSource == null) {
-            return null;
-        }
-
-        return switch (dataSource) {
-            case WORLD_SCAN -> ReadStatus.LIVE;
-            case OFFLINE_CACHE -> ReadStatus.OFFLINE;
-            case SCHEMATIC_CACHE -> ReadStatus.CHUNK_CACHE;
-            case CROSS_DIMENSION_CACHE -> ReadStatus.DIMENSION_CACHE;
-            default -> null;
-        };
+        return ReadStatus.from(ChunkMissingMaterialListCache.resolveReadMode(dataSource));
     }
 
     public static void toggle(String pageId, String dimension) {
@@ -737,6 +719,19 @@ public final class KnownPlacementRows {
         private final String tooltipKey;
         private final int color;
         private final int order;
+
+        private static ReadStatus from(ReadMode readMode) {
+            if (readMode == null) {
+                return null;
+            }
+
+            return switch (readMode) {
+                case LIVE -> LIVE;
+                case CHUNK_CACHE -> CHUNK_CACHE;
+                case DIMENSION_CACHE -> DIMENSION_CACHE;
+                case OFFLINE_CACHE -> OFFLINE;
+            };
+        }
 
         ReadStatus(String translationKey, String tooltipKey, int color, int order) {
             this.translationKey = translationKey;

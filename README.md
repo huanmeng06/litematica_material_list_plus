@@ -2,13 +2,23 @@
 
 这个 README 只记录 `dev-newFeature` 分支的开发过程和每个小版本做了什么。完整的项目介绍、安装说明、功能说明和截图展示放在 `main` 分支维护。
 
-当前正式版：`v1.5.38`
+当前正式版：`v1.5.39`
 
-当前构建：`1.5.38+mc1.20.6`
+当前构建：`1.5.39+mc1.20.6`
 
 适配目标：Minecraft `1.20.6` / Fabric / Litematica / MaLiLib / REI
 
 ## 版本说明
+
+### v1.5.39
+
+- 新增 `ChunkMissingMaterialListCache.ReadMode` 权威读取状态解析器，将 `实时`、`区块缓存`、`维度缓存`、`离线缓存` 的判断集中到 `ChunkMissingMaterialListCache.resolveReadMode(...)`。
+- `KnownPlacementRows.readStatus(...)` 不再在 UI 层重复判断 sourceState、维度和区块加载状态，只把权威 `ReadMode` 映射为文字、颜色和 tooltip。
+- `GuiMaterialListMixin` 底部读取状态改为直接从当前 `MaterialListBase` 调用同一套 resolver，避免列表页显示实时但材料页显示缓存的分叉。
+- `refreshForPlacementState(...)`、`shouldUseSchematicCache(...)` 和 `cacheSourceFor(...)` 改为基于同一 `ReadMode` 决定实时扫描、区块缓存、维度缓存或离线缓存读取链路。
+- 路由日志新增 `readMode` 字段，便于核对同一个 PlacementKey 在列表页、打开链路和材料页底部状态是否一致。
+- 同步 `fabric.mod.json` 和运行时 `MOD_VERSION` 到 `1.5.39+mc1.20.6`。
+- 构建产物改为 `1.5.39+mc1.20.6`。
 
 ### v1.5.38
 
