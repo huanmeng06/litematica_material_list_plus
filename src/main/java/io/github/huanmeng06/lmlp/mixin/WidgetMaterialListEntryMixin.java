@@ -197,6 +197,10 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
 
         if (MinimalSubMaterialListView.isActive(this.materialList)) {
             if (mouseButton == 0 && this.isMouseOver(mouseX, mouseY)) {
+                if (this.handleMinimalIgnoreClick(mouseX, mouseY)) {
+                    return true;
+                }
+
                 if (this.openMinimalSourceRecipe(mouseX, mouseY)) {
                     return true;
                 }
@@ -243,6 +247,26 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         }
 
         return false;
+    }
+
+    private boolean handleMinimalIgnoreClick(int mouseX, int mouseY) {
+        if (!this.isMinimalIgnoreButtonHovered(mouseX, mouseY)) {
+            return false;
+        }
+
+        MinimalSubMaterialListView.ignoreEntry(this.materialList, this.entry);
+        this.materialList.ignoreEntry(this.entry);
+        MaterialListPlusState.clear();
+        this.listWidget.refreshEntries();
+        return true;
+    }
+
+    private boolean isMinimalIgnoreButtonHovered(int mouseX, int mouseY) {
+        int xButton = this.getColumnPosX(4);
+        return mouseX >= xButton
+                && mouseX < this.x + this.width
+                && mouseY >= this.y + 1
+                && mouseY < this.y + Math.min(this.height, 22);
     }
 
     /**

@@ -53,6 +53,7 @@ public final class MinimalSubMaterialListView {
     private static final Map<MaterialListEntry, DisplayData> ENTRY_DISPLAYS = new IdentityHashMap<>();
     private static final Map<String, DisplayData> ENTRY_DISPLAY_KEYS = new HashMap<>();
     private static final Map<String, List<RequirementContribution>> REQUIREMENT_CACHES = new HashMap<>();
+    private static final Map<MaterialListBase, Set<String>> IGNORED_ENTRY_KEYS = new WeakHashMap<>();
     private static final ExpandAnimationTracker SOURCE_ANIMATIONS = new ExpandAnimationTracker();
     private static String expandedSourceKey = "";
     private static String visibleSourceKey = "";
@@ -159,6 +160,30 @@ public final class MinimalSubMaterialListView {
         ENTRY_DISPLAY_KEYS.clear();
         REQUIREMENT_CACHES.clear();
         layoutRevision++;
+    }
+
+    public static boolean ignoreEntry(MaterialListBase materialList, MaterialListEntry entry) {
+        if (!isMinimalEntry(entry)) {
+            return false;
+        }
+
+        String key = stableEntryKey(entry);
+        if (key.isEmpty()) {
+            return false;
+        }
+
+        boolean changed = IGNORED_ENTRY_KEYS.computeIfAbsent(materialList, ignored -> new HashSet<>()).add(key);
+        if (changed) {
+            clearCache(materialList);
+        }
+        return changed;
+    }
+
+    public static void clearIgnored(MaterialListBase materialList) {
+        Set<String> ignored = IGNORED_ENTRY_KEYS.remove(materialList);
+        if (ignored != null && !ignored.isEmpty()) {
+            clearCache(materialList);
+        }
     }
 
     public static boolean tick(MaterialListBase materialList) {
@@ -566,6 +591,10 @@ public final class MinimalSubMaterialListView {
                     .append(':')
                     .append(entry.getCountAvailable());
         }
+        Set<String> ignored = IGNORED_ENTRY_KEYS.get(materialList);
+        if (ignored != null && !ignored.isEmpty()) {
+            ignored.stream().sorted().forEach(key -> builder.append("|ignored:").append(key));
+        }
         return builder.toString();
     }
 
@@ -941,6 +970,10 @@ public final class MinimalSubMaterialListView {
             List<MaterialListEntry> entries = new ArrayList<>(this.materials.size());
             Map<MaterialListEntry, DisplayData> displays = new IdentityHashMap<>();
             for (Accumulator material : this.materials.values()) {
+                if (isIgnored(materialList, material)) {
+                    continue;
+                }
+
                 int total = clampToInt(material.totalCount);
                 int available = resolvedAvailable(material.preparedCount, this.inventory.countAny(material.candidateIcons()));
                 MaterialListEntry entry = new MaterialListEntry(material.stack.method_7972(), total, total, 0, available);
@@ -953,6 +986,11 @@ public final class MinimalSubMaterialListView {
             this.entries = entries;
             ENTRY_DISPLAYS.putAll(displays);
         }
+    }
+
+    private static boolean isIgnored(MaterialListBase materialList, Accumulator material) {
+        Set<String> ignored = IGNORED_ENTRY_KEYS.get(materialList);
+        return ignored != null && ignored.contains(stableEntryKey(material.stack, material.candidates(), material.name));
     }
 
     private record Cache(String signature, List<MaterialListEntry> entries) {
@@ -1042,6 +1080,24 @@ public final class MinimalSubMaterialListView {
                 + entry.getCountMissing()
                 + ':'
                 + entry.getCountAvailable();
+    }
+
+    private static String stableEntryKey(MaterialListEntry entry) {
+        DisplayData display = displayData(entry);
+        if (display == null) {
+            return "id:" + ItemStackTexts.id(entry.getStack());
+        }
+
+        return stableEntryKey(display.currentCandidate().icon(), display.candidates(), display.name());
+    }
+
+    private static String stableEntryKey(class_1799 stack, List<Candidate> candidates, String name) {
+        List<class_1799> icons = new ArrayList<>(candidates.size());
+        for (Candidate candidate : candidates) {
+            icons.add(candidate.icon());
+        }
+
+        return groupKey(stack, icons, name);
     }
 
     private static String knownAlternativeTranslationKey(List<class_1799> icons) {

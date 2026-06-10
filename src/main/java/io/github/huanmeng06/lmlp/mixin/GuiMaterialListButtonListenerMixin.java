@@ -9,6 +9,8 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
 
+import java.lang.reflect.Field;
+
 @Mixin(targets = "fi.dy.masa.litematica.gui.GuiMaterialList$ButtonListener", remap = false)
 public abstract class GuiMaterialListButtonListenerMixin {
     @Redirect(
@@ -26,10 +28,25 @@ public abstract class GuiMaterialListButtonListenerMixin {
                     value = "INVOKE",
                     target = "Lfi/dy/masa/litematica/materials/MaterialListBase;reCreateMaterialList()V"))
     private void lmlp$refreshChunkMissingMaterialList(MaterialListBase materialList) {
+        if (this.lmlp$isClearIgnoredButton()) {
+            MinimalSubMaterialListView.clearIgnored(materialList);
+        }
+
         if (ChunkMissingMaterialListCache.refreshForCurrentState(materialList, true)) {
             return;
         }
 
         materialList.reCreateMaterialList();
+    }
+
+    private boolean lmlp$isClearIgnoredButton() {
+        try {
+            Field field = this.getClass().getDeclaredField("type");
+            field.setAccessible(true);
+            Object value = field.get(this);
+            return value instanceof Enum<?> type && "CLEAR_IGNORED".equals(type.name());
+        } catch (ReflectiveOperationException e) {
+            return false;
+        }
     }
 }
