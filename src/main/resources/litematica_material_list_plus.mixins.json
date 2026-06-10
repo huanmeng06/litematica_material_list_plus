@@ -8,6 +8,8 @@
     "GuiMaterialListMixin",
     "GuiBaseHoverAccess",
     "GuiListBaseMixin",
+    "GuiSchematicLoadedListMixin",
+    "GuiSchematicPlacementsListMixin",
     "HandledScreenMixin",
     "GuiPlacementConfigurationButtonListenerMixin",
     "InfoHudMixin",
@@ -18,6 +20,7 @@
     "SchematicPlacementMixin",
     "WidgetListBaseMixin",
     "WidgetListMaterialListMixin",
+    "WidgetListSchematicPlacementsMixin",
     "WidgetMaterialListEntryMixin"
   ],
   "injectors": {

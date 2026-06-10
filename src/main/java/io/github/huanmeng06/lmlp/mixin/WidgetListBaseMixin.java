@@ -1,8 +1,10 @@
 package io.github.huanmeng06.lmlp.mixin;
 
 import fi.dy.masa.litematica.gui.widgets.WidgetListMaterialList;
+import fi.dy.masa.litematica.gui.widgets.WidgetListSchematicPlacements;
 import fi.dy.masa.litematica.gui.widgets.WidgetMaterialListEntry;
 import fi.dy.masa.litematica.materials.MaterialListEntry;
+import fi.dy.masa.litematica.schematic.placement.SchematicPlacement;
 import fi.dy.masa.malilib.gui.GuiScrollBar;
 import fi.dy.masa.malilib.gui.widgets.WidgetBase;
 import fi.dy.masa.malilib.gui.widgets.WidgetListBase;
@@ -18,6 +20,7 @@ import io.github.huanmeng06.lmlp.gui.MaterialListColumnLayout;
 import io.github.huanmeng06.lmlp.gui.MaterialListPlusState;
 import io.github.huanmeng06.lmlp.gui.MinimalSubMaterialListView;
 import io.github.huanmeng06.lmlp.gui.MinimalSourceInlineRenderer;
+import io.github.huanmeng06.lmlp.gui.KnownPlacementListEntry;
 import io.github.huanmeng06.lmlp.gui.RecipeInlineRenderer;
 import io.github.huanmeng06.lmlp.material.InventoryCounts;
 import io.github.huanmeng06.lmlp.material.ItemStackTexts;
@@ -274,6 +277,12 @@ public abstract class WidgetListBaseMixin implements WidgetListBoundsAccess {
 
     @Inject(method = "getBrowserEntryHeightFor", at = @At("HEAD"), cancellable = true)
     private void lmlp$getBrowserEntryHeightFor(Object entry, CallbackInfoReturnable<Integer> cir) {
+
+        if ((Object) this instanceof WidgetListSchematicPlacements && entry instanceof SchematicPlacement) {
+            cir.setReturnValue(KnownPlacementListEntry.rowHeight());
+            return;
+        }
+
         if (!((Object) this instanceof WidgetListMaterialList) || !(entry instanceof MaterialListEntry materialEntry)) {
             return;
         }
@@ -352,6 +361,11 @@ public abstract class WidgetListBaseMixin implements WidgetListBoundsAccess {
         this.setLastSelectedEntry(this.listContents.get(nextIndex), nextIndex);
         this.lmlp$scrollEntryIndexIntoView(nextIndex, 0);
         this.reCreateListEntryWidgets();
+    }
+
+    @Override
+    public int lmlp$getEntryWidth() {
+        return this.browserEntryWidth;
     }
 
     @Override
