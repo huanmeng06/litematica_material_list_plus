@@ -21,6 +21,7 @@
     "WidgetListBaseMixin",
     "WidgetListMaterialListMixin",
     "WidgetListSchematicPlacementsMixin",
+    "WidgetMaterialListEntryButtonListenerMixin",
     "WidgetMaterialListEntryMixin"
   ],
   "injectors": {

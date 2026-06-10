@@ -254,8 +254,7 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
             return false;
         }
 
-        MinimalSubMaterialListView.ignoreEntry(this.materialList, this.entry);
-        this.materialList.ignoreEntry(this.entry);
+        MinimalSubMaterialListView.ignoreEntry(this.materialList, this.entry, "entry-hitbox", true);
         MaterialListPlusState.clear();
         this.listWidget.refreshEntries();
         return true;

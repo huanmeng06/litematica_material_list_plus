@@ -2,13 +2,21 @@
 
 这个 README 只记录 `dev-newFeature` 分支的开发过程和每个小版本做了什么。完整的项目介绍、安装说明、功能说明和截图展示放在 `main` 分支维护。
 
-当前正式版：`v1.5.30`
+当前正式版：`v1.5.31`
 
-当前构建：`1.5.30+mc1.20.6`
+当前构建：`1.5.31+mc1.20.6`
 
 适配目标：Minecraft `1.20.6` / Fabric / Litematica / MaLiLib / REI
 
 ## 版本说明
+
+### v1.5.31
+
+- 修复“最小子材料”页面右侧“忽略”按钮被原版 sub widget listener 先处理、导致 LMLP ignored set 没有写入的问题；新增 `WidgetMaterialListEntry$ButtonListener` 注入，在最小子材料模式下直接接管原版 IGNORE 按钮。
+- 最小子材料忽略不再调用原版 `materialList.ignoreEntry(entry)`，避免把 LMLP 生成的虚拟子材料 entry 写入原版忽略列表；忽略状态只由 `MinimalSubMaterialListView` 的稳定 key 集合管理。
+- 加入临时调试日志：点击忽略、清除忽略、entries 重建时输出 entry 名称、stack、stableKey、ignored set 前后数量和过滤前后条目数，方便确认链路。
+- 同步 `fabric.mod.json` 和运行时 `MOD_VERSION` 到 `1.5.31+mc1.20.6`。
+- 构建产物改为 `1.5.31+mc1.20.6`。
 
 ### v1.5.30
 
