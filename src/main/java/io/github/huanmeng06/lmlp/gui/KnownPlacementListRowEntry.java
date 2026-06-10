@@ -121,6 +121,11 @@ public class KnownPlacementListRowEntry extends WidgetListEntryBase<KnownPlaceme
             return true;
         }
 
+        if (this.row.isPlacement() && this.isPlacementNameHovered(mouseX, mouseY)) {
+            KnownPlacementContext context = this.row.context();
+            return MaterialListOpener.openContext(context.key(), "schematic_placements_list.name_click");
+        }
+
         if (this.row.isPlacement() && mouseX < this.buttonsStartX) {
             KnownPlacementContext context = this.row.context();
             ChunkMissingMaterialListCache.selectMaterialListContext(context.key(), "schematic_placements_list.row_click");
@@ -163,7 +168,13 @@ public class KnownPlacementListRowEntry extends WidgetListEntryBase<KnownPlaceme
         String color = context.placement() == null
                 ? GuiBase.TXT_GRAY
                 : context.placement().isEnabled() ? GuiBase.TXT_GREEN : GuiBase.TXT_RED;
-        this.drawString(this.x + KnownPlacementRows.PLACEMENT_INDENT, textY, 0xFFFFFFFF, color + context.name() + GuiBase.TXT_RST, drawContext);
+        boolean nameHovered = this.isPlacementNameHovered(mouseX, mouseY);
+        if (nameHovered) {
+            ClickableCursor.requestHand();
+        }
+        KnownPlacementRows.renderPlacementIcon(this, this.zLevel, drawContext);
+        this.drawString(this.x + KnownPlacementRows.PLACEMENT_INDENT, textY, 0xFFFFFFFF,
+                color + (nameHovered ? KnownPlacementRows.UNDERLINE : "") + context.name() + GuiBase.TXT_RST, drawContext);
 
         if (context.offlineCache()) {
             this.drawString(this.x + KnownPlacementRows.STATUS_X, textY, 0xFFFFAA66, StringUtils.translate("lmlp.gui.known_placement.offline_cache"), drawContext);
@@ -213,5 +224,13 @@ public class KnownPlacementListRowEntry extends WidgetListEntryBase<KnownPlaceme
         }
 
         return new File(context.schematicPath()).getName();
+    }
+
+    private boolean isPlacementNameHovered(int mouseX, int mouseY) {
+        if (this.row == null || !this.row.isPlacement() || this.row.context() == null) {
+            return false;
+        }
+
+        return KnownPlacementRows.isPlacementNameHovered(this, this.getStringWidth(this.row.context().name()), mouseX, mouseY);
     }
 }

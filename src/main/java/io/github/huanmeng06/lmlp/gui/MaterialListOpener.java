@@ -28,6 +28,18 @@ public final class MaterialListOpener {
         return true;
     }
 
+    public static boolean openContext(String contextKey, String reason) {
+        ChunkMissingMaterialListCache.selectMaterialListContext(contextKey, reason);
+        MaterialListBase materialList = ChunkMissingMaterialListCache.getOrCreateMaterialListForOpen(DataManager.getMaterialList(), reason);
+
+        if (materialList == null) {
+            return true;
+        }
+
+        GuiBase.openGui(new GuiMaterialList(materialList));
+        return true;
+    }
+
     public static boolean openFromHandledScreen(class_465<?> parent) {
         MaterialListBase materialList = getOrCreateMaterialList();
 

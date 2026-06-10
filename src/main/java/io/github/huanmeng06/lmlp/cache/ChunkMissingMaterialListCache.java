@@ -126,7 +126,9 @@ public final class ChunkMissingMaterialListCache {
                 .map(EntryRecord::toEntry)
                 .filter(Objects::nonNull)
                 .toList();
-        BlockInfoListType listType = context == null ? BlockInfoListType.ALL : context.materialListType();
+        BlockInfoListType listType = context == null
+                ? materialList.getMaterialListType()
+                : materialList.getMaterialsAll().isEmpty() ? context.materialListType() : materialList.getMaterialListType();
 
         APPLYING_SCHEMATIC_CACHE.set(true);
         APPLYING_CACHE_SOURCE.set(MaterialListDataSource.OFFLINE_CACHE);
@@ -141,8 +143,8 @@ public final class ChunkMissingMaterialListCache {
             access.lmlp$setDataSource(MaterialListDataSource.OFFLINE_CACHE);
         }
 
-        LOGGER.info("[LMLP material-list] offline cache material list refreshed key={} entries={} currentDimension={}",
-                contextKey, entries.size(), currentDimensionId());
+        LOGGER.info("[LMLP material-list] offline cache material list refreshed key={} entries={} type={} currentDimension={}",
+                contextKey, entries.size(), listType.getStringValue(), currentDimensionId());
     }
 
     public static void refreshPlacementList(SchematicPlacement placement, MaterialListBase materialList) {

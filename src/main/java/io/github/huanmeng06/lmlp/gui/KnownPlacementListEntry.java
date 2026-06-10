@@ -100,6 +100,15 @@ public class KnownPlacementListEntry extends WidgetSchematicPlacement {
     }
 
     @Override
+    public boolean onMouseClicked(int mouseX, int mouseY, int mouseButton) {
+        if (mouseButton == 0 && this.isPlacementNameHovered(mouseX, mouseY) && this.context != null) {
+            return MaterialListOpener.openContext(this.context.key(), "schematic_placements_list.name_click_legacy");
+        }
+
+        return super.onMouseClicked(mouseX, mouseY, mouseButton);
+    }
+
+    @Override
     public void render(int mouseX, int mouseY, boolean selected, class_332 drawContext) {
         boolean materialSelected = this.context != null && this.context.selected();
         if (selected || this.isMouseOver(mouseX, mouseY)) {
@@ -115,8 +124,13 @@ public class KnownPlacementListEntry extends WidgetSchematicPlacement {
         }
 
         String enabledColor = this.placement.isEnabled() ? GuiBase.TXT_GREEN : GuiBase.TXT_RED;
-        String name = enabledColor + this.placement.getName() + GuiBase.TXT_RST;
+        boolean nameHovered = this.isPlacementNameHovered(mouseX, mouseY);
+        if (nameHovered) {
+            ClickableCursor.requestHand();
+        }
+        String name = enabledColor + (nameHovered ? KnownPlacementRows.UNDERLINE : "") + this.placement.getName() + GuiBase.TXT_RST;
         int textY = KnownPlacementRows.textY(this);
+        KnownPlacementRows.renderPlacementIcon(this, this.zLevel, drawContext);
         this.drawString(this.x + KnownPlacementRows.PLACEMENT_INDENT, textY, 0xFFFFFFFF, name, drawContext);
 
         if (this.context != null && !this.context.canEdit()) {
@@ -147,5 +161,13 @@ public class KnownPlacementListEntry extends WidgetSchematicPlacement {
         }
 
         return new File(this.context.schematicPath()).getName();
+    }
+
+    private boolean isPlacementNameHovered(int mouseX, int mouseY) {
+        if (this.placement == null) {
+            return false;
+        }
+
+        return KnownPlacementRows.isPlacementNameHovered(this, this.getStringWidth(this.placement.getName()), mouseX, mouseY);
     }
 }

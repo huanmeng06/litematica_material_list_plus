@@ -2,6 +2,7 @@ package io.github.huanmeng06.lmlp.gui;
 
 import fi.dy.masa.malilib.gui.GuiBase;
 import fi.dy.masa.malilib.gui.widgets.WidgetBase;
+import fi.dy.masa.litematica.gui.Icons;
 import fi.dy.masa.malilib.render.RenderUtils;
 import fi.dy.masa.malilib.util.StringUtils;
 import io.github.huanmeng06.lmlp.LitematicaMaterialListPlus;
@@ -22,7 +23,9 @@ public final class KnownPlacementRows {
     public static final int ROW_HEIGHT = 24;
     public static final int ICON_SIZE = 16;
     public static final int PLACEMENT_INDENT = 50;
+    public static final int PLACEMENT_ICON_X = PLACEMENT_INDENT - 16;
     public static final int STATUS_X = 190;
+    public static final String UNDERLINE = "\u00A7n";
 
     private static final int BUTTON_HEIGHT = 20;
     private static final int ARROW_SLOT_X = 6;
@@ -120,6 +123,27 @@ public final class KnownPlacementRows {
 
     public static void renderSelectedOutline(WidgetBase widget) {
         RenderUtils.drawOutline(widget.getX() + 1, widget.getY() + 1, widget.getWidth() - 2, widget.getHeight() - 2, 0xFFFFFFFF);
+    }
+
+    public static void renderPlacementIcon(WidgetBase widget, float zLevel, class_332 drawContext) {
+        RenderUtils.color(1.0F, 1.0F, 1.0F, 1.0F);
+        widget.bindTexture(Icons.TEXTURE);
+        Icons.SCHEMATIC_TYPE_FILE.renderAt(
+                widget.getX() + PLACEMENT_ICON_X,
+                widget.getY() + (widget.getHeight() - Icons.SCHEMATIC_TYPE_FILE.getHeight()) / 2,
+                zLevel,
+                false,
+                false);
+    }
+
+    public static boolean isPlacementNameHovered(WidgetBase widget, int nameWidth, int mouseX, int mouseY) {
+        int textX = widget.getX() + PLACEMENT_INDENT;
+        int textY = textY(widget);
+        return nameWidth > 0
+                && mouseX >= textX
+                && mouseX < textX + nameWidth
+                && mouseY >= textY
+                && mouseY < textY + TEXT_HEIGHT;
     }
 
     public static void addTranslatedTooltipLines(List<String> lines, String key) {

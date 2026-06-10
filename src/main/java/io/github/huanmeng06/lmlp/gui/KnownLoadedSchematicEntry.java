@@ -60,13 +60,29 @@ public class KnownLoadedSchematicEntry extends WidgetSchematicEntry {
 
         int textY = KnownPlacementRows.textY(this);
         String name = context == null ? "" : context.name();
-        this.drawString(this.x + KnownPlacementRows.PLACEMENT_INDENT, textY, 0xFFFFFFFF, name, drawContext);
+        boolean nameHovered = this.isPlacementNameHovered(mouseX, mouseY);
+        if (nameHovered) {
+            ClickableCursor.requestHand();
+        }
+        KnownPlacementRows.renderPlacementIcon(this, this.zLevel, drawContext);
+        this.drawString(this.x + KnownPlacementRows.PLACEMENT_INDENT, textY, 0xFFFFFFFF,
+                nameHovered ? KnownPlacementRows.UNDERLINE + name + GuiBase.TXT_RST : name, drawContext);
 
         if (context != null && context.offlineCache()) {
             this.drawString(this.x + KnownPlacementRows.STATUS_X, textY, 0xFFFFAA66, StringUtils.translate("lmlp.gui.known_placement.offline_cache"), drawContext);
         } else if (context != null && !context.canEdit()) {
             this.drawString(this.x + KnownPlacementRows.STATUS_X, textY, 0xFFAAAAAA, StringUtils.translate("lmlp.gui.known_placement.cache_only"), drawContext);
         }
+    }
+
+    @Override
+    public boolean onMouseClicked(int mouseX, int mouseY, int mouseButton) {
+        if (mouseButton == 0 && this.row != null && this.row.isPlacement() && this.isPlacementNameHovered(mouseX, mouseY)) {
+            KnownPlacementContext context = this.row.context();
+            return MaterialListOpener.openContext(context.key(), "loaded_schematics_list.name_click");
+        }
+
+        return super.onMouseClicked(mouseX, mouseY, mouseButton);
     }
 
     @Override
@@ -106,5 +122,13 @@ public class KnownLoadedSchematicEntry extends WidgetSchematicEntry {
         }
 
         return new File(context.schematicPath()).getName();
+    }
+
+    private boolean isPlacementNameHovered(int mouseX, int mouseY) {
+        if (this.row == null || !this.row.isPlacement() || this.row.context() == null) {
+            return false;
+        }
+
+        return KnownPlacementRows.isPlacementNameHovered(this, this.getStringWidth(this.row.context().name()), mouseX, mouseY);
     }
 }

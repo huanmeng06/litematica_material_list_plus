@@ -2,13 +2,22 @@
 
 这个 README 只记录 `dev-newFeature` 分支的开发过程和每个小版本做了什么。完整的项目介绍、安装说明、功能说明和截图展示放在 `main` 分支维护。
 
-当前正式版：`v1.5.22`
+当前正式版：`v1.5.23`
 
-当前构建：`1.5.22+mc1.20.6`
+当前构建：`1.5.23+mc1.20.6`
 
 适配目标：Minecraft `1.20.6` / Fabric / Litematica / MaLiLib / REI
 
 ## 版本说明
+
+### v1.5.23
+
+- 修复 OFFLINE_CACHE 材料列表缺少 LMLP 视图切换按钮的问题；离线缓存材料列表现在也会显示“全部 / 渲染层 / 最小子材料”入口。
+- OFFLINE_CACHE 的刷新和视图切换保持读取缓存 entries，不触发 `TaskCountBlocksPlacement` 或原版实时扫描链路。
+- “已加载原理图”和“原理图编辑”页面的具体 placement 条目前增加 Litematica 原版小 `L` 图标。
+- placement 名称支持 hover 下划线和手型光标，点击名称会直接打开该投影材料列表，并且不会修改 Litematica 原版 selected placement。
+- 同步 `fabric.mod.json` 和运行时 `MOD_VERSION` 到 `1.5.23+mc1.20.6`。
+- 构建产物改为 `1.5.23+mc1.20.6`。
 
 ### v1.5.22
 

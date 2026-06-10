@@ -28,7 +28,7 @@ public class OfflineCachedMaterialList extends MaterialListBase {
 
     @Override
     public boolean supportsRenderLayers() {
-        return false;
+        return true;
     }
 
     @Override
