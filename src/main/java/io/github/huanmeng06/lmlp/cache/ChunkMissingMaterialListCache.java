@@ -13,6 +13,7 @@ import fi.dy.masa.litematica.scheduler.tasks.TaskCountBlocksPlacement;
 import fi.dy.masa.litematica.schematic.LitematicaSchematic;
 import fi.dy.masa.litematica.schematic.container.LitematicaBlockStateContainer;
 import fi.dy.masa.litematica.schematic.placement.SchematicPlacement;
+import fi.dy.masa.litematica.schematic.placement.SchematicPlacementManager;
 import fi.dy.masa.litematica.schematic.placement.SubRegionPlacement;
 import fi.dy.masa.litematica.util.BlockInfoListType;
 import fi.dy.masa.litematica.util.PositionUtils;
@@ -41,12 +42,16 @@ import java.util.Map;
 public final class ChunkMissingMaterialListCache {
     private static final Map<SchematicPlacement, ChunkMissingMaterialList> LISTS = new IdentityHashMap<>();
     private static final Map<SchematicPlacement, LiveScanState> LIVE_SCANS = new IdentityHashMap<>();
+    private static final Map<SchematicPlacement, String> PLACEMENT_DIMENSIONS = new IdentityHashMap<>();
     private static final ThreadLocal<Boolean> APPLYING_SCHEMATIC_CACHE = ThreadLocal.withInitial(() -> false);
+    private static SchematicPlacement lastKnownPlacement;
 
     private ChunkMissingMaterialListCache() {
     }
 
     public static MaterialListBase getOrCreate(SchematicPlacement placement, MaterialListBase optionsSource) {
+        rememberPlacement(placement);
+
         ChunkMissingMaterialList list = LISTS.get(placement);
         if (list == null || !list.matchesCurrentPlacementState()) {
             list = new ChunkMissingMaterialList(placement, optionsSource);
@@ -66,8 +71,11 @@ public final class ChunkMissingMaterialListCache {
     public static void rememberIfPlacementList(MaterialListBase materialList) {
         if (materialList instanceof MaterialListPlacement && materialList instanceof MaterialListPlacementAccess access) {
             SchematicPlacement placement = access.lmlp$getPlacement();
-            if (placement != null && !materialList.getMaterialsAll().isEmpty()) {
-                LISTS.put(placement, new ChunkMissingMaterialList(placement, materialList));
+            if (placement != null) {
+                rememberPlacement(placement);
+                if (!materialList.getMaterialsAll().isEmpty()) {
+                    LISTS.put(placement, new ChunkMissingMaterialList(placement, materialList));
+                }
             }
         }
     }
@@ -77,10 +85,13 @@ public final class ChunkMissingMaterialListCache {
     }
 
     public static void refreshPlacementList(SchematicPlacement placement, MaterialListBase materialList) {
+        rememberPlacement(placement);
         setSchematicEntries(materialList, placement, materialList.getMaterialListType());
     }
 
     public static MaterialListBase refreshForPlacementState(SchematicPlacement placement, MaterialListBase materialList) {
+        rememberPlacement(placement);
+
         if (!arePlacementChunksLoaded(placement)) {
             return getOrCreate(placement, materialList);
         }
@@ -95,12 +106,26 @@ public final class ChunkMissingMaterialListCache {
         return materialList;
     }
 
+    public static MaterialListBase refreshLastKnownPlacement(MaterialListBase materialList) {
+        SchematicPlacement placement = placementFor(materialList);
+        if (placement == null) {
+            placement = lastKnownPlacement;
+        }
+
+        if (placement == null) {
+            return null;
+        }
+
+        return refreshForPlacementState(placement, materialList);
+    }
+
     public static boolean refreshForCurrentState(MaterialListBase materialList, boolean showLiveMessage) {
         SchematicPlacement placement = placementFor(materialList);
         if (placement == null) {
             return false;
         }
 
+        rememberPlacement(placement);
         DataManager.setMaterialList(materialList);
         if (!arePlacementChunksLoaded(placement)) {
             refreshPlacementList(placement, materialList);
@@ -149,7 +174,7 @@ public final class ChunkMissingMaterialListCache {
 
     public static boolean arePlacementChunksLoaded(SchematicPlacement placement) {
         class_638 world = class_310.method_1551().field_1687;
-        if (world == null) {
+        if (world == null || !isPlacementInCurrentDimension(placement)) {
             return false;
         }
 
@@ -165,6 +190,49 @@ public final class ChunkMissingMaterialListCache {
         }
 
         return true;
+    }
+
+    private static void rememberPlacement(SchematicPlacement placement) {
+        if (placement == null) {
+            return;
+        }
+
+        lastKnownPlacement = placement;
+        if (!PLACEMENT_DIMENSIONS.containsKey(placement) && isPlacementInCurrentManager(placement)) {
+            String dimension = currentDimensionId();
+            if (dimension != null) {
+                PLACEMENT_DIMENSIONS.put(placement, dimension);
+            }
+        }
+    }
+
+    private static boolean isPlacementInCurrentDimension(SchematicPlacement placement) {
+        if (placement == null || !isPlacementInCurrentManager(placement)) {
+            return false;
+        }
+
+        String currentDimension = currentDimensionId();
+        if (currentDimension == null) {
+            return false;
+        }
+
+        String placementDimension = PLACEMENT_DIMENSIONS.get(placement);
+        if (placementDimension == null) {
+            PLACEMENT_DIMENSIONS.put(placement, currentDimension);
+            placementDimension = currentDimension;
+        }
+
+        return currentDimension.equals(placementDimension);
+    }
+
+    private static boolean isPlacementInCurrentManager(SchematicPlacement placement) {
+        SchematicPlacementManager manager = DataManager.getSchematicPlacementManager();
+        return manager != null && manager.getAllSchematicsPlacements().contains(placement);
+    }
+
+    private static String currentDimensionId() {
+        class_638 world = class_310.method_1551().field_1687;
+        return world == null ? null : world.method_27983().toString();
     }
 
     private static List<MaterialListEntry> createEntries(SchematicPlacement placement, BlockInfoListType type) {

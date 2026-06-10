@@ -77,6 +77,11 @@ public final class MaterialListOpener {
         }
 
         if (placement == null) {
+            MaterialListBase cachedList = ChunkMissingMaterialListCache.refreshLastKnownPlacement(materialList);
+            if (cachedList != null) {
+                return cachedList;
+            }
+
             InfoUtils.showGuiOrInGameMessage(MessageType.ERROR, "litematica.message.error.no_placement_selected");
             return null;
         }
