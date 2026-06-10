@@ -141,11 +141,6 @@ public class KnownPlacementListRowEntry extends WidgetListEntryBase<KnownPlaceme
         if (this.row.isPlacement() && mouseX < this.buttonsStartX) {
             KnownPlacementContext context = this.row.context();
             ChunkMissingMaterialListCache.selectMaterialListContext(context.key(), "schematic_placements_list.row_click");
-            if (context.canEdit() && context.placement() != null) {
-                SchematicPlacement selected = this.parent.getParentGui().manager.getSelectedSchematicPlacement();
-                this.parent.getParentGui().manager.setSelectedSchematicPlacement(context.placement() != selected ? context.placement() : null);
-            }
-            this.parent.refreshEntries();
             return true;
         }
 
@@ -177,7 +172,7 @@ public class KnownPlacementListRowEntry extends WidgetListEntryBase<KnownPlaceme
             RenderUtils.drawRect(this.x, this.y, this.width, this.height, 0xA0303030);
         }
 
-        if (context.selected()) {
+        if (ChunkMissingMaterialListCache.isMaterialListContextSelected(context.key())) {
             KnownPlacementRows.renderSelectedOutline(this);
         }
 

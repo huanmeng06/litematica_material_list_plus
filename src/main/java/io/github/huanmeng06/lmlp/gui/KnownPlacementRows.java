@@ -107,7 +107,11 @@ public final class KnownPlacementRows {
     }
 
     public static ReadStatus readStatus(KnownPlacementContext context) {
-        return ReadStatus.from(ChunkMissingMaterialListCache.resolveReadMode(context));
+        return context == null ? null : readStatus(context.key());
+    }
+
+    public static ReadStatus readStatus(String contextKey) {
+        return ReadStatus.from(ChunkMissingMaterialListCache.resolveReadMode(contextKey));
     }
 
     public static ReadStatus readStatus(MaterialListBase materialList) {

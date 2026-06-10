@@ -326,6 +326,11 @@ public final class ChunkMissingMaterialListCache {
         return selectedMaterialListContext != null && selectedMaterialListContext.placement() == placement;
     }
 
+    public static boolean isMaterialListContextSelected(String contextKey) {
+        return selectedMaterialListContext != null
+                && selectedMaterialListContext.key().equals(PlacementKey.fromString(contextKey));
+    }
+
     public static boolean canEditPlacement(SchematicPlacement placement) {
         PlacementContext context = rememberPlacement(placement, "can_edit");
         boolean inCurrentManager = isPlacementInCurrentManager(placement);
@@ -488,12 +493,33 @@ public final class ChunkMissingMaterialListCache {
             return ReadMode.OFFLINE_CACHE;
         }
 
-        PlacementContext runtimeContext = PLACEMENT_CONTEXTS_BY_KEY.get(PlacementKey.fromString(context.key()));
+        return resolveReadMode(PlacementKey.fromString(context.key()), context);
+    }
+
+    public static ReadMode resolveReadMode(String contextKey) {
+        return resolveReadMode(PlacementKey.fromString(contextKey), null);
+    }
+
+    private static ReadMode resolveReadMode(PlacementKey key, KnownPlacementContext snapshot) {
+        ReadMode activeMaterialListMode = activeMaterialListReadMode(key, snapshot == null ? null : snapshot.placement());
+        if (activeMaterialListMode != null && activeMaterialListMode != ReadMode.LIVE) {
+            return activeMaterialListMode;
+        }
+
+        PlacementContext runtimeContext = PLACEMENT_CONTEXTS_BY_KEY.get(key);
+        if (runtimeContext == null && snapshot != null && snapshot.placement() != null) {
+            runtimeContext = PLACEMENT_CONTEXTS.get(snapshot.placement());
+        }
+
         if (runtimeContext != null) {
             return resolveReadMode(runtimeContext);
         }
 
-        return resolveReadMode(context.sourceState(), context.placement(), context.dimension());
+        if (snapshot != null) {
+            return resolveReadMode(snapshot.sourceState(), snapshot.placement(), snapshot.dimension());
+        }
+
+        return ReadMode.OFFLINE_CACHE;
     }
 
     public static ReadMode resolveReadMode(MaterialListBase materialList) {
@@ -512,6 +538,36 @@ public final class ChunkMissingMaterialListCache {
             case OFFLINE_CACHE -> ReadMode.OFFLINE_CACHE;
             default -> null;
         };
+    }
+
+    private static ReadMode activeMaterialListReadMode(PlacementKey key, SchematicPlacement snapshotPlacement) {
+        if (key == null) {
+            return null;
+        }
+
+        MaterialListBase materialList = DataManager.getMaterialList();
+        ReadMode readMode = resolveReadMode(dataSource(materialList));
+        if (readMode == null) {
+            return null;
+        }
+
+        PlacementKey materialListKey = materialListKey(materialList);
+        if (key.equals(materialListKey)) {
+            return readMode;
+        }
+
+        SchematicPlacement materialListPlacement = placementFor(materialList);
+        return snapshotPlacement != null && materialListPlacement == snapshotPlacement ? readMode : null;
+    }
+
+    private static PlacementKey materialListKey(MaterialListBase materialList) {
+        if (materialList instanceof OfflineCachedMaterialList offlineList) {
+            return PlacementKey.fromString(offlineList.contextKey());
+        }
+
+        SchematicPlacement placement = placementFor(materialList);
+        PlacementContext context = placement == null ? null : PLACEMENT_CONTEXTS.get(placement);
+        return context == null ? null : context.key();
     }
 
     public static boolean hasKnownDataSource(MaterialListBase materialList) {

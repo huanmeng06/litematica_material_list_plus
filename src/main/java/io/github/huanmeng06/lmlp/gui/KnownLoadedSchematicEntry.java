@@ -3,6 +3,7 @@ package io.github.huanmeng06.lmlp.gui;
 import fi.dy.masa.litematica.gui.widgets.WidgetSchematicEntry;
 import fi.dy.masa.litematica.schematic.LitematicaSchematic;
 import fi.dy.masa.malilib.render.RenderUtils;
+import io.github.huanmeng06.lmlp.cache.ChunkMissingMaterialListCache;
 import io.github.huanmeng06.lmlp.cache.ChunkMissingMaterialListCache.KnownPlacementContext;
 import io.github.huanmeng06.lmlp.gui.KnownPlacementRows.PlacementLine;
 import io.github.huanmeng06.lmlp.gui.KnownPlacementRows.KnownPlacementRow;
@@ -49,7 +50,7 @@ public class KnownLoadedSchematicEntry extends WidgetSchematicEntry {
         }
 
         KnownPlacementContext context = this.row.context();
-        boolean materialSelected = context != null && context.selected();
+        boolean materialSelected = context != null && ChunkMissingMaterialListCache.isMaterialListContextSelected(context.key());
         if (this.isMouseOver(mouseX, mouseY)) {
             RenderUtils.drawRect(this.x, this.y, this.width, this.height, 0xA0707070);
         } else if (this.isOdd) {

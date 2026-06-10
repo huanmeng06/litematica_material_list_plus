@@ -117,7 +117,7 @@ public class KnownPlacementListEntry extends WidgetSchematicPlacement {
 
     @Override
     public void render(int mouseX, int mouseY, boolean selected, class_332 drawContext) {
-        boolean materialSelected = this.context != null && this.context.selected();
+        boolean materialSelected = this.context != null && ChunkMissingMaterialListCache.isMaterialListContextSelected(this.context.key());
         if (selected || this.isMouseOver(mouseX, mouseY)) {
             RenderUtils.drawRect(this.x, this.y, this.width, this.height, 0xA0707070);
         } else if (this.isOdd) {

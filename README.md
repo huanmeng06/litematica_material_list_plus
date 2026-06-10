@@ -2,13 +2,23 @@
 
 这个 README 只记录 `dev-newFeature` 分支的开发过程和每个小版本做了什么。完整的项目介绍、安装说明、功能说明和截图展示放在 `main` 分支维护。
 
-当前正式版：`v1.5.39`
+当前正式版：`v1.5.40`
 
-当前构建：`1.5.39+mc1.20.6`
+当前构建：`1.5.40+mc1.20.6`
 
 适配目标：Minecraft `1.20.6` / Fabric / Litematica / MaLiLib / REI
 
 ## 版本说明
+
+### v1.5.40
+
+- 修复“已加载原理图”和“原理图编辑”页面状态列仍可能显示 `实时` 的问题：列表页现在按 `PlacementKey` 动态解析最终 `ReadMode`，不再依赖 row 创建时的旧快照。
+- `ChunkMissingMaterialListCache.resolveReadMode(...)` 新增按 context key 的解析路径，并在当前 `DataManager` 材料列表属于同一个投影且 dataSource 为缓存链路时，直接复用材料列表底部同一套 dataSource 结果。
+- 单击选中投影行时只更新 LMLP selected context key 和选中边框，不再刷新整张列表、重建 row snapshot 或写回 Litematica selected placement，避免区块缓存状态在选中后回退成 `实时`。
+- 列表页状态列继续只负责把 `LIVE / CHUNK_CACHE / DIMENSION_CACHE / OFFLINE_CACHE` 映射成 UI 文案和颜色，避免再出现页面显示实时、材料列表底部显示区块缓存的分叉。
+- 操作按钮权限保持独立：当前维度真实在线 placement 仍可编辑，区块缓存状态不会隐藏 `[配置] [位置] [删除]`。
+- 同步 `fabric.mod.json` 和运行时 `MOD_VERSION` 到 `1.5.40+mc1.20.6`。
+- 构建产物改为 `1.5.40+mc1.20.6`。
 
 ### v1.5.39
 
