@@ -116,6 +116,35 @@ public final class ChunkMissingMaterialListCache {
         }
     }
 
+    public static String materialListContextKey(MaterialListBase materialList, String caller) {
+        if (materialList == null) {
+            return "";
+        }
+
+        if (materialList instanceof OfflineCachedMaterialList offlineList) {
+            return offlineList.contextKey();
+        }
+
+        SchematicPlacement placement = placementFor(materialList);
+        if (placement != null) {
+            PlacementContext context = rememberPlacement(placement, caller + ".material_list_context_key");
+            return context == null ? "" : context.key().value();
+        }
+
+        if (materialList == DataManager.getMaterialList()
+                && selectedMaterialListContext != null
+                && selectedMaterialListContext.canOpenMaterialList()) {
+            return selectedMaterialListContext.key().value();
+        }
+
+        LOGGER.info("[LMLP material-list] context key unresolved caller={} listClass={} currentDimension={} selectedContext={}",
+                caller,
+                materialList.getClass().getName(),
+                currentDimensionId(),
+                selectedMaterialListContext == null ? null : selectedMaterialListContext.key());
+        return "";
+    }
+
     static void refresh(ChunkMissingMaterialList list) {
         setSchematicEntries(list, list.placement(), list.getMaterialListType());
     }

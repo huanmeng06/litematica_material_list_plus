@@ -2,13 +2,23 @@
 
 这个 README 只记录 `dev-newFeature` 分支的开发过程和每个小版本做了什么。完整的项目介绍、安装说明、功能说明和截图展示放在 `main` 分支维护。
 
-当前正式版：`v1.5.33`
+当前正式版：`v1.5.34`
 
-当前构建：`1.5.33+mc1.20.6`
+当前构建：`1.5.34+mc1.20.6`
 
 适配目标：Minecraft `1.20.6` / Fabric / Litematica / MaLiLib / REI
 
 ## 版本说明
+
+### v1.5.34
+
+- 修复“最小子材料”页面忽略状态在切换维度、材料列表刷新或实时/缓存/离线缓存链路切换后丢失的问题：ignored set 不再绑定临时 `MaterialListBase` 对象，改为按稳定投影上下文 key 分组保存。
+- 同一个投影在实时、缓存和离线缓存三种读取状态下会共享最小子材料忽略状态；投影 A 的忽略记录不会影响投影 B。
+- 顶部“清除忽略”现在只清除当前投影对应的最小子材料 ignored set，并强制清理最小子材料 entry cache、build state 和显示缓存，让被忽略条目立即恢复。
+- `MinimalSubMaterialKey` 继续使用现有稳定子材料签名，核心基于候选 item/group/display 组合，不包含数量、排序位置或当前统计值。
+- 新增临时调试日志 `[minimal ignore]`、`[minimal rebuild]`、`[minimal clear]`，输出 `placementKey`、`subMaterialKey`、ignored set 大小和过滤数量，方便验证跨维度刷新链路。
+- 同步 `fabric.mod.json` 和运行时 `MOD_VERSION` 到 `1.5.34+mc1.20.6`。
+- 构建产物改为 `1.5.34+mc1.20.6`。
 
 ### v1.5.33
 
