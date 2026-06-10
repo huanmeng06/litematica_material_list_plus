@@ -1,6 +1,7 @@
 package io.github.huanmeng06.lmlp.gui;
 
 import fi.dy.masa.malilib.gui.GuiBase;
+import fi.dy.masa.malilib.gui.widgets.WidgetListEntrySortable;
 import fi.dy.masa.malilib.gui.widgets.WidgetBase;
 import fi.dy.masa.litematica.gui.Icons;
 import fi.dy.masa.malilib.render.RenderUtils;
@@ -10,7 +11,9 @@ import io.github.huanmeng06.lmlp.cache.ChunkMissingMaterialListCache;
 import io.github.huanmeng06.lmlp.cache.ChunkMissingMaterialListCache.KnownPlacementContext;
 import io.github.huanmeng06.lmlp.cache.MaterialListDataSource;
 import net.minecraft.class_2960;
+import net.minecraft.class_310;
 import net.minecraft.class_332;
+import net.minecraft.class_638;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -43,10 +46,7 @@ public final class KnownPlacementRows {
     private static final int FILE_COLUMN_MIN_X = 190;
     private static final int STATUS_COLUMN_MIN_X = 150;
     private static final int FILE_TEXT_COLOR = 0xFFB8B8B8;
-    private static final int HEADER_BACKGROUND = 0xA0202020;
-    private static final int HEADER_HOVER_BACKGROUND = 0xA03A3A3A;
-    private static final String SORT_ASC_SUFFIX = " ^";
-    private static final String SORT_DESC_SUFFIX = " v";
+    private static final int ORIGINAL_HEADER_BACKGROUND = 0xA0101010;
 
     private static final class_2960 OVERWORLD_ICON = new class_2960(LitematicaMaterialListPlus.MOD_ID, "textures/gui/dimensions/overworld.png");
     private static final class_2960 NETHER_ICON = new class_2960(LitematicaMaterialListPlus.MOD_ID, "textures/gui/dimensions/nether.png");
@@ -64,9 +64,10 @@ public final class KnownPlacementRows {
     }
 
     public static List<KnownPlacementRow> rows(String pageId, Collection<KnownPlacementContext> contexts) {
+        String currentDimension = currentDimensionId();
         List<KnownPlacementContext> sortedContexts = contexts.stream()
                 .sorted(Comparator
-                        .comparing((KnownPlacementContext context) -> dimensionSortKey(context.dimension()))
+                        .comparing((KnownPlacementContext context) -> dimensionDisplaySortKey(context.dimension(), currentDimension))
                         .thenComparing(context -> normalizedDimension(context.dimension()))
                         .thenComparing(KnownPlacementContext::key))
                 .toList();
@@ -140,7 +141,7 @@ public final class KnownPlacementRows {
         if (row.isTableHeader()) {
             strings.add(StringUtils.translate("lmlp.gui.known_placement.header.project").toLowerCase(Locale.ROOT));
             strings.add(StringUtils.translate("lmlp.gui.known_placement.header.status").toLowerCase(Locale.ROOT));
-            strings.add(StringUtils.translate("lmlp.gui.known_placement.header.schematic_file").toLowerCase(Locale.ROOT));
+            strings.add(StringUtils.translate("lmlp.gui.known_placement.header.schematic_name").toLowerCase(Locale.ROOT));
             strings.add(StringUtils.translate("lmlp.gui.known_placement.header.actions").toLowerCase(Locale.ROOT));
             for (KnownPlacementContext context : row.groupContexts()) {
                 addContextFilterStrings(strings, context);
@@ -179,23 +180,21 @@ public final class KnownPlacementRows {
     }
 
     public static void renderTableHeader(WidgetBase widget, KnownPlacementRow row, int mouseX, int mouseY, class_332 drawContext) {
-        boolean hovered = widget.isMouseOver(mouseX, mouseY);
-        RenderUtils.drawRect(widget.getX(), widget.getY(), widget.getWidth(), widget.getHeight(), hovered ? HEADER_HOVER_BACKGROUND : HEADER_BACKGROUND);
-        RenderUtils.drawOutline(widget.getX(), widget.getY(), widget.getWidth(), widget.getHeight(), 0xFF606060);
-
-        int contentRight = headerContentRight(widget, row);
-        PlacementLineLayout layout = placementLineLayout(widget, contentRight, statusColumnWidth(widget));
-        drawHeaderLabel(widget, row, SortColumn.PROJECT, layout.nameX(), textY(widget), drawContext);
-        drawHeaderLabel(widget, row, SortColumn.STATUS, layout.statusX(), textY(widget), drawContext);
-        drawHeaderLabel(widget, row, SortColumn.FILE, layout.fileX(), textY(widget), drawContext);
+        RenderUtils.drawRect(widget.getX(), widget.getY(), widget.getWidth(), widget.getHeight(), ORIGINAL_HEADER_BACKGROUND);
+        SortableHeaderRenderer renderer = SortableHeaderRenderer.create(widget, row);
+        int textY = widget.getY() + 7;
+        drawHeaderLabel(widget, SortColumn.PROJECT, renderer.getColumnPosX(0), textY, drawContext);
+        drawHeaderLabel(widget, SortColumn.STATUS, renderer.getColumnPosX(1), textY, drawContext);
+        drawHeaderLabel(widget, SortColumn.FILE, renderer.getColumnPosX(2), textY, drawContext);
         if (isEditPage(row.pageId())) {
             widget.drawString(
-                    Math.max(layout.fileX() + MIN_FILE_WIDTH + COLUMN_GAP, widget.getX() + widget.getWidth() - 90),
-                    textY(widget),
-                    0xFFE0E0E0,
+                    renderer.getColumnPosX(3),
+                    textY,
+                    -1,
                     GuiBase.TXT_BOLD + StringUtils.translate("lmlp.gui.known_placement.header.actions") + GuiBase.TXT_RST,
                     drawContext);
         }
+        renderer.renderOriginalColumnHeader(mouseX, mouseY);
     }
 
     public static boolean clickTableHeader(WidgetBase widget, KnownPlacementRow row, int mouseX, int mouseY) {
@@ -203,22 +202,12 @@ public final class KnownPlacementRows {
             return false;
         }
 
-        int contentRight = headerContentRight(widget, row);
-        PlacementLineLayout layout = placementLineLayout(widget, contentRight, statusColumnWidth(widget));
-        SortColumn column = null;
-        if (mouseX >= layout.nameX() && mouseX < layout.statusX() - COLUMN_GAP) {
-            column = SortColumn.PROJECT;
-        } else if (mouseX >= layout.statusX() && mouseX < layout.fileX() - COLUMN_GAP) {
-            column = SortColumn.STATUS;
-        } else if (mouseX >= layout.fileX() && mouseX < contentRight) {
-            column = SortColumn.FILE;
-        }
-
-        if (column == null) {
+        int hoveredColumn = SortableHeaderRenderer.create(widget, row).mouseOverColumn(mouseX, mouseY);
+        if (hoveredColumn < 0 || hoveredColumn > SortColumn.FILE.ordinal()) {
             return false;
         }
 
-        cycleSort(row.pageId(), column);
+        cycleSort(row.pageId(), SortColumn.values()[hoveredColumn]);
         return true;
     }
 
@@ -365,6 +354,16 @@ public final class KnownPlacementRows {
         };
     }
 
+    private static int dimensionDisplaySortKey(String dimension, String currentDimension) {
+        String normalized = normalizedDimension(dimension);
+        String current = normalizedDimension(currentDimension);
+        if (!"unknown".equals(current) && normalized.equals(current)) {
+            return -1;
+        }
+
+        return dimensionSortKey(normalized);
+    }
+
     private static boolean isCollapsed(String pageId, String dimension) {
         return COLLAPSED_GROUPS.getOrDefault(collapseKey(pageId, dimension), false);
     }
@@ -450,25 +449,28 @@ public final class KnownPlacementRows {
         return width;
     }
 
-    private static int headerContentRight(WidgetBase widget, KnownPlacementRow row) {
-        if (!isEditPage(row.pageId())) {
-            return contentRight(widget);
+    private static int[] headerColumnPositions(WidgetBase widget, KnownPlacementRow row) {
+        boolean editPage = isEditPage(row.pageId());
+        int fullRight = contentRight(widget);
+        int contentRight = editPage
+                ? Math.max(widget.getX() + PLACEMENT_INDENT + MIN_NAME_WIDTH, widget.getX() + widget.getWidth() - 110)
+                : fullRight;
+        PlacementLineLayout layout = placementLineLayout(widget, contentRight, statusColumnWidth(widget));
+        if (!editPage) {
+            return new int[] { layout.nameX(), layout.statusX(), layout.fileX(), fullRight };
         }
 
-        return Math.max(widget.getX() + PLACEMENT_INDENT + MIN_NAME_WIDTH, widget.getX() + widget.getWidth() - 110);
+        int actionX = Math.max(layout.fileX() + MIN_FILE_WIDTH + COLUMN_GAP, widget.getX() + widget.getWidth() - 90);
+        return new int[] { layout.nameX(), layout.statusX(), layout.fileX(), actionX, fullRight };
     }
 
-    private static void drawHeaderLabel(WidgetBase widget, KnownPlacementRow row, SortColumn column, int x, int y, class_332 drawContext) {
-        SortState state = sortState(row.pageId());
+    private static void drawHeaderLabel(WidgetBase widget, SortColumn column, int x, int y, class_332 drawContext) {
         String label = switch (column) {
             case PROJECT -> StringUtils.translate("lmlp.gui.known_placement.header.project");
             case STATUS -> StringUtils.translate("lmlp.gui.known_placement.header.status");
-            case FILE -> StringUtils.translate("lmlp.gui.known_placement.header.schematic_file");
+            case FILE -> StringUtils.translate("lmlp.gui.known_placement.header.schematic_name");
         };
-        if (state.column() == column) {
-            label += state.descending() ? SORT_DESC_SUFFIX : SORT_ASC_SUFFIX;
-        }
-        widget.drawString(x, y, 0xFFE0E0E0, GuiBase.TXT_BOLD + label + GuiBase.TXT_RST, drawContext);
+        widget.drawString(x, y, -1, GuiBase.TXT_BOLD + label + GuiBase.TXT_RST, drawContext);
     }
 
     private static Comparator<KnownPlacementContext> sortComparator(String pageId) {
@@ -495,6 +497,11 @@ public final class KnownPlacementRows {
 
     private static boolean isEditPage(String pageId) {
         return PAGE_SCHEMATIC_PLACEMENTS.equals(pageId);
+    }
+
+    private static String currentDimensionId() {
+        class_638 world = class_310.method_1551().field_1687;
+        return world == null ? null : world.method_27983().method_29177().toString();
     }
 
     private static String schematicDisplayName(KnownPlacementContext context) {
@@ -677,5 +684,45 @@ public final class KnownPlacementRows {
     }
 
     private record SortState(SortColumn column, boolean descending) {
+    }
+
+    private static final class SortableHeaderRenderer extends WidgetListEntrySortable<KnownPlacementRow> {
+        private final SortState sortState;
+        private final int[] columnPositions;
+
+        private SortableHeaderRenderer(WidgetBase source, KnownPlacementRow row, int[] columnPositions) {
+            super(source.getX(), source.getY(), source.getWidth(), source.getHeight(), row, -1);
+            this.sortState = sortState(row.pageId());
+            this.columnPositions = columnPositions;
+            this.columnCount = Math.max(1, columnPositions.length - 1);
+        }
+
+        private static SortableHeaderRenderer create(WidgetBase source, KnownPlacementRow row) {
+            return new SortableHeaderRenderer(source, row, headerColumnPositions(source, row));
+        }
+
+        private void renderOriginalColumnHeader(int mouseX, int mouseY) {
+            this.renderColumnHeader(mouseX, mouseY, Icons.ARROW_DOWN, Icons.ARROW_UP);
+        }
+
+        private int mouseOverColumn(int mouseX, int mouseY) {
+            return this.getMouseOverColumn(mouseX, mouseY);
+        }
+
+        @Override
+        protected int getColumnPosX(int column) {
+            int index = Math.max(0, Math.min(column, this.columnPositions.length - 1));
+            return this.columnPositions[index];
+        }
+
+        @Override
+        protected int getCurrentSortColumn() {
+            return this.sortState.column().ordinal();
+        }
+
+        @Override
+        protected boolean getSortInReverse() {
+            return this.sortState.descending();
+        }
     }
 }

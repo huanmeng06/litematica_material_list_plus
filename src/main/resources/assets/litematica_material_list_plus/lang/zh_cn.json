@@ -71,7 +71,7 @@
   "lmlp.gui.material_list.read_status": "读取状态：%s",
   "lmlp.gui.known_placement.header.project": "投影",
   "lmlp.gui.known_placement.header.status": "状态",
-  "lmlp.gui.known_placement.header.schematic_file": "原理图文件",
+  "lmlp.gui.known_placement.header.schematic_name": "原理图名称",
   "lmlp.gui.known_placement.header.actions": "操作",
   "lmlp.gui.known_placement.status.live": "实时",
   "lmlp.gui.known_placement.status.cache": "缓存",

@@ -2,13 +2,21 @@
 
 这个 README 只记录 `dev-newFeature` 分支的开发过程和每个小版本做了什么。完整的项目介绍、安装说明、功能说明和截图展示放在 `main` 分支维护。
 
-当前正式版：`v1.5.26`
+当前正式版：`v1.5.27`
 
-当前构建：`1.5.26+mc1.20.6`
+当前构建：`1.5.27+mc1.20.6`
 
 适配目标：Minecraft `1.20.6` / Fabric / Litematica / MaLiLib / REI
 
 ## 版本说明
+
+### v1.5.27
+
+- “已加载原理图”和“原理图编辑”页面的表头改为复用 MaLiLib `WidgetListEntrySortable#renderColumnHeader(...)`，排序箭头、hover 外框和点击反馈跟随 Litematica 原版材料列表风格。
+- 表头文案从 `原理图文件` 改为 `原理图名称`；英文同步为 `Schematic name`。
+- 维度分组排序改为当前玩家所在维度优先，其余维度仍按主世界、下界、末地、其他维度 id 的顺序排列，组内 placement 排序规则保持不变。
+- 同步 `fabric.mod.json` 和运行时 `MOD_VERSION` 到 `1.5.27+mc1.20.6`。
+- 构建产物改为 `1.5.27+mc1.20.6`。
 
 ### v1.5.26
 
