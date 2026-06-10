@@ -80,6 +80,8 @@
   "lmlp.gui.known_placement.dimension": "维度：%s",
   "lmlp.gui.known_placement.schematic": "原理图：%s",
   "lmlp.message.known_placement_removed_return_to_dimension": "已仅移除 LMLP 已知记录。如需删除实际投影，请回到对应维度操作。",
+  "lmlp.message.known_placement_context_missing": "该条目不在当前缓存索引中，无法打开材料列表。",
+  "lmlp.message.known_placement_no_material_cache": "该条目没有可用材料缓存，请回到对应维度加载一次或刷新缓存。",
   "lmlp.message.offline_cache_missing": "该离线缓存没有已保存的材料列表条目。",
   "lmlp.message.offline_cache_removed": "已仅删除 LMLP 离线缓存记录。",
   "lmlp.dimension.minecraft.overworld": "主世界",

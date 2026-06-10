@@ -174,6 +174,33 @@ public final class ChunkMissingMaterialListCache {
         return refreshForPlacementState(resolution, materialList, false);
     }
 
+    public static MaterialListBase getOrCreateMaterialListForExplicitContext(String contextKey, MaterialListBase materialList, String caller) {
+        ensureWorldSession(caller + ".explicit_context");
+        PlacementContext context = PLACEMENT_CONTEXTS_BY_KEY.get(PlacementKey.fromString(contextKey));
+        if (context == null) {
+            LOGGER.warn("[LMLP material-list] explicit context open failed reason=missing_context caller={} key={} currentDimension={} knownContexts={}",
+                    caller, contextKey, currentDimensionId(), PLACEMENT_CONTEXTS_BY_KEY.size());
+            InfoUtils.showGuiOrInGameMessage(MessageType.ERROR, "lmlp.message.known_placement_context_missing");
+            return null;
+        }
+
+        selectContext(context, caller + ".explicit_context");
+        PlacementResolution resolution = PlacementResolution.direct(context, caller + ".explicit_context");
+        if (context.isOfflineCache()) {
+            logRoute(resolution, context, true);
+            if (!context.hasMaterialCache()) {
+                LOGGER.warn("[LMLP material-list] explicit context open failed reason=missing_entries caller={} key={} name={} dimension={} sourceState={}",
+                        caller, context.key(), context.name(), context.dimension(), context.sourceState());
+                InfoUtils.showGuiOrInGameMessage(MessageType.ERROR, "lmlp.message.known_placement_no_material_cache");
+                return null;
+            }
+
+            return getOrCreateOffline(context, caller + ".explicit_context");
+        }
+
+        return refreshForPlacementState(resolution, materialList, false);
+    }
+
     public static MaterialListBase refreshLastKnownPlacement(MaterialListBase materialList) {
         PlacementResolution resolution = resolvePlacementForMaterialList(materialList, "refreshLastKnownPlacement");
         if (!resolution.hasTarget()) {

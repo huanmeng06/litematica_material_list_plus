@@ -33,8 +33,10 @@ public final class MaterialListOpener {
     }
 
     public static boolean openContext(String contextKey, String reason, class_437 parentGui) {
-        ChunkMissingMaterialListCache.selectMaterialListContext(contextKey, reason);
-        MaterialListBase materialList = ChunkMissingMaterialListCache.getOrCreateMaterialListForOpen(DataManager.getMaterialList(), reason);
+        MaterialListBase materialList = ChunkMissingMaterialListCache.getOrCreateMaterialListForExplicitContext(
+                contextKey,
+                DataManager.getMaterialList(),
+                reason);
 
         if (materialList == null) {
             return true;

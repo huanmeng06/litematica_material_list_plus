@@ -38,6 +38,7 @@ public final class KnownPlacementRows {
     private static final int MIN_NAME_WIDTH = 48;
     private static final int MIN_FILE_WIDTH = 48;
     private static final int FILE_COLUMN_MIN_X = 190;
+    private static final int STATUS_COLUMN_MIN_X = 150;
     private static final int FILE_TEXT_COLOR = 0xFFB8B8B8;
 
     private static final class_2960 OVERWORLD_ICON = new class_2960(LitematicaMaterialListPlus.MOD_ID, "textures/gui/dimensions/overworld.png");
@@ -301,19 +302,23 @@ public final class KnownPlacementRows {
         int rowLeft = widget.getX();
         int nameX = rowLeft + PLACEMENT_INDENT;
         int right = Math.max(nameX + MIN_NAME_WIDTH, contentRight);
-        int preferredFileX = Math.max(rowLeft + FILE_COLUMN_MIN_X, rowLeft + widget.getWidth() * 42 / 100);
-        int maxFileX = Math.max(nameX + MIN_NAME_WIDTH + COLUMN_GAP, right - MIN_FILE_WIDTH);
-        int fileX = Math.min(Math.max(nameX + MIN_NAME_WIDTH + COLUMN_GAP, preferredFileX), maxFileX);
-
         int statusX = -1;
-        int fileRight = right;
         if (statusWidth > 0) {
-            statusX = Math.max(fileX + MIN_FILE_WIDTH + COLUMN_GAP, right - statusWidth);
-            statusX = Math.min(statusX, Math.max(nameX + MIN_NAME_WIDTH + COLUMN_GAP, right - statusWidth));
-            fileRight = statusX - COLUMN_GAP;
+            int preferredStatusX = Math.max(rowLeft + STATUS_COLUMN_MIN_X, rowLeft + widget.getWidth() * 30 / 100);
+            int maxStatusX = Math.max(nameX + MIN_NAME_WIDTH + COLUMN_GAP, right - statusWidth - COLUMN_GAP - MIN_FILE_WIDTH);
+            statusX = Math.min(Math.max(nameX + MIN_NAME_WIDTH + COLUMN_GAP, preferredStatusX), maxStatusX);
         }
 
-        int nameWidth = Math.max(0, fileX - nameX - COLUMN_GAP);
+        int fileMinX = statusWidth > 0
+                ? statusX + statusWidth + COLUMN_GAP
+                : nameX + MIN_NAME_WIDTH + COLUMN_GAP;
+        int preferredFileX = Math.max(rowLeft + FILE_COLUMN_MIN_X, rowLeft + widget.getWidth() * 52 / 100);
+        int maxFileX = Math.max(fileMinX, right - MIN_FILE_WIDTH);
+        int fileX = Math.min(Math.max(fileMinX, preferredFileX), maxFileX);
+
+        int nameRight = statusWidth > 0 ? statusX - COLUMN_GAP : fileX - COLUMN_GAP;
+        int nameWidth = Math.max(0, nameRight - nameX);
+        int fileRight = right;
         int fileWidth = Math.max(0, fileRight - fileX);
         return new PlacementLineLayout(nameX, nameWidth, fileX, fileWidth, statusX, statusWidth);
     }
