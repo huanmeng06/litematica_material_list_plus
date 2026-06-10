@@ -69,8 +69,8 @@ public class MinimalSourceDetailScreen extends class_437 {
     }
 
     @Override
-    public boolean method_25401(double mouseX, double mouseY, double amount) {
-        this.offsetScroll(amount);
+    public boolean method_25401(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
+        this.offsetScroll(verticalAmount);
         return true;
     }
 

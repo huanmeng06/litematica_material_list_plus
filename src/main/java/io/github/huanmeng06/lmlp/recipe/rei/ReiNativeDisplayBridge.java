@@ -20,6 +20,7 @@ import me.shedaniel.rei.api.common.category.CategoryIdentifier;
 import me.shedaniel.rei.api.common.display.Display;
 import me.shedaniel.rei.api.common.entry.EntryIngredient;
 import me.shedaniel.rei.api.common.entry.EntryStack;
+import net.minecraft.class_1792.class_9635;
 import net.minecraft.class_327;
 import net.minecraft.class_332;
 
@@ -100,7 +101,7 @@ public final class ReiNativeDisplayBridge implements RecipeNativeDisplayBridge {
             for (int i = layout.widgets().size() - 1; i >= 0; i--) {
                 Widget widget = layout.widgets().get(i);
                 if (widget instanceof Slot slot && slot.isTooltipsEnabled() && slot.containsMouse(mouseX, mouseY)) {
-                    Tooltip tooltip = slot.getCurrentTooltip(TooltipContext.of(new Point(mouseX, mouseY)));
+                    Tooltip tooltip = slot.getCurrentTooltip(TooltipContext.of(new Point(mouseX, mouseY), class_9635.field_51353));
                     return tooltip != null && ReiTooltipBridge.renderTooltip(context, textRenderer, tooltip, mouseX, mouseY);
                 }
             }
@@ -128,7 +129,7 @@ public final class ReiNativeDisplayBridge implements RecipeNativeDisplayBridge {
 
     @Override
     public boolean mouseScrolled(RecipeSummary summary, double mouseX, double mouseY, double amount) {
-        return this.dispatch(summary, widget -> widget.method_25401(mouseX, mouseY, amount), mouseX, mouseY);
+        return this.dispatch(summary, widget -> widget.method_25401(mouseX, mouseY, 0.0D, amount), mouseX, mouseY);
     }
 
     private boolean dispatch(RecipeSummary summary, WidgetAction action, double mouseX, double mouseY) {
