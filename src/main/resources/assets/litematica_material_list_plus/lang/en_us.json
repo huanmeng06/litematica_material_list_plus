@@ -71,7 +71,7 @@
   "lmlp.gui.known_placement.cache_only": "Cache only",
   "lmlp.gui.known_placement.cache_only_hint": "Different dimension: material list uses schematic cache only.",
   "lmlp.gui.known_placement.offline_cache": "Offline cache",
-  "lmlp.gui.known_placement.offline_cache_hint": "Restored from the saved LMLP cache index; the real placement is not loaded in this dimension.",
+  "lmlp.gui.known_placement.offline_cache_hint": "Restored from the saved LMLP cache index.\nThe real placement is not loaded in this dimension.",
   "lmlp.gui.known_placement.offline_cache_delete_hint": "Deleting this entry only removes the LMLP cache record.",
   "lmlp.gui.known_placement.offline_cache_empty": "No saved material entries are available for this cache record.",
   "lmlp.gui.known_placement.schematic_missing": "The schematic file is missing; live refresh is disabled.",

@@ -183,13 +183,12 @@ public class KnownPlacementListRowEntry extends WidgetListEntryBase<KnownPlaceme
         List<String> lines = new ArrayList<>();
         if (this.row.isHeader()) {
             lines.add(this.row.displayName());
-            lines.add(this.row.dimension());
         } else if (mouseX < this.buttonsStartX) {
             KnownPlacementContext context = this.row.context();
             lines.add(StringUtils.translate("lmlp.gui.known_placement.dimension", KnownPlacementRows.displayName(context.dimension())));
             lines.add(StringUtils.translate("lmlp.gui.known_placement.schematic", this.schematicName(context)));
             if (context.offlineCache()) {
-                lines.add(StringUtils.translate("lmlp.gui.known_placement.offline_cache_hint"));
+                KnownPlacementRows.addTranslatedTooltipLines(lines, "lmlp.gui.known_placement.offline_cache_hint");
                 lines.add(StringUtils.translate("lmlp.gui.known_placement.offline_cache_delete_hint"));
                 if (context.schematicMissing()) {
                     lines.add(StringUtils.translate("lmlp.gui.known_placement.schematic_missing"));

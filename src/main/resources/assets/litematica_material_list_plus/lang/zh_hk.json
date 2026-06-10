@@ -71,7 +71,7 @@
   "lmlp.gui.known_placement.cache_only": "僅快取",
   "lmlp.gui.known_placement.cache_only_hint": "不同維度：材料列表只使用原理圖快取讀取。",
   "lmlp.gui.known_placement.offline_cache": "離線快取",
-  "lmlp.gui.known_placement.offline_cache_hint": "該項目來自 LMLP 上次保存的快取索引；真實投影目前未在此維度載入。",
+  "lmlp.gui.known_placement.offline_cache_hint": "該項目來自 LMLP 上次保存的快取索引。\n真實投影目前未在此維度載入。",
   "lmlp.gui.known_placement.offline_cache_delete_hint": "刪除此項目只會移除 LMLP 快取記錄。",
   "lmlp.gui.known_placement.offline_cache_empty": "該快取記錄沒有已保存的材料清單項目。",
   "lmlp.gui.known_placement.schematic_missing": "原理圖文件缺失，已停用實時刷新。",

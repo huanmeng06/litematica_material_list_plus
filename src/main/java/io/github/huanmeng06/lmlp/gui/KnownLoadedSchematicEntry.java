@@ -78,13 +78,12 @@ public class KnownLoadedSchematicEntry extends WidgetSchematicEntry {
         List<String> lines = new ArrayList<>();
         if (this.row.isHeader()) {
             lines.add(this.row.displayName());
-            lines.add(this.row.dimension());
         } else {
             KnownPlacementContext context = this.row.context();
             lines.add(StringUtils.translate("lmlp.gui.known_placement.dimension", context == null ? "?" : KnownPlacementRows.displayName(context.dimension())));
             lines.add(StringUtils.translate("lmlp.gui.known_placement.schematic", this.schematicName(context)));
             if (context != null && context.offlineCache()) {
-                lines.add(StringUtils.translate("lmlp.gui.known_placement.offline_cache_hint"));
+                KnownPlacementRows.addTranslatedTooltipLines(lines, "lmlp.gui.known_placement.offline_cache_hint");
                 if (context.schematicMissing()) {
                     lines.add(StringUtils.translate("lmlp.gui.known_placement.schematic_missing"));
                 }

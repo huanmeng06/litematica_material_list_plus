@@ -1,5 +1,6 @@
 package io.github.huanmeng06.lmlp.gui;
 
+import fi.dy.masa.malilib.gui.GuiBase;
 import fi.dy.masa.malilib.gui.widgets.WidgetBase;
 import fi.dy.masa.malilib.render.RenderUtils;
 import fi.dy.masa.malilib.util.StringUtils;
@@ -113,12 +114,16 @@ public final class KnownPlacementRows {
         int centerY = widget.getY() + widget.getHeight() / 2;
         ToggleArrowRenderer.render(drawContext, widget.getX() + ARROW_SLOT_X, ARROW_SLOT_WIDTH, centerY, arrowProgress(row), hovered);
         drawIcon(row.dimension(), widget.getX() + ICON_X, widget.getY() + (widget.getHeight() - ICON_SIZE) / 2, drawContext);
-        widget.drawString(widget.getX() + HEADER_TEXT_X, textY(widget), 0xFFE0E0E0, row.displayName(), drawContext);
+        widget.drawString(widget.getX() + HEADER_TEXT_X, textY(widget), 0xFFE0E0E0, GuiBase.TXT_BOLD + row.displayName() + GuiBase.TXT_RST, drawContext);
         GROUP_ANIMATIONS.prune();
     }
 
     public static void renderSelectedOutline(WidgetBase widget) {
         RenderUtils.drawOutline(widget.getX() + 1, widget.getY() + 1, widget.getWidth() - 2, widget.getHeight() - 2, 0xFFFFFFFF);
+    }
+
+    public static void addTranslatedTooltipLines(List<String> lines, String key) {
+        StringUtils.translate(key).lines().forEach(lines::add);
     }
 
     public static int textY(WidgetBase widget) {
