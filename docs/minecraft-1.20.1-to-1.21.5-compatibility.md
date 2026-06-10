@@ -193,7 +193,21 @@
 已踩坑：
 
 - `1.20.1 / REI 12` 的 tooltip、滚轮事件、贴图绘制要按 1.20.1 的 Minecraft GUI API 处理，不能直接复用 1.20.6 的写法。
+- `1.20.1 / REI 12` 的 `TooltipContext.of(...)` 仍应使用 `net.minecraft.class_1836.field_41070` 作为 tooltip context。不要把 `1.20.6+` 的 `net.minecraft.class_1792.class_9635.field_51353` 直接回移到 1.20.1，否则 `ReiTooltipBridge` 和 `ReiNativeDisplayBridge` 会编译失败。
 - REI API 比 Minecraft intermediary 更容易在大版本间改泛型或 widget 行为。适配时先编译 `recipe/rei/*`，再进游戏看 tooltip 和 native display。
+
+## 1.20.1 回移当前功能时的额外踩坑
+
+这些是 `1.5.33+mc1.20.6` 回移到 `1.5.33+mc1.20.1` 时补充确认到的点，之前没有写得足够具体：
+
+1. `fabric-api-0.92.9+1.20.1.jar` 是聚合包，直接把它放进 `javac` classpath 时，不一定能解析到所有 Fabric API 子模块。若出现 `net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents` 或 `net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents` 找不到，class path 需要同时加入实例里的 `.fabric/processedMods/*.jar`。
+2. 1.20.1 的编译 class path 建议包含：`client-intermediary.jar`、PCL `libraries/**/*.jar`、当前实例 active mods、`.fabric/processedMods/*.jar`、输出目录。只加 `mods/fabric-api-*.jar` 很容易漏掉 Fabric API 子模块或 cloth basic math。
+3. Windows 上用 `javac @argfile` 时，PowerShell 5 的 `Set-Content -Encoding UTF8` 会写入 BOM，`javac` 可能把第一个参数读成 `?-encoding`。生成 argfile 时使用无 BOM UTF-8，例如 `New-Object System.Text.UTF8Encoding($false)`。
+4. `javac @argfile` 中的 Windows 反斜杠会被当成转义字符处理，路径可能被吃成 `E:Minecraft[MC]PCL...`。写 argfile 时把路径统一转为 `/`，并给含空格的 class path 和源码路径加双引号。
+5. 1.20.1 的 `DrawContext` 没有 `method_52706(Identifier,int,int,int,int)`。例如 `ToggleArrowRenderer` 必须回到旧版 `method_25290(texture, x, y, u, v, width, height, textureWidth, textureHeight)`。
+6. 使用 1.20.1 `method_25290(...)` 绘制 LMLP 自带贴图时，`Identifier` 建议写完整资源路径，例如 `textures/gui/sprites/recipe_book/page_forward.png`，不要直接使用 1.21 风格 sprite id。
+7. 1.20.1 / MaLiLib `0.16.3` 的滚轮链路是单轴参数：`Screen.method_25401(double mouseX, double mouseY, double amount)`、REI widget `method_25401(mouseX, mouseY, amount)`、`WidgetListBase.onMouseScrolled(int mouseX, int mouseY, double amount)`。从 1.20.6 回移时，要同时改普通详情页、REI native display 转发和 `WidgetListBaseMixin` 注入签名。
+8. 成功回移后务必用 `javap -verbose -classpath <jar> io.github.huanmeng06.lmlp.LitematicaMaterialListPlus` 确认 `major version: 61`。只要出现 `major version: 65`，这个 jar 就不适合 1.20.1 的 Java 17 运行环境。
 
 ## 当前源码高风险文件
 
