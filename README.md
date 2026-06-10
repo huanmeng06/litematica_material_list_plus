@@ -2,13 +2,21 @@
 
 这个 README 只记录 `dev-newFeature` 分支的开发过程和每个小版本做了什么。完整的项目介绍、安装说明、功能说明和截图展示放在 `main` 分支维护。
 
-当前正式版：`v1.5.31`
+当前正式版：`v1.5.32`
 
-当前构建：`1.5.31+mc1.20.6`
+当前构建：`1.5.32+mc1.20.6`
 
 适配目标：Minecraft `1.20.6` / Fabric / Litematica / MaLiLib / REI
 
 ## 版本说明
+
+### v1.5.32
+
+- 修复“最小子材料”页面顶部“清除忽略”无法恢复已忽略子材料的问题：原版 `CLEAR_IGNORED` 分支只调用 `materialList.clearIgnored()` 后刷新 GUI，不会进入 `reCreateMaterialList()`，因此之前挂在 `reCreateMaterialList()` redirect 上的 LMLP 清理逻辑不会触发。
+- 在 `GuiMaterialList$ButtonListener#actionPerformedWithButton(...)` 入口识别 `CLEAR_IGNORED`，先清空 `MinimalSubMaterialListView` 自己的 ignored set、entry cache、build state 和显示数据，再让原版继续清除材料列表 ignored entries 并重建 GUI。
+- All / 全部材料页面仍走原版清除忽略行为；最小子材料视图额外同步清理 LMLP 自己的忽略集合。
+- 同步 `fabric.mod.json` 和运行时 `MOD_VERSION` 到 `1.5.32+mc1.20.6`。
+- 构建产物改为 `1.5.32+mc1.20.6`。
 
 ### v1.5.31
 
