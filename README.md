@@ -2,13 +2,22 @@
 
 这个 README 只记录 `dev-newFeature` 分支的开发过程和每个小版本做了什么。完整的项目介绍、安装说明、功能说明和截图展示放在 `main` 分支维护。
 
-当前正式版：`v1.5.40`
+当前正式版：`v1.5.41`
 
-当前构建：`1.5.40+mc1.20.6`
+当前构建：`1.5.41+mc1.20.6`
 
 适配目标：Minecraft `1.20.6` / Fabric / Litematica / MaLiLib / REI
 
 ## 版本说明
+
+### v1.5.41
+
+- 修复刚进入游戏、第一次打开“已加载原理图 / 原理图编辑”页面时，当前维度未完整加载区块的投影仍可能短暂显示 `实时` 的问题。
+- `arePlacementChunksLoaded(...)` 改为严格确认：client world、player、placement manager、touched chunks 和 client chunk manager 都必须 ready，并且每个 touched chunk 都必须能取到 `FULL` 的 `WorldChunk`，否则一律按 `区块缓存` 显示。
+- `touchedChunks` 为 `null`、空集合、尚未初始化或计算异常时不再乐观视为实时，统一返回 `CHUNK_CACHE` 路径。
+- 保持列表页、材料列表底部和 ESC 返回后的状态解析继续按同一个 `contextKey -> ReadMode` 规则动态计算。
+- 同步 `fabric.mod.json` 和运行时 `MOD_VERSION` 到 `1.5.41+mc1.20.6`。
+- 构建产物改为 `1.5.41+mc1.20.6`。
 
 ### v1.5.40
 

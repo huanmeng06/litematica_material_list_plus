@@ -34,7 +34,11 @@ import net.minecraft.class_1923;
 import net.minecraft.class_2338;
 import net.minecraft.class_2382;
 import net.minecraft.class_2680;
+import net.minecraft.class_2791;
+import net.minecraft.class_2806;
+import net.minecraft.class_2818;
 import net.minecraft.class_310;
+import net.minecraft.class_631;
 import net.minecraft.class_638;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -590,18 +594,36 @@ public final class ChunkMissingMaterialListCache {
     }
 
     public static boolean arePlacementChunksLoaded(SchematicPlacement placement) {
-        class_638 world = class_310.method_1551().field_1687;
-        if (world == null || !isPlacementInCurrentDimension(placement)) {
+        class_310 client = class_310.method_1551();
+        class_638 world = client.field_1687;
+        if (world == null || client.field_1724 == null || !isPlacementInCurrentDimension(placement)) {
             return false;
         }
 
-        Collection<class_1923> touchedChunks = placement.getTouchedChunks();
-        if (touchedChunks.isEmpty()) {
+        Collection<class_1923> touchedChunks;
+        try {
+            touchedChunks = placement.getTouchedChunks();
+        } catch (RuntimeException exception) {
+            LOGGER.debug("[LMLP placement-list] touched chunks unavailable name={} reason={}", placementDebugName(placement), exception.toString());
             return false;
         }
 
-        for (class_1923 chunk : touchedChunks) {
-            if (!world.method_8393(chunk.field_9181, chunk.field_9180)) {
+        if (touchedChunks == null || touchedChunks.isEmpty()) {
+            return false;
+        }
+
+        class_631 chunkManager = world.method_2935();
+        if (chunkManager == null) {
+            return false;
+        }
+
+        for (class_1923 chunkPos : touchedChunks) {
+            if (chunkPos == null || !world.method_8393(chunkPos.field_9181, chunkPos.field_9180)) {
+                return false;
+            }
+
+            class_2791 chunk = chunkManager.method_12121(chunkPos.field_9181, chunkPos.field_9180, class_2806.field_12803, false);
+            if (!(chunk instanceof class_2818) || !chunk.method_12009().method_12165(class_2806.field_12803)) {
                 return false;
             }
         }
