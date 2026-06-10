@@ -5,13 +5,16 @@ import fi.dy.masa.litematica.gui.widgets.WidgetSchematicEntry;
 import fi.dy.masa.litematica.schematic.LitematicaSchematic;
 import io.github.huanmeng06.lmlp.cache.ChunkMissingMaterialListCache;
 import io.github.huanmeng06.lmlp.cache.ChunkMissingMaterialListCache.KnownPlacementContext;
+import io.github.huanmeng06.lmlp.gui.KnownPlacementRows.KnownPlacementRow;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
 public class KnownLoadedSchematicsList extends WidgetListLoadedSchematics {
-    private final List<KnownPlacementContext> visibleContexts = new ArrayList<>();
+    private static final String PAGE_ID = "loaded_schematics";
+
+    private final List<KnownPlacementRow> visibleRows = new ArrayList<>();
 
     public KnownLoadedSchematicsList(int x, int y, int width, int height) {
         super(x, y, width, height, null);
@@ -20,8 +23,8 @@ public class KnownLoadedSchematicsList extends WidgetListLoadedSchematics {
     @Override
     protected Collection<LitematicaSchematic> getAllEntries() {
         List<LitematicaSchematic> schematics = new ArrayList<>();
-        for (KnownPlacementContext context : ChunkMissingMaterialListCache.knownPlacementContexts()) {
-            schematics.add(ChunkMissingMaterialListCache.schematicForPlacement(context.placement()));
+        for (KnownPlacementRow row : KnownPlacementRows.rows(PAGE_ID)) {
+            schematics.add(row.isPlacement() ? ChunkMissingMaterialListCache.schematicForPlacement(row.context().placement()) : null);
         }
         return schematics;
     }
@@ -29,16 +32,16 @@ public class KnownLoadedSchematicsList extends WidgetListLoadedSchematics {
     @Override
     protected void refreshBrowserEntries() {
         this.listContents.clear();
-        this.visibleContexts.clear();
+        this.visibleRows.clear();
 
         String filter = this.getFilterText();
-        for (KnownPlacementContext context : ChunkMissingMaterialListCache.knownPlacementContexts()) {
-            if (!filter.isEmpty() && !this.matchesFilter(this.filterStrings(context), filter)) {
+        for (KnownPlacementRow row : KnownPlacementRows.rows(PAGE_ID)) {
+            if (!filter.isEmpty() && !this.matchesFilter(KnownPlacementRows.filterStrings(row), filter)) {
                 continue;
             }
 
-            this.visibleContexts.add(context);
-            this.listContents.add(ChunkMissingMaterialListCache.schematicForPlacement(context.placement()));
+            this.visibleRows.add(row);
+            this.listContents.add(row.isPlacement() ? ChunkMissingMaterialListCache.schematicForPlacement(row.context().placement()) : null);
         }
 
         this.reCreateListEntryWidgets();
@@ -51,31 +54,29 @@ public class KnownLoadedSchematicsList extends WidgetListLoadedSchematics {
 
     @Override
     protected int getBrowserEntryHeightFor(LitematicaSchematic schematic) {
-        return KnownLoadedSchematicEntry.rowHeight();
+        return KnownPlacementRows.ROW_HEIGHT;
     }
 
     @Override
     protected WidgetSchematicEntry createListEntryWidget(int x, int y, int listIndex, boolean isOdd, LitematicaSchematic schematic) {
-        KnownPlacementContext context = listIndex >= 0 && listIndex < this.visibleContexts.size() ? this.visibleContexts.get(listIndex) : null;
-        return new KnownLoadedSchematicEntry(x, y, this.browserEntryWidth, isOdd, schematic, context, listIndex, this);
+        KnownPlacementRow row = listIndex >= 0 && listIndex < this.visibleRows.size() ? this.visibleRows.get(listIndex) : null;
+        return new KnownLoadedSchematicEntry(x, y, this.browserEntryWidth, isOdd, schematic, row, listIndex, this);
     }
 
     @Override
     protected boolean onEntryClicked(LitematicaSchematic schematic, int index) {
-        if (index >= 0 && index < this.visibleContexts.size()) {
-            KnownPlacementContext context = this.visibleContexts.get(index);
-            ChunkMissingMaterialListCache.selectMaterialListContext(context.key(), "loaded_schematics_list.click");
-            this.refreshEntries();
+        if (index < 0 || index >= this.visibleRows.size()) {
+            return true;
         }
-        return true;
-    }
 
-    private List<String> filterStrings(KnownPlacementContext context) {
-        List<String> strings = new ArrayList<>();
-        strings.add(context.name().toLowerCase());
-        strings.add(context.displayDimension().toLowerCase());
-        strings.add(context.dimension() == null ? "" : context.dimension().toLowerCase());
-        strings.add(context.schematicPath().toLowerCase());
-        return strings;
+        KnownPlacementRow row = this.visibleRows.get(index);
+        if (row.isHeader()) {
+            KnownPlacementRows.toggle(PAGE_ID, row.dimension());
+        } else if (row.isPlacement()) {
+            KnownPlacementContext context = row.context();
+            ChunkMissingMaterialListCache.selectMaterialListContext(context.key(), "loaded_schematics_list.click");
+        }
+        this.refreshEntries();
+        return true;
     }
 }

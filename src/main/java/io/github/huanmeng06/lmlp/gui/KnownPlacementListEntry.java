@@ -111,17 +111,15 @@ public class KnownPlacementListEntry extends WidgetSchematicPlacement {
         }
 
         if (materialSelected) {
-            RenderUtils.drawOutline(this.x + 1, this.y + 1, this.width - 2, this.height - 2, 0xFFFFAA00);
+            KnownPlacementRows.renderSelectedOutline(this);
         }
 
-        String marker = materialSelected ? "[x]" : "[ ]";
         String enabledColor = this.placement.isEnabled() ? GuiBase.TXT_GREEN : GuiBase.TXT_RED;
         String name = enabledColor + this.placement.getName() + GuiBase.TXT_RST;
-        this.drawString(this.x + 4, this.y + 12, 0xFFFFFFFF, marker, drawContext);
-        this.drawString(this.x + 32, this.y + 12, 0xFFFFFFFF, name, drawContext);
+        this.drawString(this.x + KnownPlacementRows.PLACEMENT_INDENT, this.y + 12, 0xFFFFFFFF, name, drawContext);
 
         if (this.context != null && !this.context.canEdit()) {
-            this.drawString(this.x + 190, this.y + 12, 0xFFAAAAAA, StringUtils.translate("lmlp.gui.known_placement.cache_only"), drawContext);
+            this.drawString(this.x + 180, this.y + 12, 0xFFAAAAAA, StringUtils.translate("lmlp.gui.known_placement.cache_only"), drawContext);
         }
 
         this.drawSubWidgets(mouseX, mouseY, drawContext);

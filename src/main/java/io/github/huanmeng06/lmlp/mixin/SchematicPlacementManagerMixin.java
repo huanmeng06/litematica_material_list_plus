@@ -19,7 +19,9 @@ public abstract class SchematicPlacementManagerMixin {
 
     @Inject(method = "setSelectedSchematicPlacement", at = @At("TAIL"))
     private void lmlp$rememberSelectedPlacement(SchematicPlacement placement, CallbackInfo ci) {
-        ChunkMissingMaterialListCache.rememberPlacementContext(placement, "placement_manager.select");
+        if (placement != null) {
+            ChunkMissingMaterialListCache.selectMaterialListPlacement(placement, "placement_manager.select");
+        }
     }
 
     @Inject(method = "removeSchematicPlacement(Lfi/dy/masa/litematica/schematic/placement/SchematicPlacement;Z)Z", at = @At("TAIL"))

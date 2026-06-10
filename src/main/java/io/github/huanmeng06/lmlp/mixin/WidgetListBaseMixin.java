@@ -21,6 +21,8 @@ import io.github.huanmeng06.lmlp.gui.MaterialListPlusState;
 import io.github.huanmeng06.lmlp.gui.MinimalSubMaterialListView;
 import io.github.huanmeng06.lmlp.gui.MinimalSourceInlineRenderer;
 import io.github.huanmeng06.lmlp.gui.KnownPlacementListEntry;
+import io.github.huanmeng06.lmlp.gui.KnownPlacementRows;
+import io.github.huanmeng06.lmlp.gui.KnownPlacementRows.KnownPlacementRow;
 import io.github.huanmeng06.lmlp.gui.RecipeInlineRenderer;
 import io.github.huanmeng06.lmlp.material.InventoryCounts;
 import io.github.huanmeng06.lmlp.material.ItemStackTexts;
@@ -277,6 +279,10 @@ public abstract class WidgetListBaseMixin implements WidgetListBoundsAccess {
 
     @Inject(method = "getBrowserEntryHeightFor", at = @At("HEAD"), cancellable = true)
     private void lmlp$getBrowserEntryHeightFor(Object entry, CallbackInfoReturnable<Integer> cir) {
+        if ((Object) this instanceof WidgetListSchematicPlacements && entry instanceof KnownPlacementRow) {
+            cir.setReturnValue(KnownPlacementRows.ROW_HEIGHT);
+            return;
+        }
 
         if ((Object) this instanceof WidgetListSchematicPlacements && entry instanceof SchematicPlacement) {
             cir.setReturnValue(KnownPlacementListEntry.rowHeight());
