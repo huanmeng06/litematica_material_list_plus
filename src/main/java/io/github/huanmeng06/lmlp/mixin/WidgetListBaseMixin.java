@@ -192,16 +192,16 @@ public abstract class WidgetListBaseMixin implements WidgetListBoundsAccess {
     }
 
     @Inject(method = "onMouseScrolled", at = @At("HEAD"), cancellable = true)
-    private void lmlp$scrollByPixels(int mouseX, int mouseY, double horizontalAmount, double verticalAmount, CallbackInfoReturnable<Boolean> cir) {
+    private void lmlp$scrollByPixels(int mouseX, int mouseY, double amount, CallbackInfoReturnable<Boolean> cir) {
         if (!this.lmlp$isInsideBrowser(mouseX, mouseY)) {
             return;
         }
 
-        double target = this.lmlp$scrollRemainder - verticalAmount * WHEEL_SCROLL_PIXELS;
+        double target = this.lmlp$scrollRemainder - amount * WHEEL_SCROLL_PIXELS;
         int pixels = (int) target;
         this.lmlp$scrollRemainder = target - pixels;
-        if (pixels == 0 && verticalAmount != 0.0D) {
-            pixels = verticalAmount > 0.0D ? -1 : 1;
+        if (pixels == 0 && amount != 0.0D) {
+            pixels = amount > 0.0D ? -1 : 1;
             this.lmlp$scrollRemainder = 0.0D;
         }
 

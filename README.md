@@ -2,13 +2,18 @@
 
 这个 README 只记录 `dev-newFeature` 分支的开发过程和每个小版本做了什么。完整的项目介绍、安装说明、功能说明和截图展示放在 `main` 分支维护。
 
-当前正式版：`v1.5.17`
+当前正式版：`v1.5.18`
 
-当前构建：`1.5.17+mc1.20.1`
+当前构建：`1.5.18+mc1.20.1`
 
 适配目标：Minecraft `1.20.1` / Fabric / Litematica / MaLiLib / REI
 
 ## 版本说明
+
+### v1.5.18
+
+- 修复 1.20.1 / MaLiLib `0.16.3` 中 `WidgetListBase.onMouseScrolled` 仍为单轴滚轮参数，导致 `WidgetListBaseMixin` 注入描述符不匹配并崩溃的问题。
+- 构建产物改为 `1.5.18+mc1.20.1`。
 
 ### v1.5.17
 
