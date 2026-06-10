@@ -2,13 +2,22 @@
 
 这个 README 只记录 `dev-newFeature` 分支的开发过程和每个小版本做了什么。完整的项目介绍、安装说明、功能说明和截图展示放在 `main` 分支维护。
 
-当前正式版：`v1.5.36`
+当前正式版：`v1.5.37`
 
-当前构建：`1.5.36+mc1.20.6`
+当前构建：`1.5.37+mc1.20.6`
 
 适配目标：Minecraft `1.20.6` / Fabric / Litematica / MaLiLib / REI
 
 ## 版本说明
+
+### v1.5.37
+
+- 修复“已加载原理图”页面 `[清除缓存]` 按钮没有显示的问题：按钮创建逻辑从只服务“原理图编辑 / 管理原理图放置”页面的 `KnownPlacementListRowEntry` 移到实际用于已加载页面的 `KnownLoadedSchematicEntry`。
+- `KnownLoadedSchematicEntry` 现在会在 placement 行且读取状态不是 `实时` 时创建 `[清除缓存]`，点击后调用 `ChunkMissingMaterialListCache.clearKnownPlacementCache(...)` 并刷新当前列表。
+- 已加载原理图页面渲染 placement 行时会通过 `buttonsStartX` 调整 `KnownPlacementRows.contentRight(...)`，避免“状态 / 原理图名称”文字和右侧按钮重叠。
+- 清理 `KnownPlacementListRowEntry` 中不会触发的 loaded-page 分支，保持“原理图编辑”页面只显示真实在线可编辑投影的 `[配置] [位置] [删除]`。
+- 同步 `fabric.mod.json` 和运行时 `MOD_VERSION` 到 `1.5.37+mc1.20.6`。
+- 构建产物改为 `1.5.37+mc1.20.6`。
 
 ### v1.5.36
 
