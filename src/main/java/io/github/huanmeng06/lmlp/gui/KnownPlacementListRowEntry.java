@@ -115,6 +115,13 @@ public class KnownPlacementListRowEntry extends WidgetListEntryBase<KnownPlaceme
             return false;
         }
 
+        if (this.row.isTableHeader()) {
+            if (KnownPlacementRows.clickTableHeader(this, this.row, mouseX, mouseY)) {
+                this.parent.refreshEntries();
+            }
+            return true;
+        }
+
         if (this.row.isHeader()) {
             KnownPlacementRows.toggle(this.row.pageId(), this.row.dimension());
             this.parent.refreshEntries();
@@ -143,6 +150,11 @@ public class KnownPlacementListRowEntry extends WidgetListEntryBase<KnownPlaceme
     @Override
     public void render(int mouseX, int mouseY, boolean selected, class_332 drawContext) {
         if (this.row == null) {
+            return;
+        }
+
+        if (this.row.isTableHeader()) {
+            KnownPlacementRows.renderTableHeader(this, this.row, mouseX, mouseY, drawContext);
             return;
         }
 
@@ -180,6 +192,10 @@ public class KnownPlacementListRowEntry extends WidgetListEntryBase<KnownPlaceme
     @Override
     public void postRenderHovered(int mouseX, int mouseY, boolean selected, class_332 drawContext) {
         if (this.row == null || !this.isMouseOver(mouseX, mouseY)) {
+            return;
+        }
+
+        if (this.row.isTableHeader()) {
             return;
         }
 

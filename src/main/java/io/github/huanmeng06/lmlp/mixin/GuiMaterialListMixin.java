@@ -14,6 +14,8 @@ import fi.dy.masa.malilib.gui.button.IButtonActionListener;
 import fi.dy.masa.malilib.util.StringUtils;
 import io.github.huanmeng06.lmlp.cache.ChunkMissingMaterialListCache;
 import io.github.huanmeng06.lmlp.cache.MaterialListDataSource;
+import io.github.huanmeng06.lmlp.gui.KnownPlacementRows;
+import io.github.huanmeng06.lmlp.gui.KnownPlacementRows.ReadStatus;
 import io.github.huanmeng06.lmlp.export.SubMaterialExporter;
 import io.github.huanmeng06.lmlp.gui.MinimalSubMaterialListView;
 import net.minecraft.class_437;
@@ -79,9 +81,6 @@ public abstract class GuiMaterialListMixin extends GuiListBase {
 
     @Inject(method = "getBrowserHeight", at = @At("RETURN"), cancellable = true)
     private void lmlp$makeRoomForChunkMissingStatus(CallbackInfoReturnable<Integer> cir) {
-        if (ChunkMissingMaterialListCache.hasKnownDataSource(this.materialList)) {
-            cir.setReturnValue(Math.max(0, cir.getReturnValue() - 12));
-        }
     }
 
     @Inject(method = "initGui", at = @At("TAIL"))
@@ -97,18 +96,11 @@ public abstract class GuiMaterialListMixin extends GuiListBase {
     @Inject(method = "initGui", at = @At("TAIL"))
     private void lmlp$addSchematicCacheStatus(CallbackInfo ci) {
         MaterialListDataSource dataSource = ChunkMissingMaterialListCache.dataSource(this.materialList);
-        if (dataSource == MaterialListDataSource.SCHEMATIC_CACHE) {
-            String status = StringUtils.translate("lmlp.gui.material_list.source.cache");
-            this.addLabel(12, this.field_22790 - 24, this.getStringWidth(status), 12, 0xFFFFCC66, status);
-        } else if (dataSource == MaterialListDataSource.CROSS_DIMENSION_CACHE) {
-            String status = StringUtils.translate("lmlp.gui.material_list.source.cross_dimension_cache");
-            this.addLabel(12, this.field_22790 - 24, this.getStringWidth(status), 12, 0xFFFFAA66, status);
-        } else if (dataSource == MaterialListDataSource.OFFLINE_CACHE) {
-            String status = StringUtils.translate("lmlp.gui.material_list.source.offline_cache");
-            this.addLabel(12, this.field_22790 - 24, this.getStringWidth(status), 12, 0xFFFF9966, status);
-        } else if (dataSource == MaterialListDataSource.WORLD_SCAN) {
-            String status = StringUtils.translate("lmlp.gui.material_list.source.live");
-            this.addLabel(12, this.field_22790 - 24, this.getStringWidth(status), 12, 0xFF66CC66, status);
+        ReadStatus readStatus = KnownPlacementRows.readStatus(dataSource);
+        if (readStatus != null) {
+            String status = StringUtils.translate("lmlp.gui.material_list.read_status", readStatus.label());
+            int width = this.getStringWidth(status);
+            this.addLabel(Math.max(12, this.field_22789 - width - 12), 8, width, 12, readStatus.color(), status);
         }
     }
 

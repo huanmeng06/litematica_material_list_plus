@@ -13,7 +13,7 @@ import java.util.Collection;
 import java.util.List;
 
 public class KnownLoadedSchematicsList extends WidgetListLoadedSchematics {
-    private static final String PAGE_ID = "loaded_schematics";
+    private static final String PAGE_ID = KnownPlacementRows.PAGE_LOADED_SCHEMATICS;
 
     private final List<KnownPlacementRow> visibleRows = new ArrayList<>();
     private final GuiSchematicLoadedList parentGui;
@@ -43,7 +43,7 @@ public class KnownLoadedSchematicsList extends WidgetListLoadedSchematics {
 
         String filter = this.getFilterText();
         for (KnownPlacementRow row : KnownPlacementRows.rows(PAGE_ID)) {
-            if (!filter.isEmpty() && !this.matchesFilter(KnownPlacementRows.filterStrings(row), filter)) {
+            if (!row.isTableHeader() && !filter.isEmpty() && !this.matchesFilter(KnownPlacementRows.filterStrings(row), filter)) {
                 continue;
             }
 
@@ -77,7 +77,9 @@ public class KnownLoadedSchematicsList extends WidgetListLoadedSchematics {
         }
 
         KnownPlacementRow row = this.visibleRows.get(index);
-        if (row.isHeader()) {
+        if (row.isTableHeader()) {
+            return true;
+        } else if (row.isHeader()) {
             KnownPlacementRows.toggle(PAGE_ID, row.dimension());
         } else if (row.isPlacement()) {
             KnownPlacementContext context = row.context();

@@ -22,7 +22,7 @@ import java.util.List;
 
 @Mixin(value = WidgetListSchematicPlacements.class, remap = false)
 public abstract class WidgetListSchematicPlacementsMixin {
-    private static final String PAGE_ID = "schematic_placements";
+    private static final String PAGE_ID = KnownPlacementRows.PAGE_SCHEMATIC_PLACEMENTS;
 
     @Inject(method = "getAllEntries", at = @At("HEAD"), cancellable = true)
     @SuppressWarnings({"unchecked", "rawtypes"})
@@ -39,6 +39,8 @@ public abstract class WidgetListSchematicPlacementsMixin {
             strings.add(KnownPlacementRows.displayName(context.dimension()).toLowerCase());
             strings.add(KnownPlacementRows.normalizedDimension(context.dimension()).toLowerCase());
             strings.add(context.schematicPath().toLowerCase());
+            strings.add(context.schematicName().toLowerCase());
+            strings.add(KnownPlacementRows.readStatus(context).label().toLowerCase());
         }
         cir.setReturnValue(strings);
     }

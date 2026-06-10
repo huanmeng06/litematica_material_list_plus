@@ -38,6 +38,11 @@ public class KnownLoadedSchematicEntry extends WidgetSchematicEntry {
             return;
         }
 
+        if (this.row.isTableHeader()) {
+            KnownPlacementRows.renderTableHeader(this, this.row, mouseX, mouseY, drawContext);
+            return;
+        }
+
         if (this.row.isHeader()) {
             KnownPlacementRows.renderHeader(this, this.row, mouseX, mouseY, drawContext);
             return;
@@ -68,6 +73,12 @@ public class KnownLoadedSchematicEntry extends WidgetSchematicEntry {
 
     @Override
     public boolean onMouseClicked(int mouseX, int mouseY, int mouseButton) {
+        if (mouseButton == 0 && this.row != null && this.row.isTableHeader()
+                && KnownPlacementRows.clickTableHeader(this, this.row, mouseX, mouseY)) {
+            this.listParent.refreshEntries();
+            return true;
+        }
+
         if (mouseButton == 0 && this.row != null && this.row.isPlacement() && this.isPlacementNameHovered(mouseX, mouseY)) {
             KnownPlacementContext context = this.row.context();
             return MaterialListOpener.openContext(context.key(), "loaded_schematics_list.name_click", this.listParent.getParentGui());
@@ -79,6 +90,10 @@ public class KnownLoadedSchematicEntry extends WidgetSchematicEntry {
     @Override
     public void postRenderHovered(int mouseX, int mouseY, boolean selected, class_332 drawContext) {
         if (this.row == null || !this.isMouseOver(mouseX, mouseY)) {
+            return;
+        }
+
+        if (this.row.isTableHeader()) {
             return;
         }
 
