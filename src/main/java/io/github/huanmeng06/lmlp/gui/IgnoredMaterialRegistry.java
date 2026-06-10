@@ -78,6 +78,23 @@ public final class IgnoredMaterialRegistry {
                 placementKey, beforeSize, ignoredSize(placementKey, ViewType.MINIMAL_SUB_MATERIAL));
     }
 
+    public static void clearPlacement(String placementKey) {
+        int beforeSize = 0;
+        Map<ViewType, Set<String>> byView = IGNORED_BY_PLACEMENT.get(placementKey);
+        if (byView != null) {
+            for (Set<String> ignored : byView.values()) {
+                beforeSize += ignored.size();
+            }
+        }
+
+        if (placementKey != null && !placementKey.isEmpty()) {
+            IGNORED_BY_PLACEMENT.remove(placementKey);
+        }
+
+        LOGGER.info("[material clear placement] placementKey={} beforeIgnoredSize={} afterIgnoredSize=0",
+                placementKey, beforeSize);
+    }
+
     public static Collection<MaterialListEntry> filter(MaterialListBase materialList, Collection<MaterialListEntry> entries) {
         String placementKey = placementKey(materialList);
         ViewType viewType = viewType(materialList);

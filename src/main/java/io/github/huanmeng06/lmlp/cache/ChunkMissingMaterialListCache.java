@@ -27,6 +27,8 @@ import io.github.huanmeng06.lmlp.access.SchematicPlacementMaterialListAccess;
 import io.github.huanmeng06.lmlp.cache.WorldMaterialCacheIndex.EntryRecord;
 import io.github.huanmeng06.lmlp.cache.WorldMaterialCacheIndex.LoadResult;
 import io.github.huanmeng06.lmlp.cache.WorldMaterialCacheIndex.PlacementRecord;
+import io.github.huanmeng06.lmlp.gui.IgnoredMaterialRegistry;
+import io.github.huanmeng06.lmlp.gui.MaterialListPlusState;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import net.minecraft.class_1923;
 import net.minecraft.class_2338;
@@ -351,6 +353,43 @@ public final class ChunkMissingMaterialListCache {
         }
 
         return removeKnownContext(context, allowCurrentDimensionRemoval, reason);
+    }
+
+    public static boolean clearKnownPlacementCache(String contextKey, String reason) {
+        ensureWorldSession(reason + ".clear_cache");
+        PlacementContext context = PLACEMENT_CONTEXTS_BY_KEY.get(PlacementKey.fromString(contextKey));
+        if (context == null) {
+            LOGGER.warn("[LMLP cache-clear] skipped reason=missing_context caller={} key={} currentDimension={} knownContexts={}",
+                    reason, contextKey, currentDimensionId(), PLACEMENT_CONTEXTS_BY_KEY.size());
+            InfoUtils.showGuiOrInGameMessage(MessageType.ERROR, "lmlp.message.known_placement_context_missing");
+            return false;
+        }
+
+        String key = context.key().value();
+        boolean removeOfflineContext = context.isOfflineCache();
+        LOGGER.info("[LMLP cache-clear] requested caller={} key={} name={} sourceState={} placementDimension={} currentDimension={} placementRef={} materialEntries={} removeOfflineContext={}",
+                reason, context.key(), context.name(), context.sourceState(), context.dimension(), currentDimensionId(),
+                context.placement() != null, context.materialEntries().size(), removeOfflineContext);
+
+        if (context.placement() != null) {
+            LISTS.remove(context.placement());
+            LIVE_SCANS.remove(context.placement());
+        }
+        OFFLINE_LISTS.remove(key);
+        IgnoredMaterialRegistry.clearPlacement(key);
+        MaterialListPlusState.clearRecipeCaches();
+
+        if (removeOfflineContext) {
+            forgetContext(context, reason + ".clear_offline_cache", true);
+        } else {
+            context.clearMaterialCache(reason + ".clear_online_cache");
+            persistKnownContexts(reason + ".cache_cleared");
+        }
+
+        LOGGER.info("[LMLP cache-clear] completed caller={} key={} removedOfflineContext={} remainingKnownContexts={}",
+                reason, key, removeOfflineContext, PLACEMENT_CONTEXTS_BY_KEY.size());
+        InfoUtils.showGuiOrInGameMessage(MessageType.INFO, "lmlp.message.cache_cleared");
+        return true;
     }
 
     public static void forgetPlacementContext(SchematicPlacement placement, String reason) {
@@ -1310,6 +1349,16 @@ public final class ChunkMissingMaterialListCache {
             this.lastMaterialCacheUpdateTime = System.currentTimeMillis();
             LOGGER.info("[LMLP cache-index] material cache updated key={} name={} sourceState={} type={} entries={}",
                     this.key, this.name, this.sourceState, this.materialListType.getStringValue(), this.materialEntries.size());
+        }
+
+        private void clearMaterialCache(String reason) {
+            int beforeEntries = this.materialEntries.size();
+            this.materialEntries = List.of();
+            this.cacheGenerated = false;
+            this.lastMaterialCacheUpdateTime = 0L;
+            this.lastReason = reason;
+            LOGGER.info("[LMLP cache-index] material cache cleared reason={} key={} name={} sourceState={} previousEntries={}",
+                    reason, this.key, this.name, this.sourceState, beforeEntries);
         }
 
         private void setSelected(boolean selected) {

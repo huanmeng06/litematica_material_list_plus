@@ -46,6 +46,15 @@ public class KnownPlacementListRowEntry extends WidgetListEntryBase<KnownPlaceme
         }
 
         KnownPlacementContext context = this.row.context();
+        if (KnownPlacementRows.isLoadedSchematicsPage(this.row.pageId())) {
+            if (canClearCache(context)) {
+                int buttonX = this.x + this.width - 2;
+                int buttonY = KnownPlacementRows.buttonY(this.y);
+                this.buttonsStartX = this.addClearCacheButton(buttonX, buttonY, context);
+            }
+            return;
+        }
+
         if (!canModifyPlacement(context)) {
             return;
         }
@@ -61,6 +70,10 @@ public class KnownPlacementListRowEntry extends WidgetListEntryBase<KnownPlaceme
 
     private static boolean canModifyPlacement(KnownPlacementContext context) {
         return context != null && context.canEdit() && context.placement() != null;
+    }
+
+    private static boolean canClearCache(KnownPlacementContext context) {
+        return context != null && KnownPlacementRows.readStatus(context) != KnownPlacementRows.ReadStatus.LIVE;
     }
 
     private int addConfigureButton(int buttonX, int buttonY, SchematicPlacement placement) {
@@ -91,11 +104,20 @@ public class KnownPlacementListRowEntry extends WidgetListEntryBase<KnownPlaceme
     }
 
     private int addRemoveButton(int buttonX, int buttonY, KnownPlacementContext context) {
-        String labelKey = context.offlineCache() ? "lmlp.gui.button.delete_cache" : "litematica.gui.button.schematic_placements.remove";
-        ButtonGeneric button = new ButtonGeneric(buttonX, buttonY, -1, true, StringUtils.translate(labelKey));
+        ButtonGeneric button = new ButtonGeneric(buttonX, buttonY, -1, true, StringUtils.translate("litematica.gui.button.schematic_placements.remove"));
         this.addButton(button, (clickedButton, mouseButton) -> {
             boolean allowCurrentDimensionRemoval = context.canEdit();
             if (ChunkMissingMaterialListCache.removeKnownPlacementContext(context.key(), allowCurrentDimensionRemoval, "known_placement.remove_button")) {
+                this.parent.refreshEntries();
+            }
+        });
+        return button.getX() - 1;
+    }
+
+    private int addClearCacheButton(int buttonX, int buttonY, KnownPlacementContext context) {
+        ButtonGeneric button = new ButtonGeneric(buttonX, buttonY, -1, true, StringUtils.translate("lmlp.gui.button.clear_cache"));
+        this.addButton(button, (clickedButton, mouseButton) -> {
+            if (ChunkMissingMaterialListCache.clearKnownPlacementCache(context.key(), "loaded_schematics.clear_cache_button")) {
                 this.parent.refreshEntries();
             }
         });

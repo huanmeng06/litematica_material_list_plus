@@ -2,13 +2,23 @@
 
 这个 README 只记录 `dev-newFeature` 分支的开发过程和每个小版本做了什么。完整的项目介绍、安装说明、功能说明和截图展示放在 `main` 分支维护。
 
-当前正式版：`v1.5.35`
+当前正式版：`v1.5.36`
 
-当前构建：`1.5.35+mc1.20.6`
+当前构建：`1.5.36+mc1.20.6`
 
 适配目标：Minecraft `1.20.6` / Fabric / Litematica / MaLiLib / REI
 
 ## 版本说明
+
+### v1.5.36
+
+- 在“已加载原理图”页面为 `缓存` / `离线缓存` 条目增加独立的 `[清除缓存]` 操作列入口，用于清理 LMLP 自己保存的缓存记录，不会删除真实 Litematica placement。
+- 新增 `ChunkMissingMaterialListCache.clearKnownPlacementCache(...)`：离线缓存会从已知 context / 持久化索引 / 离线材料列表缓存中移除；在线投影只清除 material entries snapshot、运行时缓存列表和 live scan 状态，保留真实投影。
+- 清除缓存时按稳定 `PlacementKey` 同步清理 `IgnoredMaterialRegistry` 中 All / 渲染层 / 最小子材料的忽略记录，并刷新 recipe / minimal 子材料缓存，避免脏缓存残留。
+- “原理图编辑”页面继续只允许当前维度真实在线且可编辑的投影显示 `[配置] [位置] [删除]`，缓存和离线缓存不显示任何编辑/删除按钮。
+- 新增本地化文案 `lmlp.gui.button.clear_cache` 和 `lmlp.message.cache_cleared`，明确提示清除的是 LMLP 缓存记录，不会删除真实投影。
+- 同步 `fabric.mod.json` 和运行时 `MOD_VERSION` 到 `1.5.36+mc1.20.6`。
+- 构建产物改为 `1.5.36+mc1.20.6`。
 
 ### v1.5.35
 

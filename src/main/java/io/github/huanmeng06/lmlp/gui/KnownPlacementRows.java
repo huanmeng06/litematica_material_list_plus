@@ -186,7 +186,7 @@ public final class KnownPlacementRows {
         drawHeaderLabel(widget, SortColumn.PROJECT, renderer.getColumnPosX(0), textY, drawContext);
         drawHeaderLabel(widget, SortColumn.STATUS, renderer.getColumnPosX(1), textY, drawContext);
         drawHeaderLabel(widget, SortColumn.FILE, renderer.getColumnPosX(2), textY, drawContext);
-        if (isEditPage(row.pageId())) {
+        if (hasActionColumn(row.pageId())) {
             widget.drawString(
                     renderer.getColumnPosX(3),
                     textY,
@@ -450,13 +450,13 @@ public final class KnownPlacementRows {
     }
 
     private static int[] headerColumnPositions(WidgetBase widget, KnownPlacementRow row) {
-        boolean editPage = isEditPage(row.pageId());
+        boolean hasActionColumn = hasActionColumn(row.pageId());
         int fullRight = contentRight(widget);
-        int contentRight = editPage
+        int contentRight = hasActionColumn
                 ? Math.max(widget.getX() + PLACEMENT_INDENT + MIN_NAME_WIDTH, widget.getX() + widget.getWidth() - 110)
                 : fullRight;
         PlacementLineLayout layout = placementLineLayout(widget, contentRight, statusColumnWidth(widget));
-        if (!editPage) {
+        if (!hasActionColumn) {
             return new int[] { layout.nameX(), layout.statusX(), layout.fileX(), fullRight };
         }
 
@@ -497,6 +497,14 @@ public final class KnownPlacementRows {
 
     private static boolean isEditPage(String pageId) {
         return PAGE_SCHEMATIC_PLACEMENTS.equals(pageId);
+    }
+
+    public static boolean isLoadedSchematicsPage(String pageId) {
+        return PAGE_LOADED_SCHEMATICS.equals(pageId);
+    }
+
+    private static boolean hasActionColumn(String pageId) {
+        return PAGE_SCHEMATIC_PLACEMENTS.equals(pageId) || PAGE_LOADED_SCHEMATICS.equals(pageId);
     }
 
     private static String currentDimensionId() {
