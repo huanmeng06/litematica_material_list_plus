@@ -43,15 +43,22 @@ public class KnownPlacementListEntry extends WidgetSchematicPlacement {
     }
 
     private void createButtons() {
+        if (!this.canModifyPlacement()) {
+            this.buttonsStartX = this.x + this.width;
+            return;
+        }
+
         int buttonX = this.x + this.width - 2;
         int buttonY = KnownPlacementRows.buttonY(this.y);
         buttonX = this.addRemoveButton(buttonX, buttonY);
-        if (this.context != null && this.context.canEdit()) {
-            buttonX = this.addToggleButton(buttonX, buttonY);
-            buttonX = this.addConfigureButton(buttonX, buttonY);
-        }
+        buttonX = this.addToggleButton(buttonX, buttonY);
+        buttonX = this.addConfigureButton(buttonX, buttonY);
 
         this.buttonsStartX = buttonX;
+    }
+
+    private boolean canModifyPlacement() {
+        return this.context != null && this.context.canEdit() && this.context.placement() != null;
     }
 
     private int addConfigureButton(int buttonX, int buttonY) {

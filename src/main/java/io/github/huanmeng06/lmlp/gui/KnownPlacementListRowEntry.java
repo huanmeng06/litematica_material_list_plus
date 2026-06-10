@@ -46,15 +46,21 @@ public class KnownPlacementListRowEntry extends WidgetListEntryBase<KnownPlaceme
         }
 
         KnownPlacementContext context = this.row.context();
+        if (!canModifyPlacement(context)) {
+            return;
+        }
+
         int buttonX = this.x + this.width - 2;
         int buttonY = KnownPlacementRows.buttonY(this.y);
         buttonX = this.addRemoveButton(buttonX, buttonY, context);
-        if (context.canEdit() && context.placement() != null) {
-            buttonX = this.addToggleButton(buttonX, buttonY, context.placement());
-            buttonX = this.addConfigureButton(buttonX, buttonY, context.placement());
-        }
+        buttonX = this.addToggleButton(buttonX, buttonY, context.placement());
+        buttonX = this.addConfigureButton(buttonX, buttonY, context.placement());
 
         this.buttonsStartX = buttonX;
+    }
+
+    private static boolean canModifyPlacement(KnownPlacementContext context) {
+        return context != null && context.canEdit() && context.placement() != null;
     }
 
     private int addConfigureButton(int buttonX, int buttonY, SchematicPlacement placement) {

@@ -299,9 +299,10 @@ public final class ChunkMissingMaterialListCache {
         PlacementContext context = rememberPlacement(placement, "can_edit");
         boolean inCurrentManager = isPlacementInCurrentManager(placement);
         boolean canEdit = canEditPlacement(context, inCurrentManager);
-        LOGGER.info("[LMLP placement-list] canEditPlacement key={} name={} sourceState={} placementDimension={} currentDimension={} inCurrentManager={} result={}",
+        LOGGER.info("[LMLP placement-list] canModifyPlacement key={} name={} sourceState={} placementDimension={} currentDimension={} placementRef={} inCurrentManager={} chunksLoaded={} result={}",
                 context == null ? null : context.key(), placementDebugName(placement), context == null ? null : context.sourceState(),
-                context == null ? null : context.dimension(), currentDimensionId(), inCurrentManager, canEdit);
+                context == null ? null : context.dimension(), currentDimensionId(), placement != null, inCurrentManager,
+                placement != null && arePlacementChunksLoaded(placement), canEdit);
         return canEdit;
     }
 
@@ -660,10 +661,13 @@ public final class ChunkMissingMaterialListCache {
     }
 
     private static boolean canEditPlacement(PlacementContext context, boolean inCurrentManager) {
+        SchematicPlacement placement = context == null ? null : context.placement();
         return context != null
                 && context.sourceState() == SourceState.ONLINE
+                && placement != null
                 && Objects.equals(context.dimension(), currentDimensionId())
-                && inCurrentManager;
+                && inCurrentManager
+                && arePlacementChunksLoaded(placement);
     }
 
     private static MaterialListDataSource cacheSourceFor(SchematicPlacement placement, PlacementContext context) {
@@ -1286,8 +1290,9 @@ public final class ChunkMissingMaterialListCache {
         private KnownPlacementContext view() {
             boolean inCurrentManager = this.placement != null && isPlacementInCurrentManager(this.placement);
             boolean canEdit = canEditPlacement(this, inCurrentManager);
-            LOGGER.info("[LMLP placement-list] row canEdit key={} name={} sourceState={} placementDimension={} currentDimension={} inCurrentManager={} result={}",
-                    this.key, this.name, this.sourceState, this.dimension, currentDimensionId(), inCurrentManager, canEdit);
+            LOGGER.info("[LMLP placement-list] row canModify key={} name={} sourceState={} placementDimension={} currentDimension={} placementRef={} inCurrentManager={} chunksLoaded={} result={}",
+                    this.key, this.name, this.sourceState, this.dimension, currentDimensionId(), this.placement != null,
+                    inCurrentManager, this.placement != null && arePlacementChunksLoaded(this.placement), canEdit);
             return new KnownPlacementContext(
                     this.placement,
                     this.key.value(),
