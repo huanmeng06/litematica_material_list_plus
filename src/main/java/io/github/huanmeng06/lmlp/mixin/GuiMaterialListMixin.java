@@ -100,6 +100,9 @@ public abstract class GuiMaterialListMixin extends GuiListBase {
         if (dataSource == MaterialListDataSource.SCHEMATIC_CACHE) {
             String status = StringUtils.translate("lmlp.gui.material_list.source.cache");
             this.addLabel(12, this.field_22790 - 24, this.getStringWidth(status), 12, 0xFFFFCC66, status);
+        } else if (dataSource == MaterialListDataSource.CROSS_DIMENSION_CACHE) {
+            String status = StringUtils.translate("lmlp.gui.material_list.source.cross_dimension_cache");
+            this.addLabel(12, this.field_22790 - 24, this.getStringWidth(status), 12, 0xFFFFAA66, status);
         } else if (dataSource == MaterialListDataSource.WORLD_SCAN) {
             String status = StringUtils.translate("lmlp.gui.material_list.source.live");
             this.addLabel(12, this.field_22790 - 24, this.getStringWidth(status), 12, 0xFF66CC66, status);

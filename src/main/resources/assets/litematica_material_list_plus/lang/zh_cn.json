@@ -64,6 +64,7 @@
   "lmlp.gui.material_list.display_type.minimal_sub_materials": "最小子材料",
   "lmlp.gui.material_list.chunk_missing_status": "\u5f53\u524d\u6750\u6599\u5217\u8868\u662f\u4f9d\u7167\u539f\u7406\u56fe\u7f13\u5b58\u8bfb\u53d6\u7684",
   "lmlp.gui.material_list.source.cache": "投影原理图读取：缓存",
+  "lmlp.gui.material_list.source.cross_dimension_cache": "投影原理图读取：跨维度缓存",
   "lmlp.gui.material_list.source.live": "投影原理图读取：实时",
   "lmlp.message.sub_material_list_export_failed": "写入子材料文件失败。",
   "lmlp.hotkeys.category.material_list": "材料列表",

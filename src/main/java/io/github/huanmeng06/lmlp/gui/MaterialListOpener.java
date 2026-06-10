@@ -3,11 +3,7 @@ package io.github.huanmeng06.lmlp.gui;
 import fi.dy.masa.litematica.data.DataManager;
 import fi.dy.masa.litematica.gui.GuiMaterialList;
 import fi.dy.masa.litematica.materials.MaterialListBase;
-import fi.dy.masa.litematica.schematic.placement.SchematicPlacement;
-import fi.dy.masa.litematica.schematic.placement.SchematicPlacementManager;
 import fi.dy.masa.malilib.gui.GuiBase;
-import fi.dy.masa.malilib.gui.Message.MessageType;
-import fi.dy.masa.malilib.util.InfoUtils;
 import io.github.huanmeng06.lmlp.cache.ChunkMissingMaterialListCache;
 import net.minecraft.class_437;
 import net.minecraft.class_465;
@@ -68,25 +64,7 @@ public final class MaterialListOpener {
 
     public static MaterialListBase getOrCreateMaterialList() {
         MaterialListBase materialList = DataManager.getMaterialList();
-
-        SchematicPlacementManager manager = DataManager.getSchematicPlacementManager();
-        SchematicPlacement placement = manager.getSelectedSchematicPlacement();
-        if (placement == null && !manager.getAllSchematicsPlacements().isEmpty()) {
-            placement = manager.getAllSchematicsPlacements().get(0);
-            manager.setSelectedSchematicPlacement(placement);
-        }
-
-        if (placement == null) {
-            MaterialListBase cachedList = ChunkMissingMaterialListCache.refreshLastKnownPlacement(materialList);
-            if (cachedList != null) {
-                return cachedList;
-            }
-
-            InfoUtils.showGuiOrInGameMessage(MessageType.ERROR, "litematica.message.error.no_placement_selected");
-            return null;
-        }
-
-        return ChunkMissingMaterialListCache.refreshForPlacementState(placement, materialList);
+        return ChunkMissingMaterialListCache.getOrCreateMaterialListForOpen(materialList, "MaterialListOpener");
     }
 
     private static GuiMaterialList getHandledScreenGui(class_465<?> parent, MaterialListBase materialList) {

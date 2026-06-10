@@ -30,7 +30,7 @@ public abstract class MaterialListBaseMixin implements MaterialListSourceAccess 
     @Inject(method = "setMaterialListEntries", at = @At("TAIL"))
     private void lmlp$rememberPlacementDemandCache(List<MaterialListEntry> entries, CallbackInfo ci) {
         if (ChunkMissingMaterialListCache.isApplyingSchematicCache()) {
-            this.lmlp$setDataSource(MaterialListDataSource.SCHEMATIC_CACHE);
+            this.lmlp$setDataSource(ChunkMissingMaterialListCache.applyingCacheSource());
             return;
         }
 
