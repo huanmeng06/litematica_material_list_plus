@@ -182,7 +182,7 @@ public final class KnownPlacementRows {
     public static void renderTableHeader(WidgetBase widget, KnownPlacementRow row, int mouseX, int mouseY, class_332 drawContext) {
         RenderUtils.drawRect(widget.getX(), widget.getY(), widget.getWidth(), widget.getHeight(), ORIGINAL_HEADER_BACKGROUND);
         SortableHeaderRenderer renderer = SortableHeaderRenderer.create(widget, row);
-        int textY = widget.getY() + 7;
+        int textY = textY(widget);
         drawHeaderLabel(widget, SortColumn.PROJECT, renderer.getColumnPosX(0), textY, drawContext);
         drawHeaderLabel(widget, SortColumn.STATUS, renderer.getColumnPosX(1), textY, drawContext);
         drawHeaderLabel(widget, SortColumn.FILE, renderer.getColumnPosX(2), textY, drawContext);
@@ -691,10 +691,19 @@ public final class KnownPlacementRows {
         private final int[] columnPositions;
 
         private SortableHeaderRenderer(WidgetBase source, KnownPlacementRow row, int[] columnPositions) {
-            super(source.getX(), source.getY(), source.getWidth(), source.getHeight(), row, -1);
+            super(source.getX(), centeredHeaderY(source), source.getWidth(), centeredHeaderHeight(source), row, -1);
             this.sortState = sortState(row.pageId());
             this.columnPositions = columnPositions;
             this.columnCount = Math.max(1, columnPositions.length - 1);
+        }
+
+        private static int centeredHeaderHeight(WidgetBase source) {
+            return Math.min(20, source.getHeight());
+        }
+
+        private static int centeredHeaderY(WidgetBase source) {
+            int height = centeredHeaderHeight(source);
+            return source.getY() + (source.getHeight() - height) / 2;
         }
 
         private static SortableHeaderRenderer create(WidgetBase source, KnownPlacementRow row) {

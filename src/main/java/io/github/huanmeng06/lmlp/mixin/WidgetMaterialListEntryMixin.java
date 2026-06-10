@@ -333,7 +333,9 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
             MinimalSourceInlineRenderer.render(this, drawContext, this.x + 28, panelY, panelWidth, stack, name, requirements, sources, showAllSources, visibleOuterHeight, mouseX, mouseY);
         }
 
-        if (!minimalSubMaterialView) {
+        if (minimalSubMaterialView) {
+            this.drawSubWidgets(mouseX, mouseY, drawContext);
+        } else {
             super.render(mouseX, mouseY, selected, drawContext);
         }
     }
