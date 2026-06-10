@@ -3,6 +3,7 @@ package io.github.huanmeng06.lmlp.mixin;
 import fi.dy.masa.litematica.gui.GuiMaterialList;
 import fi.dy.masa.litematica.materials.MaterialListBase;
 import fi.dy.masa.litematica.materials.MaterialListEntry;
+import fi.dy.masa.litematica.materials.MaterialListUtils;
 import fi.dy.masa.litematica.util.BlockInfoListType;
 import fi.dy.masa.malilib.gui.GuiListBase;
 import fi.dy.masa.malilib.gui.Message.MessageType;
@@ -11,6 +12,10 @@ import fi.dy.masa.malilib.gui.button.ButtonGeneric;
 import fi.dy.masa.malilib.gui.button.ButtonOnOff;
 import fi.dy.masa.malilib.gui.button.IButtonActionListener;
 import fi.dy.masa.malilib.util.StringUtils;
+import io.github.huanmeng06.lmlp.cache.ChunkMissingMaterialListCache;
+import io.github.huanmeng06.lmlp.cache.MaterialListDataSource;
+import io.github.huanmeng06.lmlp.gui.KnownPlacementRows;
+import io.github.huanmeng06.lmlp.gui.KnownPlacementRows.ReadStatus;
 import io.github.huanmeng06.lmlp.export.SubMaterialExporter;
 import io.github.huanmeng06.lmlp.gui.MinimalSubMaterialListView;
 import net.minecraft.class_437;
@@ -22,6 +27,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyArg;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.io.File;
 import java.util.List;
@@ -38,6 +44,13 @@ public abstract class GuiMaterialListMixin extends GuiListBase {
 
     protected GuiMaterialListMixin(int listX, int listY) {
         super(listX, listY);
+    }
+
+    @Inject(method = "<init>", at = @At("TAIL"))
+    private void lmlp$refreshForCurrentStateOnEntry(MaterialListBase materialList, CallbackInfo ci) {
+        if (ChunkMissingMaterialListCache.refreshForCurrentState(this.materialList, false) && this.mc.field_1724 != null) {
+            MaterialListUtils.updateAvailableCounts(this.materialList.getMaterialsAll(), this.mc.field_1724);
+        }
     }
 
     @Redirect(
@@ -66,6 +79,13 @@ public abstract class GuiMaterialListMixin extends GuiListBase {
         return label;
     }
 
+    @Inject(method = "getBrowserHeight", at = @At("RETURN"), cancellable = true)
+    private void lmlp$makeRoomForChunkMissingStatus(CallbackInfoReturnable<Integer> cir) {
+        if (KnownPlacementRows.readStatus(ChunkMissingMaterialListCache.dataSource(this.materialList)) != null) {
+            cir.setReturnValue(Math.max(0, cir.getReturnValue() - 12));
+        }
+    }
+
     @Inject(method = "initGui", at = @At("TAIL"))
     private void lmlp$addSubMaterialExportButton(CallbackInfo ci) {
         int x = this.lmlp$subMaterialExportButtonX();
@@ -74,6 +94,17 @@ public abstract class GuiMaterialListMixin extends GuiListBase {
         ButtonGeneric button = new ButtonGeneric(x, y, -1, 20, label, new String[0]);
         button.setHoverStrings("lmlp.gui.button.hover.material_list.write_sub_materials");
         this.addButton(button, new SubMaterialExportButtonListener((GuiMaterialList) (Object) this));
+    }
+
+    @Inject(method = "initGui", at = @At("TAIL"))
+    private void lmlp$addSchematicCacheStatus(CallbackInfo ci) {
+        MaterialListDataSource dataSource = ChunkMissingMaterialListCache.dataSource(this.materialList);
+        ReadStatus readStatus = KnownPlacementRows.readStatus(dataSource);
+        if (readStatus != null) {
+            String status = StringUtils.translate("lmlp.gui.material_list.read_status", readStatus.label());
+            int width = this.getStringWidth(status);
+            this.addLabel(12, this.field_22790 - 24, width, 12, readStatus.color(), status);
+        }
     }
 
     private int lmlp$subMaterialExportButtonX() {
