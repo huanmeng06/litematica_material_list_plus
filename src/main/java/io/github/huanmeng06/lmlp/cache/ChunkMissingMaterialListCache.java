@@ -734,8 +734,7 @@ public final class ChunkMissingMaterialListCache {
                 && context.sourceState() == SourceState.ONLINE
                 && placement != null
                 && Objects.equals(context.dimension(), currentDimensionId())
-                && inCurrentManager
-                && arePlacementChunksLoaded(placement);
+                && inCurrentManager;
     }
 
     private static MaterialListDataSource cacheSourceFor(SchematicPlacement placement, PlacementContext context) {
@@ -1014,6 +1013,10 @@ public final class ChunkMissingMaterialListCache {
         return new File(path).getName();
     }
 
+    private static String originPosition(SchematicPlacement placement) {
+        return formatPos(placement.getOrigin());
+    }
+
     private static String regionsKey(Collection<SubRegionPlacement> regions) {
         List<SubRegionPlacement> sorted = new ArrayList<>(regions);
         sorted.sort(Comparator.comparing(SubRegionPlacement::getName));
@@ -1042,6 +1045,10 @@ public final class ChunkMissingMaterialListCache {
 
     private static void appendPos(StringBuilder builder, class_2338 pos) {
         builder.append(pos.method_10263()).append(',').append(pos.method_10264()).append(',').append(pos.method_10260());
+    }
+
+    private static String formatPos(class_2338 pos) {
+        return "[" + pos.method_10263() + ", " + pos.method_10264() + ", " + pos.method_10260() + "]";
     }
 
     private static void ensureWorldSession(String reason) {
@@ -1224,6 +1231,7 @@ public final class ChunkMissingMaterialListCache {
             String name,
             String schematicPath,
             String schematicName,
+            String originPosition,
             String dimension,
             String displayDimension,
             long lastSeen,
@@ -1261,6 +1269,7 @@ public final class ChunkMissingMaterialListCache {
         private String signature;
         private String schematicPath;
         private String schematicName;
+        private String originPosition;
         private String placementIdentity;
         private String name;
         private String dimension;
@@ -1280,6 +1289,7 @@ public final class ChunkMissingMaterialListCache {
             this.placementIdentity = ChunkMissingMaterialListCache.identitySignature(placement);
             this.schematicPath = ChunkMissingMaterialListCache.schematicPath(placement);
             this.schematicName = ChunkMissingMaterialListCache.schematicName(this.schematicPath);
+            this.originPosition = ChunkMissingMaterialListCache.originPosition(placement);
             this.key = PlacementKey.of(dimension, placement);
             this.name = placement.getName();
             this.dimension = dimension;
@@ -1295,6 +1305,7 @@ public final class ChunkMissingMaterialListCache {
             this.name = record.placementName();
             this.schematicName = record.schematicName();
             this.schematicPath = record.schematicPath();
+            this.originPosition = record.originPosition();
             this.placementIdentity = record.placementIdentity();
             this.signature = record.placementSignature();
             this.lastSeen = record.lastSeenTime();
@@ -1331,6 +1342,7 @@ public final class ChunkMissingMaterialListCache {
             this.placementIdentity = ChunkMissingMaterialListCache.identitySignature(placement);
             this.schematicPath = ChunkMissingMaterialListCache.schematicPath(placement);
             this.schematicName = ChunkMissingMaterialListCache.schematicName(this.schematicPath);
+            this.originPosition = ChunkMissingMaterialListCache.originPosition(placement);
             if (this.dimension == null && currentDimension != null) {
                 this.dimension = currentDimension;
                 LOGGER.info("[LMLP material-list] placement dimension learned reason={} name={} dimension={} schematic={} signature={}",
@@ -1378,6 +1390,7 @@ public final class ChunkMissingMaterialListCache {
                     this.name,
                     this.schematicPath,
                     this.schematicName,
+                    this.originPosition,
                     this.dimension,
                     displayDimension(this.dimension),
                     this.lastSeen,
@@ -1398,6 +1411,7 @@ public final class ChunkMissingMaterialListCache {
                     this.name,
                     this.schematicName,
                     this.schematicPath,
+                    this.originPosition,
                     this.placementIdentity,
                     this.signature,
                     this.lastSeen,

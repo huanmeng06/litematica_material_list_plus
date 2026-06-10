@@ -45,7 +45,9 @@ public final class KnownPlacementRows {
     private static final int MIN_FILE_WIDTH = 48;
     private static final int FILE_COLUMN_MIN_X = 190;
     private static final int STATUS_COLUMN_MIN_X = 150;
+    private static final int ORIGIN_COLUMN_MIN_X = 330;
     private static final int FILE_TEXT_COLOR = 0xFFB8B8B8;
+    private static final int ORIGIN_TEXT_COLOR = 0xFFB8B8B8;
     private static final int ORIGINAL_HEADER_BACKGROUND = 0xA0101010;
 
     private static final class_2960 OVERWORLD_ICON = new class_2960(LitematicaMaterialListPlus.MOD_ID, "textures/gui/dimensions/overworld.png");
@@ -103,13 +105,21 @@ public final class KnownPlacementRows {
     }
 
     public static ReadStatus readStatus(KnownPlacementContext context) {
-        if (context == null || context.offlineCache() || context.placement() == null) {
+        if (context == null || context.offlineCache() || context.placement() == null || context.sourceState() != ChunkMissingMaterialListCache.SourceState.ONLINE) {
+            return ReadStatus.OFFLINE;
+        }
+
+        if (!normalizedDimension(context.dimension()).equals(normalizedDimension(currentDimensionId()))) {
+            return ReadStatus.DIMENSION_CACHE;
+        }
+
+        if (!context.canEdit()) {
             return ReadStatus.OFFLINE;
         }
 
         return ChunkMissingMaterialListCache.arePlacementChunksLoaded(context.placement())
                 ? ReadStatus.LIVE
-                : ReadStatus.CACHE;
+                : ReadStatus.CHUNK_CACHE;
     }
 
     public static ReadStatus readStatus(MaterialListDataSource dataSource) {
@@ -120,7 +130,8 @@ public final class KnownPlacementRows {
         return switch (dataSource) {
             case WORLD_SCAN -> ReadStatus.LIVE;
             case OFFLINE_CACHE -> ReadStatus.OFFLINE;
-            case SCHEMATIC_CACHE, CROSS_DIMENSION_CACHE -> ReadStatus.CACHE;
+            case SCHEMATIC_CACHE -> ReadStatus.CHUNK_CACHE;
+            case CROSS_DIMENSION_CACHE -> ReadStatus.DIMENSION_CACHE;
             default -> null;
         };
     }
@@ -142,6 +153,7 @@ public final class KnownPlacementRows {
             strings.add(StringUtils.translate("lmlp.gui.known_placement.header.project").toLowerCase(Locale.ROOT));
             strings.add(StringUtils.translate("lmlp.gui.known_placement.header.status").toLowerCase(Locale.ROOT));
             strings.add(StringUtils.translate("lmlp.gui.known_placement.header.schematic_name").toLowerCase(Locale.ROOT));
+            strings.add(StringUtils.translate("lmlp.gui.known_placement.header.origin").toLowerCase(Locale.ROOT));
             strings.add(StringUtils.translate("lmlp.gui.known_placement.header.actions").toLowerCase(Locale.ROOT));
             for (KnownPlacementContext context : row.groupContexts()) {
                 addContextFilterStrings(strings, context);
@@ -186,9 +198,10 @@ public final class KnownPlacementRows {
         drawHeaderLabel(widget, SortColumn.PROJECT, renderer.getColumnPosX(0), textY, drawContext);
         drawHeaderLabel(widget, SortColumn.STATUS, renderer.getColumnPosX(1), textY, drawContext);
         drawHeaderLabel(widget, SortColumn.FILE, renderer.getColumnPosX(2), textY, drawContext);
+        drawHeaderLabel(widget, SortColumn.ORIGIN, renderer.getColumnPosX(3), textY, drawContext);
         if (hasActionColumn(row.pageId())) {
             widget.drawString(
-                    renderer.getColumnPosX(3),
+                    renderer.getColumnPosX(4),
                     textY,
                     -1,
                     GuiBase.TXT_BOLD + StringUtils.translate("lmlp.gui.known_placement.header.actions") + GuiBase.TXT_RST,
@@ -203,7 +216,7 @@ public final class KnownPlacementRows {
         }
 
         int hoveredColumn = SortableHeaderRenderer.create(widget, row).mouseOverColumn(mouseX, mouseY);
-        if (hoveredColumn < 0 || hoveredColumn > SortColumn.FILE.ordinal()) {
+        if (hoveredColumn < 0 || hoveredColumn > SortColumn.ORIGIN.ordinal()) {
             return false;
         }
 
@@ -235,6 +248,9 @@ public final class KnownPlacementRows {
         String fileName = schematicDisplayName(context);
         String fileText = truncateToWidth(widget, fileName, layout.fileWidth());
         boolean fileTruncated = !fileText.equals(fileName);
+        String origin = originPosition(context);
+        String originText = truncateToWidth(widget, origin, layout.originWidth());
+        boolean originTruncated = !originText.equals(origin);
 
         return new PlacementLine(
                 layout,
@@ -244,6 +260,9 @@ public final class KnownPlacementRows {
                 widget.getStringWidth(fileText),
                 fileTruncated,
                 schematicHoverText(context),
+                originText,
+                widget.getStringWidth(originText),
+                originTruncated,
                 status,
                 statusTextWidth);
     }
@@ -261,6 +280,10 @@ public final class KnownPlacementRows {
 
         if (line.status() != null) {
             widget.drawString(line.layout().statusX(), textY, line.status().color(), line.status().text(), drawContext);
+        }
+
+        if (!line.originText().isEmpty()) {
+            widget.drawString(line.layout().originX(), textY, ORIGIN_TEXT_COLOR, line.originText(), drawContext);
         }
     }
 
@@ -377,6 +400,7 @@ public final class KnownPlacementRows {
         strings.add(context.key().toLowerCase(Locale.ROOT));
         strings.add(context.schematicName().toLowerCase(Locale.ROOT));
         strings.add(context.schematicPath().toLowerCase(Locale.ROOT));
+        strings.add(originPosition(context).toLowerCase(Locale.ROOT));
         strings.add(context.sourceState().name().toLowerCase(Locale.ROOT));
         ReadStatus status = readStatus(context);
         strings.add(status.label().toLowerCase(Locale.ROOT));
@@ -400,10 +424,14 @@ public final class KnownPlacementRows {
         int rowLeft = widget.getX();
         int nameX = rowLeft + PLACEMENT_INDENT;
         int right = Math.max(nameX + MIN_NAME_WIDTH, contentRight);
+        int originHeaderWidth = widget.getStringWidth(StringUtils.translate("lmlp.gui.known_placement.header.origin"));
+        int originWidth = Math.max(originHeaderWidth, widget.getStringWidth("[-0000, 000, -0000]"));
+        int preferredOriginX = Math.max(rowLeft + ORIGIN_COLUMN_MIN_X, rowLeft + widget.getWidth() * 72 / 100);
+        int originX = Math.min(Math.max(nameX + MIN_NAME_WIDTH + COLUMN_GAP, preferredOriginX), Math.max(nameX + MIN_NAME_WIDTH + COLUMN_GAP, right - originWidth));
         int statusX = -1;
         if (statusWidth > 0) {
             int preferredStatusX = Math.max(rowLeft + STATUS_COLUMN_MIN_X, rowLeft + widget.getWidth() * 30 / 100);
-            int maxStatusX = Math.max(nameX + MIN_NAME_WIDTH + COLUMN_GAP, right - statusWidth - COLUMN_GAP - MIN_FILE_WIDTH);
+            int maxStatusX = Math.max(nameX + MIN_NAME_WIDTH + COLUMN_GAP, originX - statusWidth - COLUMN_GAP - MIN_FILE_WIDTH);
             statusX = Math.min(Math.max(nameX + MIN_NAME_WIDTH + COLUMN_GAP, preferredStatusX), maxStatusX);
         }
 
@@ -411,14 +439,16 @@ public final class KnownPlacementRows {
                 ? statusX + statusWidth + COLUMN_GAP
                 : nameX + MIN_NAME_WIDTH + COLUMN_GAP;
         int preferredFileX = Math.max(rowLeft + FILE_COLUMN_MIN_X, rowLeft + widget.getWidth() * 52 / 100);
-        int maxFileX = Math.max(fileMinX, right - MIN_FILE_WIDTH);
+        int maxFileX = Math.max(fileMinX, originX - COLUMN_GAP - MIN_FILE_WIDTH);
         int fileX = Math.min(Math.max(fileMinX, preferredFileX), maxFileX);
 
         int nameRight = statusWidth > 0 ? statusX - COLUMN_GAP : fileX - COLUMN_GAP;
         int nameWidth = Math.max(0, nameRight - nameX);
-        int fileRight = right;
+        int fileRight = originX - COLUMN_GAP;
         int fileWidth = Math.max(0, fileRight - fileX);
-        return new PlacementLineLayout(nameX, nameWidth, fileX, fileWidth, statusX, statusWidth);
+        int originRight = right;
+        int finalOriginWidth = Math.max(0, originRight - originX);
+        return new PlacementLineLayout(nameX, nameWidth, fileX, fileWidth, statusX, statusWidth, originX, finalOriginWidth);
     }
 
     private static PlacementStatus placementStatus(KnownPlacementContext context) {
@@ -457,11 +487,11 @@ public final class KnownPlacementRows {
                 : fullRight;
         PlacementLineLayout layout = placementLineLayout(widget, contentRight, statusColumnWidth(widget));
         if (!hasActionColumn) {
-            return new int[] { layout.nameX(), layout.statusX(), layout.fileX(), fullRight };
+            return new int[] { layout.nameX(), layout.statusX(), layout.fileX(), layout.originX(), fullRight };
         }
 
-        int actionX = Math.max(layout.fileX() + MIN_FILE_WIDTH + COLUMN_GAP, widget.getX() + widget.getWidth() - 90);
-        return new int[] { layout.nameX(), layout.statusX(), layout.fileX(), actionX, fullRight };
+        int actionX = Math.max(layout.originX() + Math.min(90, layout.originWidth()) + COLUMN_GAP, widget.getX() + widget.getWidth() - 90);
+        return new int[] { layout.nameX(), layout.statusX(), layout.fileX(), layout.originX(), actionX, fullRight };
     }
 
     private static void drawHeaderLabel(WidgetBase widget, SortColumn column, int x, int y, class_332 drawContext) {
@@ -469,6 +499,7 @@ public final class KnownPlacementRows {
             case PROJECT -> StringUtils.translate("lmlp.gui.known_placement.header.project");
             case STATUS -> StringUtils.translate("lmlp.gui.known_placement.header.status");
             case FILE -> StringUtils.translate("lmlp.gui.known_placement.header.schematic_name");
+            case ORIGIN -> StringUtils.translate("lmlp.gui.known_placement.header.origin");
         };
         widget.drawString(x, y, -1, GuiBase.TXT_BOLD + label + GuiBase.TXT_RST, drawContext);
     }
@@ -485,6 +516,12 @@ public final class KnownPlacementRows {
                     .thenComparing(KnownPlacementContext::key);
             case FILE -> Comparator
                     .comparing(KnownPlacementRows::schematicDisplayName, String.CASE_INSENSITIVE_ORDER)
+                    .thenComparing(KnownPlacementContext::name, String.CASE_INSENSITIVE_ORDER)
+                    .thenComparing(KnownPlacementContext::key);
+            case ORIGIN -> Comparator
+                    .comparingInt((KnownPlacementContext context) -> originCoordinate(context, 0))
+                    .thenComparingInt(context -> originCoordinate(context, 1))
+                    .thenComparingInt(context -> originCoordinate(context, 2))
                     .thenComparing(KnownPlacementContext::name, String.CASE_INSENSITIVE_ORDER)
                     .thenComparing(KnownPlacementContext::key);
         };
@@ -504,7 +541,7 @@ public final class KnownPlacementRows {
     }
 
     private static boolean hasActionColumn(String pageId) {
-        return PAGE_SCHEMATIC_PLACEMENTS.equals(pageId) || PAGE_LOADED_SCHEMATICS.equals(pageId);
+        return PAGE_SCHEMATIC_PLACEMENTS.equals(pageId);
     }
 
     private static String currentDimensionId() {
@@ -538,6 +575,33 @@ public final class KnownPlacementRows {
         }
 
         return schematicDisplayName(context);
+    }
+
+    private static String originPosition(KnownPlacementContext context) {
+        if (context == null || context.originPosition() == null || context.originPosition().isEmpty()) {
+            return StringUtils.translate("lmlp.gui.known_placement.origin_unknown");
+        }
+
+        return context.originPosition();
+    }
+
+    private static int originCoordinate(KnownPlacementContext context, int index) {
+        String origin = context == null ? "" : context.originPosition();
+        if (origin == null || origin.isEmpty()) {
+            return Integer.MAX_VALUE;
+        }
+
+        String cleaned = origin.replace("[", "").replace("]", "");
+        String[] parts = cleaned.split(",");
+        if (index < 0 || index >= parts.length) {
+            return Integer.MAX_VALUE;
+        }
+
+        try {
+            return Integer.parseInt(parts[index].trim());
+        } catch (NumberFormatException exception) {
+            return Integer.MAX_VALUE;
+        }
     }
 
     private static String truncateToWidth(WidgetBase widget, String text, int maxWidth) {
@@ -580,6 +644,9 @@ public final class KnownPlacementRows {
             int fileTextWidth,
             boolean fileTruncated,
             String fileHoverText,
+            String originText,
+            int originTextWidth,
+            boolean originTruncated,
             PlacementStatus status,
             int statusTextWidth) {
         public boolean nameHovered(WidgetBase widget, int mouseX, int mouseY) {
@@ -601,7 +668,9 @@ public final class KnownPlacementRows {
             int fileX,
             int fileWidth,
             int statusX,
-            int statusWidth) {
+            int statusWidth,
+            int originX,
+            int originWidth) {
     }
 
     public record PlacementStatus(String text, int color, List<String> tooltipLines) {
@@ -654,13 +723,15 @@ public final class KnownPlacementRows {
     public enum SortColumn {
         PROJECT,
         STATUS,
-        FILE
+        FILE,
+        ORIGIN
     }
 
     public enum ReadStatus {
         LIVE("lmlp.gui.known_placement.status.live", "lmlp.gui.known_placement.status.live_hint", 0xFF66CC66, 0),
-        CACHE("lmlp.gui.known_placement.status.cache", "lmlp.gui.known_placement.status.cache_hint", 0xFFFFCC66, 1),
-        OFFLINE("lmlp.gui.known_placement.status.offline_cache", "lmlp.gui.known_placement.status.offline_cache_hint", 0xFFFFAA66, 2);
+        CHUNK_CACHE("lmlp.gui.known_placement.status.chunk_cache", "lmlp.gui.known_placement.status.chunk_cache_hint", 0xFFFFCC66, 1),
+        DIMENSION_CACHE("lmlp.gui.known_placement.status.dimension_cache", "lmlp.gui.known_placement.status.dimension_cache_hint", 0xFF66CCFF, 2),
+        OFFLINE("lmlp.gui.known_placement.status.offline_cache", "lmlp.gui.known_placement.status.offline_cache_hint", 0xFFFFAA66, 3);
 
         private final String translationKey;
         private final String tooltipKey;

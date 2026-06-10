@@ -2,10 +2,7 @@ package io.github.huanmeng06.lmlp.gui;
 
 import fi.dy.masa.litematica.gui.widgets.WidgetSchematicEntry;
 import fi.dy.masa.litematica.schematic.LitematicaSchematic;
-import fi.dy.masa.malilib.gui.button.ButtonGeneric;
 import fi.dy.masa.malilib.render.RenderUtils;
-import fi.dy.masa.malilib.util.StringUtils;
-import io.github.huanmeng06.lmlp.cache.ChunkMissingMaterialListCache;
 import io.github.huanmeng06.lmlp.cache.ChunkMissingMaterialListCache.KnownPlacementContext;
 import io.github.huanmeng06.lmlp.gui.KnownPlacementRows.PlacementLine;
 import io.github.huanmeng06.lmlp.gui.KnownPlacementRows.KnownPlacementRow;
@@ -18,7 +15,6 @@ public class KnownLoadedSchematicEntry extends WidgetSchematicEntry {
     private final KnownPlacementRow row;
     private final KnownLoadedSchematicsList listParent;
     private final boolean isOdd;
-    private int buttonsStartX;
 
     public KnownLoadedSchematicEntry(
             int x,
@@ -33,34 +29,7 @@ public class KnownLoadedSchematicEntry extends WidgetSchematicEntry {
         this.row = row;
         this.listParent = parent;
         this.isOdd = isOdd;
-        this.buttonsStartX = this.x + this.width;
         this.subWidgets.clear();
-        this.createButtons();
-    }
-
-    private void createButtons() {
-        if (this.row == null || !this.row.isPlacement()) {
-            return;
-        }
-
-        KnownPlacementContext context = this.row.context();
-        if (context == null || KnownPlacementRows.readStatus(context) == KnownPlacementRows.ReadStatus.LIVE) {
-            return;
-        }
-
-        int buttonX = this.x + this.width - 2;
-        int buttonY = KnownPlacementRows.buttonY(this.y);
-        this.buttonsStartX = this.addClearCacheButton(buttonX, buttonY, context);
-    }
-
-    private int addClearCacheButton(int buttonX, int buttonY, KnownPlacementContext context) {
-        ButtonGeneric button = new ButtonGeneric(buttonX, buttonY, -1, true, StringUtils.translate("lmlp.gui.button.clear_cache"));
-        this.addButton(button, (clickedButton, mouseButton) -> {
-            if (ChunkMissingMaterialListCache.clearKnownPlacementCache(context.key(), "loaded_schematics.clear_cache_button")) {
-                this.listParent.refreshEntries();
-            }
-        });
-        return button.getX() - 1;
     }
 
     @Override
@@ -94,7 +63,7 @@ public class KnownLoadedSchematicEntry extends WidgetSchematicEntry {
         }
 
         String name = context == null ? "" : context.name();
-        PlacementLine line = KnownPlacementRows.placementLine(this, context, name, KnownPlacementRows.contentRight(this, this.buttonsStartX));
+        PlacementLine line = KnownPlacementRows.placementLine(this, context, name, KnownPlacementRows.contentRight(this));
         boolean nameHovered = line.nameHovered(this, mouseX, mouseY);
         if (nameHovered) {
             ClickableCursor.requestHand();
@@ -107,10 +76,6 @@ public class KnownLoadedSchematicEntry extends WidgetSchematicEntry {
     public boolean onMouseClicked(int mouseX, int mouseY, int mouseButton) {
         if (!this.isMouseOver(mouseX, mouseY) || mouseButton != 0) {
             return super.onMouseClicked(mouseX, mouseY, mouseButton);
-        }
-
-        if (super.onMouseClicked(mouseX, mouseY, mouseButton)) {
-            return true;
         }
 
         if (mouseButton == 0 && this.row != null && this.row.isTableHeader()
@@ -145,7 +110,7 @@ public class KnownLoadedSchematicEntry extends WidgetSchematicEntry {
         }
 
         KnownPlacementContext context = this.row.context();
-        PlacementLine line = KnownPlacementRows.placementLine(this, context, context == null ? "" : context.name(), KnownPlacementRows.contentRight(this, this.buttonsStartX));
+        PlacementLine line = KnownPlacementRows.placementLine(this, context, context == null ? "" : context.name(), KnownPlacementRows.contentRight(this));
         List<String> lines = new ArrayList<>();
         if (line.statusHovered(this, mouseX, mouseY)) {
             lines.addAll(line.status().tooltipLines());
@@ -166,7 +131,7 @@ public class KnownLoadedSchematicEntry extends WidgetSchematicEntry {
         }
 
         KnownPlacementContext context = this.row.context();
-        PlacementLine line = KnownPlacementRows.placementLine(this, context, context.name(), KnownPlacementRows.contentRight(this, this.buttonsStartX));
+        PlacementLine line = KnownPlacementRows.placementLine(this, context, context.name(), KnownPlacementRows.contentRight(this));
         return line.nameHovered(this, mouseX, mouseY);
     }
 }
