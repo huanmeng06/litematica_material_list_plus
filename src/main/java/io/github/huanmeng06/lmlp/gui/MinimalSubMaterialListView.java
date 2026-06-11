@@ -120,7 +120,7 @@ public final class MinimalSubMaterialListView {
         String signature = signature(materialList, sourceEntries, inventory);
         Cache cache = ENTRY_CACHES.get(materialList);
         if (cache != null && cache.signature().equals(signature)) {
-            return cache.entries();
+            return filterIgnored(materialList, cache.entries());
         }
 
         BuildState state = buildState(materialList, signature, sourceEntries, inventory, false);
@@ -129,13 +129,13 @@ public final class MinimalSubMaterialListView {
         if (state.isComplete()) {
             storeCache(materialList, signature, state.entries());
             BUILD_STATES.remove(materialList);
-            return state.entries();
+            return filterIgnored(materialList, state.entries());
         }
 
         if (cache != null) {
-            return cache.entries();
+            return filterIgnored(materialList, cache.entries());
         }
-        return state.entries();
+        return filterIgnored(materialList, state.entries());
     }
 
     public static void prepare(MaterialListBase materialList) {
@@ -192,7 +192,7 @@ public final class MinimalSubMaterialListView {
 
         boolean changed = IgnoredMaterialRegistry.ignoreMinimal(materialList, key);
         if (changed) {
-            clearCaches();
+            onIgnoredFilterChanged();
         }
         return changed;
     }
@@ -201,7 +201,7 @@ public final class MinimalSubMaterialListView {
         int beforeSize = ignoredSize(materialList);
         IgnoredMaterialRegistry.clearMinimalIgnored(materialList);
         if (beforeSize > 0) {
-            clearCaches();
+            onIgnoredFilterChanged();
         }
     }
 
@@ -622,11 +622,27 @@ public final class MinimalSubMaterialListView {
                     .append(':')
                     .append(entry.getCountAvailable());
         }
-        Set<String> ignored = IgnoredMaterialRegistry.minimalIgnoredKeys(materialList);
-        if (ignored != null && !ignored.isEmpty()) {
-            ignored.stream().sorted().forEach(key -> builder.append("|ignored:").append(key));
-        }
         return builder.toString();
+    }
+
+    private static List<MaterialListEntry> filterIgnored(MaterialListBase materialList, List<MaterialListEntry> entries) {
+        Set<String> ignored = IgnoredMaterialRegistry.minimalIgnoredKeys(materialList);
+        if (ignored == null || ignored.isEmpty() || entries.isEmpty()) {
+            return entries;
+        }
+
+        List<MaterialListEntry> filtered = new ArrayList<>(entries.size());
+        for (MaterialListEntry entry : entries) {
+            if (!ignored.contains(stableEntryKey(entry))) {
+                filtered.add(entry);
+            }
+        }
+        return List.copyOf(filtered);
+    }
+
+    private static void onIgnoredFilterChanged() {
+        clearSourceState();
+        layoutRevision++;
     }
 
     private static void clearCache(MaterialListBase materialList) {
@@ -999,17 +1015,9 @@ public final class MinimalSubMaterialListView {
             removeDisplayData(materialList);
             removeBuildDisplayData(materialList);
             String placementKey = IgnoredMaterialRegistry.placementKey(materialList);
-            Set<String> ignored = IgnoredMaterialRegistry.minimalIgnoredKeys(materialList);
-            int ignoredSize = ignored.size();
-            int filteredEntryCount = 0;
             List<MaterialListEntry> entries = new ArrayList<>(this.materials.size());
             Map<MaterialListEntry, DisplayData> displays = new IdentityHashMap<>();
             for (Accumulator material : this.materials.values()) {
-                if (isIgnored(ignored, material)) {
-                    filteredEntryCount++;
-                    continue;
-                }
-
                 int total = clampToInt(material.totalCount);
                 int available = resolvedAvailable(material.preparedCount, this.inventory.countAny(material.candidateIcons()));
                 MaterialListEntry entry = new MaterialListEntry(material.stack.method_7972(), total, total, 0, available);
@@ -1021,28 +1029,9 @@ public final class MinimalSubMaterialListView {
 
             this.entries = entries;
             ENTRY_DISPLAYS.putAll(displays);
-            LOGGER.info("[minimal rebuild] placementKey={} ignoredSize={} filteredEntryCount={}",
-                    placementKey, ignoredSize, filteredEntryCount);
+            LOGGER.info("[minimal rebuild] placementKey={} entryCount={}",
+                    placementKey, entries.size());
         }
-    }
-
-    private static boolean isIgnored(MaterialListBase materialList, Accumulator material) {
-        return isIgnored(IgnoredMaterialRegistry.minimalIgnoredKeys(materialList), material);
-    }
-
-    private static boolean isIgnored(Set<String> ignored, Accumulator material) {
-        return ignored != null && ignored.contains(stableEntryKey(material.stack, material.candidates(), material.name));
-    }
-
-    private static List<String> ignoredKeys(MaterialListBase materialList) {
-        Set<String> ignored = IgnoredMaterialRegistry.minimalIgnoredKeys(materialList);
-        if (ignored == null || ignored.isEmpty()) {
-            return List.of();
-        }
-
-        List<String> keys = new ArrayList<>(ignored);
-        keys.sort(String::compareTo);
-        return keys;
     }
 
     private record Cache(String signature, List<MaterialListEntry> entries) {

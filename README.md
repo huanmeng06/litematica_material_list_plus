@@ -2,13 +2,23 @@
 
 这个 README 只记录 `dev-newFeature` 分支的开发过程和每个小版本做了什么。完整的项目介绍、安装说明、功能说明和截图展示放在 `main` 分支维护。
 
-当前正式版：`v1.5.41`
+当前正式版：`v1.5.42`
 
-当前构建：`1.5.41+mc1.20.6`
+当前构建：`1.5.42+mc1.20.6`
 
 适配目标：Minecraft `1.20.6` / Fabric / Litematica / MaLiLib / REI
 
 ## 版本说明
+
+### v1.5.42
+
+- 优化“最小子材料”页面点击 `忽略` 后短暂空白 / 卡顿的问题：忽略状态不再参与 minimal cache signature，也不再导致完整最小子材料 cache 失效。
+- `MinimalSubMaterialListView` 现在缓存完整未过滤的 minimal entries，返回给列表 UI 时才按 `IgnoredMaterialRegistry.minimalIgnoredKeys(...)` 动态过滤。
+- 点击单个最小子材料 `忽略` 或顶部 `清除忽略` 时，只关闭当前来源展开面板并递增布局版本，不清 `ENTRY_CACHES / BUILD_STATES / ENTRY_DISPLAY_KEYS / REQUIREMENT_CACHES`。
+- 构建阶段不再因为 ignored set 跳过 entry，避免每次忽略都重新递归拆配方。
+- 保持候选材料 tooltip、来源展开和配方详情继续复用现有 DisplayData。
+- 同步 `fabric.mod.json` 和运行时 `MOD_VERSION` 到 `1.5.42+mc1.20.6`。
+- 构建产物改为 `1.5.42+mc1.20.6`。
 
 ### v1.5.41
 
