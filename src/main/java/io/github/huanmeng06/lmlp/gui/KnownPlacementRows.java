@@ -534,6 +534,14 @@ public final class KnownPlacementRows {
         return new ButtonGeneric(0, 0, -1, true, label).getWidth();
     }
 
+    public static boolean shouldShowOfflineMissingButton(KnownPlacementContext context) {
+        String currentDimension = currentDimensionId();
+        return context != null
+                && context.offlineCache()
+                && currentDimension != null
+                && normalizedDimension(context.dimension()).equals(normalizedDimension(currentDimension));
+    }
+
     private static int[] headerColumnPositions(WidgetBase widget, KnownPlacementRow row) {
         ColumnLayout layout = computeColumns(widget, row.pageId());
         if (!hasActionColumn(row.pageId())) {

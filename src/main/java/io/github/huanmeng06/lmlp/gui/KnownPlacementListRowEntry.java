@@ -4,8 +4,10 @@ import fi.dy.masa.litematica.gui.GuiPlacementConfiguration;
 import fi.dy.masa.litematica.gui.widgets.WidgetListSchematicPlacements;
 import fi.dy.masa.litematica.schematic.placement.SchematicPlacement;
 import fi.dy.masa.malilib.gui.GuiBase;
+import fi.dy.masa.malilib.gui.GuiConfirmAction;
 import fi.dy.masa.malilib.gui.button.ButtonGeneric;
 import fi.dy.masa.malilib.gui.button.ButtonOnOff;
+import fi.dy.masa.malilib.interfaces.IConfirmationListener;
 import fi.dy.masa.malilib.render.RenderUtils;
 import fi.dy.masa.malilib.util.StringUtils;
 import fi.dy.masa.malilib.gui.widgets.WidgetListEntryBase;
@@ -14,6 +16,7 @@ import io.github.huanmeng06.lmlp.cache.ChunkMissingMaterialListCache.KnownPlacem
 import io.github.huanmeng06.lmlp.gui.KnownPlacementRows.ColumnLayout;
 import io.github.huanmeng06.lmlp.gui.KnownPlacementRows.PlacementLine;
 import io.github.huanmeng06.lmlp.gui.KnownPlacementRows.KnownPlacementRow;
+import net.minecraft.class_437;
 import net.minecraft.class_332;
 
 import java.util.ArrayList;
@@ -47,6 +50,13 @@ public class KnownPlacementListRowEntry extends WidgetListEntryBase<KnownPlaceme
         }
 
         KnownPlacementContext context = this.row.context();
+        if (KnownPlacementRows.shouldShowOfflineMissingButton(context)) {
+            ColumnLayout columns = KnownPlacementRows.computeColumns(this, this.row.pageId());
+            this.addOfflineMissingButton(columns, KnownPlacementRows.buttonY(this.y), context);
+            this.buttonsStartX = columns.actionX();
+            return;
+        }
+
         if (!canModifyPlacement(context)) {
             return;
         }
@@ -106,6 +116,34 @@ public class KnownPlacementListRowEntry extends WidgetListEntryBase<KnownPlaceme
             }
         });
         return button.getX() - KnownPlacementRows.buttonGap();
+    }
+
+    private void addOfflineMissingButton(ColumnLayout columns, int buttonY, KnownPlacementContext context) {
+        ButtonGeneric button = new ButtonGeneric(
+                columns.actionX(),
+                buttonY,
+                columns.actionWidth(),
+                false,
+                "lmlp.gui.button.offline_cache_not_found");
+        this.addButton(button, (clickedButton, mouseButton) -> this.openOfflineMissingConfirm(context));
+    }
+
+    private void openOfflineMissingConfirm(KnownPlacementContext context) {
+        OfflineCacheMissingConfirmGui gui = new OfflineCacheMissingConfirmGui(context, new IConfirmationListener() {
+            @Override
+            public boolean onActionConfirmed() {
+                if (ChunkMissingMaterialListCache.removeKnownPlacementContext(context.key(), false, "known_placement.offline_cache_not_found")) {
+                    KnownPlacementListRowEntry.this.parent.refreshEntries();
+                }
+                return true;
+            }
+
+            @Override
+            public boolean onActionCancelled() {
+                return true;
+            }
+        }, this.parent.getParentGui());
+        GuiBase.openGui(gui);
     }
 
     @Override
@@ -237,5 +275,43 @@ public class KnownPlacementListRowEntry extends WidgetListEntryBase<KnownPlaceme
         KnownPlacementContext context = this.row.context();
         PlacementLine line = KnownPlacementRows.placementLine(this, context, context.name(), this.row.pageId());
         return line.nameHovered(this, mouseX, mouseY);
+    }
+}
+
+class OfflineCacheMissingConfirmGui extends GuiConfirmAction {
+    OfflineCacheMissingConfirmGui(KnownPlacementContext context, IConfirmationListener listener, class_437 parent) {
+        super(
+                360,
+                "lmlp.gui.title.offline_cache_not_found",
+                listener,
+                parent,
+                "lmlp.gui.confirm.offline_cache_not_found",
+                GuiBase.TXT_BOLD + KnownPlacementRows.displayName(context.dimension()) + GuiBase.TXT_RST,
+                GuiBase.TXT_BOLD + originText(context) + GuiBase.TXT_RST);
+    }
+
+    @Override
+    protected int getButtonWidth() {
+        int confirmWidth = this.getStringWidth(StringUtils.translate("lmlp.gui.button.confirm_offline_cache_not_found")) + 10;
+        int cancelWidth = this.getStringWidth(StringUtils.translate("lmlp.gui.button.keep_looking")) + 10;
+        return Math.max(confirmWidth, cancelWidth);
+    }
+
+    @Override
+    protected void createButton(int x, int y, int width, ButtonType type) {
+        String labelKey = type == ButtonType.OK
+                ? "lmlp.gui.button.confirm_offline_cache_not_found"
+                : "lmlp.gui.button.keep_looking";
+        String color = type == ButtonType.OK ? GuiBase.TXT_GREEN : GuiBase.TXT_RED;
+        ButtonGeneric button = new ButtonGeneric(x, y, width, 20, color + StringUtils.translate(labelKey) + GuiBase.TXT_RST);
+        this.addButton(button, this.createActionListener(type));
+    }
+
+    private static String originText(KnownPlacementContext context) {
+        if (context == null || context.originPosition() == null || context.originPosition().isEmpty()) {
+            return StringUtils.translate("lmlp.gui.known_placement.origin_unknown");
+        }
+
+        return context.originPosition();
     }
 }
