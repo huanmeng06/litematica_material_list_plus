@@ -1,6 +1,8 @@
 package io.github.huanmeng06.lmlp.gui;
 
 import fi.dy.masa.malilib.gui.GuiBase;
+import fi.dy.masa.malilib.gui.button.ButtonGeneric;
+import fi.dy.masa.malilib.gui.button.ButtonOnOff;
 import fi.dy.masa.malilib.gui.widgets.WidgetListEntrySortable;
 import fi.dy.masa.malilib.gui.widgets.WidgetBase;
 import fi.dy.masa.litematica.gui.Icons;
@@ -41,13 +43,16 @@ public final class KnownPlacementRows {
     private static final int ICON_X = 28;
     private static final int HEADER_TEXT_X = 50;
     private static final int TEXT_HEIGHT = 8;
-    private static final int ROW_RIGHT_PADDING = 8;
-    private static final int COLUMN_GAP = 16;
+    private static final int ROW_CONTENT_INSET = 1;
+    private static final int ROW_RIGHT_PADDING = 2;
+    private static final int COLUMN_GAP = 8;
     private static final int MIN_NAME_WIDTH = 48;
-    private static final int MIN_FILE_WIDTH = 48;
-    private static final int FILE_COLUMN_MIN_X = 190;
-    private static final int STATUS_COLUMN_MIN_X = 150;
-    private static final int ORIGIN_COLUMN_MIN_X = 330;
+    private static final int MIN_FILE_WIDTH = 240;
+    private static final int MIN_PLACEMENT_WIDTH = 260;
+    private static final int MAX_PLACEMENT_WIDTH = 420;
+    private static final int STATUS_COLUMN_WIDTH = 112;
+    private static final int ORIGIN_COLUMN_WIDTH = 260;
+    private static final int BUTTON_GAP = 2;
     private static final int FILE_TEXT_COLOR = 0xFFB8B8B8;
     private static final int ORIGIN_TEXT_COLOR = 0xFFB8B8B8;
     private static final int ORIGINAL_HEADER_BACKGROUND = 0xA0101010;
@@ -180,14 +185,15 @@ public final class KnownPlacementRows {
     public static void renderTableHeader(WidgetBase widget, KnownPlacementRow row, int mouseX, int mouseY, class_332 drawContext) {
         RenderUtils.drawRect(widget.getX(), widget.getY(), widget.getWidth(), widget.getHeight(), ORIGINAL_HEADER_BACKGROUND);
         SortableHeaderRenderer renderer = SortableHeaderRenderer.create(widget, row);
+        ColumnLayout columns = computeColumns(widget, row.pageId());
         int textY = textY(widget);
-        drawHeaderLabel(widget, SortColumn.PROJECT, renderer.getColumnPosX(0), textY, drawContext);
-        drawHeaderLabel(widget, SortColumn.STATUS, renderer.getColumnPosX(1), textY, drawContext);
-        drawHeaderLabel(widget, SortColumn.FILE, renderer.getColumnPosX(2), textY, drawContext);
-        drawHeaderLabel(widget, SortColumn.ORIGIN, renderer.getColumnPosX(3), textY, drawContext);
+        drawHeaderLabel(widget, SortColumn.PROJECT, columns.placementX(), textY, drawContext);
+        drawHeaderLabel(widget, SortColumn.STATUS, columns.statusX(), textY, drawContext);
+        drawHeaderLabel(widget, SortColumn.FILE, columns.fileX(), textY, drawContext);
+        drawHeaderLabel(widget, SortColumn.ORIGIN, columns.originX(), textY, drawContext);
         if (hasActionColumn(row.pageId())) {
             widget.drawString(
-                    renderer.getColumnPosX(4),
+                    columns.actionX(),
                     textY,
                     -1,
                     GuiBase.TXT_BOLD + StringUtils.translate("lmlp.gui.known_placement.header.actions") + GuiBase.TXT_RST,
@@ -211,7 +217,7 @@ public final class KnownPlacementRows {
     }
 
     public static void renderSelectedOutline(WidgetBase widget) {
-        RenderUtils.drawOutline(widget.getX() + 1, widget.getY() + 1, widget.getWidth() - 2, widget.getHeight() - 2, 0xFFFFFFFF);
+        RenderUtils.drawOutline(contentLeft(widget), widget.getY() + 1, widget.getWidth() - 2, widget.getHeight() - 2, 0xFFFFFFFF);
     }
 
     public static void renderPlacementIcon(WidgetBase widget, float zLevel, class_332 drawContext) {
@@ -225,11 +231,11 @@ public final class KnownPlacementRows {
                 false);
     }
 
-    public static PlacementLine placementLine(WidgetBase widget, KnownPlacementContext context, String placementName, int contentRight) {
+    public static PlacementLine placementLine(WidgetBase widget, KnownPlacementContext context, String placementName, String pageId) {
         PlacementStatus status = placementStatus(context);
         int statusTextWidth = status == null ? 0 : widget.getStringWidth(status.text());
-        int statusWidth = Math.max(statusTextWidth, statusColumnWidth(widget));
-        PlacementLineLayout layout = placementLineLayout(widget, contentRight, statusWidth);
+        ColumnLayout columns = computeColumns(widget, pageId);
+        PlacementLineLayout layout = columns.placementLineLayout();
         String nameText = truncateToWidth(widget, placementName == null ? "" : placementName, layout.nameWidth());
         String fileName = schematicDisplayName(context);
         String fileText = truncateToWidth(widget, fileName, layout.fileWidth());
@@ -277,13 +283,63 @@ public final class KnownPlacementRows {
         return widget.getX() + widget.getWidth() - ROW_RIGHT_PADDING;
     }
 
-    public static int contentRight(WidgetBase widget, int buttonsStartX) {
-        int fallback = contentRight(widget);
-        if (buttonsStartX <= widget.getX() || buttonsStartX > widget.getX() + widget.getWidth()) {
-            return fallback;
+    public static int contentLeft(WidgetBase widget) {
+        return widget.getX() + ROW_CONTENT_INSET;
+    }
+
+    public static ColumnLayout computeColumns(WidgetBase widget, String pageId) {
+        int rowLeft = widget.getX();
+        int placementX = contentLeft(widget);
+        int nameX = rowLeft + PLACEMENT_INDENT;
+        int nameOffset = Math.max(0, nameX - placementX);
+        int right = contentRight(widget);
+        boolean hasActionColumn = hasActionColumn(pageId);
+        int actionWidth = hasActionColumn ? actionColumnWidth(widget) : 0;
+        int actionX = hasActionColumn ? Math.max(nameX + MIN_NAME_WIDTH, right - actionWidth) : right;
+        int dataRight = hasActionColumn ? Math.max(nameX + MIN_NAME_WIDTH, actionX - COLUMN_GAP) : right;
+        int originWidth = Math.max(originColumnWidth(widget), ORIGIN_COLUMN_WIDTH);
+        int originX = Math.max(nameX + MIN_NAME_WIDTH, dataRight - originWidth);
+        int statusWidth = Math.max(statusColumnWidth(widget), STATUS_COLUMN_WIDTH);
+
+        int availableBeforeOrigin = Math.max(0, originX - COLUMN_GAP - placementX);
+        int minPlacementWidth = nameOffset + MIN_NAME_WIDTH;
+        int preferredPlacementWidth = Math.max(MIN_PLACEMENT_WIDTH, availableBeforeOrigin / 5);
+        int placementWidth = Math.min(MAX_PLACEMENT_WIDTH, preferredPlacementWidth);
+        placementWidth = Math.max(minPlacementWidth, placementWidth);
+
+        int statusX = placementX + placementWidth + COLUMN_GAP;
+        int fileX = statusX + statusWidth + COLUMN_GAP;
+        int fileWidth = Math.max(0, originX - COLUMN_GAP - fileX);
+        if (fileWidth < MIN_FILE_WIDTH && placementWidth > minPlacementWidth) {
+            int reclaim = Math.min(placementWidth - minPlacementWidth, MIN_FILE_WIDTH - fileWidth);
+            placementWidth -= reclaim;
+            statusX = placementX + placementWidth + COLUMN_GAP;
+            fileX = statusX + statusWidth + COLUMN_GAP;
+            fileWidth = Math.max(0, originX - COLUMN_GAP - fileX);
         }
 
-        return Math.max(widget.getX() + PLACEMENT_INDENT + MIN_NAME_WIDTH, Math.min(fallback, buttonsStartX - ROW_RIGHT_PADDING));
+        return new ColumnLayout(
+                placementX,
+                placementWidth,
+                nameX,
+                Math.max(0, statusX - COLUMN_GAP - nameX),
+                statusX,
+                statusWidth,
+                fileX,
+                fileWidth,
+                originX,
+                Math.max(0, dataRight - originX),
+                actionX,
+                Math.max(0, right - actionX),
+                right);
+    }
+
+    public static int actionColumnX(WidgetBase widget) {
+        return computeColumns(widget, PAGE_SCHEMATIC_PLACEMENTS).actionX();
+    }
+
+    public static int buttonGap() {
+        return BUTTON_GAP;
     }
 
     public static void addTranslatedTooltipLines(List<String> lines, String key) {
@@ -406,37 +462,6 @@ public final class KnownPlacementRows {
         };
     }
 
-    private static PlacementLineLayout placementLineLayout(WidgetBase widget, int contentRight, int statusWidth) {
-        int rowLeft = widget.getX();
-        int nameX = rowLeft + PLACEMENT_INDENT;
-        int right = Math.max(nameX + MIN_NAME_WIDTH, contentRight);
-        int originHeaderWidth = widget.getStringWidth(StringUtils.translate("lmlp.gui.known_placement.header.origin"));
-        int originWidth = Math.max(originHeaderWidth, widget.getStringWidth("[-0000, 000, -0000]"));
-        int preferredOriginX = Math.max(rowLeft + ORIGIN_COLUMN_MIN_X, rowLeft + widget.getWidth() * 72 / 100);
-        int originX = Math.min(Math.max(nameX + MIN_NAME_WIDTH + COLUMN_GAP, preferredOriginX), Math.max(nameX + MIN_NAME_WIDTH + COLUMN_GAP, right - originWidth));
-        int statusX = -1;
-        if (statusWidth > 0) {
-            int preferredStatusX = Math.max(rowLeft + STATUS_COLUMN_MIN_X, rowLeft + widget.getWidth() * 30 / 100);
-            int maxStatusX = Math.max(nameX + MIN_NAME_WIDTH + COLUMN_GAP, originX - statusWidth - COLUMN_GAP - MIN_FILE_WIDTH);
-            statusX = Math.min(Math.max(nameX + MIN_NAME_WIDTH + COLUMN_GAP, preferredStatusX), maxStatusX);
-        }
-
-        int fileMinX = statusWidth > 0
-                ? statusX + statusWidth + COLUMN_GAP
-                : nameX + MIN_NAME_WIDTH + COLUMN_GAP;
-        int preferredFileX = Math.max(rowLeft + FILE_COLUMN_MIN_X, rowLeft + widget.getWidth() * 52 / 100);
-        int maxFileX = Math.max(fileMinX, originX - COLUMN_GAP - MIN_FILE_WIDTH);
-        int fileX = Math.min(Math.max(fileMinX, preferredFileX), maxFileX);
-
-        int nameRight = statusWidth > 0 ? statusX - COLUMN_GAP : fileX - COLUMN_GAP;
-        int nameWidth = Math.max(0, nameRight - nameX);
-        int fileRight = originX - COLUMN_GAP;
-        int fileWidth = Math.max(0, fileRight - fileX);
-        int originRight = right;
-        int finalOriginWidth = Math.max(0, originRight - originX);
-        return new PlacementLineLayout(nameX, nameWidth, fileX, fileWidth, statusX, statusWidth, originX, finalOriginWidth);
-    }
-
     private static PlacementStatus placementStatus(KnownPlacementContext context) {
         if (context == null) {
             return null;
@@ -465,19 +490,54 @@ public final class KnownPlacementRows {
         return width;
     }
 
+    private static int originColumnWidth(WidgetBase widget) {
+        int headerWidth = widget.getStringWidth(StringUtils.translate("lmlp.gui.known_placement.header.origin"));
+        int coordinateWidth = widget.getStringWidth("[-123456, 64, 123456]");
+        return Math.max(headerWidth, coordinateWidth);
+    }
+
+    private static int actionColumnWidth(WidgetBase widget) {
+        return configureButtonWidth(widget)
+                + toggleButtonWidth(widget)
+                + removeButtonWidth(widget)
+                + (BUTTON_GAP * 2);
+    }
+
+    public static int configureButtonWidth(WidgetBase widget) {
+        String label = StringUtils.translate("litematica.gui.button.schematic_placements.configure");
+        return new ButtonGeneric(0, 0, -1, true, label).getWidth();
+    }
+
+    public static int toggleButtonWidth(WidgetBase widget) {
+        int enabledWidth = new ButtonOnOff(
+                0,
+                0,
+                -1,
+                true,
+                "litematica.gui.button.schematic_placements.placement_enabled",
+                true).getWidth();
+        int disabledWidth = new ButtonOnOff(
+                0,
+                0,
+                -1,
+                true,
+                "litematica.gui.button.schematic_placements.placement_enabled",
+                false).getWidth();
+        return Math.max(enabledWidth, disabledWidth);
+    }
+
+    public static int removeButtonWidth(WidgetBase widget) {
+        String label = StringUtils.translate("litematica.gui.button.schematic_placements.remove");
+        return new ButtonGeneric(0, 0, -1, true, label).getWidth();
+    }
+
     private static int[] headerColumnPositions(WidgetBase widget, KnownPlacementRow row) {
-        boolean hasActionColumn = hasActionColumn(row.pageId());
-        int fullRight = contentRight(widget);
-        int contentRight = hasActionColumn
-                ? Math.max(widget.getX() + PLACEMENT_INDENT + MIN_NAME_WIDTH, widget.getX() + widget.getWidth() - 110)
-                : fullRight;
-        PlacementLineLayout layout = placementLineLayout(widget, contentRight, statusColumnWidth(widget));
-        if (!hasActionColumn) {
-            return new int[] { layout.nameX(), layout.statusX(), layout.fileX(), layout.originX(), fullRight };
+        ColumnLayout layout = computeColumns(widget, row.pageId());
+        if (!hasActionColumn(row.pageId())) {
+            return new int[] { layout.placementX(), layout.statusX(), layout.fileX(), layout.originX(), layout.contentRight() };
         }
 
-        int actionX = Math.max(layout.originX() + Math.min(90, layout.originWidth()) + COLUMN_GAP, widget.getX() + widget.getWidth() - 90);
-        return new int[] { layout.nameX(), layout.statusX(), layout.fileX(), layout.originX(), actionX, fullRight };
+        return new int[] { layout.placementX(), layout.statusX(), layout.fileX(), layout.originX(), layout.actionX(), layout.contentRight() };
     }
 
     private static void drawHeaderLabel(WidgetBase widget, SortColumn column, int x, int y, class_332 drawContext) {
@@ -659,6 +719,33 @@ public final class KnownPlacementRows {
             int originWidth) {
     }
 
+    public record ColumnLayout(
+            int placementX,
+            int placementWidth,
+            int nameX,
+            int nameWidth,
+            int statusX,
+            int statusWidth,
+            int fileX,
+            int fileWidth,
+            int originX,
+            int originWidth,
+            int actionX,
+            int actionWidth,
+            int contentRight) {
+        private PlacementLineLayout placementLineLayout() {
+            return new PlacementLineLayout(
+                    this.nameX,
+                    this.nameWidth,
+                    this.fileX,
+                    this.fileWidth,
+                    this.statusX,
+                    this.statusWidth,
+                    this.originX,
+                    this.originWidth);
+        }
+    }
+
     public record PlacementStatus(String text, int color, List<String> tooltipLines) {
     }
 
@@ -769,7 +856,7 @@ public final class KnownPlacementRows {
         private final int[] columnPositions;
 
         private SortableHeaderRenderer(WidgetBase source, KnownPlacementRow row, int[] columnPositions) {
-            super(source.getX(), centeredHeaderY(source), source.getWidth(), centeredHeaderHeight(source), row, -1);
+            super(contentLeft(source), centeredHeaderY(source), contentRight(source) - contentLeft(source), centeredHeaderHeight(source), row, -1);
             this.sortState = sortState(row.pageId());
             this.columnPositions = columnPositions;
             this.columnCount = Math.max(1, columnPositions.length - 1);

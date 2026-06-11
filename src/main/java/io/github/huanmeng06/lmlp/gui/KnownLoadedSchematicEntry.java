@@ -64,7 +64,7 @@ public class KnownLoadedSchematicEntry extends WidgetSchematicEntry {
         }
 
         String name = context == null ? "" : context.name();
-        PlacementLine line = KnownPlacementRows.placementLine(this, context, name, KnownPlacementRows.contentRight(this));
+        PlacementLine line = KnownPlacementRows.placementLine(this, context, name, this.row.pageId());
         boolean nameHovered = line.nameHovered(this, mouseX, mouseY);
         if (nameHovered) {
             ClickableCursor.requestHand();
@@ -111,7 +111,7 @@ public class KnownLoadedSchematicEntry extends WidgetSchematicEntry {
         }
 
         KnownPlacementContext context = this.row.context();
-        PlacementLine line = KnownPlacementRows.placementLine(this, context, context == null ? "" : context.name(), KnownPlacementRows.contentRight(this));
+        PlacementLine line = KnownPlacementRows.placementLine(this, context, context == null ? "" : context.name(), this.row.pageId());
         List<String> lines = new ArrayList<>();
         if (line.statusHovered(this, mouseX, mouseY)) {
             lines.addAll(line.status().tooltipLines());
@@ -132,7 +132,7 @@ public class KnownLoadedSchematicEntry extends WidgetSchematicEntry {
         }
 
         KnownPlacementContext context = this.row.context();
-        PlacementLine line = KnownPlacementRows.placementLine(this, context, context.name(), KnownPlacementRows.contentRight(this));
+        PlacementLine line = KnownPlacementRows.placementLine(this, context, context.name(), this.row.pageId());
         return line.nameHovered(this, mouseX, mouseY);
     }
 }

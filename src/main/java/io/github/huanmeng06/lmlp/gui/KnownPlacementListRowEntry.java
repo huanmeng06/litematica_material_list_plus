@@ -11,6 +11,7 @@ import fi.dy.masa.malilib.util.StringUtils;
 import fi.dy.masa.malilib.gui.widgets.WidgetListEntryBase;
 import io.github.huanmeng06.lmlp.cache.ChunkMissingMaterialListCache;
 import io.github.huanmeng06.lmlp.cache.ChunkMissingMaterialListCache.KnownPlacementContext;
+import io.github.huanmeng06.lmlp.gui.KnownPlacementRows.ColumnLayout;
 import io.github.huanmeng06.lmlp.gui.KnownPlacementRows.PlacementLine;
 import io.github.huanmeng06.lmlp.gui.KnownPlacementRows.KnownPlacementRow;
 import net.minecraft.class_332;
@@ -50,13 +51,14 @@ public class KnownPlacementListRowEntry extends WidgetListEntryBase<KnownPlaceme
             return;
         }
 
-        int buttonX = this.x + this.width - 2;
+        ColumnLayout columns = KnownPlacementRows.computeColumns(this, this.row.pageId());
+        int buttonX = columns.contentRight();
         int buttonY = KnownPlacementRows.buttonY(this.y);
         buttonX = this.addRemoveButton(buttonX, buttonY, context);
         buttonX = this.addToggleButton(buttonX, buttonY, context.placement());
         buttonX = this.addConfigureButton(buttonX, buttonY, context.placement());
 
-        this.buttonsStartX = buttonX;
+        this.buttonsStartX = columns.actionX();
     }
 
     private static boolean canModifyPlacement(KnownPlacementContext context) {
@@ -65,20 +67,20 @@ public class KnownPlacementListRowEntry extends WidgetListEntryBase<KnownPlaceme
 
     private int addConfigureButton(int buttonX, int buttonY, SchematicPlacement placement) {
         String label = StringUtils.translate("litematica.gui.button.schematic_placements.configure");
-        ButtonGeneric button = new ButtonGeneric(buttonX, buttonY, -1, true, label);
+        ButtonGeneric button = new ButtonGeneric(buttonX, buttonY, KnownPlacementRows.configureButtonWidth(this), true, label);
         this.addButton(button, (clickedButton, mouseButton) -> {
             GuiPlacementConfiguration gui = new GuiPlacementConfiguration(placement);
             gui.setParent(this.parent.getParentGui());
             GuiBase.openGui(gui);
         });
-        return button.getX() - 1;
+        return button.getX() - KnownPlacementRows.buttonGap();
     }
 
     private int addToggleButton(int buttonX, int buttonY, SchematicPlacement placement) {
         ButtonOnOff button = new ButtonOnOff(
                 buttonX,
                 buttonY,
-                -1,
+                KnownPlacementRows.toggleButtonWidth(this),
                 true,
                 "litematica.gui.button.schematic_placements.placement_enabled",
                 placement.isEnabled());
@@ -87,18 +89,23 @@ public class KnownPlacementListRowEntry extends WidgetListEntryBase<KnownPlaceme
             ChunkMissingMaterialListCache.rememberPlacementContext(placement, "known_placement.toggle_enabled");
             this.parent.refreshEntries();
         });
-        return button.getX() - 2;
+        return button.getX() - KnownPlacementRows.buttonGap();
     }
 
     private int addRemoveButton(int buttonX, int buttonY, KnownPlacementContext context) {
-        ButtonGeneric button = new ButtonGeneric(buttonX, buttonY, -1, true, StringUtils.translate("litematica.gui.button.schematic_placements.remove"));
+        ButtonGeneric button = new ButtonGeneric(
+                buttonX,
+                buttonY,
+                KnownPlacementRows.removeButtonWidth(this),
+                true,
+                StringUtils.translate("litematica.gui.button.schematic_placements.remove"));
         this.addButton(button, (clickedButton, mouseButton) -> {
             boolean allowCurrentDimensionRemoval = context.canEdit();
             if (ChunkMissingMaterialListCache.removeKnownPlacementContext(context.key(), allowCurrentDimensionRemoval, "known_placement.remove_button")) {
                 this.parent.refreshEntries();
             }
         });
-        return button.getX() - 1;
+        return button.getX() - KnownPlacementRows.buttonGap();
     }
 
     @Override
@@ -179,7 +186,7 @@ public class KnownPlacementListRowEntry extends WidgetListEntryBase<KnownPlaceme
         String color = context.placement() == null
                 ? GuiBase.TXT_GRAY
                 : context.placement().isEnabled() ? GuiBase.TXT_GREEN : GuiBase.TXT_RED;
-        PlacementLine line = KnownPlacementRows.placementLine(this, context, context.name(), KnownPlacementRows.contentRight(this, this.buttonsStartX));
+        PlacementLine line = KnownPlacementRows.placementLine(this, context, context.name(), this.row.pageId());
         boolean nameHovered = line.nameHovered(this, mouseX, mouseY);
         if (nameHovered) {
             ClickableCursor.requestHand();
@@ -206,7 +213,7 @@ public class KnownPlacementListRowEntry extends WidgetListEntryBase<KnownPlaceme
             return;
         } else if (this.row.isPlacement() && mouseX < this.buttonsStartX) {
             KnownPlacementContext context = this.row.context();
-            PlacementLine line = KnownPlacementRows.placementLine(this, context, context.name(), KnownPlacementRows.contentRight(this, this.buttonsStartX));
+            PlacementLine line = KnownPlacementRows.placementLine(this, context, context.name(), this.row.pageId());
             List<String> lines = new ArrayList<>();
             if (line.statusHovered(this, mouseX, mouseY)) {
                 lines.addAll(line.status().tooltipLines());
@@ -228,7 +235,7 @@ public class KnownPlacementListRowEntry extends WidgetListEntryBase<KnownPlaceme
         }
 
         KnownPlacementContext context = this.row.context();
-        PlacementLine line = KnownPlacementRows.placementLine(this, context, context.name(), KnownPlacementRows.contentRight(this, this.buttonsStartX));
+        PlacementLine line = KnownPlacementRows.placementLine(this, context, context.name(), this.row.pageId());
         return line.nameHovered(this, mouseX, mouseY);
     }
 }
