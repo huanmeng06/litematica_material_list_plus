@@ -66,22 +66,13 @@ public class Configs implements IConfigHandler {
                 "lmlp.config.name.count_display_style"
         );
 
-        public static final ConfigInteger ORIGIN_HIGHLIGHT_TIME = new ConfigInteger(
-                "originHighlightTime",
+        public static final ConfigInteger ORIGIN_MARKER_TIME = new ConfigInteger(
+                "originMarkerTime",
                 120,
                 1,
                 600,
                 true,
-                "How many seconds a clicked placement origin highlight stays visible."
-        );
-
-        public static final ConfigInteger ORIGIN_BEAM_TIME = new ConfigInteger(
-                "originBeamTime",
-                120,
-                1,
-                600,
-                true,
-                "How many seconds the placement origin beam stays visible after clicking an origin."
+                "How many seconds a clicked placement origin highlight and beam stay visible."
         );
 
         public static final ConfigStringList RECIPE_STOP_ITEMS = new ConfigStringList(
@@ -104,8 +95,7 @@ public class Configs implements IConfigHandler {
         public static final List<IConfigBase> OPTIONS = ImmutableList.of(
                 DISABLE_LITEMATICA_HOVER_TOOLTIP,
                 COUNT_DISPLAY_STYLE,
-                ORIGIN_HIGHLIGHT_TIME,
-                ORIGIN_BEAM_TIME,
+                ORIGIN_MARKER_TIME,
                 RECIPE_STOP_ITEMS
         );
 
@@ -126,6 +116,7 @@ public class Configs implements IConfigHandler {
                 ConfigUtils.readConfigBase(root, GENERIC, Generic.OPTIONS);
                 ConfigUtils.readConfigBase(root, HOTKEYS, Hotkeys.HOTKEY_LIST);
                 readPreferredRecipes(root);
+                migrateOriginMarkerTimeConfig(root);
                 migrateDisableLitematicaHoverTooltipConfig(root);
                 migrateRecipeStopColorPatterns();
             }
@@ -319,6 +310,36 @@ public class Configs implements IConfigHandler {
             if (previousValue.isJsonPrimitive()) {
                 Generic.DISABLE_LITEMATICA_HOVER_TOOLTIP.setBooleanValue(disablesLitematicaHoverTooltip(previousValue.getAsString()));
             }
+        }
+    }
+
+    private static void migrateOriginMarkerTimeConfig(JsonObject root) {
+        if (!root.has(GENERIC) || !root.get(GENERIC).isJsonObject()) {
+            return;
+        }
+
+        JsonObject generic = root.getAsJsonObject(GENERIC);
+        if (generic.has("originMarkerTime")) {
+            return;
+        }
+
+        int previousValue = Math.max(
+                readIntegerConfig(generic, "originHighlightTime"),
+                readIntegerConfig(generic, "originBeamTime"));
+        if (previousValue > 0) {
+            Generic.ORIGIN_MARKER_TIME.setIntegerValue(previousValue);
+        }
+    }
+
+    private static int readIntegerConfig(JsonObject object, String key) {
+        if (!object.has(key) || !object.get(key).isJsonPrimitive()) {
+            return 0;
+        }
+
+        try {
+            return object.get(key).getAsInt();
+        } catch (RuntimeException exception) {
+            return 0;
         }
     }
 

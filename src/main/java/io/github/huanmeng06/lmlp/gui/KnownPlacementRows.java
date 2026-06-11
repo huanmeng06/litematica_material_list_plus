@@ -282,14 +282,11 @@ public final class KnownPlacementRows {
 
         if (!line.originText().isEmpty()) {
             boolean highlight = PlacementOriginMarker.hasHighlight(context);
-            boolean beam = PlacementOriginMarker.hasBeam(context);
             String formattedOrigin = (highlight ? GuiBase.TXT_BOLD : "")
-                    + ((beam || originHovered) ? UNDERLINE : "")
+                    + (originHovered ? UNDERLINE : "")
                     + line.originText()
                     + GuiBase.TXT_RST;
-            int color = context == null || context.originPosition() == null || context.originPosition().isEmpty()
-                    ? ORIGIN_TEXT_COLOR
-                    : PlacementOriginMarker.ORIGIN_TEXT_COLOR;
+            int color = PlacementOriginMarker.canHighlightOrigin(context) ? PlacementOriginMarker.ORIGIN_TEXT_COLOR : ORIGIN_TEXT_COLOR;
             widget.drawString(line.layout().originX(), textY, color, formattedOrigin, drawContext);
         }
     }

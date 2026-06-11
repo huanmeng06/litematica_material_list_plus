@@ -128,9 +128,9 @@ public class KnownLoadedSchematicEntry extends WidgetSchematicEntry {
         } else if (line.fileHovered(this, mouseX, mouseY) && !line.fileHoverText().isEmpty()) {
             lines.add(line.fileHoverText());
         } else if (PlacementOriginMarker.originHovered(context, line, this, mouseX, mouseY)) {
-            lines.add(StringUtils.translate(PlacementOriginMarker.hasHighlight(context)
-                    ? "lmlp.gui.known_placement.origin_beam_hint"
-                    : "lmlp.gui.known_placement.origin_highlight_hint"));
+            lines.add(StringUtils.translate("lmlp.gui.known_placement.origin_highlight_hint"));
+        } else if (PlacementOriginMarker.disabledOriginHovered(context, line, this, mouseX, mouseY)) {
+            lines.add(StringUtils.translate("lmlp.gui.known_placement.origin_wrong_dimension_hint"));
         }
 
         if (!lines.isEmpty()) {
