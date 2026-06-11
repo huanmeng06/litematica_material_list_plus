@@ -296,7 +296,8 @@ public final class KnownPlacementRows {
         int nameOffset = Math.max(0, nameX - placementX);
         int right = contentRight(widget);
         int operationWidth = actionColumnWidth(widget);
-        int actionX = Math.max(nameX + MIN_NAME_WIDTH, right - operationWidth);
+        boolean hasActionColumn = hasActionColumn(pageId);
+        int actionX = hasActionColumn ? Math.max(nameX + MIN_NAME_WIDTH, right - operationWidth) : right;
         int originWidth = originColumnWidth(widget);
         int statusWidth = statusColumnWidth(widget);
 
@@ -541,7 +542,7 @@ public final class KnownPlacementRows {
                     headerRendererX(layout.statusX()),
                     headerRendererX(layout.fileX()),
                     headerRendererX(layout.originX()),
-                    headerRendererRight(layout.actionX()) };
+                    headerRendererRight(layout.contentRight()) };
         }
 
         return new int[] {
@@ -889,7 +890,7 @@ public final class KnownPlacementRows {
 
         private static int sortableHeaderRight(WidgetBase source, KnownPlacementRow row) {
             ColumnLayout layout = computeColumns(source, row.pageId());
-            return hasActionColumn(row.pageId()) ? layout.contentRight() : layout.actionX();
+            return layout.contentRight();
         }
 
         private static int centeredHeaderHeight(WidgetBase source) {
