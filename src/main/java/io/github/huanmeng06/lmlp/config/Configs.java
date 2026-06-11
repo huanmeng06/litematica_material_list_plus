@@ -68,7 +68,7 @@ public class Configs implements IConfigHandler {
 
         public static final ConfigInteger ORIGIN_HIGHLIGHT_TIME = new ConfigInteger(
                 "originHighlightTime",
-                30,
+                120,
                 1,
                 600,
                 true,
@@ -77,11 +77,11 @@ public class Configs implements IConfigHandler {
 
         public static final ConfigInteger ORIGIN_BEAM_TIME = new ConfigInteger(
                 "originBeamTime",
-                10,
+                120,
                 1,
                 600,
                 true,
-                "How many seconds the placement origin beam stays visible after clicking the same origin again."
+                "How many seconds the placement origin beam stays visible after clicking an origin."
         );
 
         public static final ConfigStringList RECIPE_STOP_ITEMS = new ConfigStringList(

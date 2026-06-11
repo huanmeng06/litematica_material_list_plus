@@ -33,8 +33,10 @@ public final class PlacementOriginMarker {
     private static final int BEAM_HALF_HEIGHT = 512;
     private static final Color4f HIGHLIGHT_FILL = new Color4f(0.2F, 1.0F, 0.2F, 0.22F);
     private static final Color4f HIGHLIGHT_OUTLINE = new Color4f(0.25F, 1.0F, 0.25F, 0.95F);
-    private static final Color4f BEAM_FILL = new Color4f(1.0F, 0.05F, 0.05F, 0.16F);
-    private static final Color4f BEAM_OUTLINE = new Color4f(1.0F, 0.05F, 0.05F, 0.55F);
+    private static final Color4f SAME_DIMENSION_BEAM_FILL = new Color4f(1.0F, 0.05F, 0.05F, 0.16F);
+    private static final Color4f SAME_DIMENSION_BEAM_OUTLINE = new Color4f(1.0F, 0.05F, 0.05F, 0.55F);
+    private static final Color4f MAPPED_DIMENSION_BEAM_FILL = new Color4f(0.1F, 0.45F, 1.0F, 0.18F);
+    private static final Color4f MAPPED_DIMENSION_BEAM_OUTLINE = new Color4f(0.2F, 0.6F, 1.0F, 0.65F);
 
     private static Marker marker;
 
@@ -65,15 +67,10 @@ public final class PlacementOriginMarker {
         }
 
         long now = System.currentTimeMillis();
-        boolean sameTarget = marker != null
-                && Objects.equals(marker.key, context.key())
-                && Objects.equals(KnownPlacementRows.normalizedDimension(marker.sourceDimension), KnownPlacementRows.normalizedDimension(context.dimension()))
-                && Objects.equals(marker.sourcePos, sourcePos);
-        if (sameTarget && marker.highlightActive(now)) {
-            marker = marker.withBeam(now);
+        marker = Marker.show(context.key(), context.name(), context.dimension(), sourcePos, target.mapped, now);
+        if (target.mapped) {
             InfoUtils.showGuiOrInGameMessage(MessageType.SUCCESS, "lmlp.message.origin_marker_beam_added");
         } else {
-            marker = Marker.highlight(context.key(), context.name(), context.dimension(), sourcePos, now);
             InfoUtils.showGuiOrInGameMessage(MessageType.SUCCESS, "lmlp.message.origin_marker_highlight_added");
         }
 
@@ -86,11 +83,13 @@ public final class PlacementOriginMarker {
 
     public static boolean hasHighlight(KnownPlacementContext context) {
         Marker current = activeMarker();
+        DisplayTarget target = current == null ? null : current.displayTarget(currentDimensionId(class_310.method_1551().field_1687));
         return context != null
                 && current != null
                 && Objects.equals(current.key, context.key())
                 && current.highlightActive(System.currentTimeMillis())
-                && resolveTarget(current.sourceDimension, current.sourcePos, currentDimensionId(class_310.method_1551().field_1687)) != null;
+                && target != null
+                && !target.mapped;
     }
 
     public static boolean hasBeam(KnownPlacementContext context) {
@@ -113,6 +112,7 @@ public final class PlacementOriginMarker {
             return;
         }
 
+        long now = System.currentTimeMillis();
         class_310 client = class_310.method_1551();
         if (client.field_1724 != null && client.field_1724.method_5707(target.pos.method_46558()) <= ARRIVAL_DISTANCE_SQUARED) {
             clear();
@@ -127,9 +127,13 @@ public final class PlacementOriginMarker {
         RenderSystem.disableCull();
         RenderSystem.setShader(class_757::method_34540);
 
-        drawHighlight(target.pos, cameraPos);
-        if (current.beamActive(System.currentTimeMillis())) {
-            drawBeam(target.pos, cameraPos);
+        if (!target.mapped && current.highlightActive(now)) {
+            drawHighlight(target.pos, cameraPos);
+        }
+        if (current.beamActive(now)) {
+            Color4f fill = target.mapped ? MAPPED_DIMENSION_BEAM_FILL : SAME_DIMENSION_BEAM_FILL;
+            Color4f outline = target.mapped ? MAPPED_DIMENSION_BEAM_OUTLINE : SAME_DIMENSION_BEAM_OUTLINE;
+            drawBeam(target.pos, cameraPos, fill, outline);
         }
 
         RenderSystem.enableCull();
@@ -140,7 +144,8 @@ public final class PlacementOriginMarker {
     }
 
     private static Marker activeMarker() {
-        if (marker != null && !marker.highlightActive(System.currentTimeMillis())) {
+        long now = System.currentTimeMillis();
+        if (marker != null && !marker.highlightActive(now) && !marker.beamActive(now)) {
             marker = null;
         }
 
@@ -167,7 +172,7 @@ public final class PlacementOriginMarker {
         tessellator.method_1350();
     }
 
-    private static void drawBeam(class_2338 pos, class_243 cameraPos) {
+    private static void drawBeam(class_2338 pos, class_243 cameraPos, Color4f fillColor, Color4f outlineColor) {
         double centerX = pos.method_10263() + 0.5D - cameraPos.field_1352;
         double centerZ = pos.method_10260() + 0.5D - cameraPos.field_1350;
         double minX = centerX - BEAM_RADIUS;
@@ -180,12 +185,12 @@ public final class PlacementOriginMarker {
         class_289 tessellator = class_289.method_1348();
         class_287 buffer = tessellator.method_1349();
         buffer.method_1328(class_293.class_5596.field_27382, class_290.field_1576);
-        RenderUtils.drawBoxAllSidesBatchedQuads(minX, minY, minZ, maxX, maxY, maxZ, BEAM_FILL, buffer);
+        RenderUtils.drawBoxAllSidesBatchedQuads(minX, minY, minZ, maxX, maxY, maxZ, fillColor, buffer);
         tessellator.method_1350();
 
         RenderSystem.lineWidth(1.6F);
         buffer.method_1328(class_293.class_5596.field_29345, class_290.field_1576);
-        RenderUtils.drawBoxAllEdgesBatchedLines(minX, minY, minZ, maxX, maxY, maxZ, BEAM_OUTLINE, buffer);
+        RenderUtils.drawBoxAllEdgesBatchedLines(minX, minY, minZ, maxX, maxY, maxZ, outlineColor, buffer);
         tessellator.method_1350();
     }
 
@@ -217,21 +222,21 @@ public final class PlacementOriginMarker {
         }
 
         if (source.equals(current)) {
-            return new DisplayTarget(sourcePos);
+            return new DisplayTarget(sourcePos, false);
         }
 
         if (OVERWORLD.equals(source) && NETHER.equals(current)) {
             return new DisplayTarget(new class_2338(
                     Math.floorDiv(sourcePos.method_10263(), 8),
                     Math.floorDiv(sourcePos.method_10264(), 8),
-                    Math.floorDiv(sourcePos.method_10260(), 8)));
+                    Math.floorDiv(sourcePos.method_10260(), 8)), true);
         }
 
         if (NETHER.equals(source) && OVERWORLD.equals(current)) {
             return new DisplayTarget(new class_2338(
                     multiplyCoordinate(sourcePos.method_10263(), 8),
                     multiplyCoordinate(sourcePos.method_10264(), 8),
-                    multiplyCoordinate(sourcePos.method_10260(), 8)));
+                    multiplyCoordinate(sourcePos.method_10260(), 8)), true);
         }
 
         return null;
@@ -253,7 +258,7 @@ public final class PlacementOriginMarker {
         return world == null ? null : world.method_27983().method_29177().toString();
     }
 
-    private record DisplayTarget(class_2338 pos) {
+    private record DisplayTarget(class_2338 pos, boolean mapped) {
     }
 
     private record Marker(
@@ -263,20 +268,20 @@ public final class PlacementOriginMarker {
             class_2338 sourcePos,
             long highlightUntil,
             long beamUntil) {
-        private static Marker highlight(String key, String name, String sourceDimension, class_2338 sourcePos, long now) {
+        private static Marker show(String key, String name, String sourceDimension, class_2338 sourcePos, boolean mapped, long now) {
+            long beamUntil = now + Configs.Generic.ORIGIN_BEAM_TIME.getIntegerValue() * 1000L;
+            long highlightUntil = mapped ? 0L : Math.max(now + Configs.Generic.ORIGIN_HIGHLIGHT_TIME.getIntegerValue() * 1000L, beamUntil);
             return new Marker(
                     key,
                     name,
                     sourceDimension,
                     sourcePos,
-                    now + Configs.Generic.ORIGIN_HIGHLIGHT_TIME.getIntegerValue() * 1000L,
-                    0L);
+                    highlightUntil,
+                    beamUntil);
         }
 
-        private Marker withBeam(long now) {
-            long beamUntil = now + Configs.Generic.ORIGIN_BEAM_TIME.getIntegerValue() * 1000L;
-            long highlightUntil = Math.max(now + Configs.Generic.ORIGIN_HIGHLIGHT_TIME.getIntegerValue() * 1000L, beamUntil);
-            return new Marker(this.key, this.name, this.sourceDimension, this.sourcePos, highlightUntil, beamUntil);
+        private DisplayTarget displayTarget(String currentDimension) {
+            return resolveTarget(this.sourceDimension, this.sourcePos, currentDimension);
         }
 
         private boolean highlightActive(long now) {
