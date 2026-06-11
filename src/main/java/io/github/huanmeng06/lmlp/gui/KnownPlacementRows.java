@@ -53,6 +53,8 @@ public final class KnownPlacementRows {
     private static final int STATUS_COLUMN_WIDTH = 112;
     private static final int ORIGIN_COLUMN_WIDTH = 260;
     private static final int BUTTON_GAP = 2;
+    private static final int HEADER_RENDER_LEFT_OVERHANG = 3;
+    private static final int HEADER_RENDER_RIGHT_TRIM = 6;
     private static final int FILE_TEXT_COLOR = 0xFFB8B8B8;
     private static final int ORIGIN_TEXT_COLOR = 0xFFB8B8B8;
     private static final int ORIGINAL_HEADER_BACKGROUND = 0xA0101010;
@@ -187,13 +189,13 @@ public final class KnownPlacementRows {
         SortableHeaderRenderer renderer = SortableHeaderRenderer.create(widget, row);
         ColumnLayout columns = computeColumns(widget, row.pageId());
         int textY = textY(widget);
-        drawHeaderLabel(widget, SortColumn.PROJECT, columns.placementX(), textY, drawContext);
-        drawHeaderLabel(widget, SortColumn.STATUS, columns.statusX(), textY, drawContext);
-        drawHeaderLabel(widget, SortColumn.FILE, columns.fileX(), textY, drawContext);
-        drawHeaderLabel(widget, SortColumn.ORIGIN, columns.originX(), textY, drawContext);
+        drawHeaderLabel(widget, SortColumn.PROJECT, headerTextX(columns.placementX()), textY, drawContext);
+        drawHeaderLabel(widget, SortColumn.STATUS, headerTextX(columns.statusX()), textY, drawContext);
+        drawHeaderLabel(widget, SortColumn.FILE, headerTextX(columns.fileX()), textY, drawContext);
+        drawHeaderLabel(widget, SortColumn.ORIGIN, headerTextX(columns.originX()), textY, drawContext);
         if (hasActionColumn(row.pageId())) {
             widget.drawString(
-                    columns.actionX(),
+                    headerTextX(columns.actionX()),
                     textY,
                     -1,
                     GuiBase.TXT_BOLD + StringUtils.translate("lmlp.gui.known_placement.header.actions") + GuiBase.TXT_RST,
@@ -534,10 +536,33 @@ public final class KnownPlacementRows {
     private static int[] headerColumnPositions(WidgetBase widget, KnownPlacementRow row) {
         ColumnLayout layout = computeColumns(widget, row.pageId());
         if (!hasActionColumn(row.pageId())) {
-            return new int[] { layout.placementX(), layout.statusX(), layout.fileX(), layout.originX(), layout.contentRight() };
+            return new int[] {
+                    headerRendererX(layout.placementX()),
+                    headerRendererX(layout.statusX()),
+                    headerRendererX(layout.fileX()),
+                    headerRendererX(layout.originX()),
+                    headerRendererRight(layout.contentRight()) };
         }
 
-        return new int[] { layout.placementX(), layout.statusX(), layout.fileX(), layout.originX(), layout.actionX(), layout.contentRight() };
+        return new int[] {
+                headerRendererX(layout.placementX()),
+                headerRendererX(layout.statusX()),
+                headerRendererX(layout.fileX()),
+                headerRendererX(layout.originX()),
+                headerRendererX(layout.actionX()),
+                headerRendererRight(layout.contentRight()) };
+    }
+
+    private static int headerRendererX(int visualColumnX) {
+        return visualColumnX + HEADER_RENDER_LEFT_OVERHANG;
+    }
+
+    private static int headerRendererRight(int visualRight) {
+        return visualRight + HEADER_RENDER_RIGHT_TRIM;
+    }
+
+    private static int headerTextX(int visualColumnX) {
+        return headerRendererX(visualColumnX);
     }
 
     private static void drawHeaderLabel(WidgetBase widget, SortColumn column, int x, int y, class_332 drawContext) {
@@ -899,4 +924,5 @@ public final class KnownPlacementRows {
             return this.sortState.descending();
         }
     }
+
 }
