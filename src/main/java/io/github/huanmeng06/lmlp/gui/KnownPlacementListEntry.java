@@ -110,6 +110,13 @@ public class KnownPlacementListEntry extends WidgetSchematicPlacement {
 
     @Override
     public boolean onMouseClicked(int mouseX, int mouseY, int mouseButton) {
+        if (mouseButton == 0 && this.context != null) {
+            PlacementLine line = KnownPlacementRows.placementLine(this, this.context, this.placement.getName(), KnownPlacementRows.PAGE_SCHEMATIC_PLACEMENTS);
+            if (PlacementOriginMarker.originHovered(this.context, line, this, mouseX, mouseY)) {
+                return PlacementOriginMarker.handleOriginClick(this.context);
+            }
+        }
+
         if (mouseButton == 0 && this.isPlacementNameHovered(mouseX, mouseY) && this.context != null) {
             return MaterialListOpener.openContext(this.context.key(), "schematic_placements_list.name_click_legacy", this.parent.getParentGui());
         }
@@ -136,10 +143,11 @@ public class KnownPlacementListEntry extends WidgetSchematicPlacement {
         KnownPlacementContext context = this.context;
         PlacementLine line = KnownPlacementRows.placementLine(this, context, this.placement.getName(), KnownPlacementRows.PAGE_SCHEMATIC_PLACEMENTS);
         boolean nameHovered = line.nameHovered(this, mouseX, mouseY);
-        if (nameHovered) {
+        boolean originHovered = PlacementOriginMarker.originHovered(context, line, this, mouseX, mouseY);
+        if (nameHovered || originHovered) {
             ClickableCursor.requestHand();
         }
-        KnownPlacementRows.renderPlacementLine(this, this.zLevel, drawContext, line, enabledColor, nameHovered);
+        KnownPlacementRows.renderPlacementLine(this, this.zLevel, drawContext, line, enabledColor, nameHovered, context, originHovered);
 
         this.drawSubWidgets(mouseX, mouseY, drawContext);
     }
@@ -153,6 +161,10 @@ public class KnownPlacementListEntry extends WidgetSchematicPlacement {
                 lines.addAll(line.status().tooltipLines());
             } else if (line.fileHovered(this, mouseX, mouseY) && !line.fileHoverText().isEmpty()) {
                 lines.add(line.fileHoverText());
+            } else if (PlacementOriginMarker.originHovered(this.context, line, this, mouseX, mouseY)) {
+                lines.add(StringUtils.translate(PlacementOriginMarker.hasHighlight(this.context)
+                        ? "lmlp.gui.known_placement.origin_beam_hint"
+                        : "lmlp.gui.known_placement.origin_highlight_hint"));
             }
 
             if (!lines.isEmpty()) {

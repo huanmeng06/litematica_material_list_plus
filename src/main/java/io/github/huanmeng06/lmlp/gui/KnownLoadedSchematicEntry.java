@@ -3,6 +3,7 @@ package io.github.huanmeng06.lmlp.gui;
 import fi.dy.masa.litematica.gui.widgets.WidgetSchematicEntry;
 import fi.dy.masa.litematica.schematic.LitematicaSchematic;
 import fi.dy.masa.malilib.render.RenderUtils;
+import fi.dy.masa.malilib.util.StringUtils;
 import io.github.huanmeng06.lmlp.cache.ChunkMissingMaterialListCache;
 import io.github.huanmeng06.lmlp.cache.ChunkMissingMaterialListCache.KnownPlacementContext;
 import io.github.huanmeng06.lmlp.gui.KnownPlacementRows.PlacementLine;
@@ -66,10 +67,11 @@ public class KnownLoadedSchematicEntry extends WidgetSchematicEntry {
         String name = context == null ? "" : context.name();
         PlacementLine line = KnownPlacementRows.placementLine(this, context, name, this.row.pageId());
         boolean nameHovered = line.nameHovered(this, mouseX, mouseY);
-        if (nameHovered) {
+        boolean originHovered = PlacementOriginMarker.originHovered(context, line, this, mouseX, mouseY);
+        if (nameHovered || originHovered) {
             ClickableCursor.requestHand();
         }
-        KnownPlacementRows.renderPlacementLine(this, this.zLevel, drawContext, line, "", nameHovered);
+        KnownPlacementRows.renderPlacementLine(this, this.zLevel, drawContext, line, "", nameHovered, context, originHovered);
         this.drawSubWidgets(mouseX, mouseY, drawContext);
     }
 
@@ -83,6 +85,14 @@ public class KnownLoadedSchematicEntry extends WidgetSchematicEntry {
                 && KnownPlacementRows.clickTableHeader(this, this.row, mouseX, mouseY)) {
             this.listParent.refreshEntries();
             return true;
+        }
+
+        if (mouseButton == 0 && this.row != null && this.row.isPlacement()) {
+            KnownPlacementContext context = this.row.context();
+            PlacementLine line = KnownPlacementRows.placementLine(this, context, context == null ? "" : context.name(), this.row.pageId());
+            if (PlacementOriginMarker.originHovered(context, line, this, mouseX, mouseY)) {
+                return PlacementOriginMarker.handleOriginClick(context);
+            }
         }
 
         if (mouseButton == 0 && this.row != null && this.row.isPlacement() && this.isPlacementNameHovered(mouseX, mouseY)) {
@@ -117,6 +127,10 @@ public class KnownLoadedSchematicEntry extends WidgetSchematicEntry {
             lines.addAll(line.status().tooltipLines());
         } else if (line.fileHovered(this, mouseX, mouseY) && !line.fileHoverText().isEmpty()) {
             lines.add(line.fileHoverText());
+        } else if (PlacementOriginMarker.originHovered(context, line, this, mouseX, mouseY)) {
+            lines.add(StringUtils.translate(PlacementOriginMarker.hasHighlight(context)
+                    ? "lmlp.gui.known_placement.origin_beam_hint"
+                    : "lmlp.gui.known_placement.origin_highlight_hint"));
         }
 
         if (!lines.isEmpty()) {

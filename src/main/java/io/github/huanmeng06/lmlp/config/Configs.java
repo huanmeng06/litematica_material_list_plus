@@ -7,6 +7,7 @@ import fi.dy.masa.malilib.config.ConfigUtils;
 import fi.dy.masa.malilib.config.IConfigBase;
 import fi.dy.masa.malilib.config.IConfigHandler;
 import fi.dy.masa.malilib.config.options.ConfigBoolean;
+import fi.dy.masa.malilib.config.options.ConfigInteger;
 import fi.dy.masa.malilib.config.options.ConfigOptionList;
 import fi.dy.masa.malilib.config.options.ConfigStringList;
 import fi.dy.masa.malilib.util.FileUtils;
@@ -65,6 +66,24 @@ public class Configs implements IConfigHandler {
                 "lmlp.config.name.count_display_style"
         );
 
+        public static final ConfigInteger ORIGIN_HIGHLIGHT_TIME = new ConfigInteger(
+                "originHighlightTime",
+                30,
+                1,
+                600,
+                true,
+                "How many seconds a clicked placement origin highlight stays visible."
+        );
+
+        public static final ConfigInteger ORIGIN_BEAM_TIME = new ConfigInteger(
+                "originBeamTime",
+                10,
+                1,
+                600,
+                true,
+                "How many seconds the placement origin beam stays visible after clicking the same origin again."
+        );
+
         public static final ConfigStringList RECIPE_STOP_ITEMS = new ConfigStringList(
                 "recipeStopItems",
                 ImmutableList.of(
@@ -85,6 +104,8 @@ public class Configs implements IConfigHandler {
         public static final List<IConfigBase> OPTIONS = ImmutableList.of(
                 DISABLE_LITEMATICA_HOVER_TOOLTIP,
                 COUNT_DISPLAY_STYLE,
+                ORIGIN_HIGHLIGHT_TIME,
+                ORIGIN_BEAM_TIME,
                 RECIPE_STOP_ITEMS
         );
 
