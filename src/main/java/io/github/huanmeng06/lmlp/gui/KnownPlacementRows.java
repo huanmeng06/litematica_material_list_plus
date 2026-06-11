@@ -47,11 +47,11 @@ public final class KnownPlacementRows {
     private static final int ROW_RIGHT_PADDING = 2;
     private static final int COLUMN_GAP = 8;
     private static final int MIN_NAME_WIDTH = 48;
-    private static final int MIN_FILE_WIDTH = 240;
-    private static final int MIN_PLACEMENT_WIDTH = 260;
-    private static final int MAX_PLACEMENT_WIDTH = 420;
-    private static final int STATUS_COLUMN_WIDTH = 112;
-    private static final int ORIGIN_COLUMN_WIDTH = 360;
+    private static final int MIN_FILE_WIDTH = 160;
+    private static final int MIN_PLACEMENT_WIDTH = 160;
+    private static final int STATUS_COLUMN_PADDING = 24;
+    private static final int ORIGIN_COLUMN_PADDING = 24;
+    private static final int ORIGIN_COLUMN_WIDTH = 220;
     private static final int BUTTON_GAP = 2;
     private static final int HEADER_RENDER_LEFT_OVERHANG = 3;
     private static final int HEADER_RENDER_RIGHT_TRIM = 6;
@@ -295,30 +295,30 @@ public final class KnownPlacementRows {
         int nameX = rowLeft + PLACEMENT_INDENT;
         int nameOffset = Math.max(0, nameX - placementX);
         int right = contentRight(widget);
-        boolean hasActionColumn = hasActionColumn(pageId);
         int operationWidth = actionColumnWidth(widget);
-        int actionWidth = hasActionColumn ? operationWidth : 0;
-        int actionX = hasActionColumn ? Math.max(nameX + MIN_NAME_WIDTH, right - actionWidth) : right;
-        int originWidth = Math.max(originColumnWidth(widget), ORIGIN_COLUMN_WIDTH);
-        int originX = Math.max(nameX + MIN_NAME_WIDTH, right - operationWidth - COLUMN_GAP - originWidth);
-        int statusWidth = Math.max(statusColumnWidth(widget), STATUS_COLUMN_WIDTH);
+        int actionX = Math.max(nameX + MIN_NAME_WIDTH, right - operationWidth);
+        int originWidth = originColumnWidth(widget);
+        int statusWidth = statusColumnWidth(widget);
 
-        int availableBeforeOrigin = Math.max(0, originX - COLUMN_GAP - placementX);
         int minPlacementWidth = nameOffset + MIN_NAME_WIDTH;
-        int preferredPlacementWidth = Math.max(MIN_PLACEMENT_WIDTH, availableBeforeOrigin / 4);
-        int placementWidth = Math.min(MAX_PLACEMENT_WIDTH, preferredPlacementWidth);
-        placementWidth = Math.max(minPlacementWidth, placementWidth);
+        minPlacementWidth = Math.max(minPlacementWidth, MIN_PLACEMENT_WIDTH);
+        int primaryAvailable = Math.max(0, actionX - placementX - statusWidth - originWidth - (COLUMN_GAP * 4));
+        int placementWidth = primaryAvailable / 2;
+        int fileWidth = primaryAvailable - placementWidth;
+
+        if (primaryAvailable >= minPlacementWidth + MIN_FILE_WIDTH) {
+            if (placementWidth < minPlacementWidth) {
+                placementWidth = minPlacementWidth;
+                fileWidth = primaryAvailable - placementWidth;
+            } else if (fileWidth < MIN_FILE_WIDTH) {
+                fileWidth = MIN_FILE_WIDTH;
+                placementWidth = primaryAvailable - fileWidth;
+            }
+        }
 
         int statusX = placementX + placementWidth + COLUMN_GAP;
         int fileX = statusX + statusWidth + COLUMN_GAP;
-        int fileWidth = Math.max(0, originX - COLUMN_GAP - fileX);
-        if (fileWidth < MIN_FILE_WIDTH && placementWidth > minPlacementWidth) {
-            int reclaim = Math.min(placementWidth - minPlacementWidth, MIN_FILE_WIDTH - fileWidth);
-            placementWidth -= reclaim;
-            statusX = placementX + placementWidth + COLUMN_GAP;
-            fileX = statusX + statusWidth + COLUMN_GAP;
-            fileWidth = Math.max(0, originX - COLUMN_GAP - fileX);
-        }
+        int originX = fileX + fileWidth + COLUMN_GAP;
 
         return new ColumnLayout(
                 placementX,
@@ -330,7 +330,7 @@ public final class KnownPlacementRows {
                 fileX,
                 fileWidth,
                 originX,
-                Math.max(0, (hasActionColumn ? actionX - COLUMN_GAP : right) - originX),
+                Math.max(0, actionX - COLUMN_GAP - originX),
                 actionX,
                 Math.max(0, right - actionX),
                 right);
@@ -489,13 +489,13 @@ public final class KnownPlacementRows {
         for (ReadStatus status : ReadStatus.values()) {
             width = Math.max(width, widget.getStringWidth(status.label()));
         }
-        return width;
+        return width + STATUS_COLUMN_PADDING;
     }
 
     private static int originColumnWidth(WidgetBase widget) {
         int headerWidth = widget.getStringWidth(StringUtils.translate("lmlp.gui.known_placement.header.origin"));
         int coordinateWidth = widget.getStringWidth("[-123456, 64, 123456]");
-        return Math.max(headerWidth, coordinateWidth);
+        return Math.max(ORIGIN_COLUMN_WIDTH, Math.max(headerWidth, coordinateWidth) + ORIGIN_COLUMN_PADDING);
     }
 
     private static int actionColumnWidth(WidgetBase widget) {
@@ -541,7 +541,7 @@ public final class KnownPlacementRows {
                     headerRendererX(layout.statusX()),
                     headerRendererX(layout.fileX()),
                     headerRendererX(layout.originX()),
-                    headerRendererRight(layout.contentRight()) };
+                    headerRendererRight(layout.actionX()) };
         }
 
         return new int[] {
@@ -881,10 +881,15 @@ public final class KnownPlacementRows {
         private final int[] columnPositions;
 
         private SortableHeaderRenderer(WidgetBase source, KnownPlacementRow row, int[] columnPositions) {
-            super(contentLeft(source), centeredHeaderY(source), contentRight(source) - contentLeft(source), centeredHeaderHeight(source), row, -1);
+            super(contentLeft(source), centeredHeaderY(source), sortableHeaderRight(source, row) - contentLeft(source), centeredHeaderHeight(source), row, -1);
             this.sortState = sortState(row.pageId());
             this.columnPositions = columnPositions;
             this.columnCount = Math.max(1, columnPositions.length - 1);
+        }
+
+        private static int sortableHeaderRight(WidgetBase source, KnownPlacementRow row) {
+            ColumnLayout layout = computeColumns(source, row.pageId());
+            return hasActionColumn(row.pageId()) ? layout.contentRight() : layout.actionX();
         }
 
         private static int centeredHeaderHeight(WidgetBase source) {
