@@ -77,7 +77,7 @@
   "lmlp.gui.material_list.read_status": "Read status: %s",
   "lmlp.gui.known_placement.header.project": "Projection",
   "lmlp.gui.known_placement.header.status": "Status",
-  "lmlp.gui.known_placement.header.schematic_name": "Schematic name",
+  "lmlp.gui.known_placement.header.schematic_name": "Projection file name",
   "lmlp.gui.known_placement.header.origin": "Origin",
   "lmlp.gui.known_placement.header.actions": "Actions",
   "lmlp.gui.known_placement.status.live": "Live",
