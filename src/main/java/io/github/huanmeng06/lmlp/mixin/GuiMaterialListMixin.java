@@ -13,7 +13,6 @@ import fi.dy.masa.malilib.gui.button.ButtonOnOff;
 import fi.dy.masa.malilib.gui.button.IButtonActionListener;
 import fi.dy.masa.malilib.util.StringUtils;
 import io.github.huanmeng06.lmlp.cache.ChunkMissingMaterialListCache;
-import io.github.huanmeng06.lmlp.cache.MaterialListDataSource;
 import io.github.huanmeng06.lmlp.gui.KnownPlacementRows;
 import io.github.huanmeng06.lmlp.gui.KnownPlacementRows.ReadStatus;
 import io.github.huanmeng06.lmlp.export.SubMaterialExporter;
@@ -81,7 +80,7 @@ public abstract class GuiMaterialListMixin extends GuiListBase {
 
     @Inject(method = "getBrowserHeight", at = @At("RETURN"), cancellable = true)
     private void lmlp$makeRoomForChunkMissingStatus(CallbackInfoReturnable<Integer> cir) {
-        if (KnownPlacementRows.readStatus(ChunkMissingMaterialListCache.dataSource(this.materialList)) != null) {
+        if (KnownPlacementRows.readStatus(this.materialList) != null) {
             cir.setReturnValue(Math.max(0, cir.getReturnValue() - 12));
         }
     }
@@ -98,8 +97,7 @@ public abstract class GuiMaterialListMixin extends GuiListBase {
 
     @Inject(method = "initGui", at = @At("TAIL"))
     private void lmlp$addSchematicCacheStatus(CallbackInfo ci) {
-        MaterialListDataSource dataSource = ChunkMissingMaterialListCache.dataSource(this.materialList);
-        ReadStatus readStatus = KnownPlacementRows.readStatus(dataSource);
+        ReadStatus readStatus = KnownPlacementRows.readStatus(this.materialList);
         if (readStatus != null) {
             String status = StringUtils.translate("lmlp.gui.material_list.read_status", readStatus.label());
             int width = this.getStringWidth(status);

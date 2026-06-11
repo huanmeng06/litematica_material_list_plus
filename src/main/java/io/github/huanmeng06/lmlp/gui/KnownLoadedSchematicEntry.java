@@ -3,6 +3,7 @@ package io.github.huanmeng06.lmlp.gui;
 import fi.dy.masa.litematica.gui.widgets.WidgetSchematicEntry;
 import fi.dy.masa.litematica.schematic.LitematicaSchematic;
 import fi.dy.masa.malilib.render.RenderUtils;
+import io.github.huanmeng06.lmlp.cache.ChunkMissingMaterialListCache;
 import io.github.huanmeng06.lmlp.cache.ChunkMissingMaterialListCache.KnownPlacementContext;
 import io.github.huanmeng06.lmlp.gui.KnownPlacementRows.PlacementLine;
 import io.github.huanmeng06.lmlp.gui.KnownPlacementRows.KnownPlacementRow;
@@ -49,7 +50,7 @@ public class KnownLoadedSchematicEntry extends WidgetSchematicEntry {
         }
 
         KnownPlacementContext context = this.row.context();
-        boolean materialSelected = context != null && context.selected();
+        boolean materialSelected = context != null && ChunkMissingMaterialListCache.isMaterialListContextSelected(context.key());
         if (this.isMouseOver(mouseX, mouseY)) {
             RenderUtils.drawRect(this.x, this.y, this.width, this.height, 0xA0707070);
         } else if (this.isOdd) {
@@ -63,16 +64,21 @@ public class KnownLoadedSchematicEntry extends WidgetSchematicEntry {
         }
 
         String name = context == null ? "" : context.name();
-        PlacementLine line = KnownPlacementRows.placementLine(this, context, name, KnownPlacementRows.contentRight(this));
+        PlacementLine line = KnownPlacementRows.placementLine(this, context, name, this.row.pageId());
         boolean nameHovered = line.nameHovered(this, mouseX, mouseY);
         if (nameHovered) {
             ClickableCursor.requestHand();
         }
         KnownPlacementRows.renderPlacementLine(this, this.zLevel, drawContext, line, "", nameHovered);
+        this.drawSubWidgets(mouseX, mouseY, drawContext);
     }
 
     @Override
     public boolean onMouseClicked(int mouseX, int mouseY, int mouseButton) {
+        if (!this.isMouseOver(mouseX, mouseY) || mouseButton != 0) {
+            return super.onMouseClicked(mouseX, mouseY, mouseButton);
+        }
+
         if (mouseButton == 0 && this.row != null && this.row.isTableHeader()
                 && KnownPlacementRows.clickTableHeader(this, this.row, mouseX, mouseY)) {
             this.listParent.refreshEntries();
@@ -105,7 +111,7 @@ public class KnownLoadedSchematicEntry extends WidgetSchematicEntry {
         }
 
         KnownPlacementContext context = this.row.context();
-        PlacementLine line = KnownPlacementRows.placementLine(this, context, context == null ? "" : context.name(), KnownPlacementRows.contentRight(this));
+        PlacementLine line = KnownPlacementRows.placementLine(this, context, context == null ? "" : context.name(), this.row.pageId());
         List<String> lines = new ArrayList<>();
         if (line.statusHovered(this, mouseX, mouseY)) {
             lines.addAll(line.status().tooltipLines());
@@ -116,6 +122,8 @@ public class KnownLoadedSchematicEntry extends WidgetSchematicEntry {
         if (!lines.isEmpty()) {
             RenderUtils.drawHoverText(mouseX, mouseY, lines, drawContext);
         }
+
+        this.drawHoveredSubWidget(mouseX, mouseY, drawContext);
     }
 
     private boolean isPlacementNameHovered(int mouseX, int mouseY) {
@@ -124,7 +132,7 @@ public class KnownLoadedSchematicEntry extends WidgetSchematicEntry {
         }
 
         KnownPlacementContext context = this.row.context();
-        PlacementLine line = KnownPlacementRows.placementLine(this, context, context.name(), KnownPlacementRows.contentRight(this));
+        PlacementLine line = KnownPlacementRows.placementLine(this, context, context.name(), this.row.pageId());
         return line.nameHovered(this, mouseX, mouseY);
     }
 }

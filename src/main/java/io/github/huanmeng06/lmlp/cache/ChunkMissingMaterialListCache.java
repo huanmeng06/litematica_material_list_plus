@@ -27,12 +27,18 @@ import io.github.huanmeng06.lmlp.access.SchematicPlacementMaterialListAccess;
 import io.github.huanmeng06.lmlp.cache.WorldMaterialCacheIndex.EntryRecord;
 import io.github.huanmeng06.lmlp.cache.WorldMaterialCacheIndex.LoadResult;
 import io.github.huanmeng06.lmlp.cache.WorldMaterialCacheIndex.PlacementRecord;
+import io.github.huanmeng06.lmlp.gui.IgnoredMaterialRegistry;
+import io.github.huanmeng06.lmlp.gui.MaterialListPlusState;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import net.minecraft.class_1923;
 import net.minecraft.class_2338;
 import net.minecraft.class_2382;
 import net.minecraft.class_2680;
+import net.minecraft.class_2791;
+import net.minecraft.class_2806;
+import net.minecraft.class_2818;
 import net.minecraft.class_310;
+import net.minecraft.class_631;
 import net.minecraft.class_638;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -116,6 +122,35 @@ public final class ChunkMissingMaterialListCache {
         }
     }
 
+    public static String materialListContextKey(MaterialListBase materialList, String caller) {
+        if (materialList == null) {
+            return "";
+        }
+
+        if (materialList instanceof OfflineCachedMaterialList offlineList) {
+            return offlineList.contextKey();
+        }
+
+        SchematicPlacement placement = placementFor(materialList);
+        if (placement != null) {
+            PlacementContext context = rememberPlacement(placement, caller + ".material_list_context_key");
+            return context == null ? "" : context.key().value();
+        }
+
+        if (materialList == DataManager.getMaterialList()
+                && selectedMaterialListContext != null
+                && selectedMaterialListContext.canOpenMaterialList()) {
+            return selectedMaterialListContext.key().value();
+        }
+
+        LOGGER.info("[LMLP material-list] context key unresolved caller={} listClass={} currentDimension={} selectedContext={}",
+                caller,
+                materialList.getClass().getName(),
+                currentDimensionId(),
+                selectedMaterialListContext == null ? null : selectedMaterialListContext.key());
+        return "";
+    }
+
     static void refresh(ChunkMissingMaterialList list) {
         setSchematicEntries(list, list.placement(), list.getMaterialListType());
     }
@@ -167,7 +202,7 @@ public final class ChunkMissingMaterialListCache {
 
         PlacementContext context = resolution.context();
         if (context.isOfflineCache()) {
-            logRoute(resolution, context, true);
+            logRoute(resolution, context, ReadMode.OFFLINE_CACHE);
             return getOrCreateOffline(context, caller);
         }
 
@@ -187,7 +222,7 @@ public final class ChunkMissingMaterialListCache {
         selectContext(context, caller + ".explicit_context");
         PlacementResolution resolution = PlacementResolution.direct(context, caller + ".explicit_context");
         if (context.isOfflineCache()) {
-            logRoute(resolution, context, true);
+            logRoute(resolution, context, ReadMode.OFFLINE_CACHE);
             if (!context.hasMaterialCache()) {
                 LOGGER.warn("[LMLP material-list] explicit context open failed reason=missing_entries caller={} key={} name={} dimension={} sourceState={}",
                         caller, context.key(), context.name(), context.dimension(), context.sourceState());
@@ -232,8 +267,8 @@ public final class ChunkMissingMaterialListCache {
     }
 
     public static boolean shouldUseSchematicCache(SchematicPlacement placement, MaterialListBase materialList) {
-        rememberPlacement(placement, "shouldUseSchematicCache");
-        return !arePlacementChunksLoaded(placement);
+        PlacementContext context = rememberPlacement(placement, "shouldUseSchematicCache");
+        return resolveReadMode(context) != ReadMode.LIVE;
     }
 
     public static void rememberPlacementContext(SchematicPlacement placement, String reason) {
@@ -295,6 +330,11 @@ public final class ChunkMissingMaterialListCache {
         return selectedMaterialListContext != null && selectedMaterialListContext.placement() == placement;
     }
 
+    public static boolean isMaterialListContextSelected(String contextKey) {
+        return selectedMaterialListContext != null
+                && selectedMaterialListContext.key().equals(PlacementKey.fromString(contextKey));
+    }
+
     public static boolean canEditPlacement(SchematicPlacement placement) {
         PlacementContext context = rememberPlacement(placement, "can_edit");
         boolean inCurrentManager = isPlacementInCurrentManager(placement);
@@ -322,6 +362,43 @@ public final class ChunkMissingMaterialListCache {
         }
 
         return removeKnownContext(context, allowCurrentDimensionRemoval, reason);
+    }
+
+    public static boolean clearKnownPlacementCache(String contextKey, String reason) {
+        ensureWorldSession(reason + ".clear_cache");
+        PlacementContext context = PLACEMENT_CONTEXTS_BY_KEY.get(PlacementKey.fromString(contextKey));
+        if (context == null) {
+            LOGGER.warn("[LMLP cache-clear] skipped reason=missing_context caller={} key={} currentDimension={} knownContexts={}",
+                    reason, contextKey, currentDimensionId(), PLACEMENT_CONTEXTS_BY_KEY.size());
+            InfoUtils.showGuiOrInGameMessage(MessageType.ERROR, "lmlp.message.known_placement_context_missing");
+            return false;
+        }
+
+        String key = context.key().value();
+        boolean removeOfflineContext = context.isOfflineCache();
+        LOGGER.info("[LMLP cache-clear] requested caller={} key={} name={} sourceState={} placementDimension={} currentDimension={} placementRef={} materialEntries={} removeOfflineContext={}",
+                reason, context.key(), context.name(), context.sourceState(), context.dimension(), currentDimensionId(),
+                context.placement() != null, context.materialEntries().size(), removeOfflineContext);
+
+        if (context.placement() != null) {
+            LISTS.remove(context.placement());
+            LIVE_SCANS.remove(context.placement());
+        }
+        OFFLINE_LISTS.remove(key);
+        IgnoredMaterialRegistry.clearPlacement(key);
+        MaterialListPlusState.clearRecipeCaches();
+
+        if (removeOfflineContext) {
+            forgetContext(context, reason + ".clear_offline_cache", true);
+        } else {
+            context.clearMaterialCache(reason + ".clear_online_cache");
+            persistKnownContexts(reason + ".cache_cleared");
+        }
+
+        LOGGER.info("[LMLP cache-clear] completed caller={} key={} removedOfflineContext={} remainingKnownContexts={}",
+                reason, key, removeOfflineContext, PLACEMENT_CONTEXTS_BY_KEY.size());
+        InfoUtils.showGuiOrInGameMessage(MessageType.INFO, "lmlp.message.cache_cleared");
+        return true;
     }
 
     public static void forgetPlacementContext(SchematicPlacement placement, String reason) {
@@ -360,8 +437,9 @@ public final class ChunkMissingMaterialListCache {
         }
 
         context.refreshOnline(placement, resolution.caller() + ".use", null);
-        boolean useCache = shouldUseSchematicCache(placement, materialList);
-        logRoute(resolution, context, useCache);
+        ReadMode readMode = resolveReadMode(context);
+        boolean useCache = readMode != ReadMode.LIVE;
+        logRoute(resolution, context, readMode);
 
         if (useCache) {
             return getOrCreate(placement, materialList);
@@ -414,6 +492,94 @@ public final class ChunkMissingMaterialListCache {
         return materialList instanceof MaterialListSourceAccess access ? access.lmlp$getDataSource() : MaterialListDataSource.UNKNOWN;
     }
 
+    public static ReadMode resolveReadMode(KnownPlacementContext context) {
+        if (context == null) {
+            return ReadMode.OFFLINE_CACHE;
+        }
+
+        return resolveReadMode(PlacementKey.fromString(context.key()), context);
+    }
+
+    public static ReadMode resolveReadMode(String contextKey) {
+        return resolveReadMode(PlacementKey.fromString(contextKey), null);
+    }
+
+    private static ReadMode resolveReadMode(PlacementKey key, KnownPlacementContext snapshot) {
+        ReadMode activeMaterialListMode = activeMaterialListReadMode(key, snapshot == null ? null : snapshot.placement());
+        if (activeMaterialListMode != null && activeMaterialListMode != ReadMode.LIVE) {
+            return activeMaterialListMode;
+        }
+
+        PlacementContext runtimeContext = PLACEMENT_CONTEXTS_BY_KEY.get(key);
+        if (runtimeContext == null && snapshot != null && snapshot.placement() != null) {
+            runtimeContext = PLACEMENT_CONTEXTS.get(snapshot.placement());
+        }
+
+        if (runtimeContext != null) {
+            return resolveReadMode(runtimeContext);
+        }
+
+        if (snapshot != null) {
+            return resolveReadMode(snapshot.sourceState(), snapshot.placement(), snapshot.dimension());
+        }
+
+        return ReadMode.OFFLINE_CACHE;
+    }
+
+    public static ReadMode resolveReadMode(MaterialListBase materialList) {
+        SchematicPlacement placement = placementFor(materialList);
+        PlacementContext context = placement == null ? null : PLACEMENT_CONTEXTS.get(placement);
+        if (context != null) {
+            return resolveReadMode(context);
+        }
+
+        return resolveReadMode(dataSource(materialList));
+    }
+
+    public static ReadMode resolveReadMode(MaterialListDataSource dataSource) {
+        if (dataSource == null) {
+            return null;
+        }
+
+        return switch (dataSource) {
+            case WORLD_SCAN -> ReadMode.LIVE;
+            case SCHEMATIC_CACHE -> ReadMode.CHUNK_CACHE;
+            case CROSS_DIMENSION_CACHE -> ReadMode.DIMENSION_CACHE;
+            case OFFLINE_CACHE -> ReadMode.OFFLINE_CACHE;
+            default -> null;
+        };
+    }
+
+    private static ReadMode activeMaterialListReadMode(PlacementKey key, SchematicPlacement snapshotPlacement) {
+        if (key == null) {
+            return null;
+        }
+
+        MaterialListBase materialList = DataManager.getMaterialList();
+        ReadMode readMode = resolveReadMode(dataSource(materialList));
+        if (readMode == null) {
+            return null;
+        }
+
+        PlacementKey materialListKey = materialListKey(materialList);
+        if (key.equals(materialListKey)) {
+            return readMode;
+        }
+
+        SchematicPlacement materialListPlacement = placementFor(materialList);
+        return snapshotPlacement != null && materialListPlacement == snapshotPlacement ? readMode : null;
+    }
+
+    private static PlacementKey materialListKey(MaterialListBase materialList) {
+        if (materialList instanceof OfflineCachedMaterialList offlineList) {
+            return PlacementKey.fromString(offlineList.contextKey());
+        }
+
+        SchematicPlacement placement = placementFor(materialList);
+        PlacementContext context = placement == null ? null : PLACEMENT_CONTEXTS.get(placement);
+        return context == null ? null : context.key();
+    }
+
     public static boolean hasKnownDataSource(MaterialListBase materialList) {
         return dataSource(materialList) != MaterialListDataSource.UNKNOWN;
     }
@@ -434,18 +600,36 @@ public final class ChunkMissingMaterialListCache {
     }
 
     public static boolean arePlacementChunksLoaded(SchematicPlacement placement) {
-        class_638 world = class_310.method_1551().field_1687;
-        if (world == null || !isPlacementInCurrentDimension(placement)) {
+        class_310 client = class_310.method_1551();
+        class_638 world = client.field_1687;
+        if (world == null || client.field_1724 == null || !isPlacementInCurrentDimension(placement)) {
             return false;
         }
 
-        Collection<class_1923> touchedChunks = placement.getTouchedChunks();
-        if (touchedChunks.isEmpty()) {
+        Collection<class_1923> touchedChunks;
+        try {
+            touchedChunks = placement.getTouchedChunks();
+        } catch (RuntimeException exception) {
+            LOGGER.debug("[LMLP placement-list] touched chunks unavailable name={} reason={}", placementDebugName(placement), exception.toString());
             return false;
         }
 
-        for (class_1923 chunk : touchedChunks) {
-            if (!world.method_8393(chunk.field_9181, chunk.field_9180)) {
+        if (touchedChunks == null || touchedChunks.isEmpty()) {
+            return false;
+        }
+
+        class_631 chunkManager = world.method_2935();
+        if (chunkManager == null) {
+            return false;
+        }
+
+        for (class_1923 chunkPos : touchedChunks) {
+            if (chunkPos == null || !world.method_8393(chunkPos.field_9181, chunkPos.field_9180)) {
+                return false;
+            }
+
+            class_2791 chunk = chunkManager.method_12121(chunkPos.field_9181, chunkPos.field_9180, class_2806.field_12803, false);
+            if (!(chunk instanceof class_2818) || !chunk.method_12009().method_12165(class_2806.field_12803)) {
                 return false;
             }
         }
@@ -584,9 +768,9 @@ public final class ChunkMissingMaterialListCache {
         return true;
     }
 
-    private static void logRoute(PlacementResolution resolution, PlacementContext context, boolean useCache) {
+    private static void logRoute(PlacementResolution resolution, PlacementContext context, ReadMode readMode) {
         ResolveSnapshot snapshot = resolution.snapshot();
-        LOGGER.info("[LMLP material-list] route caller={} worldId={} currentDimension={} selectedExists={} placementCount={} knownContextCount={} selectedContext={} lastKnownExists={} lastKnownDimension={} source={} sourceState={} placement={} placementDimension={} cacheGenerated={} materialCacheEntries={} result={}",
+        LOGGER.info("[LMLP material-list] route caller={} worldId={} currentDimension={} selectedExists={} placementCount={} knownContextCount={} selectedContext={} lastKnownExists={} lastKnownDimension={} source={} sourceState={} placement={} placementDimension={} cacheGenerated={} materialCacheEntries={} readMode={} result={}",
                 resolution.caller(),
                 currentWorldId,
                 snapshot.currentDimension(),
@@ -602,7 +786,8 @@ public final class ChunkMissingMaterialListCache {
                 context == null ? null : context.dimension(),
                 context != null && context.cacheGenerated(),
                 context == null ? 0 : context.materialEntries().size(),
-                useCache ? cacheSourceFor(resolution.placement(), context) : MaterialListDataSource.WORLD_SCAN);
+                readMode,
+                dataSourceForReadMode(readMode));
     }
 
     private static void logNoPlacement(String caller, PlacementResolution resolution) {
@@ -666,16 +851,50 @@ public final class ChunkMissingMaterialListCache {
                 && context.sourceState() == SourceState.ONLINE
                 && placement != null
                 && Objects.equals(context.dimension(), currentDimensionId())
-                && inCurrentManager
-                && arePlacementChunksLoaded(placement);
+                && inCurrentManager;
+    }
+
+    private static ReadMode resolveReadMode(PlacementContext context) {
+        if (context == null) {
+            return ReadMode.OFFLINE_CACHE;
+        }
+
+        return resolveReadMode(context.sourceState(), context.placement(), context.dimension());
+    }
+
+    private static ReadMode resolveReadMode(SourceState sourceState, SchematicPlacement placement, String dimension) {
+        if (sourceState != SourceState.ONLINE || placement == null) {
+            return ReadMode.OFFLINE_CACHE;
+        }
+
+        String currentDimension = currentDimensionId();
+        if (!Objects.equals(normalizedDimension(dimension), normalizedDimension(currentDimension))) {
+            return ReadMode.DIMENSION_CACHE;
+        }
+
+        if (!isPlacementInCurrentManager(placement)) {
+            return ReadMode.OFFLINE_CACHE;
+        }
+
+        return arePlacementChunksLoaded(placement) ? ReadMode.LIVE : ReadMode.CHUNK_CACHE;
+    }
+
+    private static MaterialListDataSource dataSourceForReadMode(ReadMode readMode) {
+        if (readMode == null) {
+            return MaterialListDataSource.UNKNOWN;
+        }
+
+        return switch (readMode) {
+            case LIVE -> MaterialListDataSource.WORLD_SCAN;
+            case CHUNK_CACHE -> MaterialListDataSource.SCHEMATIC_CACHE;
+            case DIMENSION_CACHE -> MaterialListDataSource.CROSS_DIMENSION_CACHE;
+            case OFFLINE_CACHE -> MaterialListDataSource.OFFLINE_CACHE;
+        };
     }
 
     private static MaterialListDataSource cacheSourceFor(SchematicPlacement placement, PlacementContext context) {
-        if (context != null && context.isOfflineCache()) {
-            return MaterialListDataSource.OFFLINE_CACHE;
-        }
-
-        return isPlacementInCurrentDimension(placement) ? MaterialListDataSource.SCHEMATIC_CACHE : MaterialListDataSource.CROSS_DIMENSION_CACHE;
+        ReadMode readMode = resolveReadMode(context);
+        return readMode == ReadMode.LIVE ? MaterialListDataSource.SCHEMATIC_CACHE : dataSourceForReadMode(readMode);
     }
 
     private static String placementDebugName(SchematicPlacement placement) {
@@ -849,6 +1068,9 @@ public final class ChunkMissingMaterialListCache {
     private static void fillSchematicCacheIfEmpty(SchematicPlacement placement, MaterialListBase materialList) {
         if (materialList.getMaterialsAll().isEmpty()) {
             refreshPlacementList(placement, materialList);
+            if (arePlacementChunksLoaded(placement) && materialList instanceof MaterialListSourceAccess access) {
+                access.lmlp$setDataSource(MaterialListDataSource.WORLD_SCAN);
+            }
         }
     }
 
@@ -946,6 +1168,10 @@ public final class ChunkMissingMaterialListCache {
         return new File(path).getName();
     }
 
+    private static String originPosition(SchematicPlacement placement) {
+        return formatPos(placement.getOrigin());
+    }
+
     private static String regionsKey(Collection<SubRegionPlacement> regions) {
         List<SubRegionPlacement> sorted = new ArrayList<>(regions);
         sorted.sort(Comparator.comparing(SubRegionPlacement::getName));
@@ -974,6 +1200,10 @@ public final class ChunkMissingMaterialListCache {
 
     private static void appendPos(StringBuilder builder, class_2338 pos) {
         builder.append(pos.method_10263()).append(',').append(pos.method_10264()).append(',').append(pos.method_10260());
+    }
+
+    private static String formatPos(class_2338 pos) {
+        return "[" + pos.method_10263() + ", " + pos.method_10264() + ", " + pos.method_10260() + "]";
     }
 
     private static void ensureWorldSession(String reason) {
@@ -1088,6 +1318,13 @@ public final class ChunkMissingMaterialListCache {
         OFFLINE_CACHE
     }
 
+    public enum ReadMode {
+        LIVE,
+        CHUNK_CACHE,
+        DIMENSION_CACHE,
+        OFFLINE_CACHE
+    }
+
     private enum PlacementSource {
         EXPLICIT_SELECTED,
         CURRENT_SELECTED,
@@ -1156,6 +1393,7 @@ public final class ChunkMissingMaterialListCache {
             String name,
             String schematicPath,
             String schematicName,
+            String originPosition,
             String dimension,
             String displayDimension,
             long lastSeen,
@@ -1193,6 +1431,7 @@ public final class ChunkMissingMaterialListCache {
         private String signature;
         private String schematicPath;
         private String schematicName;
+        private String originPosition;
         private String placementIdentity;
         private String name;
         private String dimension;
@@ -1212,6 +1451,7 @@ public final class ChunkMissingMaterialListCache {
             this.placementIdentity = ChunkMissingMaterialListCache.identitySignature(placement);
             this.schematicPath = ChunkMissingMaterialListCache.schematicPath(placement);
             this.schematicName = ChunkMissingMaterialListCache.schematicName(this.schematicPath);
+            this.originPosition = ChunkMissingMaterialListCache.originPosition(placement);
             this.key = PlacementKey.of(dimension, placement);
             this.name = placement.getName();
             this.dimension = dimension;
@@ -1227,6 +1467,7 @@ public final class ChunkMissingMaterialListCache {
             this.name = record.placementName();
             this.schematicName = record.schematicName();
             this.schematicPath = record.schematicPath();
+            this.originPosition = record.originPosition();
             this.placementIdentity = record.placementIdentity();
             this.signature = record.placementSignature();
             this.lastSeen = record.lastSeenTime();
@@ -1263,6 +1504,7 @@ public final class ChunkMissingMaterialListCache {
             this.placementIdentity = ChunkMissingMaterialListCache.identitySignature(placement);
             this.schematicPath = ChunkMissingMaterialListCache.schematicPath(placement);
             this.schematicName = ChunkMissingMaterialListCache.schematicName(this.schematicPath);
+            this.originPosition = ChunkMissingMaterialListCache.originPosition(placement);
             if (this.dimension == null && currentDimension != null) {
                 this.dimension = currentDimension;
                 LOGGER.info("[LMLP material-list] placement dimension learned reason={} name={} dimension={} schematic={} signature={}",
@@ -1283,6 +1525,16 @@ public final class ChunkMissingMaterialListCache {
                     this.key, this.name, this.sourceState, this.materialListType.getStringValue(), this.materialEntries.size());
         }
 
+        private void clearMaterialCache(String reason) {
+            int beforeEntries = this.materialEntries.size();
+            this.materialEntries = List.of();
+            this.cacheGenerated = false;
+            this.lastMaterialCacheUpdateTime = 0L;
+            this.lastReason = reason;
+            LOGGER.info("[LMLP cache-index] material cache cleared reason={} key={} name={} sourceState={} previousEntries={}",
+                    reason, this.key, this.name, this.sourceState, beforeEntries);
+        }
+
         private void setSelected(boolean selected) {
             this.selected = selected;
         }
@@ -1300,6 +1552,7 @@ public final class ChunkMissingMaterialListCache {
                     this.name,
                     this.schematicPath,
                     this.schematicName,
+                    this.originPosition,
                     this.dimension,
                     displayDimension(this.dimension),
                     this.lastSeen,
@@ -1320,6 +1573,7 @@ public final class ChunkMissingMaterialListCache {
                     this.name,
                     this.schematicName,
                     this.schematicPath,
+                    this.originPosition,
                     this.placementIdentity,
                     this.signature,
                     this.lastSeen,

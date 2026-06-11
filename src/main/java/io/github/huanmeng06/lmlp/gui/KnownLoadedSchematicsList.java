@@ -81,11 +81,11 @@ public class KnownLoadedSchematicsList extends WidgetListLoadedSchematics {
             return true;
         } else if (row.isHeader()) {
             KnownPlacementRows.toggle(PAGE_ID, row.dimension());
+            this.refreshEntries();
         } else if (row.isPlacement()) {
             KnownPlacementContext context = row.context();
             ChunkMissingMaterialListCache.selectMaterialListContext(context.key(), "loaded_schematics_list.click");
         }
-        this.refreshEntries();
         return true;
     }
 }

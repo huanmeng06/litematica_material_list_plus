@@ -179,6 +179,7 @@ public final class WorldMaterialCacheIndex {
             String placementName,
             String schematicName,
             String schematicPath,
+            String originPosition,
             String placementIdentity,
             String placementSignature,
             long lastSeenTime,
@@ -213,6 +214,7 @@ public final class WorldMaterialCacheIndex {
                     JsonUtils.getStringOrDefault(object, "placementName", key),
                     JsonUtils.getStringOrDefault(object, "schematicName", ""),
                     JsonUtils.getStringOrDefault(object, "schematicPath", ""),
+                    JsonUtils.getStringOrDefault(object, "originPosition", ""),
                     JsonUtils.getStringOrDefault(object, "placementIdentity", ""),
                     JsonUtils.getStringOrDefault(object, "placementSignature", ""),
                     JsonUtils.getLongOrDefault(object, "lastSeenTime", 0L),
@@ -231,6 +233,7 @@ public final class WorldMaterialCacheIndex {
             object.addProperty("placementName", this.placementName);
             object.addProperty("schematicName", this.schematicName);
             object.addProperty("schematicPath", this.schematicPath);
+            object.addProperty("originPosition", this.originPosition);
             object.addProperty("placementIdentity", this.placementIdentity);
             object.addProperty("placementSignature", this.placementSignature);
             object.addProperty("lastSeenTime", this.lastSeenTime);
