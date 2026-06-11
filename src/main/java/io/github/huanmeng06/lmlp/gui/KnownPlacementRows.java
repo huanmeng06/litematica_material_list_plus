@@ -51,7 +51,7 @@ public final class KnownPlacementRows {
     private static final int MIN_PLACEMENT_WIDTH = 260;
     private static final int MAX_PLACEMENT_WIDTH = 420;
     private static final int STATUS_COLUMN_WIDTH = 112;
-    private static final int ORIGIN_COLUMN_WIDTH = 260;
+    private static final int ORIGIN_COLUMN_WIDTH = 360;
     private static final int BUTTON_GAP = 2;
     private static final int HEADER_RENDER_LEFT_OVERHANG = 3;
     private static final int HEADER_RENDER_RIGHT_TRIM = 6;
@@ -296,16 +296,16 @@ public final class KnownPlacementRows {
         int nameOffset = Math.max(0, nameX - placementX);
         int right = contentRight(widget);
         boolean hasActionColumn = hasActionColumn(pageId);
-        int actionWidth = hasActionColumn ? actionColumnWidth(widget) : 0;
+        int operationWidth = actionColumnWidth(widget);
+        int actionWidth = hasActionColumn ? operationWidth : 0;
         int actionX = hasActionColumn ? Math.max(nameX + MIN_NAME_WIDTH, right - actionWidth) : right;
-        int dataRight = hasActionColumn ? Math.max(nameX + MIN_NAME_WIDTH, actionX - COLUMN_GAP) : right;
         int originWidth = Math.max(originColumnWidth(widget), ORIGIN_COLUMN_WIDTH);
-        int originX = Math.max(nameX + MIN_NAME_WIDTH, dataRight - originWidth);
+        int originX = Math.max(nameX + MIN_NAME_WIDTH, right - operationWidth - COLUMN_GAP - originWidth);
         int statusWidth = Math.max(statusColumnWidth(widget), STATUS_COLUMN_WIDTH);
 
         int availableBeforeOrigin = Math.max(0, originX - COLUMN_GAP - placementX);
         int minPlacementWidth = nameOffset + MIN_NAME_WIDTH;
-        int preferredPlacementWidth = Math.max(MIN_PLACEMENT_WIDTH, availableBeforeOrigin / 5);
+        int preferredPlacementWidth = Math.max(MIN_PLACEMENT_WIDTH, availableBeforeOrigin / 4);
         int placementWidth = Math.min(MAX_PLACEMENT_WIDTH, preferredPlacementWidth);
         placementWidth = Math.max(minPlacementWidth, placementWidth);
 
@@ -330,7 +330,7 @@ public final class KnownPlacementRows {
                 fileX,
                 fileWidth,
                 originX,
-                Math.max(0, dataRight - originX),
+                Math.max(0, (hasActionColumn ? actionX - COLUMN_GAP : right) - originX),
                 actionX,
                 Math.max(0, right - actionX),
                 right);
