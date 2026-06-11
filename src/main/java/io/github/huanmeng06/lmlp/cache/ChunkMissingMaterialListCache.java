@@ -527,6 +527,12 @@ public final class ChunkMissingMaterialListCache {
     }
 
     public static ReadMode resolveReadMode(MaterialListBase materialList) {
+        SchematicPlacement placement = placementFor(materialList);
+        PlacementContext context = placement == null ? null : PLACEMENT_CONTEXTS.get(placement);
+        if (context != null) {
+            return resolveReadMode(context);
+        }
+
         return resolveReadMode(dataSource(materialList));
     }
 
@@ -1062,6 +1068,9 @@ public final class ChunkMissingMaterialListCache {
     private static void fillSchematicCacheIfEmpty(SchematicPlacement placement, MaterialListBase materialList) {
         if (materialList.getMaterialsAll().isEmpty()) {
             refreshPlacementList(placement, materialList);
+            if (arePlacementChunksLoaded(placement) && materialList instanceof MaterialListSourceAccess access) {
+                access.lmlp$setDataSource(MaterialListDataSource.WORLD_SCAN);
+            }
         }
     }
 
