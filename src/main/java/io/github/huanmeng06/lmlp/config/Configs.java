@@ -75,6 +75,15 @@ public class Configs implements IConfigHandler {
                 "How many seconds a clicked placement origin highlight and beam stay visible."
         );
 
+        public static final ConfigInteger ORIGIN_MARKER_TEXT_SCALE = new ConfigInteger(
+                "originMarkerTextScale",
+                2,
+                1,
+                5,
+                true,
+                "Text scale for the placement origin marker label. 1 is smallest, 5 is largest."
+        );
+
         public static final ConfigStringList RECIPE_STOP_ITEMS = new ConfigStringList(
                 "recipeStopItems",
                 ImmutableList.of(
@@ -96,6 +105,7 @@ public class Configs implements IConfigHandler {
                 DISABLE_LITEMATICA_HOVER_TOOLTIP,
                 COUNT_DISPLAY_STYLE,
                 ORIGIN_MARKER_TIME,
+                ORIGIN_MARKER_TEXT_SCALE,
                 RECIPE_STOP_ITEMS
         );
 

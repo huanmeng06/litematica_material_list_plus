@@ -216,7 +216,11 @@ public final class PlacementOriginMarker {
         Matrix4f matrix = matrices.method_23760().method_23761();
         drawTargetTexture(matrix, fade);
         if (pointedAt) {
-            drawLabel(matrix, textRenderer, title, coordinate, distanceText, fade);
+            matrices.method_22903();
+            float textScale = originMarkerTextScale();
+            matrices.method_22905(textScale, textScale, 1.0F);
+            drawLabel(matrices.method_23760().method_23761(), textRenderer, title, coordinate, distanceText, fade);
+            matrices.method_22909();
         }
         matrices.method_22909();
     }
@@ -252,6 +256,12 @@ public final class PlacementOriginMarker {
     private static float fade(double distance) {
         float fade = distance < 5.0D ? 1.0F : (float) distance / 5.0F;
         return Math.min(fade, 1.0F);
+    }
+
+    private static float originMarkerTextScale() {
+        int configuredScale = Configs.Generic.ORIGIN_MARKER_TEXT_SCALE.getIntegerValue();
+        int clampedScale = Math.max(1, Math.min(5, configuredScale));
+        return clampedScale / 3.0F;
     }
 
     private static void drawTargetTexture(Matrix4f matrix, float alpha) {
