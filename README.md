@@ -2,13 +2,21 @@
 
 这个 README 只记录 `dev-newFeature` 分支的开发过程和每个小版本做了什么。完整的项目介绍、安装说明、功能说明和截图展示放在 `main` 分支维护。
 
-当前正式版：`v1.5.56`
+当前正式版：`v1.5.57`
 
-当前构建：`1.5.56+mc1.20.6`
+当前构建：`1.5.57+mc1.20.6`
 
 适配目标：Minecraft `1.20.6` / Fabric / Litematica / MaLiLib / REI
 
 ## 版本说明
+
+### v1.5.57
+
+- 将同维度投影原点显示改为 OMMC 风格：使用 OMMC 的靶心贴图，并在上方显示红色半透明信息窗。
+- 信息窗显示投影名称和 `[x, y, z] (距离)`，随距离缩放与淡出；主世界/下界映射延续显示时仍只显示光柱，不显示靶心和信息窗。
+- 将 OMMC `target.png` 内嵌为 `assets/litematica_material_list_plus/textures/gui/origin_target.png`，运行时不依赖 OMMC；该资源来源于 Oh My Minecraft Client，许可证为 LGPL-3。
+- 同步 `fabric.mod.json` 和运行时 `MOD_VERSION` 到 `1.5.57+mc1.20.6`。
+- 构建产物改为 `1.5.57+mc1.20.6`。
 
 ### v1.5.56
 
