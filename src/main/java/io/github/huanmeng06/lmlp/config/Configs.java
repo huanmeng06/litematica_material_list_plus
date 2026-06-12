@@ -7,6 +7,7 @@ import fi.dy.masa.malilib.config.ConfigUtils;
 import fi.dy.masa.malilib.config.IConfigBase;
 import fi.dy.masa.malilib.config.IConfigHandler;
 import fi.dy.masa.malilib.config.options.ConfigBoolean;
+import fi.dy.masa.malilib.config.options.ConfigInteger;
 import fi.dy.masa.malilib.config.options.ConfigOptionList;
 import fi.dy.masa.malilib.config.options.ConfigStringList;
 import fi.dy.masa.malilib.util.FileUtils;
@@ -65,6 +66,24 @@ public class Configs implements IConfigHandler {
                 "lmlp.config.name.count_display_style"
         );
 
+        public static final ConfigInteger ORIGIN_MARKER_TIME = new ConfigInteger(
+                "originMarkerTime",
+                120,
+                1,
+                600,
+                true,
+                "How many seconds a clicked placement origin highlight and beam stay visible."
+        );
+
+        public static final ConfigInteger ORIGIN_MARKER_TEXT_SCALE = new ConfigInteger(
+                "originMarkerTextScale",
+                2,
+                1,
+                5,
+                true,
+                "Text scale for the placement origin marker label. 1 is smallest, 5 is largest."
+        );
+
         public static final ConfigStringList RECIPE_STOP_ITEMS = new ConfigStringList(
                 "recipeStopItems",
                 ImmutableList.of(
@@ -85,6 +104,8 @@ public class Configs implements IConfigHandler {
         public static final List<IConfigBase> OPTIONS = ImmutableList.of(
                 DISABLE_LITEMATICA_HOVER_TOOLTIP,
                 COUNT_DISPLAY_STYLE,
+                ORIGIN_MARKER_TIME,
+                ORIGIN_MARKER_TEXT_SCALE,
                 RECIPE_STOP_ITEMS
         );
 
@@ -105,6 +126,7 @@ public class Configs implements IConfigHandler {
                 ConfigUtils.readConfigBase(root, GENERIC, Generic.OPTIONS);
                 ConfigUtils.readConfigBase(root, HOTKEYS, Hotkeys.HOTKEY_LIST);
                 readPreferredRecipes(root);
+                migrateOriginMarkerTimeConfig(root);
                 migrateDisableLitematicaHoverTooltipConfig(root);
                 migrateRecipeStopColorPatterns();
             }
@@ -298,6 +320,36 @@ public class Configs implements IConfigHandler {
             if (previousValue.isJsonPrimitive()) {
                 Generic.DISABLE_LITEMATICA_HOVER_TOOLTIP.setBooleanValue(disablesLitematicaHoverTooltip(previousValue.getAsString()));
             }
+        }
+    }
+
+    private static void migrateOriginMarkerTimeConfig(JsonObject root) {
+        if (!root.has(GENERIC) || !root.get(GENERIC).isJsonObject()) {
+            return;
+        }
+
+        JsonObject generic = root.getAsJsonObject(GENERIC);
+        if (generic.has("originMarkerTime")) {
+            return;
+        }
+
+        int previousValue = Math.max(
+                readIntegerConfig(generic, "originHighlightTime"),
+                readIntegerConfig(generic, "originBeamTime"));
+        if (previousValue > 0) {
+            Generic.ORIGIN_MARKER_TIME.setIntegerValue(previousValue);
+        }
+    }
+
+    private static int readIntegerConfig(JsonObject object, String key) {
+        if (!object.has(key) || !object.get(key).isJsonPrimitive()) {
+            return 0;
+        }
+
+        try {
+            return object.get(key).getAsInt();
+        } catch (RuntimeException exception) {
+            return 0;
         }
     }
 
