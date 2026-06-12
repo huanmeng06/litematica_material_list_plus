@@ -27,6 +27,8 @@ public final class PlacementOriginMarker {
     public static final int ORIGIN_TEXT_COLOR = 0xFF55FF55;
 
     private static final Pattern ORIGIN_PATTERN = Pattern.compile("^\\s*\\[?\\s*(-?\\d+)\\s*,\\s*(-?\\d+)\\s*,\\s*(-?\\d+)\\s*]?\\s*$");
+    private static final String OVERWORLD = "minecraft:overworld";
+    private static final String NETHER = "minecraft:the_nether";
     private static final double ARRIVAL_DISTANCE_SQUARED = 4.0D;
     private static final double BEAM_RADIUS = 0.18D;
     private static final int BEAM_HALF_HEIGHT = 512;
@@ -87,12 +89,13 @@ public final class PlacementOriginMarker {
             return;
         }
 
-        if (!isSameDimension(current.sourceDimension, currentDimensionId(context.world()))) {
+        RenderTarget target = resolveRenderTarget(current.sourceDimension, current.sourcePos, currentDimensionId(context.world()));
+        if (target == null) {
             return;
         }
 
         class_310 client = class_310.method_1551();
-        if (client.field_1724 != null && client.field_1724.method_5707(current.sourcePos.method_46558()) <= ARRIVAL_DISTANCE_SQUARED) {
+        if (client.field_1724 != null && client.field_1724.method_5707(target.pos.method_46558()) <= ARRIVAL_DISTANCE_SQUARED) {
             clear();
             return;
         }
@@ -105,8 +108,10 @@ public final class PlacementOriginMarker {
         RenderSystem.disableCull();
         RenderSystem.setShader(class_757::method_34540);
 
-        drawHighlight(current.sourcePos, cameraPos);
-        drawBeam(current.sourcePos, cameraPos);
+        if (target.sameDimension) {
+            drawHighlight(target.pos, cameraPos);
+        }
+        drawBeam(target.pos, cameraPos);
 
         RenderSystem.enableCull();
         RenderSystem.depthMask(true);
@@ -209,8 +214,51 @@ public final class PlacementOriginMarker {
         return !"unknown".equals(source) && source.equals(current);
     }
 
+    private static RenderTarget resolveRenderTarget(String sourceDimension, class_2338 sourcePos, String currentDimension) {
+        String source = KnownPlacementRows.normalizedDimension(sourceDimension);
+        String current = KnownPlacementRows.normalizedDimension(currentDimension);
+        if ("unknown".equals(source) || "unknown".equals(current)) {
+            return null;
+        }
+
+        if (source.equals(current)) {
+            return new RenderTarget(sourcePos, true);
+        }
+
+        if (OVERWORLD.equals(source) && NETHER.equals(current)) {
+            return new RenderTarget(new class_2338(
+                    Math.floorDiv(sourcePos.method_10263(), 8),
+                    sourcePos.method_10264(),
+                    Math.floorDiv(sourcePos.method_10260(), 8)), false);
+        }
+
+        if (NETHER.equals(source) && OVERWORLD.equals(current)) {
+            return new RenderTarget(new class_2338(
+                    multiplyCoordinate(sourcePos.method_10263(), 8),
+                    sourcePos.method_10264(),
+                    multiplyCoordinate(sourcePos.method_10260(), 8)), false);
+        }
+
+        return null;
+    }
+
+    private static int multiplyCoordinate(int value, int scale) {
+        long result = (long) value * scale;
+        if (result > Integer.MAX_VALUE) {
+            return Integer.MAX_VALUE;
+        }
+        if (result < Integer.MIN_VALUE) {
+            return Integer.MIN_VALUE;
+        }
+
+        return (int) result;
+    }
+
     private static String currentDimensionId(class_638 world) {
         return world == null ? null : world.method_27983().method_29177().toString();
+    }
+
+    private record RenderTarget(class_2338 pos, boolean sameDimension) {
     }
 
     private record Marker(
