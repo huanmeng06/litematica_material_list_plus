@@ -33,6 +33,6 @@ public class InitHandler implements IInitializationHandler {
             PlacementOriginMarker.clear();
             ChunkMissingMaterialListCache.onWorldDisconnected("client.lifecycle.stopping");
         });
-        WorldRenderEvents.AFTER_TRANSLUCENT.register(PlacementOriginMarker::render);
+        WorldRenderEvents.LAST.register(PlacementOriginMarker::render);
     }
 }

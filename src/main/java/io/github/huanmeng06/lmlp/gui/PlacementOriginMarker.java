@@ -22,7 +22,6 @@ import net.minecraft.class_310;
 import net.minecraft.class_327;
 import net.minecraft.class_638;
 import net.minecraft.class_4587;
-import net.minecraft.class_4588;
 import net.minecraft.class_4597;
 import net.minecraft.class_757;
 import org.joml.Matrix4f;
@@ -51,6 +50,9 @@ public final class PlacementOriginMarker {
     private static final int LABEL_LINE_HEIGHT = 9;
     private static final int LABEL_TEXT_COLOR = 0xFFCCCCCC;
     private static final int LABEL_LIGHT = 0x00F000F0;
+    private static final float TARGET_ICON_LAYER_Z = 0.01F;
+    private static final float LABEL_BACKGROUND_LAYER_Z = 0.02F;
+    private static final float LABEL_TEXT_LAYER_Z = 0.03F;
 
     private static Marker marker;
 
@@ -116,23 +118,17 @@ public final class PlacementOriginMarker {
         }
 
         class_243 cameraPos = context.camera().method_19326();
-        RenderSystem.enableBlend();
-        RenderSystem.defaultBlendFunc();
-        RenderSystem.disableDepthTest();
-        RenderSystem.depthMask(false);
-        RenderSystem.disableCull();
+        beginOverlayState();
         RenderSystem.setShader(class_757::method_34540);
 
-        drawBeam(context.matrixStack(), target.pos, cameraPos);
-        if (target.sameDimension && client.field_1724 != null) {
-            drawTargetInfo(context.matrixStack(), context.camera(), client, current, target.pos);
+        try {
+            drawBeam(context.matrixStack(), target.pos, cameraPos);
+            if (target.sameDimension && client.field_1724 != null) {
+                drawTargetInfo(context.matrixStack(), context.camera(), client, current, target.pos);
+            }
+        } finally {
+            endOverlayState();
         }
-
-        RenderSystem.enableCull();
-        RenderSystem.depthMask(true);
-        RenderSystem.enableDepthTest();
-        RenderSystem.disableBlend();
-        RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
     }
 
     private static boolean hasActiveMarker(KnownPlacementContext context) {
@@ -153,7 +149,28 @@ public final class PlacementOriginMarker {
         return marker;
     }
 
+    private static void beginOverlayState() {
+        RenderSystem.enableBlend();
+        RenderSystem.defaultBlendFunc();
+        RenderSystem.disableDepthTest();
+        RenderSystem.depthMask(false);
+        RenderSystem.disableCull();
+        RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
+    }
+
+    private static void endOverlayState() {
+        RenderSystem.enableCull();
+        RenderSystem.depthMask(true);
+        RenderSystem.enableDepthTest();
+        RenderSystem.disableBlend();
+        RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
+        RenderSystem.lineWidth(1.0F);
+    }
+
     private static void drawBeam(class_4587 matrices, class_2338 pos, class_243 cameraPos) {
+        beginOverlayState();
+        RenderSystem.setShader(class_757::method_34540);
+
         double centerX = pos.method_10263() + 0.5D - cameraPos.field_1352;
         double centerY = pos.method_10264() + 0.5D - cameraPos.field_1351;
         double centerZ = pos.method_10260() + 0.5D - cameraPos.field_1350;
@@ -261,7 +278,7 @@ public final class PlacementOriginMarker {
         matrices.method_22905(-scale, -scale, scale);
 
         Matrix4f matrix = matrices.method_23760().method_23761();
-        drawTargetTexture(matrix, fade);
+        drawTargetTexture(new Matrix4f(matrix).translate(0.0F, 0.0F, TARGET_ICON_LAYER_Z), fade);
         if (pointedAt) {
             matrices.method_22903();
             float textScale = originMarkerTextScale();
@@ -314,8 +331,7 @@ public final class PlacementOriginMarker {
     private static void drawTargetTexture(Matrix4f matrix, float alpha) {
         class_289 tessellator = class_289.method_1348();
         class_287 buffer = tessellator.method_1349();
-        RenderSystem.disableDepthTest();
-        RenderSystem.depthMask(false);
+        beginOverlayState();
         RenderSystem.setShader(class_757::method_34542);
         RenderSystem.setShaderTexture(0, TARGET_TEXTURE);
         RenderSystem.setShaderColor(1.0F, 0.0F, 0.0F, alpha);
@@ -338,29 +354,32 @@ public final class PlacementOriginMarker {
         int y1 = LABEL_ELEVATE_BY - 2;
         int y2 = LABEL_ELEVATE_BY + LABEL_LINE_HEIGHT * 3;
 
-        RenderSystem.disableDepthTest();
-        RenderSystem.depthMask(false);
+        Matrix4f backgroundMatrix = new Matrix4f(matrix).translate(0.0F, 0.0F, LABEL_BACKGROUND_LAYER_Z);
+        Matrix4f textMatrix = new Matrix4f(matrix).translate(0.0F, 0.0F, LABEL_TEXT_LAYER_Z);
+
+        beginOverlayState();
+        RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
         RenderSystem.enablePolygonOffset();
         RenderSystem.setShader(class_757::method_34540);
         class_289 tessellator = class_289.method_1348();
         class_287 buffer = tessellator.method_1349();
         RenderSystem.polygonOffset(1.0F, 11.0F);
         buffer.method_1328(class_293.class_5596.field_27382, class_290.field_1576);
-        rectangle(buffer, matrix, x1, y1, x2, y2, 3.0F, 0.0F, 0.0F, 0.6F * alpha);
+        rectangle(buffer, backgroundMatrix, x1, y1, x2, y2, 3.0F, 0.0F, 0.0F, 0.6F * alpha);
         tessellator.method_1350();
 
         RenderSystem.polygonOffset(1.0F, 9.0F);
         buffer.method_1328(class_293.class_5596.field_27382, class_290.field_1576);
-        rectangle(buffer, matrix, x1 + 1, y1 + 1, x2 - 1, y2 - 1, 0.0F, 0.0F, 0.0F, 0.15F * alpha);
+        rectangle(buffer, backgroundMatrix, x1 + 1, y1 + 1, x2 - 1, y2 - 1, 0.0F, 0.0F, 0.0F, 0.15F * alpha);
         tessellator.method_1350();
         RenderSystem.disablePolygonOffset();
 
         int color = (((int) (255.0F * alpha)) << 24) | (LABEL_TEXT_COLOR & 0x00FFFFFF);
         class_4597.class_4598 immediate = class_4597.method_22991(class_289.method_1348().method_1349());
-        RenderSystem.disableDepthTest();
-        textRenderer.method_27522(title, -titleWidth / 2.0F, LABEL_ELEVATE_BY, color, false, matrix, immediate, class_327.class_6415.field_33994, 0, LABEL_LIGHT, false);
-        textRenderer.method_27522(coordinate, -coordinateWidth / 2.0F, LABEL_ELEVATE_BY + LABEL_LINE_HEIGHT, color, false, matrix, immediate, class_327.class_6415.field_33994, 0, LABEL_LIGHT, false);
-        textRenderer.method_27522(distanceText, -distanceWidth / 2.0F, LABEL_ELEVATE_BY + LABEL_LINE_HEIGHT * 2, color, false, matrix, immediate, class_327.class_6415.field_33994, 0, LABEL_LIGHT, false);
+        beginOverlayState();
+        textRenderer.method_27522(title, -titleWidth / 2.0F, LABEL_ELEVATE_BY, color, false, textMatrix, immediate, class_327.class_6415.field_33994, 0, LABEL_LIGHT, false);
+        textRenderer.method_27522(coordinate, -coordinateWidth / 2.0F, LABEL_ELEVATE_BY + LABEL_LINE_HEIGHT, color, false, textMatrix, immediate, class_327.class_6415.field_33994, 0, LABEL_LIGHT, false);
+        textRenderer.method_27522(distanceText, -distanceWidth / 2.0F, LABEL_ELEVATE_BY + LABEL_LINE_HEIGHT * 2, color, false, textMatrix, immediate, class_327.class_6415.field_33994, 0, LABEL_LIGHT, false);
         immediate.method_22993();
     }
 

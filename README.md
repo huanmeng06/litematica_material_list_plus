@@ -2,13 +2,21 @@
 
 这个 README 只记录 `dev-newFeature` 分支的开发过程和每个小版本做了什么。完整的项目介绍、安装说明、功能说明和截图展示放在 `main` 分支维护。
 
-当前正式版：`v1.5.61`
+当前正式版：`v1.5.62`
 
-当前构建：`1.5.61+mc1.20.6`
+当前构建：`1.5.62+mc1.20.6`
 
 适配目标：Minecraft `1.20.6` / Fabric / Litematica / MaLiLib / REI
 
 ## 版本说明
+
+### v1.5.62
+
+- 将 1.20.1 当前最佳版的投影原点标记渲染逻辑移植回 1.20.6：原点光柱、靶心图标、悬浮标签统一使用最终 world overlay pass 绘制。
+- 原点标记渲染阶段改为 `WorldRenderEvents.LAST`，并显式使用 `blend enabled`、`depth test disabled`、`depthMask(false)`、`no cull`，确保显示在方块、地狱门、投影和透明层之上。
+- 明确内部绘制顺序为光柱、靶心图标、标签背景、标签文字；标签文字使用最高优先级，避免被光柱、靶心或世界透明内容遮挡。
+- 同步 `fabric.mod.json` 和运行时 `MOD_VERSION` 到 `1.5.62+mc1.20.6`。
+- 构建产物改为 `1.5.62+mc1.20.6`。
 
 ### v1.5.61
 
