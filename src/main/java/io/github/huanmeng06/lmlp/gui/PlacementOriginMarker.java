@@ -47,7 +47,7 @@ public final class PlacementOriginMarker {
     private static final Color4f BEAM_OUTLINE = new Color4f(1.0F, 0.05F, 0.05F, 0.55F);
     private static final float LABEL_SCALE_BASE = 0.0266F;
     private static final int TARGET_HALF_SIZE = 10;
-    private static final int LABEL_ELEVATE_BY = -19;
+    private static final int LABEL_ELEVATE_BY = -28;
     private static final int LABEL_PADDING_X = 2;
     private static final int LABEL_LINE_HEIGHT = 9;
     private static final int LABEL_TEXT_COLOR = 0xFFCCCCCC;
@@ -189,11 +189,11 @@ public final class PlacementOriginMarker {
         boolean pointedAt = isPointedAt(pos, distance, player, client.method_1488());
 
         String title = current.name == null || current.name.isEmpty() ? "Placement" : current.name;
-        String coordinate = String.format("[%d, %d, %d] (%dm)",
+        String coordinate = String.format("[%d, %d, %d]",
                 pos.method_10263(),
                 pos.method_10264(),
-                pos.method_10260(),
-                (int) distance);
+                pos.method_10260());
+        String distanceText = String.format("%dm", (int) distance);
 
         double baseX = pos.method_10263() + 0.5D - cameraPos.field_1352;
         double baseY = pos.method_10264() + 0.5D - cameraPos.field_1351;
@@ -216,7 +216,7 @@ public final class PlacementOriginMarker {
         Matrix4f matrix = matrices.method_23760().method_23761();
         drawTargetTexture(matrix, fade);
         if (pointedAt) {
-            drawLabel(matrix, textRenderer, title, coordinate, fade);
+            drawLabel(matrix, textRenderer, title, coordinate, distanceText, fade);
         }
         matrices.method_22909();
     }
@@ -257,25 +257,32 @@ public final class PlacementOriginMarker {
     private static void drawTargetTexture(Matrix4f matrix, float alpha) {
         class_289 tessellator = class_289.method_1348();
         class_287 buffer = tessellator.method_1349();
+        RenderSystem.disableDepthTest();
+        RenderSystem.depthMask(false);
         RenderSystem.setShader(class_757::method_34542);
         RenderSystem.setShaderTexture(0, TARGET_TEXTURE);
+        RenderSystem.setShaderColor(1.0F, 0.0F, 0.0F, alpha);
         buffer.method_1328(class_293.class_5596.field_27382, class_290.field_1575);
         vertex(buffer, matrix, -TARGET_HALF_SIZE, -TARGET_HALF_SIZE, 0.0F, 0.0F, alpha);
         vertex(buffer, matrix, -TARGET_HALF_SIZE, TARGET_HALF_SIZE, 0.0F, 1.0F, alpha);
         vertex(buffer, matrix, TARGET_HALF_SIZE, TARGET_HALF_SIZE, 1.0F, 1.0F, alpha);
         vertex(buffer, matrix, TARGET_HALF_SIZE, -TARGET_HALF_SIZE, 1.0F, 0.0F, alpha);
         tessellator.method_1350();
+        RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
     }
 
-    private static void drawLabel(Matrix4f matrix, class_327 textRenderer, String title, String coordinate, float alpha) {
+    private static void drawLabel(Matrix4f matrix, class_327 textRenderer, String title, String coordinate, String distanceText, float alpha) {
         int titleWidth = textRenderer.method_1727(title);
         int coordinateWidth = textRenderer.method_1727(coordinate);
-        int halfWidth = Math.max(titleWidth, coordinateWidth) / 2;
+        int distanceWidth = textRenderer.method_1727(distanceText);
+        int halfWidth = Math.max(Math.max(titleWidth, coordinateWidth), distanceWidth) / 2;
         int x1 = -halfWidth - LABEL_PADDING_X;
         int x2 = halfWidth + LABEL_PADDING_X;
         int y1 = LABEL_ELEVATE_BY - 2;
-        int y2 = LABEL_ELEVATE_BY + LABEL_LINE_HEIGHT * 2;
+        int y2 = LABEL_ELEVATE_BY + LABEL_LINE_HEIGHT * 3;
 
+        RenderSystem.disableDepthTest();
+        RenderSystem.depthMask(false);
         RenderSystem.enablePolygonOffset();
         RenderSystem.setShader(class_757::method_34540);
         class_289 tessellator = class_289.method_1348();
@@ -294,8 +301,9 @@ public final class PlacementOriginMarker {
         int color = (((int) (255.0F * alpha)) << 24) | (LABEL_TEXT_COLOR & 0x00FFFFFF);
         class_4597.class_4598 immediate = class_4597.method_22991(class_289.method_1348().method_1349());
         RenderSystem.disableDepthTest();
-        textRenderer.method_27522(title, -titleWidth / 2.0F, LABEL_ELEVATE_BY, color, false, matrix, immediate, class_327.class_6415.field_33993, 0, LABEL_LIGHT, false);
-        textRenderer.method_27522(coordinate, -coordinateWidth / 2.0F, LABEL_ELEVATE_BY + LABEL_LINE_HEIGHT, color, false, matrix, immediate, class_327.class_6415.field_33993, 0, LABEL_LIGHT, false);
+        textRenderer.method_27522(title, -titleWidth / 2.0F, LABEL_ELEVATE_BY, color, false, matrix, immediate, class_327.class_6415.field_33994, 0, LABEL_LIGHT, false);
+        textRenderer.method_27522(coordinate, -coordinateWidth / 2.0F, LABEL_ELEVATE_BY + LABEL_LINE_HEIGHT, color, false, matrix, immediate, class_327.class_6415.field_33994, 0, LABEL_LIGHT, false);
+        textRenderer.method_27522(distanceText, -distanceWidth / 2.0F, LABEL_ELEVATE_BY + LABEL_LINE_HEIGHT * 2, color, false, matrix, immediate, class_327.class_6415.field_33994, 0, LABEL_LIGHT, false);
         immediate.method_22993();
     }
 
