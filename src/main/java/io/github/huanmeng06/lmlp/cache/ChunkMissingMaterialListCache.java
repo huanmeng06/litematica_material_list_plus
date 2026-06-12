@@ -74,6 +74,7 @@ public final class ChunkMissingMaterialListCache {
         String worldId = WorldMaterialCacheIndex.resolveWorldId(client);
         if (worldId == null) {
             LOGGER.warn("[LMLP cache-index] world join skipped reason=missing_world_id currentDimension={}", currentDimensionId());
+            abandonWorldSession(reason + ".missing_world_id");
             return;
         }
 
@@ -1212,7 +1213,16 @@ public final class ChunkMissingMaterialListCache {
         }
 
         String worldId = WorldMaterialCacheIndex.resolveWorldId(class_310.method_1551());
-        if (worldId != null && !worldId.equals(currentWorldId)) {
+        if (worldId == null) {
+            if (currentWorldId != null || !PLACEMENT_CONTEXTS_BY_KEY.isEmpty()) {
+                LOGGER.warn("[LMLP cache-index] world session cleared reason=missing_world_id caller={} previousWorldId={}",
+                        reason, currentWorldId);
+                abandonWorldSession(reason + ".missing_world_id");
+            }
+            return;
+        }
+
+        if (!worldId.equals(currentWorldId)) {
             startWorldSession(worldId, reason);
         }
     }
@@ -1245,6 +1255,11 @@ public final class ChunkMissingMaterialListCache {
         } finally {
             loadingWorldIndex = false;
         }
+    }
+
+    private static void abandonWorldSession(String reason) {
+        persistKnownContexts(reason + ".before_clear");
+        clearRuntimeState(reason, true);
     }
 
     private static void restoreOfflineContext(PlacementRecord record) {
