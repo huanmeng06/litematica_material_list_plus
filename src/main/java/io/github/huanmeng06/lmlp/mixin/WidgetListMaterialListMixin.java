@@ -5,6 +5,7 @@ import fi.dy.masa.litematica.gui.widgets.WidgetListMaterialList;
 import fi.dy.masa.litematica.materials.MaterialListBase;
 import fi.dy.masa.litematica.materials.MaterialListEntry;
 import io.github.huanmeng06.lmlp.access.WidgetMaterialListAccess;
+import io.github.huanmeng06.lmlp.gui.IgnoredMaterialRegistry;
 import io.github.huanmeng06.lmlp.gui.MinimalSubMaterialListView;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -31,6 +32,24 @@ public abstract class WidgetListMaterialListMixin implements WidgetMaterialListA
         MaterialListBase materialList = this.gui.getMaterialList();
         if (MinimalSubMaterialListView.isActive(materialList)) {
             cir.setReturnValue(MinimalSubMaterialListView.entries(materialList));
+        }
+    }
+
+    @Inject(method = "getAllEntries", at = @At("RETURN"), cancellable = true)
+    private void lmlp$filterStableIgnoredMaterials(CallbackInfoReturnable<Collection<MaterialListEntry>> cir) {
+        MaterialListBase materialList = this.gui.getMaterialList();
+        if (MinimalSubMaterialListView.isActive(materialList)) {
+            return;
+        }
+
+        Collection<MaterialListEntry> entries = cir.getReturnValue();
+        if (entries == null || entries.isEmpty()) {
+            return;
+        }
+
+        Collection<MaterialListEntry> filtered = IgnoredMaterialRegistry.filter(materialList, entries);
+        if (filtered != entries) {
+            cir.setReturnValue(filtered);
         }
     }
 }

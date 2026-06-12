@@ -15,23 +15,17 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 public abstract class GuiListBaseMixin {
     @Inject(method = "drawContents", at = @At("HEAD"))
     private void lmlp$beginClickableCursorFrame(class_332 drawContext, int mouseX, int mouseY, float partialTicks, CallbackInfo ci) {
-        if ((Object) this instanceof GuiMaterialList) {
-            ClickableCursor.beginFrame();
-        }
+        ClickableCursor.beginFrame();
     }
 
     @Inject(method = "drawContents", at = @At("TAIL"))
     private void lmlp$applyClickableCursorFrame(class_332 drawContext, int mouseX, int mouseY, float partialTicks, CallbackInfo ci) {
-        if ((Object) this instanceof GuiMaterialList) {
-            ClickableCursor.endFrame();
-        }
+        ClickableCursor.endFrame();
     }
 
     @Inject(method = "method_25432", at = @At("HEAD"))
     private void lmlp$resetClickableCursor(CallbackInfo ci) {
-        if ((Object) this instanceof GuiMaterialList) {
-            ClickableCursor.reset();
-        }
+        ClickableCursor.reset();
     }
 
     @Inject(method = "onCharTyped", at = @At("HEAD"), cancellable = true)

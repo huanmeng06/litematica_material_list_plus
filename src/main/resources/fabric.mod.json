@@ -1,31 +1,32 @@
-{
-  "schemaVersion": 1,
-  "id": "litematica_material_list_plus",
-  "version": "1.5.0+mc1.21.5",
-  "name": "Litematica Material List Plus",
-  "description": "Enhances Litematica's material list with grouped counts and REI recipe summaries.",
-  "icon": "assets/litematica_material_list_plus/icon.png",
-  "authors": [
-    "Huan_meeng"
-  ],
-  "license": "LGPL-3.0-or-later",
-  "environment": "client",
-  "entrypoints": {
-    "client": [
-      "io.github.huanmeng06.lmlp.LitematicaMaterialListPlus"
-    ],
-    "modmenu": [
-      "io.github.huanmeng06.lmlp.compat.modmenu.ModMenuImpl"
-    ]
-  },
-  "mixins": [
-    "litematica_material_list_plus.mixins.json"
-  ],
-  "depends": {
-    "fabricloader": ">=0.16.9",
-    "minecraft": "1.21.5",
-    "litematica": ">=0.15.4",
-    "malilib": ">=0.16.3",
-    "roughlyenoughitems": "*"
-  }
+﻿{
+    "schemaVersion":  1,
+    "id":  "litematica_material_list_plus",
+    "version":  "1.5.62+mc1.21.5",
+    "name":  "Litematica Material List Plus",
+    "description":  "Enhances Litematica\u0027s material list with grouped counts and REI recipe summaries.",
+    "icon":  "assets/litematica_material_list_plus/icon.png",
+    "authors":  [
+                    "Huan_meeng"
+                ],
+    "license":  "LGPL-3.0-or-later",
+    "environment":  "client",
+    "entrypoints":  {
+                        "client":  [
+                                       "io.github.huanmeng06.lmlp.LitematicaMaterialListPlus"
+                                   ],
+                        "modmenu":  [
+                                        "io.github.huanmeng06.lmlp.compat.modmenu.ModMenuImpl"
+                                    ]
+                    },
+    "mixins":  [
+                   "litematica_material_list_plus.mixins.json"
+               ],
+    "depends":  {
+                    "fabricloader":  "\u003e=0.16.9",
+                    "minecraft":  "1.21.5",
+                    "fabric-api":  "*",
+                    "litematica":  "\u003e=0.22.4",
+                    "malilib":  "\u003e=0.24.3",
+                    "roughlyenoughitems":  "*"
+                }
 }
