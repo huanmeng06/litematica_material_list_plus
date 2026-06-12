@@ -11,6 +11,7 @@ import io.github.huanmeng06.lmlp.cache.ChunkMissingMaterialListCache.KnownPlacem
 import io.github.huanmeng06.lmlp.config.Configs;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderContext;
 import net.minecraft.class_1297;
+import net.minecraft.class_238;
 import net.minecraft.class_2338;
 import net.minecraft.class_243;
 import net.minecraft.class_287;
@@ -28,6 +29,7 @@ import net.minecraft.class_757;
 import org.joml.Matrix4f;
 
 import java.util.Objects;
+import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -43,13 +45,12 @@ public final class PlacementOriginMarker {
     private static final int BEAM_HALF_HEIGHT = 512;
     private static final Color4f BEAM_FILL = new Color4f(1.0F, 0.05F, 0.05F, 0.16F);
     private static final Color4f BEAM_OUTLINE = new Color4f(1.0F, 0.05F, 0.05F, 0.55F);
-    private static final float LABEL_SCALE_BASE = 0.0265F;
-    private static final int TARGET_HALF_SIZE = 8;
-    private static final int TARGET_LABEL_GAP = 5;
-    private static final int LABEL_PADDING_X = 3;
-    private static final int LABEL_PADDING_Y = 2;
+    private static final float LABEL_SCALE_BASE = 0.0266F;
+    private static final int TARGET_HALF_SIZE = 10;
+    private static final int LABEL_ELEVATE_BY = -19;
+    private static final int LABEL_PADDING_X = 2;
     private static final int LABEL_LINE_HEIGHT = 9;
-    private static final int LABEL_TEXT_COLOR = 0xFFFFFFFF;
+    private static final int LABEL_TEXT_COLOR = 0xFFCCCCCC;
     private static final int LABEL_LIGHT = 0x00F000F0;
 
     private static Marker marker;
@@ -184,30 +185,39 @@ public final class PlacementOriginMarker {
 
         class_243 cameraPos = camera.method_19326();
         double distance = distanceToEntity(player, pos);
-        float alpha = alpha(distance);
-        if (alpha <= 0.0F) {
-            return;
-        }
+        float fade = fade(distance);
+        boolean pointedAt = isPointedAt(pos, distance, player, client.method_1488());
 
         String title = current.name == null || current.name.isEmpty() ? "Placement" : current.name;
         String coordinate = String.format("[%d, %d, %d] (%dm)",
                 pos.method_10263(),
                 pos.method_10264(),
                 pos.method_10260(),
-                Math.round(distance));
+                (int) distance);
 
-        float scale = ((float) Math.sqrt(distance) + 1.0F) * LABEL_SCALE_BASE;
+        double baseX = pos.method_10263() + 0.5D - cameraPos.field_1352;
+        double baseY = pos.method_10264() + 0.5D - cameraPos.field_1351;
+        double baseZ = pos.method_10260() + 0.5D - cameraPos.field_1350;
+        double maxDistance = client.field_1690.method_42503().method_41753();
+        double adjustedDistance = distance;
+        if (distance > maxDistance) {
+            baseX = baseX / distance * maxDistance;
+            baseY = baseY / distance * maxDistance;
+            baseZ = baseZ / distance * maxDistance;
+            adjustedDistance = maxDistance;
+        }
+
+        float scale = (float) (adjustedDistance * 0.1F + 1.0F) * LABEL_SCALE_BASE;
         matrices.method_22903();
-        matrices.method_22904(
-                pos.method_10263() + 0.5D - cameraPos.field_1352,
-                pos.method_10264() + 0.5D - cameraPos.field_1351,
-                pos.method_10260() + 0.5D - cameraPos.field_1350);
+        matrices.method_22904(baseX, baseY, baseZ);
         matrices.method_22907(camera.method_23767());
         matrices.method_22905(-scale, -scale, scale);
 
         Matrix4f matrix = matrices.method_23760().method_23761();
-        drawTargetTexture(matrix, alpha);
-        drawLabel(matrix, textRenderer, title, coordinate, alpha);
+        drawTargetTexture(matrix, fade);
+        if (pointedAt) {
+            drawLabel(matrix, textRenderer, title, coordinate, fade);
+        }
         matrices.method_22909();
     }
 
@@ -218,12 +228,30 @@ public final class PlacementOriginMarker {
         return Math.sqrt(dx * dx + dy * dy + dz * dz);
     }
 
-    private static float alpha(double distance) {
-        if (distance < 5.0D) {
-            return 1.0F;
-        }
+    private static boolean isPointedAt(class_2338 pos, double distance, class_1297 cameraEntity, float tickDelta) {
+        class_243 cameraPos = cameraEntity.method_33571();
+        double degrees = 5.0D + Math.min(5.0D / distance, 5.0D);
+        double angle = degrees * 0.0174533D;
+        double size = Math.sin(angle) * distance;
+        class_243 direction = cameraEntity.method_5828(tickDelta);
+        class_243 end = new class_243(
+                cameraPos.field_1352 + direction.field_1352 * distance,
+                cameraPos.field_1351 + direction.field_1351 * distance,
+                cameraPos.field_1350 + direction.field_1350 * distance);
+        class_238 box = new class_238(
+                pos.method_10263() + 0.5D - size,
+                pos.method_10264() + 0.5D - size,
+                pos.method_10260() + 0.5D - size,
+                pos.method_10263() + 0.5D + size,
+                pos.method_10264() + 0.5D + size,
+                pos.method_10260() + 0.5D + size);
+        Optional<class_243> raycastResult = box.method_992(cameraPos, end);
+        return box.method_1006(cameraPos) ? distance >= 1.0D : raycastResult.isPresent();
+    }
 
-        return Math.max(0.15F, Math.min(1.0F, (float) (1.0D / (distance / 5.0D))));
+    private static float fade(double distance) {
+        float fade = distance < 5.0D ? 1.0F : (float) distance / 5.0F;
+        return Math.min(fade, 1.0F);
     }
 
     private static void drawTargetTexture(Matrix4f matrix, float alpha) {
@@ -245,27 +273,29 @@ public final class PlacementOriginMarker {
         int halfWidth = Math.max(titleWidth, coordinateWidth) / 2;
         int x1 = -halfWidth - LABEL_PADDING_X;
         int x2 = halfWidth + LABEL_PADDING_X;
-        int y1 = -TARGET_HALF_SIZE - TARGET_LABEL_GAP - LABEL_PADDING_Y - LABEL_LINE_HEIGHT * 2;
-        int y2 = -TARGET_HALF_SIZE - TARGET_LABEL_GAP + LABEL_PADDING_Y;
+        int y1 = LABEL_ELEVATE_BY - 2;
+        int y2 = LABEL_ELEVATE_BY + LABEL_LINE_HEIGHT * 2;
 
+        RenderSystem.enablePolygonOffset();
         RenderSystem.setShader(class_757::method_34540);
         class_289 tessellator = class_289.method_1348();
         class_287 buffer = tessellator.method_1349();
+        RenderSystem.polygonOffset(1.0F, 11.0F);
         buffer.method_1328(class_293.class_5596.field_27382, class_290.field_1576);
-        rectangle(buffer, matrix, x1, y1, x2, y2, 0.85F, 0.05F, 0.05F, 0.62F * alpha);
+        rectangle(buffer, matrix, x1, y1, x2, y2, 3.0F, 0.0F, 0.0F, 0.6F * alpha);
         tessellator.method_1350();
 
+        RenderSystem.polygonOffset(1.0F, 9.0F);
         buffer.method_1328(class_293.class_5596.field_27382, class_290.field_1576);
-        rectangle(buffer, matrix, x1 - 1, y1 - 1, x2 + 1, y1, 1.0F, 0.2F, 0.2F, 0.85F * alpha);
-        rectangle(buffer, matrix, x1 - 1, y2, x2 + 1, y2 + 1, 1.0F, 0.2F, 0.2F, 0.85F * alpha);
-        rectangle(buffer, matrix, x1 - 1, y1, x1, y2, 1.0F, 0.2F, 0.2F, 0.85F * alpha);
-        rectangle(buffer, matrix, x2, y1, x2 + 1, y2, 1.0F, 0.2F, 0.2F, 0.85F * alpha);
+        rectangle(buffer, matrix, x1 + 1, y1 + 1, x2 - 1, y2 - 1, 0.0F, 0.0F, 0.0F, 0.15F * alpha);
         tessellator.method_1350();
+        RenderSystem.disablePolygonOffset();
 
         int color = (((int) (255.0F * alpha)) << 24) | (LABEL_TEXT_COLOR & 0x00FFFFFF);
         class_4597.class_4598 immediate = class_4597.method_22991(class_289.method_1348().method_1349());
-        textRenderer.method_27522(title, -titleWidth / 2.0F, y1 + LABEL_PADDING_Y, color, false, matrix, immediate, class_327.class_6415.field_33993, 0, LABEL_LIGHT, false);
-        textRenderer.method_27522(coordinate, -coordinateWidth / 2.0F, y1 + LABEL_PADDING_Y + LABEL_LINE_HEIGHT, color, false, matrix, immediate, class_327.class_6415.field_33993, 0, LABEL_LIGHT, false);
+        RenderSystem.disableDepthTest();
+        textRenderer.method_27522(title, -titleWidth / 2.0F, LABEL_ELEVATE_BY, color, false, matrix, immediate, class_327.class_6415.field_33993, 0, LABEL_LIGHT, false);
+        textRenderer.method_27522(coordinate, -coordinateWidth / 2.0F, LABEL_ELEVATE_BY + LABEL_LINE_HEIGHT, color, false, matrix, immediate, class_327.class_6415.field_33993, 0, LABEL_LIGHT, false);
         immediate.method_22993();
     }
 
@@ -281,7 +311,7 @@ public final class PlacementOriginMarker {
     }
 
     private static void vertex(class_287 buffer, Matrix4f matrix, float x, float y, float u, float v, float alpha) {
-        buffer.method_22918(matrix, x, y, 0.0F).method_22913(u, v).method_22915(1.0F, 1.0F, 1.0F, alpha).method_1344();
+        buffer.method_22918(matrix, x, y, 0.0F).method_22913(u, v).method_22915(1.0F, 0.0F, 0.0F, alpha).method_1344();
     }
 
     private static boolean hasValidOrigin(KnownPlacementContext context) {
