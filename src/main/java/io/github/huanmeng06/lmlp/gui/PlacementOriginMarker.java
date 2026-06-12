@@ -26,6 +26,7 @@ import net.minecraft.class_4588;
 import net.minecraft.class_4597;
 import net.minecraft.class_757;
 import org.joml.Matrix4f;
+import org.joml.Quaternionf;
 
 import java.util.Objects;
 import java.util.Optional;
@@ -123,9 +124,16 @@ public final class PlacementOriginMarker {
         RenderSystem.disableCull();
         RenderSystem.setShader(class_757::method_34540);
 
-        drawBeam(context.matrixStack(), target.pos, cameraPos);
-        if (target.sameDimension && client.field_1724 != null) {
-            drawTargetInfo(context.matrixStack(), context.camera(), client, current, target.pos);
+        class_4587 matrices = context.matrixStack();
+        matrices.method_22903();
+        try {
+            applyCameraViewTransform(matrices, context.camera());
+            drawBeam(matrices, target.pos, cameraPos);
+            if (target.sameDimension && client.field_1724 != null) {
+                drawTargetInfo(matrices, context.camera(), client, current, target.pos);
+            }
+        } finally {
+            matrices.method_22909();
         }
 
         RenderSystem.enableCull();
@@ -133,6 +141,12 @@ public final class PlacementOriginMarker {
         RenderSystem.enableDepthTest();
         RenderSystem.disableBlend();
         RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
+    }
+
+    private static void applyCameraViewTransform(class_4587 matrices, net.minecraft.class_4184 camera) {
+        Quaternionf inverseCameraRotation = new Quaternionf(camera.method_23767());
+        inverseCameraRotation.conjugate();
+        matrices.method_22907(inverseCameraRotation);
     }
 
     private static boolean hasActiveMarker(KnownPlacementContext context) {
