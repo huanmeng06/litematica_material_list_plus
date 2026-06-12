@@ -6,11 +6,13 @@ import fi.dy.masa.malilib.gui.GuiBase;
 import fi.dy.masa.malilib.interfaces.IInitializationHandler;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
+import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
 import io.github.huanmeng06.lmlp.cache.ChunkMissingMaterialListCache;
 import io.github.huanmeng06.lmlp.config.Configs;
 import io.github.huanmeng06.lmlp.config.Hotkeys;
 import io.github.huanmeng06.lmlp.event.InputHandler;
 import io.github.huanmeng06.lmlp.gui.GuiConfigs;
+import io.github.huanmeng06.lmlp.gui.PlacementOriginMarker;
 
 public class InitHandler implements IInitializationHandler {
     @Override
@@ -23,9 +25,14 @@ public class InitHandler implements IInitializationHandler {
         });
         ClientPlayConnectionEvents.JOIN.register((handler, sender, client) ->
                 ChunkMissingMaterialListCache.onWorldJoined(client, "client_play.join"));
-        ClientPlayConnectionEvents.DISCONNECT.register((handler, client) ->
-                ChunkMissingMaterialListCache.onWorldDisconnected("client_play.disconnect"));
-        ClientLifecycleEvents.CLIENT_STOPPING.register(client ->
-                ChunkMissingMaterialListCache.onWorldDisconnected("client.lifecycle.stopping"));
+        ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
+            PlacementOriginMarker.clear();
+            ChunkMissingMaterialListCache.onWorldDisconnected("client_play.disconnect");
+        });
+        ClientLifecycleEvents.CLIENT_STOPPING.register(client -> {
+            PlacementOriginMarker.clear();
+            ChunkMissingMaterialListCache.onWorldDisconnected("client.lifecycle.stopping");
+        });
+        WorldRenderEvents.AFTER_TRANSLUCENT.register(PlacementOriginMarker::render);
     }
 }

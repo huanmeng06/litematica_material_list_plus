@@ -262,6 +262,10 @@ public final class KnownPlacementRows {
     }
 
     public static void renderPlacementLine(WidgetBase widget, float zLevel, class_332 drawContext, PlacementLine line, String nameColor, boolean nameHovered) {
+        renderPlacementLine(widget, zLevel, drawContext, line, nameColor, nameHovered, null, false);
+    }
+
+    public static void renderPlacementLine(WidgetBase widget, float zLevel, class_332 drawContext, PlacementLine line, String nameColor, boolean nameHovered, KnownPlacementContext context, boolean originHovered) {
         renderPlacementIcon(widget, zLevel, drawContext);
 
         int textY = textY(widget);
@@ -277,7 +281,13 @@ public final class KnownPlacementRows {
         }
 
         if (!line.originText().isEmpty()) {
-            widget.drawString(line.layout().originX(), textY, ORIGIN_TEXT_COLOR, line.originText(), drawContext);
+            boolean highlight = PlacementOriginMarker.hasHighlight(context);
+            String formattedOrigin = (highlight ? GuiBase.TXT_BOLD : "")
+                    + (originHovered ? UNDERLINE : "")
+                    + line.originText()
+                    + GuiBase.TXT_RST;
+            int color = PlacementOriginMarker.canHighlightOrigin(context) ? PlacementOriginMarker.ORIGIN_TEXT_COLOR : ORIGIN_TEXT_COLOR;
+            widget.drawString(line.layout().originX(), textY, color, formattedOrigin, drawContext);
         }
     }
 
@@ -739,6 +749,10 @@ public final class KnownPlacementRows {
 
         public boolean statusHovered(WidgetBase widget, int mouseX, int mouseY) {
             return this.status != null && isTextHovered(widget, this.layout.statusX(), this.statusTextWidth, mouseX, mouseY);
+        }
+
+        public boolean originHovered(WidgetBase widget, int mouseX, int mouseY) {
+            return isTextHovered(widget, this.layout.originX(), this.originTextWidth, mouseX, mouseY);
         }
     }
 
