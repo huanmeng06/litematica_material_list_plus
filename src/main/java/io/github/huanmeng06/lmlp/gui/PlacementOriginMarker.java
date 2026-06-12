@@ -3,7 +3,6 @@ package io.github.huanmeng06.lmlp.gui;
 import com.mojang.blaze3d.systems.RenderSystem;
 import fi.dy.masa.malilib.gui.Message.MessageType;
 import fi.dy.masa.malilib.gui.widgets.WidgetBase;
-import fi.dy.masa.malilib.render.RenderUtils;
 import fi.dy.masa.malilib.util.Color4f;
 import fi.dy.masa.malilib.util.InfoUtils;
 import io.github.huanmeng06.lmlp.LitematicaMaterialListPlus;
@@ -124,7 +123,7 @@ public final class PlacementOriginMarker {
         RenderSystem.disableCull();
         RenderSystem.setShader(class_757::method_34540);
 
-        drawBeam(target.pos, cameraPos);
+        drawBeam(context.matrixStack(), target.pos, cameraPos);
         if (target.sameDimension && client.field_1724 != null) {
             drawTargetInfo(context.matrixStack(), context.camera(), client, current, target.pos);
         }
@@ -154,26 +153,74 @@ public final class PlacementOriginMarker {
         return marker;
     }
 
-    private static void drawBeam(class_2338 pos, class_243 cameraPos) {
+    private static void drawBeam(class_4587 matrices, class_2338 pos, class_243 cameraPos) {
         double centerX = pos.method_10263() + 0.5D - cameraPos.field_1352;
+        double centerY = pos.method_10264() + 0.5D - cameraPos.field_1351;
         double centerZ = pos.method_10260() + 0.5D - cameraPos.field_1350;
-        double minX = centerX - BEAM_RADIUS;
-        double maxX = centerX + BEAM_RADIUS;
-        double minZ = centerZ - BEAM_RADIUS;
-        double maxZ = centerZ + BEAM_RADIUS;
-        double minY = pos.method_10264() - BEAM_HALF_HEIGHT - cameraPos.field_1351;
-        double maxY = pos.method_10264() + BEAM_HALF_HEIGHT - cameraPos.field_1351;
+        float minX = (float) -BEAM_RADIUS;
+        float maxX = (float) BEAM_RADIUS;
+        float minZ = (float) -BEAM_RADIUS;
+        float maxZ = (float) BEAM_RADIUS;
+        float minY = -BEAM_HALF_HEIGHT;
+        float maxY = BEAM_HALF_HEIGHT;
+
+        matrices.method_22903();
+        matrices.method_22904(centerX, centerY, centerZ);
+        Matrix4f matrix = matrices.method_23760().method_23761();
 
         class_289 tessellator = class_289.method_1348();
         class_287 buffer = tessellator.method_1349();
         buffer.method_1328(class_293.class_5596.field_27382, class_290.field_1576);
-        RenderUtils.drawBoxAllSidesBatchedQuads(minX, minY, minZ, maxX, maxY, maxZ, BEAM_FILL, buffer);
+        drawBoxQuads(buffer, matrix, minX, minY, minZ, maxX, maxY, maxZ, BEAM_FILL);
         tessellator.method_1350();
 
         RenderSystem.lineWidth(1.6F);
         buffer.method_1328(class_293.class_5596.field_29345, class_290.field_1576);
-        RenderUtils.drawBoxAllEdgesBatchedLines(minX, minY, minZ, maxX, maxY, maxZ, BEAM_OUTLINE, buffer);
+        drawBoxLines(buffer, matrix, minX, minY, minZ, maxX, maxY, maxZ, BEAM_OUTLINE);
         tessellator.method_1350();
+        RenderSystem.lineWidth(1.0F);
+        matrices.method_22909();
+    }
+
+    private static void drawBoxQuads(class_287 buffer, Matrix4f matrix, float minX, float minY, float minZ, float maxX, float maxY, float maxZ, Color4f color) {
+        quad(buffer, matrix, minX, minY, minZ, maxX, minY, minZ, maxX, maxY, minZ, minX, maxY, minZ, color);
+        quad(buffer, matrix, maxX, minY, maxZ, minX, minY, maxZ, minX, maxY, maxZ, maxX, maxY, maxZ, color);
+        quad(buffer, matrix, minX, minY, maxZ, minX, minY, minZ, minX, maxY, minZ, minX, maxY, maxZ, color);
+        quad(buffer, matrix, maxX, minY, minZ, maxX, minY, maxZ, maxX, maxY, maxZ, maxX, maxY, minZ, color);
+        quad(buffer, matrix, minX, maxY, minZ, maxX, maxY, minZ, maxX, maxY, maxZ, minX, maxY, maxZ, color);
+        quad(buffer, matrix, minX, minY, maxZ, maxX, minY, maxZ, maxX, minY, minZ, minX, minY, minZ, color);
+    }
+
+    private static void quad(class_287 buffer, Matrix4f matrix,
+                             float x1, float y1, float z1,
+                             float x2, float y2, float z2,
+                             float x3, float y3, float z3,
+                             float x4, float y4, float z4,
+                             Color4f color) {
+        colorVertex(buffer, matrix, x1, y1, z1, color);
+        colorVertex(buffer, matrix, x2, y2, z2, color);
+        colorVertex(buffer, matrix, x3, y3, z3, color);
+        colorVertex(buffer, matrix, x4, y4, z4, color);
+    }
+
+    private static void drawBoxLines(class_287 buffer, Matrix4f matrix, float minX, float minY, float minZ, float maxX, float maxY, float maxZ, Color4f color) {
+        line(buffer, matrix, minX, minY, minZ, maxX, minY, minZ, color);
+        line(buffer, matrix, maxX, minY, minZ, maxX, minY, maxZ, color);
+        line(buffer, matrix, maxX, minY, maxZ, minX, minY, maxZ, color);
+        line(buffer, matrix, minX, minY, maxZ, minX, minY, minZ, color);
+        line(buffer, matrix, minX, maxY, minZ, maxX, maxY, minZ, color);
+        line(buffer, matrix, maxX, maxY, minZ, maxX, maxY, maxZ, color);
+        line(buffer, matrix, maxX, maxY, maxZ, minX, maxY, maxZ, color);
+        line(buffer, matrix, minX, maxY, maxZ, minX, maxY, minZ, color);
+        line(buffer, matrix, minX, minY, minZ, minX, maxY, minZ, color);
+        line(buffer, matrix, maxX, minY, minZ, maxX, maxY, minZ, color);
+        line(buffer, matrix, maxX, minY, maxZ, maxX, maxY, maxZ, color);
+        line(buffer, matrix, minX, minY, maxZ, minX, maxY, maxZ, color);
+    }
+
+    private static void line(class_287 buffer, Matrix4f matrix, float x1, float y1, float z1, float x2, float y2, float z2, Color4f color) {
+        colorVertex(buffer, matrix, x1, y1, z1, color);
+        colorVertex(buffer, matrix, x2, y2, z2, color);
     }
 
     private static void drawTargetInfo(class_4587 matrices, net.minecraft.class_4184 camera, class_310 client, Marker current, class_2338 pos) {
@@ -326,6 +373,10 @@ public final class PlacementOriginMarker {
 
     private static void colorVertex(class_287 buffer, Matrix4f matrix, float x, float y, float r, float g, float b, float a) {
         buffer.method_22918(matrix, x, y, 0.0F).method_22915(r, g, b, a).method_1344();
+    }
+
+    private static void colorVertex(class_287 buffer, Matrix4f matrix, float x, float y, float z, Color4f color) {
+        buffer.method_22918(matrix, x, y, z).method_22915(color.r, color.g, color.b, color.a).method_1344();
     }
 
     private static void vertex(class_287 buffer, Matrix4f matrix, float x, float y, float u, float v, float alpha) {

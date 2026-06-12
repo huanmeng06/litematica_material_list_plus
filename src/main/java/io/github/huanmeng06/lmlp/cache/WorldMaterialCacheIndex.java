@@ -15,10 +15,13 @@ import net.minecraft.class_2960;
 import net.minecraft.class_310;
 import net.minecraft.class_642;
 import net.minecraft.class_7923;
+import net.minecraft.server.MinecraftServer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -30,6 +33,8 @@ import java.util.List;
 public final class WorldMaterialCacheIndex {
     private static final Logger LOGGER = LoggerFactory.getLogger(LitematicaMaterialListPlus.MOD_ID);
     private static final int CACHE_FORMAT_VERSION = 1;
+    private static final String LEVEL_STORAGE_SESSION_FIELD = "field_23784";
+    private static final String LEVEL_STORAGE_SESSION_NAME_METHOD = "method_27005";
 
     private WorldMaterialCacheIndex() {
     }
@@ -45,10 +50,7 @@ public final class WorldMaterialCacheIndex {
 
         class_1132 server = client.method_1576();
         if (server != null) {
-            File saveDir = server.method_3831();
-            if (saveDir != null) {
-                return "local:" + canonicalPath(saveDir);
-            }
+            return resolveLocalWorldId(client, server);
         }
 
         class_642 serverInfo = client.method_1558();
@@ -58,11 +60,33 @@ public final class WorldMaterialCacheIndex {
             return "server:" + address + "|" + name;
         }
 
-        if (client.field_1687 != null) {
-            return "unknown:" + canonicalPath(client.field_1697);
-        }
-
         return null;
+    }
+
+    private static String resolveLocalWorldId(class_310 client, class_1132 server) {
+        try {
+            Field sessionField = MinecraftServer.class.getDeclaredField(LEVEL_STORAGE_SESSION_FIELD);
+            sessionField.setAccessible(true);
+            Object session = sessionField.get(server);
+            if (session == null) {
+                LOGGER.warn("[LMLP cache-index] local world id skipped reason=missing_level_storage_session");
+                return null;
+            }
+
+            Method saveNameMethod = session.getClass().getDeclaredMethod(LEVEL_STORAGE_SESSION_NAME_METHOD);
+            saveNameMethod.setAccessible(true);
+            Object saveNameValue = saveNameMethod.invoke(session);
+            if (!(saveNameValue instanceof String saveName) || saveName.isBlank()) {
+                LOGGER.warn("[LMLP cache-index] local world id skipped reason=missing_save_name value={}", saveNameValue);
+                return null;
+            }
+
+            File saveDir = new File(new File(client.field_1697, "saves"), saveName);
+            return "local:" + canonicalPath(saveDir);
+        } catch (ReflectiveOperationException | RuntimeException exception) {
+            LOGGER.warn("[LMLP cache-index] local world id skipped reason=reflection_failed", exception);
+            return null;
+        }
     }
 
     public static File fileFor(String worldId) {
