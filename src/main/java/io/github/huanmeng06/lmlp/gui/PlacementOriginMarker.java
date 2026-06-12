@@ -312,7 +312,13 @@ public final class PlacementOriginMarker {
     }
 
     private static void vertex(class_4588 buffer, Matrix4f matrix, float x, float y, float u, float v, float alpha) {
-        buffer.method_22918(matrix, x, y, 0.0F).method_22913(u, v).method_22915(1.0F, 0.0F, 0.0F, alpha).method_22921(LABEL_LIGHT_U, LABEL_LIGHT_V).method_1344();
+        buffer.method_22918(matrix, x, y, 0.0F)
+                .method_22915(1.0F, 0.0F, 0.0F, alpha)
+                .method_22913(u, v)
+                .method_22917(0, 10)
+                .method_22921(LABEL_LIGHT_U, LABEL_LIGHT_V)
+                .method_22914(0.0F, 1.0F, 0.0F)
+                .method_1344();
     }
 
     private static boolean hasValidOrigin(KnownPlacementContext context) {
