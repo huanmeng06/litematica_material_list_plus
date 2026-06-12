@@ -3,10 +3,8 @@ package io.github.huanmeng06.lmlp.gui;
 import fi.dy.masa.litematica.data.DataManager;
 import fi.dy.masa.litematica.gui.GuiMaterialList;
 import fi.dy.masa.litematica.materials.MaterialListBase;
-import fi.dy.masa.litematica.schematic.placement.SchematicPlacement;
 import fi.dy.masa.malilib.gui.GuiBase;
-import fi.dy.masa.malilib.gui.Message.MessageType;
-import fi.dy.masa.malilib.util.InfoUtils;
+import io.github.huanmeng06.lmlp.cache.ChunkMissingMaterialListCache;
 import net.minecraft.class_437;
 import net.minecraft.class_465;
 
@@ -27,6 +25,28 @@ public final class MaterialListOpener {
         }
 
         GuiBase.openGui(new GuiMaterialList(materialList));
+        return true;
+    }
+
+    public static boolean openContext(String contextKey, String reason) {
+        return openContext(contextKey, reason, null);
+    }
+
+    public static boolean openContext(String contextKey, String reason, class_437 parentGui) {
+        MaterialListBase materialList = ChunkMissingMaterialListCache.getOrCreateMaterialListForExplicitContext(
+                contextKey,
+                DataManager.getMaterialList(),
+                reason);
+
+        if (materialList == null) {
+            return true;
+        }
+
+        GuiMaterialList gui = new GuiMaterialList(materialList);
+        if (parentGui != null) {
+            gui.setParent(parentGui);
+        }
+        GuiBase.openGui(gui);
         return true;
     }
 
@@ -66,19 +86,7 @@ public final class MaterialListOpener {
 
     public static MaterialListBase getOrCreateMaterialList() {
         MaterialListBase materialList = DataManager.getMaterialList();
-
-        if (materialList == null) {
-            SchematicPlacement placement = DataManager.getSchematicPlacementManager().getSelectedSchematicPlacement();
-            if (placement == null) {
-                InfoUtils.showGuiOrInGameMessage(MessageType.ERROR, "litematica.message.error.no_placement_selected");
-                return null;
-            }
-
-            materialList = placement.getMaterialList();
-            materialList.reCreateMaterialList();
-        }
-
-        return materialList;
+        return ChunkMissingMaterialListCache.getOrCreateMaterialListForOpen(materialList, "MaterialListOpener");
     }
 
     private static GuiMaterialList getHandledScreenGui(class_465<?> parent, MaterialListBase materialList) {
