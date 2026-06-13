@@ -194,6 +194,22 @@ public final class PlacementOriginMarker {
         }
 
         double distance = distanceToEntity(client.field_1724, target.pos);
+        OriginMarkerHudLabelRenderer.ScreenProjection projection = OriginMarkerHudLabelRenderer.projectWorldToScreen(
+                target.pos,
+                drawContext.method_51421(),
+                drawContext.method_51443());
+        if (projection == null || !projection.visible()) {
+            return;
+        }
+
+        float alpha = fade(distance);
+        OriginMarkerHudLabelRenderer.drawHudBeamGuide(
+                drawContext,
+                projection.screenX(),
+                projection.screenY(),
+                drawContext.method_51443(),
+                alpha);
+
         float tickDelta = tickCounter == null ? client.method_61966().method_60637(true) : tickCounter.method_60637(true);
         if (!isPointedAt(target.pos, distance, client.field_1724, tickDelta)) {
             return;
@@ -206,21 +222,13 @@ public final class PlacementOriginMarker {
                 target.pos.method_10260());
         String distanceText = String.format("%dm", (int) distance);
 
-        OriginMarkerHudLabelRenderer.ScreenProjection projection = OriginMarkerHudLabelRenderer.projectWorldToScreen(
-                target.pos,
-                drawContext.method_51421(),
-                drawContext.method_51443());
-        if (projection == null || !projection.visible()) {
-            return;
-        }
-
         OriginMarkerHudLabelRenderer.drawHudLabel(
                 drawContext,
                 client.field_1772,
                 title,
                 coordinate,
                 distanceText,
-                fade(distance),
+                alpha,
                 projection.screenX(),
                 projection.screenY(),
                 originMarkerTextScale());
