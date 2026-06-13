@@ -33,6 +33,7 @@ public final class OriginMarkerHudLabelRenderer {
 
         lastWorldFrame = new FrameState(
                 context.camera().method_19326(),
+                new org.joml.Vector3f(context.camera().method_19335()),
                 new Matrix4f(context.positionMatrix()),
                 new Matrix4f(context.projectionMatrix()));
     }
@@ -50,15 +51,22 @@ public final class OriginMarkerHudLabelRenderer {
         double worldX = pos.method_10263() + 0.5D;
         double worldY = pos.method_10264() + 0.5D;
         double worldZ = pos.method_10260() + 0.5D;
+        float relativeX = (float) (worldX - frame.cameraPos.field_1352);
+        float relativeY = (float) (worldY - frame.cameraPos.field_1351);
+        float relativeZ = (float) (worldZ - frame.cameraPos.field_1350);
+        if (relativeX * frame.cameraForward.x + relativeY * frame.cameraForward.y + relativeZ * frame.cameraForward.z <= 0.0F) {
+            return new ScreenProjection(0.0F, 0.0F, false, true);
+        }
+
         Vector4f clip = new Vector4f(
-                (float) (worldX - frame.cameraPos.field_1352),
-                (float) (worldY - frame.cameraPos.field_1351),
-                (float) (worldZ - frame.cameraPos.field_1350),
+                relativeX,
+                relativeY,
+                relativeZ,
                 1.0F);
 
         new Matrix4f(frame.projectionMatrix).mul(frame.positionMatrix).transform(clip);
-        if (clip.w() <= 0.0F) {
-            return new ScreenProjection(0.0F, 0.0F, false, true);
+        if (Math.abs(clip.w()) < 1.0E-5F) {
+            return new ScreenProjection(0.0F, 0.0F, false, false);
         }
 
         float ndcX = clip.x() / clip.w();
@@ -110,6 +118,7 @@ public final class OriginMarkerHudLabelRenderer {
         } finally {
             matrices.method_22909();
         }
+        context.method_51452();
     }
 
     private static void render(class_332 context, net.minecraft.class_9779 tickCounter) {
@@ -125,7 +134,7 @@ public final class OriginMarkerHudLabelRenderer {
         return (a << 24) | (rgb & 0x00FFFFFF);
     }
 
-    private record FrameState(class_243 cameraPos, Matrix4f positionMatrix, Matrix4f projectionMatrix) {
+    private record FrameState(class_243 cameraPos, org.joml.Vector3f cameraForward, Matrix4f positionMatrix, Matrix4f projectionMatrix) {
     }
 
     public record ScreenProjection(float screenX, float screenY, boolean visible, boolean behindCamera) {
