@@ -277,7 +277,7 @@ public final class PlacementOriginMarker {
         matrices.method_22903();
         matrices.method_22904(baseX, baseY, baseZ);
         matrices.method_22907(camera.method_23767());
-        matrices.method_22905(-scale, -scale, scale);
+        matrices.method_22905(scale, -scale, scale);
 
         Matrix4f matrix = matrices.method_23760().method_23761();
         drawTargetTexture(new Matrix4f(matrix).translate(0.0F, 0.0F, TARGET_ICON_LAYER_Z), fade);
