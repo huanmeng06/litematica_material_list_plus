@@ -34,6 +34,5 @@ public class InitHandler implements IInitializationHandler {
             ChunkMissingMaterialListCache.onWorldDisconnected("client.lifecycle.stopping");
         });
         WorldRenderEvents.LAST.register(PlacementOriginMarker::render);
-        WorldRenderEvents.END.register(PlacementOriginMarker::renderPreparedLabelOverlay);
     }
 }

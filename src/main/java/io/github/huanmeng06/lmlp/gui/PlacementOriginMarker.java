@@ -107,14 +107,12 @@ public final class PlacementOriginMarker {
             .build();
 
     private static Marker marker;
-    private static final PendingLabel pendingLabel = new PendingLabel();
 
     private PlacementOriginMarker() {
     }
 
     public static void clear() {
         marker = null;
-        pendingLabel.clear();
     }
 
     public static boolean handleOriginClick(KnownPlacementContext context) {
@@ -155,7 +153,6 @@ public final class PlacementOriginMarker {
     }
 
     public static void render(WorldRenderContext context) {
-        pendingLabel.clear();
         Marker current = activeMarker();
         if (current == null || context == null || context.camera() == null || context.world() == null) {
             return;
@@ -178,29 +175,30 @@ public final class PlacementOriginMarker {
         try {
             drawBeam(context.matrixStack(), target.pos, cameraPos);
             if (target.sameDimension && client.field_1724 != null) {
-                drawTargetInfo(context.matrixStack(), context.camera(), client, current, target.pos, true, true);
+                drawTargetInfo(context.matrixStack(), context.camera(), client, current, target.pos, true, false);
             }
         } finally {
             endOverlayState();
         }
     }
 
-    public static void renderPreparedLabelOverlay(WorldRenderContext context) {
-        if (!pendingLabel.valid) {
+    public static void renderLabelOverlayAfterLitematica(Matrix4f worldRenderMatrix, net.minecraft.class_4184 camera, class_310 client) {
+        Marker current = activeMarker();
+        if (current == null || worldRenderMatrix == null || camera == null || client == null || client.field_1687 == null) {
             return;
         }
 
-        class_327 textRenderer = class_310.method_1551().field_1772;
-        if (textRenderer == null) {
-            pendingLabel.clear();
+        RenderTarget target = resolveRenderTarget(current.sourceDimension, current.sourcePos, currentDimensionId(client.field_1687));
+        if (target == null || !target.sameDimension || client.field_1724 == null || client.field_1772 == null) {
             return;
         }
 
+        class_4587 matrices = new class_4587();
+        matrices.method_34425(worldRenderMatrix);
         beginOverlayState();
         try {
-            drawPreparedLabel(pendingLabel, textRenderer);
+            drawTargetInfo(matrices, camera, client, current, target.pos, false, true);
         } finally {
-            pendingLabel.clear();
             endOverlayState();
         }
     }
@@ -312,7 +310,7 @@ public final class PlacementOriginMarker {
         colorVertex(buffer, matrix, x2, y2, z2, color);
     }
 
-    private static void drawTargetInfo(class_4587 matrices, net.minecraft.class_4184 camera, class_310 client, Marker current, class_2338 pos, boolean drawIcon, boolean prepareLabel) {
+    private static void drawTargetInfo(class_4587 matrices, net.minecraft.class_4184 camera, class_310 client, Marker current, class_2338 pos, boolean drawIcon, boolean drawLabel) {
         class_1297 player = client.field_1724;
         class_327 textRenderer = client.field_1772;
         if (player == null || textRenderer == null) {
@@ -353,11 +351,11 @@ public final class PlacementOriginMarker {
         if (drawIcon) {
             drawTargetTexture(new Matrix4f(matrix).translate(0.0F, 0.0F, TARGET_ICON_LAYER_Z), fade);
         }
-        if (prepareLabel && pointedAt) {
+        if (drawLabel && pointedAt) {
             matrices.method_22903();
             float textScale = originMarkerTextScale();
             matrices.method_22905(textScale, textScale, 1.0F);
-            prepareLabel(matrices.method_23760().method_23761(), textRenderer, title, coordinate, distanceText, fade);
+            drawLabel(matrices.method_23760().method_23761(), textRenderer, title, coordinate, distanceText, fade);
             matrices.method_22909();
         }
         matrices.method_22909();
@@ -416,7 +414,7 @@ public final class PlacementOriginMarker {
         RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
     }
 
-    private static void prepareLabel(Matrix4f matrix, class_327 textRenderer, String title, String coordinate, String distanceText, float alpha) {
+    private static void drawLabel(Matrix4f matrix, class_327 textRenderer, String title, String coordinate, String distanceText, float alpha) {
         int titleWidth = textRenderer.method_1727(title);
         int coordinateWidth = textRenderer.method_1727(coordinate);
         int distanceWidth = textRenderer.method_1727(distanceText);
@@ -426,52 +424,30 @@ public final class PlacementOriginMarker {
         int y1 = LABEL_ELEVATE_BY - 2;
         int y2 = LABEL_ELEVATE_BY + LABEL_LINE_HEIGHT * 3;
 
-        pendingLabel.set(
-                new Matrix4f(matrix).translate(0.0F, 0.0F, LABEL_BACKGROUND_LAYER_Z),
-                new Matrix4f(matrix).translate(0.0F, 0.0F, LABEL_TEXT_LAYER_Z),
-                title,
-                coordinate,
-                distanceText,
-                titleWidth,
-                coordinateWidth,
-                distanceWidth,
-                x1,
-                y1,
-                x2,
-                y2,
-                alpha);
-    }
+        Matrix4f backgroundMatrix = new Matrix4f(matrix).translate(0.0F, 0.0F, LABEL_BACKGROUND_LAYER_Z);
+        Matrix4f textMatrix = new Matrix4f(matrix).translate(0.0F, 0.0F, LABEL_TEXT_LAYER_Z);
 
-    private static void drawPreparedLabel(PendingLabel label, class_327 textRenderer) {
-        beginOverlayState();
-        drawPreparedLabelBackground(label);
-        drawPreparedLabelText(label, textRenderer);
-        beginOverlayState();
-    }
-
-    private static void drawPreparedLabelBackground(PendingLabel label) {
         beginOverlayState();
         RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
         class_289 tessellator = class_289.method_1348();
         class_287 buffer = tessellator.method_60827(VertexFormat.class_5596.field_27382, class_290.field_1576);
-        rectangle(buffer, label.backgroundMatrix, label.x1, label.y1, label.x2, label.y2, 3.0F, 0.0F, 0.0F, 0.6F * label.alpha);
+        rectangle(buffer, backgroundMatrix, x1, y1, x2, y2, 3.0F, 0.0F, 0.0F, 0.6F * alpha);
         drawBuiltBuffer(buffer.method_60794(), POSITION_COLOR_OVERLAY_PIPELINE, null);
 
         buffer = tessellator.method_60827(VertexFormat.class_5596.field_27382, class_290.field_1576);
-        rectangle(buffer, label.backgroundMatrix, label.x1 + 1, label.y1 + 1, label.x2 - 1, label.y2 - 1, 0.0F, 0.0F, 0.0F, 0.15F * label.alpha);
+        rectangle(buffer, backgroundMatrix, x1 + 1, y1 + 1, x2 - 1, y2 - 1, 0.0F, 0.0F, 0.0F, 0.15F * alpha);
         drawBuiltBuffer(buffer.method_60794(), POSITION_COLOR_OVERLAY_PIPELINE, null);
-    }
 
-    private static void drawPreparedLabelText(PendingLabel label, class_327 textRenderer) {
-        int color = (((int) (255.0F * label.alpha)) << 24) | (LABEL_TEXT_COLOR & 0x00FFFFFF);
+        int color = (((int) (255.0F * alpha)) << 24) | (LABEL_TEXT_COLOR & 0x00FFFFFF);
         try (class_9799 textAllocator = new class_9799(786432)) {
             class_4597.class_4598 immediate = class_4597.method_22991(textAllocator);
             beginOverlayState();
-            textRenderer.method_27522(class_2561.method_30163(label.title), -label.titleWidth / 2.0F, LABEL_ELEVATE_BY, color, false, label.textMatrix, immediate, class_327.class_6415.field_33994, 0, LABEL_LIGHT);
-            textRenderer.method_27522(class_2561.method_30163(label.coordinate), -label.coordinateWidth / 2.0F, LABEL_ELEVATE_BY + LABEL_LINE_HEIGHT, color, false, label.textMatrix, immediate, class_327.class_6415.field_33994, 0, LABEL_LIGHT);
-            textRenderer.method_27522(class_2561.method_30163(label.distanceText), -label.distanceWidth / 2.0F, LABEL_ELEVATE_BY + LABEL_LINE_HEIGHT * 2, color, false, label.textMatrix, immediate, class_327.class_6415.field_33994, 0, LABEL_LIGHT);
+            textRenderer.method_27522(class_2561.method_30163(title), -titleWidth / 2.0F, LABEL_ELEVATE_BY, color, false, textMatrix, immediate, class_327.class_6415.field_33994, 0, LABEL_LIGHT);
+            textRenderer.method_27522(class_2561.method_30163(coordinate), -coordinateWidth / 2.0F, LABEL_ELEVATE_BY + LABEL_LINE_HEIGHT, color, false, textMatrix, immediate, class_327.class_6415.field_33994, 0, LABEL_LIGHT);
+            textRenderer.method_27522(class_2561.method_30163(distanceText), -distanceWidth / 2.0F, LABEL_ELEVATE_BY + LABEL_LINE_HEIGHT * 2, color, false, textMatrix, immediate, class_327.class_6415.field_33994, 0, LABEL_LIGHT);
             immediate.method_22993();
         }
+        beginOverlayState();
     }
 
     private static void drawBuiltBuffer(class_9801 builtBuffer, RenderPipeline pipeline, GpuTexture texture) {
@@ -605,69 +581,6 @@ public final class PlacementOriginMarker {
     }
 
     private record RenderTarget(class_2338 pos, boolean sameDimension) {
-    }
-
-    private static final class PendingLabel {
-        private boolean valid;
-        private Matrix4f backgroundMatrix;
-        private Matrix4f textMatrix;
-        private String title;
-        private String coordinate;
-        private String distanceText;
-        private int titleWidth;
-        private int coordinateWidth;
-        private int distanceWidth;
-        private int x1;
-        private int y1;
-        private int x2;
-        private int y2;
-        private float alpha;
-
-        private void set(Matrix4f backgroundMatrix,
-                         Matrix4f textMatrix,
-                         String title,
-                         String coordinate,
-                         String distanceText,
-                         int titleWidth,
-                         int coordinateWidth,
-                         int distanceWidth,
-                         int x1,
-                         int y1,
-                         int x2,
-                         int y2,
-                         float alpha) {
-            this.valid = true;
-            this.backgroundMatrix = backgroundMatrix;
-            this.textMatrix = textMatrix;
-            this.title = title;
-            this.coordinate = coordinate;
-            this.distanceText = distanceText;
-            this.titleWidth = titleWidth;
-            this.coordinateWidth = coordinateWidth;
-            this.distanceWidth = distanceWidth;
-            this.x1 = x1;
-            this.y1 = y1;
-            this.x2 = x2;
-            this.y2 = y2;
-            this.alpha = alpha;
-        }
-
-        private void clear() {
-            this.valid = false;
-            this.backgroundMatrix = null;
-            this.textMatrix = null;
-            this.title = null;
-            this.coordinate = null;
-            this.distanceText = null;
-            this.titleWidth = 0;
-            this.coordinateWidth = 0;
-            this.distanceWidth = 0;
-            this.x1 = 0;
-            this.y1 = 0;
-            this.x2 = 0;
-            this.y2 = 0;
-            this.alpha = 0.0F;
-        }
     }
 
     private record Marker(
