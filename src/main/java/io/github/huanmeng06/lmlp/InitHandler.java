@@ -29,11 +29,12 @@ public class InitHandler implements IInitializationHandler {
             PlacementOriginMarker.clear();
             ChunkMissingMaterialListCache.onWorldDisconnected("client_play.disconnect");
         });
+        ClientLifecycleEvents.CLIENT_STARTED.register(client ->
+                WorldRenderEvents.LAST.register(PlacementOriginMarker::renderLabelOverlay));
         ClientLifecycleEvents.CLIENT_STOPPING.register(client -> {
             PlacementOriginMarker.clear();
             ChunkMissingMaterialListCache.onWorldDisconnected("client.lifecycle.stopping");
         });
         WorldRenderEvents.LAST.register(PlacementOriginMarker::render);
-        WorldRenderEvents.END.register(PlacementOriginMarker::renderLabelOverlay);
     }
 }
