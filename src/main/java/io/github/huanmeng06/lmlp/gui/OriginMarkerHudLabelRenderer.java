@@ -48,6 +48,11 @@ public final class OriginMarkerHudLabelRenderer {
         lastWorldFrame = null;
     }
 
+    public static class_243 capturedCameraPos() {
+        FrameState frame = lastWorldFrame;
+        return frame == null ? null : frame.cameraPos;
+    }
+
     public static ScreenProjection projectWorldToScreen(class_2338 pos, int screenWidth, int screenHeight) {
         FrameState frame = lastWorldFrame;
         if (frame == null || pos == null || screenWidth <= 0 || screenHeight <= 0) {

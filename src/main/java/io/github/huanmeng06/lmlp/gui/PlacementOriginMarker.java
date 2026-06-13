@@ -189,13 +189,27 @@ public final class PlacementOriginMarker {
         }
 
         RenderTarget target = resolveRenderTarget(current.sourceDimension, current.sourcePos, currentDimensionId(client.field_1687));
-        if (target == null || !target.sameDimension || client.field_1724 == null || client.field_1772 == null) {
+        class_1297 cameraEntity = client.method_1560();
+        if (cameraEntity == null) {
+            cameraEntity = client.field_1724;
+        }
+
+        if (target == null || !target.sameDimension || cameraEntity == null || client.field_1772 == null) {
             return;
         }
 
-        double distance = distanceToEntity(client.field_1724, target.pos);
+        class_243 cameraPos = OriginMarkerHudLabelRenderer.capturedCameraPos();
+        if (cameraPos == null) {
+            return;
+        }
+
+        double distance = distanceToCamera(cameraPos, target.pos);
+        if (distance <= 2.0D) {
+            return;
+        }
+
         float tickDelta = tickCounter == null ? client.method_61966().method_60637(true) : tickCounter.method_60637(true);
-        if (!isPointedAt(target.pos, distance, client.field_1724, tickDelta)) {
+        if (!isPointedAt(target.pos, cameraPos, distance, cameraEntity, tickDelta)) {
             return;
         }
 
@@ -334,13 +348,12 @@ public final class PlacementOriginMarker {
     }
 
     private static void drawTargetInfo(class_4587 matrices, net.minecraft.class_4184 camera, class_310 client, Marker current, class_2338 pos, boolean drawIcon, boolean drawLabel) {
-        class_1297 player = client.field_1724;
-        if (player == null) {
+        class_243 cameraPos = camera.method_19326();
+        double distance = distanceToCamera(cameraPos, pos);
+        if (distance <= 2.0D) {
             return;
         }
 
-        class_243 cameraPos = camera.method_19326();
-        double distance = distanceToEntity(player, pos);
         float fade = fade(distance);
         double baseX = pos.method_10263() + 0.5D - cameraPos.field_1352;
         double baseY = pos.method_10264() + 0.5D - cameraPos.field_1351;
@@ -367,15 +380,14 @@ public final class PlacementOriginMarker {
         matrices.method_22909();
     }
 
-    private static double distanceToEntity(class_1297 entity, class_2338 pos) {
-        double dx = pos.method_10263() + 0.5D - entity.method_23317();
-        double dy = pos.method_10264() + 0.5D - entity.method_23318();
-        double dz = pos.method_10260() + 0.5D - entity.method_23321();
+    private static double distanceToCamera(class_243 cameraPos, class_2338 pos) {
+        double dx = pos.method_10263() + 0.5D - cameraPos.field_1352;
+        double dy = pos.method_10264() + 0.5D - cameraPos.field_1351;
+        double dz = pos.method_10260() + 0.5D - cameraPos.field_1350;
         return Math.sqrt(dx * dx + dy * dy + dz * dz);
     }
 
-    private static boolean isPointedAt(class_2338 pos, double distance, class_1297 cameraEntity, float tickDelta) {
-        class_243 cameraPos = cameraEntity.method_33571();
+    private static boolean isPointedAt(class_2338 pos, class_243 cameraPos, double distance, class_1297 cameraEntity, float tickDelta) {
         double degrees = 5.0D + Math.min(5.0D / distance, 5.0D);
         double angle = degrees * 0.0174533D;
         double size = Math.sin(angle) * distance;
