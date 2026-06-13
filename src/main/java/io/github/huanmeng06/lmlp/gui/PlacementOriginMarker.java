@@ -23,7 +23,6 @@ import net.minecraft.class_276;
 import net.minecraft.class_238;
 import net.minecraft.class_2338;
 import net.minecraft.class_243;
-import net.minecraft.class_2561;
 import net.minecraft.class_287;
 import net.minecraft.class_289;
 import net.minecraft.class_290;
@@ -31,10 +30,10 @@ import net.minecraft.class_2960;
 import net.minecraft.class_310;
 import net.minecraft.class_327;
 import net.minecraft.class_638;
+import net.minecraft.class_332;
 import net.minecraft.class_4587;
-import net.minecraft.class_4597;
 import net.minecraft.class_9801;
-import net.minecraft.class_9799;
+import net.minecraft.class_9779;
 import org.joml.Matrix4f;
 
 import java.util.Objects;
@@ -57,14 +56,11 @@ public final class PlacementOriginMarker {
     private static final Color4f BEAM_OUTLINE = new Color4f(1.0F, 0.05F, 0.05F, 0.55F);
     private static final float LABEL_SCALE_BASE = 0.0266F;
     private static final int TARGET_HALF_SIZE = 10;
-    private static final int LABEL_ELEVATE_BY = -28;
-    private static final int LABEL_PADDING_X = 2;
-    private static final int LABEL_LINE_HEIGHT = 9;
-    private static final int LABEL_TEXT_COLOR = 0xFFCCCCCC;
-    private static final int LABEL_LIGHT = 0x00F000F0;
+    static final int LABEL_ELEVATE_BY = -28;
+    static final int LABEL_PADDING_X = 2;
+    static final int LABEL_LINE_HEIGHT = 9;
+    static final int LABEL_TEXT_COLOR = 0xFFCCCCCC;
     private static final float TARGET_ICON_LAYER_Z = 0.01F;
-    private static final float LABEL_BACKGROUND_LAYER_Z = 0.02F;
-    private static final float LABEL_TEXT_LAYER_Z = 0.03F;
     private static final RenderPipeline POSITION_COLOR_OVERLAY_PIPELINE = RenderPipeline.builder()
             .withLocation(class_2960.method_60655(LitematicaMaterialListPlus.MOD_ID, "pipeline/origin_marker_position_color_overlay"))
             .withVertexShader("core/position_color")
@@ -113,6 +109,7 @@ public final class PlacementOriginMarker {
 
     public static void clear() {
         marker = null;
+        OriginMarkerHudLabelRenderer.clearWorldFrame();
     }
 
     public static boolean handleOriginClick(KnownPlacementContext context) {
@@ -169,6 +166,8 @@ public final class PlacementOriginMarker {
             return;
         }
 
+        OriginMarkerHudLabelRenderer.captureWorldFrame(context);
+
         class_243 cameraPos = context.camera().method_19326();
         beginOverlayState();
 
@@ -182,9 +181,10 @@ public final class PlacementOriginMarker {
         }
     }
 
-    public static void renderLabelOverlayAfterLitematica(Matrix4f worldRenderMatrix, net.minecraft.class_4184 camera, class_310 client) {
+    public static void renderHudLabel(class_332 drawContext, class_9779 tickCounter) {
         Marker current = activeMarker();
-        if (current == null || worldRenderMatrix == null || camera == null || client == null || client.field_1687 == null) {
+        class_310 client = class_310.method_1551();
+        if (current == null || drawContext == null || client == null || client.field_1687 == null) {
             return;
         }
 
@@ -193,14 +193,37 @@ public final class PlacementOriginMarker {
             return;
         }
 
-        class_4587 matrices = new class_4587();
-        matrices.method_34425(worldRenderMatrix);
-        beginOverlayState();
-        try {
-            drawTargetInfo(matrices, camera, client, current, target.pos, false, true);
-        } finally {
-            endOverlayState();
+        double distance = distanceToEntity(client.field_1724, target.pos);
+        float tickDelta = tickCounter == null ? client.method_61966().method_60637(true) : tickCounter.method_60637(true);
+        if (!isPointedAt(target.pos, distance, client.field_1724, tickDelta)) {
+            return;
         }
+
+        String title = current.name == null || current.name.isEmpty() ? "Placement" : current.name;
+        String coordinate = String.format("[%d, %d, %d]",
+                target.pos.method_10263(),
+                target.pos.method_10264(),
+                target.pos.method_10260());
+        String distanceText = String.format("%dm", (int) distance);
+
+        OriginMarkerHudLabelRenderer.ScreenProjection projection = OriginMarkerHudLabelRenderer.projectWorldToScreen(
+                target.pos,
+                drawContext.method_51421(),
+                drawContext.method_51443());
+        if (projection == null || !projection.visible()) {
+            return;
+        }
+
+        OriginMarkerHudLabelRenderer.drawHudLabel(
+                drawContext,
+                client.field_1772,
+                title,
+                coordinate,
+                distanceText,
+                fade(distance),
+                projection.screenX(),
+                projection.screenY(),
+                originMarkerTextScale());
     }
 
     private static boolean hasActiveMarker(KnownPlacementContext context) {
@@ -312,23 +335,13 @@ public final class PlacementOriginMarker {
 
     private static void drawTargetInfo(class_4587 matrices, net.minecraft.class_4184 camera, class_310 client, Marker current, class_2338 pos, boolean drawIcon, boolean drawLabel) {
         class_1297 player = client.field_1724;
-        class_327 textRenderer = client.field_1772;
-        if (player == null || textRenderer == null) {
+        if (player == null) {
             return;
         }
 
         class_243 cameraPos = camera.method_19326();
         double distance = distanceToEntity(player, pos);
         float fade = fade(distance);
-        boolean pointedAt = isPointedAt(pos, distance, player, client.method_61966().method_60637(true));
-
-        String title = current.name == null || current.name.isEmpty() ? "Placement" : current.name;
-        String coordinate = String.format("[%d, %d, %d]",
-                pos.method_10263(),
-                pos.method_10264(),
-                pos.method_10260());
-        String distanceText = String.format("%dm", (int) distance);
-
         double baseX = pos.method_10263() + 0.5D - cameraPos.field_1352;
         double baseY = pos.method_10264() + 0.5D - cameraPos.field_1351;
         double baseZ = pos.method_10260() + 0.5D - cameraPos.field_1350;
@@ -350,13 +363,6 @@ public final class PlacementOriginMarker {
         Matrix4f matrix = matrices.method_23760().method_23761();
         if (drawIcon) {
             drawTargetTexture(new Matrix4f(matrix).translate(0.0F, 0.0F, TARGET_ICON_LAYER_Z), fade);
-        }
-        if (drawLabel && pointedAt) {
-            matrices.method_22903();
-            float textScale = originMarkerTextScale();
-            matrices.method_22905(textScale, textScale, 1.0F);
-            drawLabel(matrices.method_23760().method_23761(), textRenderer, title, coordinate, distanceText, fade);
-            matrices.method_22909();
         }
         matrices.method_22909();
     }
@@ -394,7 +400,7 @@ public final class PlacementOriginMarker {
         return Math.min(fade, 1.0F);
     }
 
-    private static float originMarkerTextScale() {
+    static float originMarkerTextScale() {
         int configuredScale = Configs.Generic.ORIGIN_MARKER_TEXT_SCALE.getIntegerValue();
         int clampedScale = Math.max(1, Math.min(5, configuredScale));
         return clampedScale / 3.0F;
@@ -412,42 +418,6 @@ public final class PlacementOriginMarker {
         GpuTexture texture = class_310.method_1551().method_1531().method_4619(TARGET_TEXTURE).method_68004();
         drawBuiltBuffer(buffer.method_60794(), POSITION_TEX_COLOR_OVERLAY_PIPELINE, texture);
         RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
-    }
-
-    private static void drawLabel(Matrix4f matrix, class_327 textRenderer, String title, String coordinate, String distanceText, float alpha) {
-        int titleWidth = textRenderer.method_1727(title);
-        int coordinateWidth = textRenderer.method_1727(coordinate);
-        int distanceWidth = textRenderer.method_1727(distanceText);
-        int halfWidth = Math.max(Math.max(titleWidth, coordinateWidth), distanceWidth) / 2;
-        int x1 = -halfWidth - LABEL_PADDING_X;
-        int x2 = halfWidth + LABEL_PADDING_X;
-        int y1 = LABEL_ELEVATE_BY - 2;
-        int y2 = LABEL_ELEVATE_BY + LABEL_LINE_HEIGHT * 3;
-
-        Matrix4f backgroundMatrix = new Matrix4f(matrix).translate(0.0F, 0.0F, LABEL_BACKGROUND_LAYER_Z);
-        Matrix4f textMatrix = new Matrix4f(matrix).translate(0.0F, 0.0F, LABEL_TEXT_LAYER_Z);
-
-        beginOverlayState();
-        RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
-        class_289 tessellator = class_289.method_1348();
-        class_287 buffer = tessellator.method_60827(VertexFormat.class_5596.field_27382, class_290.field_1576);
-        rectangle(buffer, backgroundMatrix, x1, y1, x2, y2, 3.0F, 0.0F, 0.0F, 0.6F * alpha);
-        drawBuiltBuffer(buffer.method_60794(), POSITION_COLOR_OVERLAY_PIPELINE, null);
-
-        buffer = tessellator.method_60827(VertexFormat.class_5596.field_27382, class_290.field_1576);
-        rectangle(buffer, backgroundMatrix, x1 + 1, y1 + 1, x2 - 1, y2 - 1, 0.0F, 0.0F, 0.0F, 0.15F * alpha);
-        drawBuiltBuffer(buffer.method_60794(), POSITION_COLOR_OVERLAY_PIPELINE, null);
-
-        int color = (((int) (255.0F * alpha)) << 24) | (LABEL_TEXT_COLOR & 0x00FFFFFF);
-        try (class_9799 textAllocator = new class_9799(786432)) {
-            class_4597.class_4598 immediate = class_4597.method_22991(textAllocator);
-            beginOverlayState();
-            textRenderer.method_27522(class_2561.method_30163(title), -titleWidth / 2.0F, LABEL_ELEVATE_BY, color, false, textMatrix, immediate, class_327.class_6415.field_33994, 0, LABEL_LIGHT);
-            textRenderer.method_27522(class_2561.method_30163(coordinate), -coordinateWidth / 2.0F, LABEL_ELEVATE_BY + LABEL_LINE_HEIGHT, color, false, textMatrix, immediate, class_327.class_6415.field_33994, 0, LABEL_LIGHT);
-            textRenderer.method_27522(class_2561.method_30163(distanceText), -distanceWidth / 2.0F, LABEL_ELEVATE_BY + LABEL_LINE_HEIGHT * 2, color, false, textMatrix, immediate, class_327.class_6415.field_33994, 0, LABEL_LIGHT);
-            immediate.method_22993();
-        }
-        beginOverlayState();
     }
 
     private static void drawBuiltBuffer(class_9801 builtBuffer, RenderPipeline pipeline, GpuTexture texture) {
@@ -481,17 +451,6 @@ public final class PlacementOriginMarker {
                 pass.drawIndexed(0, builtBuffer.method_60822().comp_751());
             }
         }
-    }
-
-    private static void rectangle(class_287 buffer, Matrix4f matrix, int x1, int y1, int x2, int y2, float r, float g, float b, float a) {
-        colorVertex(buffer, matrix, x1, y1, r, g, b, a);
-        colorVertex(buffer, matrix, x1, y2, r, g, b, a);
-        colorVertex(buffer, matrix, x2, y2, r, g, b, a);
-        colorVertex(buffer, matrix, x2, y1, r, g, b, a);
-    }
-
-    private static void colorVertex(class_287 buffer, Matrix4f matrix, float x, float y, float r, float g, float b, float a) {
-        buffer.method_22918(matrix, x, y, 0.0F).method_22915(r, g, b, a);
     }
 
     private static void colorVertex(class_287 buffer, Matrix4f matrix, float x, float y, float z, Color4f color) {

@@ -16,7 +16,6 @@
     "KeyCallbackHotkeysMixin",
     "MaterialListBaseMixin",
     "MaterialListPlacementMixin",
-    "RenderHandlerMixin",
     "SchematicPlacementManagerMixin",
     "SchematicPlacementMixin",
     "WidgetListBaseMixin",

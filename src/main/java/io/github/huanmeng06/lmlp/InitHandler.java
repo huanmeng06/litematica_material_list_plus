@@ -12,6 +12,7 @@ import io.github.huanmeng06.lmlp.config.Configs;
 import io.github.huanmeng06.lmlp.config.Hotkeys;
 import io.github.huanmeng06.lmlp.event.InputHandler;
 import io.github.huanmeng06.lmlp.gui.GuiConfigs;
+import io.github.huanmeng06.lmlp.gui.OriginMarkerHudLabelRenderer;
 import io.github.huanmeng06.lmlp.gui.PlacementOriginMarker;
 
 public class InitHandler implements IInitializationHandler {
@@ -34,5 +35,6 @@ public class InitHandler implements IInitializationHandler {
             ChunkMissingMaterialListCache.onWorldDisconnected("client.lifecycle.stopping");
         });
         WorldRenderEvents.LAST.register(PlacementOriginMarker::render);
+        OriginMarkerHudLabelRenderer.register();
     }
 }
