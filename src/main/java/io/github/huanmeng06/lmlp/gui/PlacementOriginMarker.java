@@ -243,16 +243,23 @@ public final class PlacementOriginMarker {
     }
 
     private static void drawTargetInfo(class_4587 matrices, net.minecraft.class_4184 camera, class_310 client, Marker current, class_2338 pos) {
-        class_1297 player = client.field_1724;
+        class_1297 cameraEntity = client.method_1560();
+        if (cameraEntity == null) {
+            cameraEntity = client.field_1724;
+        }
         class_327 textRenderer = client.field_1772;
-        if (player == null || textRenderer == null) {
+        if (cameraEntity == null || textRenderer == null) {
             return;
         }
 
         class_243 cameraPos = camera.method_19326();
-        double distance = distanceToEntity(player, pos);
+        double distance = distanceToCamera(cameraPos, pos);
+        if (distance <= 2.0D) {
+            return;
+        }
+
         float fade = fade(distance);
-        boolean pointedAt = isPointedAt(pos, distance, player, client.method_60646().method_60637(true));
+        boolean pointedAt = isPointedAt(pos, cameraPos, distance, cameraEntity, client.method_60646().method_60637(true));
 
         String title = current.name == null || current.name.isEmpty() ? "Placement" : current.name;
         String coordinate = String.format("[%d, %d, %d]",
@@ -291,15 +298,14 @@ public final class PlacementOriginMarker {
         matrices.method_22909();
     }
 
-    private static double distanceToEntity(class_1297 entity, class_2338 pos) {
-        double dx = pos.method_10263() + 0.5D - entity.method_23317();
-        double dy = pos.method_10264() + 0.5D - entity.method_23318();
-        double dz = pos.method_10260() + 0.5D - entity.method_23321();
+    private static double distanceToCamera(class_243 cameraPos, class_2338 pos) {
+        double dx = pos.method_10263() + 0.5D - cameraPos.field_1352;
+        double dy = pos.method_10264() + 0.5D - cameraPos.field_1351;
+        double dz = pos.method_10260() + 0.5D - cameraPos.field_1350;
         return Math.sqrt(dx * dx + dy * dy + dz * dz);
     }
 
-    private static boolean isPointedAt(class_2338 pos, double distance, class_1297 cameraEntity, float tickDelta) {
-        class_243 cameraPos = cameraEntity.method_33571();
+    private static boolean isPointedAt(class_2338 pos, class_243 cameraPos, double distance, class_1297 cameraEntity, float tickDelta) {
         double degrees = 5.0D + Math.min(5.0D / distance, 5.0D);
         double angle = degrees * 0.0174533D;
         double size = Math.sin(angle) * distance;
