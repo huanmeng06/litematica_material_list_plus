@@ -65,7 +65,6 @@ public final class PlacementOriginMarker {
     private static final float TARGET_ICON_LAYER_Z = 0.01F;
     private static final float LABEL_BACKGROUND_LAYER_Z = 0.02F;
     private static final float LABEL_TEXT_LAYER_Z = 0.03F;
-    private static final class_9799 LABEL_TEXT_ALLOCATOR = new class_9799(786432);
     private static final RenderPipeline POSITION_COLOR_OVERLAY_PIPELINE = RenderPipeline.builder()
             .withLocation(class_2960.method_60655(LitematicaMaterialListPlus.MOD_ID, "pipeline/origin_marker_position_color_overlay"))
             .withVertexShader("core/position_color")
@@ -325,7 +324,7 @@ public final class PlacementOriginMarker {
         matrices.method_22903();
         matrices.method_22904(baseX, baseY, baseZ);
         matrices.method_22907(camera.method_23767());
-        matrices.method_22905(-scale, -scale, scale);
+        matrices.method_22905(scale, -scale, scale);
 
         Matrix4f matrix = matrices.method_23760().method_23761();
         drawTargetTexture(new Matrix4f(matrix).translate(0.0F, 0.0F, TARGET_ICON_LAYER_Z), fade);
@@ -417,12 +416,15 @@ public final class PlacementOriginMarker {
         drawBuiltBuffer(buffer.method_60794(), POSITION_COLOR_OVERLAY_PIPELINE, null);
 
         int color = (((int) (255.0F * alpha)) << 24) | (LABEL_TEXT_COLOR & 0x00FFFFFF);
-        class_4597.class_4598 immediate = class_4597.method_22991(LABEL_TEXT_ALLOCATOR);
+        try (class_9799 textAllocator = new class_9799(786432)) {
+            class_4597.class_4598 immediate = class_4597.method_22991(textAllocator);
+            beginOverlayState();
+            textRenderer.method_27522(class_2561.method_30163(title), -titleWidth / 2.0F, LABEL_ELEVATE_BY, color, false, textMatrix, immediate, class_327.class_6415.field_33994, 0, LABEL_LIGHT);
+            textRenderer.method_27522(class_2561.method_30163(coordinate), -coordinateWidth / 2.0F, LABEL_ELEVATE_BY + LABEL_LINE_HEIGHT, color, false, textMatrix, immediate, class_327.class_6415.field_33994, 0, LABEL_LIGHT);
+            textRenderer.method_27522(class_2561.method_30163(distanceText), -distanceWidth / 2.0F, LABEL_ELEVATE_BY + LABEL_LINE_HEIGHT * 2, color, false, textMatrix, immediate, class_327.class_6415.field_33994, 0, LABEL_LIGHT);
+            immediate.method_22993();
+        }
         beginOverlayState();
-        textRenderer.method_27522(class_2561.method_30163(title), -titleWidth / 2.0F, LABEL_ELEVATE_BY, color, false, textMatrix, immediate, class_327.class_6415.field_33994, 0, LABEL_LIGHT);
-        textRenderer.method_27522(class_2561.method_30163(coordinate), -coordinateWidth / 2.0F, LABEL_ELEVATE_BY + LABEL_LINE_HEIGHT, color, false, textMatrix, immediate, class_327.class_6415.field_33994, 0, LABEL_LIGHT);
-        textRenderer.method_27522(class_2561.method_30163(distanceText), -distanceWidth / 2.0F, LABEL_ELEVATE_BY + LABEL_LINE_HEIGHT * 2, color, false, textMatrix, immediate, class_327.class_6415.field_33994, 0, LABEL_LIGHT);
-        immediate.method_22993();
     }
 
     private static void drawBuiltBuffer(class_9801 builtBuffer, RenderPipeline pipeline, GpuTexture texture) {
