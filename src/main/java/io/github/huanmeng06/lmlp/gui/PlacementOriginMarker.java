@@ -175,8 +175,32 @@ public final class PlacementOriginMarker {
         try {
             drawBeam(context.matrixStack(), target.pos, cameraPos);
             if (target.sameDimension && client.field_1724 != null) {
-                drawTargetInfo(context.matrixStack(), context.camera(), client, current, target.pos);
+                drawTargetInfo(context.matrixStack(), context.camera(), client, current, target.pos, true, false);
             }
+        } finally {
+            endOverlayState();
+        }
+    }
+
+    public static void renderLabelOverlay(WorldRenderContext context) {
+        Marker current = activeMarker();
+        if (current == null || context == null || context.camera() == null || context.world() == null) {
+            return;
+        }
+
+        RenderTarget target = resolveRenderTarget(current.sourceDimension, current.sourcePos, currentDimensionId(context.world()));
+        if (target == null || !target.sameDimension) {
+            return;
+        }
+
+        class_310 client = class_310.method_1551();
+        if (client.field_1724 == null) {
+            return;
+        }
+
+        beginOverlayState();
+        try {
+            drawTargetInfo(context.matrixStack(), context.camera(), client, current, target.pos, false, true);
         } finally {
             endOverlayState();
         }
@@ -289,7 +313,7 @@ public final class PlacementOriginMarker {
         colorVertex(buffer, matrix, x2, y2, z2, color);
     }
 
-    private static void drawTargetInfo(class_4587 matrices, net.minecraft.class_4184 camera, class_310 client, Marker current, class_2338 pos) {
+    private static void drawTargetInfo(class_4587 matrices, net.minecraft.class_4184 camera, class_310 client, Marker current, class_2338 pos, boolean drawIcon, boolean drawLabel) {
         class_1297 player = client.field_1724;
         class_327 textRenderer = client.field_1772;
         if (player == null || textRenderer == null) {
@@ -327,8 +351,10 @@ public final class PlacementOriginMarker {
         matrices.method_22905(scale, -scale, scale);
 
         Matrix4f matrix = matrices.method_23760().method_23761();
-        drawTargetTexture(new Matrix4f(matrix).translate(0.0F, 0.0F, TARGET_ICON_LAYER_Z), fade);
-        if (pointedAt) {
+        if (drawIcon) {
+            drawTargetTexture(new Matrix4f(matrix).translate(0.0F, 0.0F, TARGET_ICON_LAYER_Z), fade);
+        }
+        if (drawLabel && pointedAt) {
             matrices.method_22903();
             float textScale = originMarkerTextScale();
             matrices.method_22905(textScale, textScale, 1.0F);
