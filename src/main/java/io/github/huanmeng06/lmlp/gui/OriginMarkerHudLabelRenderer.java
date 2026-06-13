@@ -16,11 +16,17 @@ import org.joml.Vector4f;
 public final class OriginMarkerHudLabelRenderer {
     private static final class_2960 LAYER_ID = class_2960.method_60655(LitematicaMaterialListPlus.MOD_ID, "origin_marker_label");
     private static FrameState lastWorldFrame;
+    private static boolean registered;
 
     private OriginMarkerHudLabelRenderer() {
     }
 
     public static void register() {
+        if (registered) {
+            return;
+        }
+        registered = true;
+
         HudLayerRegistrationCallback.EVENT.register(layers ->
                 layers.attachLayerAfter(IdentifiedLayer.SUBTITLES, IdentifiedLayer.of(LAYER_ID, OriginMarkerHudLabelRenderer::render)));
     }
