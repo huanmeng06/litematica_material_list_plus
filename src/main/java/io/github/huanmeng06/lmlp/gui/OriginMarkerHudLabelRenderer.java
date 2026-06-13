@@ -127,22 +127,6 @@ public final class OriginMarkerHudLabelRenderer {
         context.method_51452();
     }
 
-    public static void drawHudBeamGuide(class_332 context, float screenX, float screenY, int screenHeight, float alpha) {
-        if (context == null || screenHeight <= 0) {
-            return;
-        }
-
-        int x = Math.round(screenX);
-        int y2 = Math.max(0, Math.min(screenHeight, Math.round(screenY)));
-        if (y2 <= 0) {
-            return;
-        }
-
-        context.method_25294(x - 1, 0, x + 1, y2, argb(0.55F * alpha, 0x660000));
-        context.method_25294(x, 0, x + 1, y2, argb(0.75F * alpha, 0xFF2020));
-        context.method_51452();
-    }
-
     private static void render(class_332 context, net.minecraft.class_9779 tickCounter) {
         PlacementOriginMarker.renderHudLabel(context, tickCounter);
     }
