@@ -299,8 +299,8 @@ class OfflineCacheMissingConfirmGui extends GuiConfirmAction {
                 listener,
                 parent,
                 "lmlp.gui.confirm.offline_cache_not_found",
-                GuiBase.TXT_BOLD + KnownPlacementRows.displayName(context.dimension()) + GuiBase.TXT_RST,
-                GuiBase.TXT_BOLD + originText(context) + GuiBase.TXT_RST);
+                KnownPlacementRows.displayName(context.dimension()),
+                originText(context));
     }
 
     @Override
