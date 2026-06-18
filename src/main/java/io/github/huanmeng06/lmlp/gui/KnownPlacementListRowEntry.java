@@ -79,6 +79,7 @@ public class KnownPlacementListRowEntry extends WidgetListEntryBase<KnownPlaceme
         String label = StringUtils.translate("litematica.gui.button.schematic_placements.configure");
         ButtonGeneric button = new ButtonGeneric(buttonX, buttonY, KnownPlacementRows.configureButtonWidth(this), true, label);
         this.addButton(button, (clickedButton, mouseButton) -> {
+            ChunkMissingMaterialListCache.selectEditablePlacement(placement, "known_placement.configure_button");
             GuiPlacementConfiguration gui = new GuiPlacementConfiguration(placement);
             gui.setParent(this.parent.getParentGui());
             GuiBase.openGui(gui);
@@ -193,7 +194,11 @@ public class KnownPlacementListRowEntry extends WidgetListEntryBase<KnownPlaceme
 
         if (this.row.isPlacement() && mouseX < this.buttonsStartX) {
             KnownPlacementContext context = this.row.context();
-            ChunkMissingMaterialListCache.selectMaterialListContext(context.key(), "schematic_placements_list.row_click");
+            if (context.placement() != null) {
+                ChunkMissingMaterialListCache.selectEditablePlacement(context.placement(), "schematic_placements_list.row_click");
+            } else {
+                ChunkMissingMaterialListCache.selectMaterialListContext(context.key(), "schematic_placements_list.row_click");
+            }
             return true;
         }
 

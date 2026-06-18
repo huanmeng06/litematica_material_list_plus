@@ -284,6 +284,19 @@ public final class ChunkMissingMaterialListCache {
         }
     }
 
+    public static void selectEditablePlacement(SchematicPlacement placement, String reason) {
+        if (placement == null) {
+            return;
+        }
+
+        SchematicPlacementManager manager = DataManager.getSchematicPlacementManager();
+        if (manager != null && isPlacementInCurrentManager(placement) && manager.getSelectedSchematicPlacement() != placement) {
+            manager.setSelectedSchematicPlacement(placement);
+        }
+
+        selectMaterialListPlacement(placement, reason);
+    }
+
     public static void selectMaterialListContext(String contextKey, String reason) {
         ensureWorldSession(reason + ".select_context");
         PlacementContext context = PLACEMENT_CONTEXTS_BY_KEY.get(PlacementKey.fromString(contextKey));

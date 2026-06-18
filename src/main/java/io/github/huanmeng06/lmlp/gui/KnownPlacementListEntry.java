@@ -67,6 +67,7 @@ public class KnownPlacementListEntry extends WidgetSchematicPlacement {
         String label = StringUtils.translate("litematica.gui.button.schematic_placements.configure");
         ButtonGeneric button = new ButtonGeneric(buttonX, buttonY, KnownPlacementRows.configureButtonWidth(this), true, label);
         this.addButton(button, (clickedButton, mouseButton) -> {
+            ChunkMissingMaterialListCache.selectEditablePlacement(this.placement, "known_placement.configure_button");
             GuiPlacementConfiguration gui = new GuiPlacementConfiguration(this.placement);
             gui.setParent(this.parent.getParentGui());
             GuiBase.openGui(gui);
@@ -119,6 +120,10 @@ public class KnownPlacementListEntry extends WidgetSchematicPlacement {
 
         if (mouseButton == 0 && this.isPlacementNameHovered(mouseX, mouseY) && this.context != null) {
             return MaterialListOpener.openContext(this.context.key(), "schematic_placements_list.name_click_legacy", this.parent.getParentGui());
+        }
+
+        if (mouseButton == 0 && this.context != null && mouseX < this.buttonsStartX) {
+            ChunkMissingMaterialListCache.selectEditablePlacement(this.placement, "schematic_placements_list.row_click_legacy");
         }
 
         return super.onMouseClicked(mouseX, mouseY, mouseButton);

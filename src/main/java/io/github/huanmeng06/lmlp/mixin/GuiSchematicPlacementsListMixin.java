@@ -21,7 +21,11 @@ public abstract class GuiSchematicPlacementsListMixin {
         if (row.isHeader()) {
             KnownPlacementRows.toggle(row.pageId(), row.dimension());
         } else if (row.isPlacement()) {
-            ChunkMissingMaterialListCache.selectMaterialListContext(row.context().key(), "schematic_placements_list.selection_row");
+            if (row.context().placement() != null) {
+                ChunkMissingMaterialListCache.selectEditablePlacement(row.context().placement(), "schematic_placements_list.selection_row");
+            } else {
+                ChunkMissingMaterialListCache.selectMaterialListContext(row.context().key(), "schematic_placements_list.selection_row");
+            }
         }
         ci.cancel();
     }
@@ -33,7 +37,7 @@ public abstract class GuiSchematicPlacementsListMixin {
             return;
         }
 
-        ChunkMissingMaterialListCache.selectMaterialListPlacement(placement, "schematic_placements_list.click");
+        ChunkMissingMaterialListCache.selectEditablePlacement(placement, "schematic_placements_list.click");
         ci.cancel();
     }
 }
