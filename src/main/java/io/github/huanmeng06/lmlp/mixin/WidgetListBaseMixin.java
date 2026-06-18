@@ -115,6 +115,18 @@ public abstract class WidgetListBaseMixin implements WidgetListBoundsAccess {
     public abstract void refreshEntries();
 
     private void lmlp$refreshAnimatedRecipeExpansion() {
+        if ((Object) this instanceof WidgetListSchematicPlacements) {
+            boolean hadActiveGroupAnimations = KnownPlacementRows.hasActiveGroupAnimations();
+            KnownPlacementRows.pruneGroupAnimations();
+            boolean hasActiveGroupAnimations = KnownPlacementRows.hasActiveGroupAnimations();
+            if (hadActiveGroupAnimations && !hasActiveGroupAnimations) {
+                this.refreshEntries();
+            } else if (hadActiveGroupAnimations || hasActiveGroupAnimations) {
+                this.reCreateListEntryWidgets();
+            }
+            return;
+        }
+
         if (!((Object) this instanceof WidgetListMaterialList)) {
             return;
         }
@@ -279,8 +291,8 @@ public abstract class WidgetListBaseMixin implements WidgetListBoundsAccess {
 
     @Inject(method = "getBrowserEntryHeightFor", at = @At("HEAD"), cancellable = true)
     private void lmlp$getBrowserEntryHeightFor(Object entry, CallbackInfoReturnable<Integer> cir) {
-        if ((Object) this instanceof WidgetListSchematicPlacements && entry instanceof KnownPlacementRow) {
-            cir.setReturnValue(KnownPlacementRows.ROW_HEIGHT);
+        if ((Object) this instanceof WidgetListSchematicPlacements && entry instanceof KnownPlacementRow row) {
+            cir.setReturnValue(KnownPlacementRows.rowHeight(row));
             return;
         }
 
