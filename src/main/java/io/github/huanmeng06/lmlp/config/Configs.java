@@ -96,7 +96,7 @@ public class Configs implements IConfigHandler {
                 2,
                 1,
                 5,
-                true,
+                false,
                 "Text scale for the placement origin marker label. 1 is smallest, 5 is largest."
         );
 
