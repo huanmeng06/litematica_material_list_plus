@@ -31,7 +31,7 @@ public class Configs implements IConfigHandler {
     private static final String HOTKEYS = "Hotkeys";
     private static final String PREFERRED_RECIPES = "PreferredRecipes";
     private static final String OPEN_CONFIG_HOTKEY_CURRENT_DEFAULT = "L,C";
-    private static final Set<String> OPEN_CONFIG_HOTKEY_OLD_DEFAULTS = Set.of("M,L,C", "EQUAL,C");
+    private static final Set<String> OPEN_CONFIG_HOTKEY_OLD_DEFAULTS = Set.of("M,L,C", "EQUAL,C", "RIGHT_SHIFT,O");
     private static final Map<String, String> preferredRecipes = new HashMap<>();
     private static final List<String> COLOR_NAMES = List.of(
             "white",
@@ -98,7 +98,7 @@ public class Configs implements IConfigHandler {
                 2,
                 1,
                 5,
-                false,
+                true,
                 "Text scale for the placement origin marker label. 1 is smallest, 5 is largest."
         );
 
