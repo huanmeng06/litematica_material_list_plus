@@ -1,0 +1,272 @@
+package io.github.huanmeng06.lmlp.gui.textlist;
+
+import fi.dy.masa.malilib.config.IStringRepresentable;
+import fi.dy.masa.malilib.config.gui.ConfigOptionChangeListenerTextField;
+import fi.dy.masa.malilib.gui.GuiTextFieldGeneric;
+import fi.dy.masa.malilib.gui.MaLiLibIcons;
+import fi.dy.masa.malilib.gui.button.ButtonBase;
+import fi.dy.masa.malilib.gui.button.ButtonGeneric;
+import fi.dy.masa.malilib.gui.widgets.WidgetConfigOptionBase;
+import fi.dy.masa.malilib.render.RenderUtils;
+import fi.dy.masa.malilib.util.StringUtils;
+import net.minecraft.class_1799;
+import net.minecraft.class_332;
+
+import java.util.List;
+
+public class WidgetItemIdStringListEditEntry extends WidgetConfigOptionBase<String> {
+    private static final int INDEX_WIDTH = 30;
+    private static final int ICON_AREA_WIDTH = 24;
+    private static final int ICON_SLOT_SIZE = 18;
+    private static final int ITEM_ICON_SIZE = 16;
+    private static final int SELECT_WIDTH = 58;
+    private static final int RESET_WIDTH = 58;
+    private static final int ICON_BUTTON_WIDTH = 18;
+    private static final int CONTROL_HEIGHT = 20;
+    private static final int ACTION_GAP = 4;
+    private static final int ROW_BACKGROUND_ODD = 0x20FFFFFF;
+    private static final int ROW_BACKGROUND_EVEN = 0x30FFFFFF;
+    private static final int ICON_SLOT_BACKGROUND = 0x55000000;
+    private static final int ICON_SLOT_BORDER = 0xFF555555;
+
+    private final WidgetListItemIdStringListEdit listWidget;
+    private final GuiItemIdStringListEdit editor;
+    private final String defaultValue;
+    private final int listIndex;
+    private final boolean isOdd;
+    private final int iconX;
+    private final int iconY;
+    private ButtonGeneric resetButton;
+
+    public WidgetItemIdStringListEditEntry(
+            int x,
+            int y,
+            int width,
+            int height,
+            int listIndex,
+            boolean isOdd,
+            String value,
+            String defaultValue,
+            WidgetListItemIdStringListEdit listWidget,
+            GuiItemIdStringListEdit editor
+    ) {
+        super(x, y, width, height, listWidget, value, listIndex);
+        this.listWidget = listWidget;
+        this.editor = editor;
+        this.listIndex = listIndex;
+        this.isOdd = isOdd;
+        this.defaultValue = defaultValue;
+        this.initialStringValue = value;
+        this.lastAppliedValue = value;
+
+        int centerY = y + height / 2;
+        int buttonY = centerY - CONTROL_HEIGHT / 2;
+        int textY = buttonY;
+        int actionStartX = x + width - ICON_BUTTON_WIDTH * 4 - 8;
+        int resetX = actionStartX - RESET_WIDTH - 8;
+        int selectX = resetX - SELECT_WIDTH - ACTION_GAP;
+        this.iconX = x + INDEX_WIDTH + (ICON_AREA_WIDTH - ICON_SLOT_SIZE) / 2;
+        this.iconY = centerY - ICON_SLOT_SIZE / 2;
+        int textX = x + INDEX_WIDTH + ICON_AREA_WIDTH + ACTION_GAP;
+        int textWidth = Math.max(120, selectX - textX - ACTION_GAP);
+
+        if (!this.isDummy()) {
+            this.addLabel(x + 2, centerY - 5, INDEX_WIDTH - 4, 12, 0xFFC0C0C0, String.format("%3d:", listIndex + 1));
+            this.resetButton = this.createStringResetButton(resetX, buttonY);
+            this.addEntryTextField(textX, textY, textWidth, CONTROL_HEIGHT, value, this.resetButton);
+            this.addSelectButton(selectX, buttonY);
+            this.addResetButton(this.resetButton);
+            this.addActionButton(actionStartX, buttonY, MaLiLibIcons.PLUS, "malilib.gui.button.hovertext.add", this::insertEntryBefore);
+            this.addActionButton(actionStartX + ICON_BUTTON_WIDTH, buttonY, MaLiLibIcons.MINUS, "malilib.gui.button.hovertext.remove", this::removeEntry);
+            if (this.canBeMoved(true)) {
+                this.addActionButton(actionStartX + ICON_BUTTON_WIDTH * 2, buttonY, MaLiLibIcons.ARROW_DOWN, "malilib.gui.button.hovertext.move_down", () -> this.moveEntry(true));
+            }
+            if (this.canBeMoved(false)) {
+                this.addActionButton(actionStartX + ICON_BUTTON_WIDTH * 3, buttonY, MaLiLibIcons.ARROW_UP, "malilib.gui.button.hovertext.move_up", () -> this.moveEntry(false));
+            }
+        } else {
+            this.addActionButton(textX, buttonY, MaLiLibIcons.PLUS, "malilib.gui.button.hovertext.add", this::insertEntryBefore);
+        }
+    }
+
+    public void setSelectedItemId(String id) {
+        if (this.isDummy() || this.textField == null) {
+            return;
+        }
+
+        GuiTextFieldGeneric field = this.textField.getTextField();
+        field.method_1852(id);
+        this.applyNewValueToConfig();
+        this.listWidget.markConfigsModified();
+    }
+
+    private boolean isDummy() {
+        return this.listIndex < 0;
+    }
+
+    private void addEntryTextField(int x, int y, int width, int height, String value, ButtonBase resetButton) {
+        GuiTextFieldGeneric field = this.createTextField(x, y + 1, width, height - 3);
+        field.method_1880(this.maxTextfieldTextLength);
+        field.method_1852(value);
+        this.addTextField(field, new StableResetListener(new RowStringRepresentable(this.defaultValue), field, resetButton));
+    }
+
+    private void addSelectButton(int x, int y) {
+        ButtonGeneric button = new ButtonGeneric(
+                x,
+                y,
+                SELECT_WIDTH,
+                CONTROL_HEIGHT,
+                StringUtils.translate("lmlp.gui.button.text_list.select"),
+                new String[0]
+        );
+        button.setTextCentered(true);
+        this.addButton(button, (clickedButton, mouseButton) -> this.editor.openItemPicker(this));
+    }
+
+    private ButtonGeneric createStringResetButton(int x, int y) {
+        String label = StringUtils.translate("malilib.gui.button.reset.caps");
+        ButtonGeneric button = new ButtonGeneric(x, y, RESET_WIDTH, CONTROL_HEIGHT, label, new String[0]);
+        button.setTextCentered(true);
+        button.setEnabled(true);
+        return button;
+    }
+
+    private void addResetButton(ButtonGeneric button) {
+        this.addButton(button, (clickedButton, mouseButton) -> {
+            if (this.textField != null) {
+                this.textField.getTextField().method_1852(this.defaultValue);
+                this.listWidget.markConfigsModified();
+            }
+        });
+    }
+
+    private void addActionButton(int x, int y, MaLiLibIcons icon, String hoverKey, Runnable action) {
+        ButtonGeneric button = new ButtonGeneric(x, y, icon, StringUtils.translate(hoverKey));
+        this.addButton(button, (clickedButton, mouseButton) -> action.run());
+    }
+
+    @Override
+    public boolean wasConfigModified() {
+        return !this.isDummy() && !this.currentText().equals(this.initialStringValue);
+    }
+
+    @Override
+    public void applyNewValueToConfig() {
+        if (this.isDummy()) {
+            return;
+        }
+
+        List<String> strings = this.listWidget.getConfig().getStrings();
+        if (strings.size() > this.listIndex) {
+            String value = this.currentText();
+            strings.set(this.listIndex, value);
+            this.lastAppliedValue = value;
+        }
+    }
+
+    @Override
+    public void render(int mouseX, int mouseY, boolean selected, class_332 context) {
+        RenderUtils.color(1.0F, 1.0F, 1.0F, 1.0F);
+        RenderUtils.drawRect(this.x, this.y, this.width, this.height, this.isOdd ? ROW_BACKGROUND_ODD : ROW_BACKGROUND_EVEN);
+        if (!this.isDummy()) {
+            this.renderItemIcon(context);
+        }
+        this.drawSubWidgets(mouseX, mouseY, context);
+        this.drawTextFields(mouseX, mouseY, context);
+    }
+
+    private void renderItemIcon(class_332 context) {
+        RenderUtils.drawOutlinedBox(this.iconX, this.iconY, ICON_SLOT_SIZE, ICON_SLOT_SIZE, ICON_SLOT_BACKGROUND, ICON_SLOT_BORDER);
+        class_1799 stack = ItemIdListIconResolver.currentStack(this.currentText());
+        if (!stack.method_7960()) {
+            context.method_51427(stack, this.iconX + (ICON_SLOT_SIZE - ITEM_ICON_SIZE) / 2, this.iconY + (ICON_SLOT_SIZE - ITEM_ICON_SIZE) / 2);
+        }
+    }
+
+    private String currentText() {
+        return this.textField != null ? this.textField.getTextField().method_1882() : "";
+    }
+
+    private void insertEntryBefore() {
+        this.listWidget.applyPendingModifications();
+        List<String> strings = this.listWidget.getConfig().getStrings();
+        int size = strings.size();
+        int index = this.listIndex < 0 || this.listIndex >= size ? size : this.listIndex;
+        strings.add(index, "");
+        this.listWidget.refreshEntries();
+        this.listWidget.markConfigsModified();
+    }
+
+    private void removeEntry() {
+        List<String> strings = this.listWidget.getConfig().getStrings();
+        if (this.listIndex >= 0 && this.listIndex < strings.size()) {
+            strings.remove(this.listIndex);
+            this.listWidget.refreshEntries();
+            this.listWidget.markConfigsModified();
+        }
+    }
+
+    private void moveEntry(boolean down) {
+        List<String> strings = this.listWidget.getConfig().getStrings();
+        int size = strings.size();
+        if (this.listIndex < 0 || this.listIndex >= size) {
+            return;
+        }
+
+        int next = down ? this.listIndex + 1 : this.listIndex - 1;
+        if (next < 0 || next >= size) {
+            return;
+        }
+
+        this.listWidget.markConfigsModified();
+        this.listWidget.applyPendingModifications();
+        String value = strings.get(this.listIndex);
+        strings.set(this.listIndex, strings.get(next));
+        strings.set(next, value);
+        this.listWidget.refreshEntries();
+    }
+
+    private boolean canBeMoved(boolean down) {
+        int size = this.listWidget.getConfig().getStrings().size();
+        return this.listIndex >= 0 && this.listIndex < size && (down ? this.listIndex < size - 1 : this.listIndex > 0);
+    }
+
+    private static final class StableResetListener extends ConfigOptionChangeListenerTextField {
+        private StableResetListener(IStringRepresentable config, GuiTextFieldGeneric textField, ButtonBase resetButton) {
+            super(config, textField, resetButton);
+        }
+
+        @Override
+        public boolean onTextChange(GuiTextFieldGeneric textField) {
+            return false;
+        }
+    }
+
+    private static final class RowStringRepresentable implements IStringRepresentable {
+        private final String defaultValue;
+
+        private RowStringRepresentable(String defaultValue) {
+            this.defaultValue = defaultValue;
+        }
+
+        @Override
+        public String getStringValue() {
+            return this.defaultValue;
+        }
+
+        @Override
+        public String getDefaultStringValue() {
+            return this.defaultValue;
+        }
+
+        @Override
+        public void setValueFromString(String value) {
+        }
+
+        @Override
+        public boolean isModified(String value) {
+            return !this.defaultValue.equals(value);
+        }
+    }
+}

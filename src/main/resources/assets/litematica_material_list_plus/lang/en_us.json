@@ -150,5 +150,11 @@
   "config.comment.openconfiggui": "Open the Litematica Material List Plus configuration screen.",
   "config.comment.clearoriginmarker": "Clear the active placement origin highlight and beam.",
   "config.comment.recipestopitems": "Items in this list are treated as base materials. Use {color} to match all 16 colored variants, for example minecraft:{color}_wool.",
-  "config.comment.showhoverdetails": "Hold this key while hovering a material list entry to show total, missing and available counts in the detailed tooltip."
+  "config.comment.showhoverdetails": "Hold this key while hovering a material list entry to show total, missing and available counts in the detailed tooltip.",
+  "lmlp.gui.button.text_list.select": "Select",
+  "lmlp.gui.item_id_picker.title": "REI item selector",
+  "lmlp.gui.item_id_picker.search": "Search",
+  "lmlp.gui.item_id_picker.search_placeholder": "item id or name",
+  "lmlp.gui.item_id_picker.empty": "No matching REI item entries.",
+  "lmlp.gui.button.item_id_picker.close": "Back (Esc)"
 }
