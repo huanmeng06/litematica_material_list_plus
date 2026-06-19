@@ -23,6 +23,10 @@ public class InitHandler implements IInitializationHandler {
             GuiBase.openGui(new GuiConfigs());
             return true;
         });
+        Hotkeys.CLEAR_ORIGIN_MARKER.getKeybind().setCallback((action, key) -> {
+            PlacementOriginMarker.clear();
+            return true;
+        });
         ClientPlayConnectionEvents.JOIN.register((handler, sender, client) ->
                 ChunkMissingMaterialListCache.onWorldJoined(client, "client_play.join"));
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {

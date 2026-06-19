@@ -131,6 +131,7 @@
   "lmlp.config.count_display_style.style4": "樣式4",
   "recipeStopItems": "配方停止拆分物品",
   "lmlp.config.name.open_config_gui": "開啟設定畫面",
+  "lmlp.config.name.clear_origin_marker": "清除原點標記",
   "lmlp.config.name.recipeStopItems": "配方停止拆分物品",
   "lmlp.config.name.show_hover_details": "顯示詳細懸停提示",
   "config.name.disablelitematicahovertooltip": "關閉 Litematica 原版提示",
@@ -138,6 +139,7 @@
   "config.name.originmarkertime": "原點標記時間",
   "config.name.originmarkertextscale": "原點標記文字縮放",
   "config.name.openconfiggui": "開啟設定畫面",
+  "config.name.clearoriginmarker": "清除原點標記",
   "config.name.recipestopitems": "配方停止拆分物品",
   "config.name.showhoverdetails": "顯示詳細懸停提示",
   "config.comment.disablelitematicahovertooltip": "開啟時不顯示材料懸停提示；關閉時使用 Litematica 原版懸停提示。",
@@ -145,6 +147,7 @@
   "config.comment.originmarkertime": "單擊投影原點後，高亮和光束顯示持續的秒數。",
   "config.comment.originmarkertextscale": "投影原點懸浮資訊框的文字縮放。1 最小，5 最大。",
   "config.comment.openconfiggui": "開啟 Litematica Material List Plus 設定畫面。",
+  "config.comment.clearoriginmarker": "清除目前投影原點高亮和光束。",
   "config.comment.recipestopitems": "這些物品會作為基礎材料，不再繼續拆分配方。可用 {color} 匹配 16 色物品，例如 minecraft:{color}_wool。",
   "config.comment.showhoverdetails": "懸停在材料清單項目上時，按住此按鍵顯示包含總數、缺少和可用數量的詳細提示。"
 }

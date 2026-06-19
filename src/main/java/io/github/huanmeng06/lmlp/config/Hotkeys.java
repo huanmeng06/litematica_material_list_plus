@@ -9,10 +9,18 @@ import java.util.List;
 public final class Hotkeys {
     public static final ConfigHotkey OPEN_CONFIG_GUI = new ConfigHotkey(
             "openConfigGui",
-            "M,EQUAL",
+            "M,L,C",
             KeybindSettings.EXCLUSIVE,
             "Open the Litematica Material List Plus config screen.",
             "lmlp.config.name.open_config_gui"
+    );
+
+    public static final ConfigHotkey CLEAR_ORIGIN_MARKER = new ConfigHotkey(
+            "clearOriginMarker",
+            "",
+            KeybindSettings.EXCLUSIVE,
+            "Clear the active placement origin highlight and beam.",
+            "lmlp.config.name.clear_origin_marker"
     );
 
     public static final ConfigHotkey SHOW_HOVER_DETAILS = new ConfigHotkey(
@@ -25,6 +33,7 @@ public final class Hotkeys {
 
     public static final List<ConfigHotkey> HOTKEY_LIST = ImmutableList.of(
             OPEN_CONFIG_GUI,
+            CLEAR_ORIGIN_MARKER,
             SHOW_HOVER_DETAILS
     );
 

@@ -50,6 +50,22 @@ public class Configs implements IConfigHandler {
             "black"
     );
     private static final List<String> COLOR_PATTERN_SUFFIXES = List.of("dye", "wool", "carpet", "terracotta");
+    private static final ImmutableList<String> DEFAULT_RECIPE_STOP_ITEMS = ImmutableList.of(
+            "minecraft:iron_ingot",
+            "minecraft:gold_ingot",
+            "minecraft:slime_ball",
+            "minecraft:quartz",
+            "minecraft:honey_bottle",
+            "minecraft:redstone",
+            "minecraft:rail",
+            "minecraft:powered_rail",
+            "minecraft:detector_rail",
+            "minecraft:activator_rail",
+            "minecraft:{color}_dye",
+            "minecraft:{color}_wool",
+            "minecraft:{color}_carpet",
+            "minecraft:{color}_terracotta"
+    );
 
     public static final class Generic {
         public static final ConfigBoolean DISABLE_LITEMATICA_HOVER_TOOLTIP = new ConfigBoolean(
@@ -86,18 +102,7 @@ public class Configs implements IConfigHandler {
 
         public static final ConfigStringList RECIPE_STOP_ITEMS = new ConfigStringList(
                 "recipeStopItems",
-                ImmutableList.of(
-                        "minecraft:iron_ingot",
-                        "minecraft:gold_ingot",
-                        "minecraft:slime_ball",
-                        "minecraft:quartz",
-                        "minecraft:honey_bottle",
-                        "minecraft:redstone",
-                        "minecraft:{color}_dye",
-                        "minecraft:{color}_wool",
-                        "minecraft:{color}_carpet",
-                        "minecraft:{color}_terracotta"
-                ),
+                DEFAULT_RECIPE_STOP_ITEMS,
                 "Items in this list are treated as base materials. Use {color} to match all 16 Minecraft colors, for example minecraft:{color}_wool."
         );
 
@@ -128,6 +133,7 @@ public class Configs implements IConfigHandler {
                 readPreferredRecipes(root);
                 migrateOriginMarkerTimeConfig(root);
                 migrateDisableLitematicaHoverTooltipConfig(root);
+                migrateDefaultRecipeStopItems();
                 migrateRecipeStopColorPatterns();
             }
         }
@@ -214,6 +220,28 @@ public class Configs implements IConfigHandler {
         boolean modified = false;
         for (String suffix : COLOR_PATTERN_SUFFIXES) {
             if (compactColorPattern(values, suffix)) {
+                modified = true;
+            }
+        }
+
+        if (modified) {
+            Generic.RECIPE_STOP_ITEMS.setStrings(values);
+        }
+    }
+
+    private static void migrateDefaultRecipeStopItems() {
+        List<String> values = new ArrayList<>(Generic.RECIPE_STOP_ITEMS.getStrings());
+        Set<String> normalizedValues = new HashSet<>();
+        for (String value : values) {
+            normalizedValues.add(normalizeItemId(value));
+        }
+
+        boolean modified = false;
+        for (String defaultItem : DEFAULT_RECIPE_STOP_ITEMS) {
+            String normalizedDefault = normalizeItemId(defaultItem);
+            if (!normalizedValues.contains(normalizedDefault)) {
+                values.add(defaultItem);
+                normalizedValues.add(normalizedDefault);
                 modified = true;
             }
         }
