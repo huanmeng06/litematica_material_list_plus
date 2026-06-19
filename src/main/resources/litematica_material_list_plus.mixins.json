@@ -14,6 +14,7 @@
     "GuiPlacementConfigurationButtonListenerMixin",
     "InfoHudMixin",
     "KeyCallbackHotkeysMixin",
+    "SliderCallbackIntegerAccess",
     "MaterialListBaseMixin",
     "MaterialListPlacementMixin",
     "SchematicPlacementManagerMixin",
@@ -22,7 +23,8 @@
     "WidgetListMaterialListMixin",
     "WidgetListSchematicPlacementsMixin",
     "WidgetMaterialListEntryButtonListenerMixin",
-    "WidgetMaterialListEntryMixin"
+    "WidgetMaterialListEntryMixin",
+    "WidgetSliderMixin"
   ],
   "injectors": {
     "defaultRequire": 1
