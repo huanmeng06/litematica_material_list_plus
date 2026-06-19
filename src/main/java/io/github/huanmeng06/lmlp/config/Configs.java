@@ -30,6 +30,8 @@ public class Configs implements IConfigHandler {
     private static final String GENERIC = "Generic";
     private static final String HOTKEYS = "Hotkeys";
     private static final String PREFERRED_RECIPES = "PreferredRecipes";
+    private static final String OPEN_CONFIG_HOTKEY_CURRENT_DEFAULT = "L,C";
+    private static final Set<String> OPEN_CONFIG_HOTKEY_OLD_DEFAULTS = Set.of("M,L,C", "EQUAL,C");
     private static final Map<String, String> preferredRecipes = new HashMap<>();
     private static final List<String> COLOR_NAMES = List.of(
             "white",
@@ -131,6 +133,7 @@ public class Configs implements IConfigHandler {
                 ConfigUtils.readConfigBase(root, GENERIC, Generic.OPTIONS);
                 ConfigUtils.readConfigBase(root, HOTKEYS, Hotkeys.HOTKEY_LIST);
                 readPreferredRecipes(root);
+                migrateOpenConfigHotkeyDefault();
                 migrateOriginMarkerTimeConfig(root);
                 migrateDisableLitematicaHoverTooltipConfig(root);
                 migrateDefaultRecipeStopItems();
@@ -378,6 +381,13 @@ public class Configs implements IConfigHandler {
             return object.get(key).getAsInt();
         } catch (RuntimeException exception) {
             return 0;
+        }
+    }
+
+    private static void migrateOpenConfigHotkeyDefault() {
+        String keys = Hotkeys.OPEN_CONFIG_GUI.getStringValue();
+        if (OPEN_CONFIG_HOTKEY_OLD_DEFAULTS.contains(keys)) {
+            Hotkeys.OPEN_CONFIG_GUI.setValueFromString(OPEN_CONFIG_HOTKEY_CURRENT_DEFAULT);
         }
     }
 
