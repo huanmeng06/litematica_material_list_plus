@@ -487,6 +487,10 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
     }
 
     private ChoiceTooltipTarget minimalChoiceTooltipTarget(int mouseX, int mouseY) {
+        if (!this.panelHoveredStack(mouseX, mouseY).method_7960()) {
+            return null;
+        }
+
         List<MinimalSubMaterialListView.TooltipCandidate> candidates = MinimalSubMaterialListView.tooltipCandidates(this.entry);
         if (!candidates.isEmpty() && this.isMinimalChoiceTextHovered(mouseX, mouseY)) {
             return new ChoiceTooltipTarget(
