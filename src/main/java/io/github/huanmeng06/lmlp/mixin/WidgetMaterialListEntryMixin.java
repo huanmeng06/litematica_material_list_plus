@@ -539,7 +539,7 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
             MinimalSubMaterialListView.UpstreamRequirement upstream = requirement.upstream();
             List<MinimalSubMaterialListView.TooltipCandidate> upstreamCandidates = MinimalSubMaterialListView.upstreamTooltipCandidates(upstream);
             if (upstream != null && !upstreamCandidates.isEmpty()) {
-                String primaryLine = name + ": " + GuiBase.TXT_GOLD + CountFormatter.format(requirement.totalCount(), requirement.maxStackSize());
+                String primaryLine = sourceCountLine(name, requirement.totalCount(), requirement.missingCount(), requirement.maxStackSize());
                 String upstreamName = MinimalSubMaterialListView.upstreamDisplayName(upstream);
                 int upstreamTextX = textX
                         + StringUtils.getStringWidth(primaryLine)
@@ -587,6 +587,10 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
                 && mouseX < textX + textWidth
                 && mouseY >= textY
                 && mouseY < textY + HOVER_TEXT_HEIGHT;
+    }
+
+    private static String sourceCountLine(String name, int totalCount, int missingCount, int maxStackSize) {
+        return name + ": " + CountFormatter.format(totalCount, maxStackSize) + " / " + CountFormatter.format(missingCount, maxStackSize);
     }
 
     private class_1799 panelHoveredStack(int mouseX, int mouseY) {
