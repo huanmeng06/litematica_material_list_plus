@@ -29,6 +29,7 @@ public class Configs implements IConfigHandler {
     private static final String FILE_NAME = LitematicaMaterialListPlus.MOD_ID + ".json";
     private static final String GENERIC = "Generic";
     private static final String HOTKEYS = "Hotkeys";
+    private static final String CONFIG_FORMS = "ConfigForms";
     private static final String PREFERRED_RECIPES = "PreferredRecipes";
     private static final String OPEN_CONFIG_HOTKEY_CURRENT_DEFAULT = "L,C";
     private static final Set<String> OPEN_CONFIG_HOTKEY_OLD_DEFAULTS = Set.of("M,L,C", "EQUAL,C", "RIGHT_SHIFT,O");
@@ -112,11 +113,19 @@ public class Configs implements IConfigHandler {
                 DISABLE_LITEMATICA_HOVER_TOOLTIP,
                 COUNT_DISPLAY_STYLE,
                 ORIGIN_MARKER_TIME,
-                ORIGIN_MARKER_TEXT_SCALE,
-                RECIPE_STOP_ITEMS
+                ORIGIN_MARKER_TEXT_SCALE
         );
 
         private Generic() {
+        }
+    }
+
+    public static final class ConfigForms {
+        public static final List<IConfigBase> OPTIONS = ImmutableList.of(
+                Generic.RECIPE_STOP_ITEMS
+        );
+
+        private ConfigForms() {
         }
     }
 
@@ -131,6 +140,11 @@ public class Configs implements IConfigHandler {
             if (element != null && element.isJsonObject()) {
                 JsonObject root = element.getAsJsonObject();
                 ConfigUtils.readConfigBase(root, GENERIC, Generic.OPTIONS);
+                if (root.has(CONFIG_FORMS)) {
+                    ConfigUtils.readConfigBase(root, CONFIG_FORMS, ConfigForms.OPTIONS);
+                } else {
+                    ConfigUtils.readConfigBase(root, GENERIC, ConfigForms.OPTIONS);
+                }
                 ConfigUtils.readConfigBase(root, HOTKEYS, Hotkeys.HOTKEY_LIST);
                 readPreferredRecipes(root);
                 migrateOpenConfigHotkeyDefault();
@@ -147,6 +161,7 @@ public class Configs implements IConfigHandler {
         if ((dir.exists() && dir.isDirectory()) || dir.mkdirs()) {
             JsonObject root = new JsonObject();
             ConfigUtils.writeConfigBase(root, GENERIC, Generic.OPTIONS);
+            ConfigUtils.writeConfigBase(root, CONFIG_FORMS, ConfigForms.OPTIONS);
             ConfigUtils.writeConfigBase(root, HOTKEYS, Hotkeys.HOTKEY_LIST);
             writePreferredRecipes(root);
             JsonUtils.writeJsonToFile(root, new File(dir, FILE_NAME));
