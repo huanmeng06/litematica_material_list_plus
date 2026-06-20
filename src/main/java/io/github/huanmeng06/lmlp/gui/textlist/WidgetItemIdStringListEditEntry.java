@@ -2,6 +2,7 @@ package io.github.huanmeng06.lmlp.gui.textlist;
 
 import fi.dy.masa.malilib.config.IStringRepresentable;
 import fi.dy.masa.malilib.config.gui.ConfigOptionChangeListenerTextField;
+import fi.dy.masa.malilib.gui.GuiBase;
 import fi.dy.masa.malilib.gui.GuiTextFieldGeneric;
 import fi.dy.masa.malilib.gui.MaLiLibIcons;
 import fi.dy.masa.malilib.gui.button.ButtonBase;
@@ -170,17 +171,21 @@ public class WidgetItemIdStringListEditEntry extends WidgetConfigOptionBase<Stri
         RenderUtils.color(1.0F, 1.0F, 1.0F, 1.0F);
         RenderUtils.drawRect(this.x, this.y, this.width, this.height, this.isOdd ? ROW_BACKGROUND_ODD : ROW_BACKGROUND_EVEN);
         if (!this.isDummy()) {
-            this.renderItemIcon(context);
+            this.renderItemIcon(context, mouseX, mouseY);
         }
         this.drawSubWidgets(mouseX, mouseY, context);
         this.drawTextFields(mouseX, mouseY, context);
     }
 
-    private void renderItemIcon(class_332 context) {
+    private void renderItemIcon(class_332 context, int mouseX, int mouseY) {
         RenderUtils.drawOutlinedBox(this.iconX, this.iconY, ICON_SLOT_SIZE, ICON_SLOT_SIZE, ICON_SLOT_BACKGROUND, ICON_SLOT_BORDER);
-        class_1799 stack = ItemIdListIconResolver.currentStack(this.currentText());
+        ItemIdListIconResolver.Display display = ItemIdListIconResolver.currentIcon(this.currentText());
+        class_1799 stack = display.stack();
         if (!stack.method_7960()) {
             context.method_51427(stack, this.iconX + (ICON_SLOT_SIZE - ITEM_ICON_SIZE) / 2, this.iconY + (ICON_SLOT_SIZE - ITEM_ICON_SIZE) / 2);
+            if (GuiBase.isMouseOver(mouseX, mouseY, this.iconX, this.iconY, ICON_SLOT_SIZE, ICON_SLOT_SIZE)) {
+                this.editor.setHoveredText(display.id());
+            }
         }
     }
 

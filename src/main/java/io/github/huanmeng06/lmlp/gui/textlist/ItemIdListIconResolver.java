@@ -14,6 +14,7 @@ import java.util.Map;
 
 final class ItemIdListIconResolver {
     private static final long DISPLAY_CYCLE_MS = 900L;
+    private static final Display EMPTY_DISPLAY = new Display(class_1799.field_8037, "");
     private static final List<String> COLOR_NAMES = List.of(
             "white",
             "orange",
@@ -32,46 +33,51 @@ final class ItemIdListIconResolver {
             "red",
             "black"
     );
-    private static final Map<String, List<class_1799>> CACHE = new HashMap<>();
+    private static final Map<String, List<Display>> CACHE = new HashMap<>();
 
     private ItemIdListIconResolver() {
     }
 
-    static class_1799 currentStack(String value) {
-        List<class_1799> stacks = stacksFor(value);
-        if (stacks.isEmpty()) {
-            return class_1799.field_8037;
+    static Display currentIcon(String value) {
+        List<Display> displays = displaysFor(value);
+        if (displays.isEmpty()) {
+            return EMPTY_DISPLAY;
         }
 
-        int index = stacks.size() == 1 ? 0 : (int) ((System.currentTimeMillis() / DISPLAY_CYCLE_MS) % stacks.size());
-        return stacks.get(index).method_7972();
+        int index = displays.size() == 1 ? 0 : (int) ((System.currentTimeMillis() / DISPLAY_CYCLE_MS) % displays.size());
+        return displays.get(index);
     }
 
-    private static List<class_1799> stacksFor(String value) {
+    private static List<Display> displaysFor(String value) {
         String normalized = normalize(value);
         if (normalized.isEmpty()) {
             return List.of();
         }
 
-        return CACHE.computeIfAbsent(normalized, ItemIdListIconResolver::resolveStacks);
+        return CACHE.computeIfAbsent(normalized, ItemIdListIconResolver::resolveDisplays);
     }
 
-    private static List<class_1799> resolveStacks(String normalized) {
+    private static List<Display> resolveDisplays(String normalized) {
         if (!normalized.contains("{color}")) {
-            class_1799 stack = resolveStack(normalized);
-            return stack.method_7960() ? List.of() : List.of(stack);
+            Display display = resolveDisplay(normalized);
+            return display.stack().method_7960() ? List.of() : List.of(display);
         }
 
-        Map<String, class_1799> stacks = new LinkedHashMap<>();
+        Map<String, Display> displays = new LinkedHashMap<>();
         for (String color : COLOR_NAMES) {
             String id = normalized.replace("{color}", color);
-            class_1799 stack = resolveStack(id);
-            if (!stack.method_7960()) {
-                stacks.putIfAbsent(id, stack);
+            Display display = resolveDisplay(id);
+            if (!display.stack().method_7960()) {
+                displays.putIfAbsent(id, display);
             }
         }
 
-        return stacks.isEmpty() ? List.of() : List.copyOf(new ArrayList<>(stacks.values()));
+        return displays.isEmpty() ? List.of() : List.copyOf(new ArrayList<>(displays.values()));
+    }
+
+    private static Display resolveDisplay(String id) {
+        class_1799 stack = resolveStack(id);
+        return stack.method_7960() ? EMPTY_DISPLAY : new Display(stack, id);
     }
 
     private static class_1799 resolveStack(String id) {
@@ -104,5 +110,8 @@ final class ItemIdListIconResolver {
         }
 
         return "minecraft:" + trimmed;
+    }
+
+    record Display(class_1799 stack, String id) {
     }
 }

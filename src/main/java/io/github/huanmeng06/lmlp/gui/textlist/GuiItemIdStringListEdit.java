@@ -79,6 +79,11 @@ public class GuiItemIdStringListEdit extends GuiListBase<String, WidgetItemIdStr
         return this.config;
     }
 
+    void setHoveredText(String text) {
+        this.hoveredStack = class_1799.field_8037;
+        this.hoveredText = text == null ? "" : text;
+    }
+
     public void openItemPicker(WidgetItemIdStringListEditEntry target) {
         if (this.allCandidates.isEmpty()) {
             this.reloadCandidates();
