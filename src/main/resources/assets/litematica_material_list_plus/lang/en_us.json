@@ -155,6 +155,11 @@
   "lmlp.gui.item_id_picker.title": "REI item selector",
   "lmlp.gui.item_id_picker.search": "Search",
   "lmlp.gui.item_id_picker.search_placeholder": "item id or name",
+  "lmlp.gui.item_id_picker.sort": "Sort",
+  "lmlp.gui.item_id_picker.sort_mode.creative": "Creative tabs",
+  "lmlp.gui.item_id_picker.sort_mode.name": "Name A-Z",
+  "lmlp.gui.item_id_picker.sort_mode.namespace": "Namespace",
+  "lmlp.gui.item_id_picker.sort_mode.registry_id": "Registry ID",
   "lmlp.gui.item_id_picker.empty": "No matching REI item entries.",
   "lmlp.gui.button.item_id_picker.close": "Back (Esc)"
 }

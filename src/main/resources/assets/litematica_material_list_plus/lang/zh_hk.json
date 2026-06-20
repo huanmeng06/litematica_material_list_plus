@@ -155,6 +155,11 @@
   "lmlp.gui.item_id_picker.title": "REI 物品選擇",
   "lmlp.gui.item_id_picker.search": "搜尋",
   "lmlp.gui.item_id_picker.search_placeholder": "物品 ID 或名稱",
+  "lmlp.gui.item_id_picker.sort": "排序",
+  "lmlp.gui.item_id_picker.sort_mode.creative": "創造欄順序",
+  "lmlp.gui.item_id_picker.sort_mode.name": "名稱 A-Z",
+  "lmlp.gui.item_id_picker.sort_mode.namespace": "命名空間",
+  "lmlp.gui.item_id_picker.sort_mode.registry_id": "Registry ID",
   "lmlp.gui.item_id_picker.empty": "沒有符合的 REI 物品條目。",
   "lmlp.gui.button.item_id_picker.close": "返回 (Esc)"
 }

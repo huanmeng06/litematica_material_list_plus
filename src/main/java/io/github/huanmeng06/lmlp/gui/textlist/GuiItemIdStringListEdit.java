@@ -1,7 +1,7 @@
 package io.github.huanmeng06.lmlp.gui.textlist;
 
-import fi.dy.masa.malilib.config.IConfigStringList;
 import fi.dy.masa.malilib.config.ConfigManager;
+import fi.dy.masa.malilib.config.IConfigStringList;
 import fi.dy.masa.malilib.gui.GuiBase;
 import fi.dy.masa.malilib.gui.GuiListBase;
 import fi.dy.masa.malilib.gui.GuiScrollBar;
@@ -16,7 +16,6 @@ import io.github.huanmeng06.lmlp.material.ItemStackTexts;
 import me.shedaniel.rei.api.client.registry.entry.EntryRegistry;
 import me.shedaniel.rei.api.common.entry.EntryStack;
 import net.minecraft.class_1799;
-import net.minecraft.class_2561;
 import net.minecraft.class_332;
 import net.minecraft.class_437;
 import org.lwjgl.glfw.GLFW;
@@ -36,12 +35,15 @@ public class GuiItemIdStringListEdit extends GuiListBase<String, WidgetItemIdStr
     private static final int PICKER_SLOT = 24;
     private static final int PICKER_SLOT_GAP = 2;
     private static final int PICKER_WHEEL_PIXELS = 28;
+    private static final int PICKER_SORT_WIDTH = 138;
+    private static SortMode pickerSortMode = SortMode.CREATIVE;
 
     private final IConfigStringList config;
     private final IConfigGui configGui;
     private final IDialogHandler dialogHandler;
     private final GuiScrollBar pickerScrollBar = new GuiScrollBar();
     private final ButtonGeneric pickerCloseButton = new ButtonGeneric(0, 0, 92, 20, "");
+    private final ButtonGeneric pickerSortButton = new ButtonGeneric(0, 0, PICKER_SORT_WIDTH, 20, "");
     private final ButtonGeneric backButton = new ButtonGeneric(0, 0, 110, 20, "");
     private final List<Candidate> allCandidates = new ArrayList<>();
     private final List<Candidate> filteredCandidates = new ArrayList<>();
@@ -67,6 +69,9 @@ public class GuiItemIdStringListEdit extends GuiListBase<String, WidgetItemIdStr
         this.pickerCloseButton.setDisplayString(StringUtils.translate("lmlp.gui.button.item_id_picker.close"));
         this.pickerCloseButton.setTextCentered(true);
         this.pickerCloseButton.setActionListener((button, mouseButton) -> this.closeItemPicker());
+        this.pickerSortButton.setTextCentered(true);
+        this.pickerSortButton.setActionListener((button, mouseButton) -> this.cyclePickerSortMode());
+        this.updatePickerSortButton();
         this.backButton.setDisplayString(StringUtils.translate("lmlp.gui.button.item_id_picker.close"));
         this.backButton.setTextCentered(true);
         this.backButton.setActionListener((button, mouseButton) -> this.closeEditor());
@@ -91,6 +96,7 @@ public class GuiItemIdStringListEdit extends GuiListBase<String, WidgetItemIdStr
         this.pickerTarget = target;
         this.pickerOpen = true;
         this.pickerSearchFocused = true;
+        this.updatePickerSortButton();
         this.updateFilteredCandidates();
     }
 
@@ -265,7 +271,9 @@ public class GuiItemIdStringListEdit extends GuiListBase<String, WidgetItemIdStr
         this.draggingPickerScrollbar = false;
         this.pickerScrollBar.setIsDragging(false);
     }
+
     private void reloadCandidates() {
+        Map<String, Integer> creativeOrder = CreativeItemOrderResolver.createOrder();
         Map<String, Candidate> byId = new LinkedHashMap<>();
         for (EntryStack<?> entry : EntryRegistry.getInstance().getPreFilteredList()) {
             class_1799 stack = asItemStack(entry);
@@ -273,12 +281,17 @@ public class GuiItemIdStringListEdit extends GuiListBase<String, WidgetItemIdStr
                 continue;
             }
             String id = ItemStackTexts.id(stack);
-            byId.putIfAbsent(id, new Candidate(stack.method_7972(), id, ItemStackTexts.name(stack)));
+            byId.putIfAbsent(id, new Candidate(
+                    stack.method_7972(),
+                    id,
+                    ItemStackTexts.name(stack),
+                    creativeOrder.getOrDefault(id, Integer.MAX_VALUE)
+            ));
         }
 
         this.allCandidates.clear();
         this.allCandidates.addAll(byId.values());
-        this.allCandidates.sort(Comparator.comparing(Candidate::id));
+        this.sortCandidates(this.allCandidates);
     }
 
     private void updateFilteredCandidates() {
@@ -291,6 +304,7 @@ public class GuiItemIdStringListEdit extends GuiListBase<String, WidgetItemIdStr
                 this.filteredCandidates.add(candidate);
             }
         }
+        this.sortCandidates(this.filteredCandidates);
         this.pickerScrollBar.setValue(0);
     }
 
@@ -299,6 +313,8 @@ public class GuiItemIdStringListEdit extends GuiListBase<String, WidgetItemIdStr
         this.hoveredStack = class_1799.field_8037;
         this.hoveredText = "";
         this.pickerCloseButton.setPosition(layout.right() - 96, layout.top() + 8);
+        this.pickerSortButton.setPosition(layout.left() + 70, layout.top() + 62);
+        this.updatePickerSortButton();
         this.pickerScrollBar.setMaxValue(Math.max(0, this.pickerContentHeight(layout) - layout.gridHeight()));
 
         RenderUtils.drawRect(0, 0, GuiUtils.getScaledWindowWidth(), GuiUtils.getScaledWindowHeight(), 0x66000000);
@@ -306,6 +322,7 @@ public class GuiItemIdStringListEdit extends GuiListBase<String, WidgetItemIdStr
         context.method_51433(this.textRenderer, StringUtils.translate("lmlp.gui.item_id_picker.title"), layout.left() + 10, layout.top() + 12, 0xFFFFFFFF, false);
         this.pickerCloseButton.render(mouseX, mouseY, false, context);
         this.renderPickerSearch(context, layout);
+        this.renderPickerSort(context, layout, mouseX, mouseY);
         this.renderPickerGrid(context, layout, mouseX, mouseY);
         if (this.pickerScrollBar.getMaxValue() > 0) {
             this.pickerScrollBar.render(mouseX, mouseY, delta, layout.scrollbarX(), layout.gridTop(), 8, layout.gridHeight(), this.pickerContentHeight(layout));
@@ -323,6 +340,12 @@ public class GuiItemIdStringListEdit extends GuiListBase<String, WidgetItemIdStr
         context.method_44379(fieldX + 4, y + 2, fieldX + fieldWidth - 4, y + 18);
         context.method_51433(this.textRenderer, shown, fieldX + 4, y + 6, color, false);
         context.method_44380();
+    }
+
+    private void renderPickerSort(class_332 context, PickerLayout layout, int mouseX, int mouseY) {
+        int y = layout.top() + 62;
+        context.method_51433(this.textRenderer, StringUtils.translate("lmlp.gui.item_id_picker.sort"), layout.left() + 10, y + 6, 0xFFE0E0E0, false);
+        this.pickerSortButton.render(mouseX, mouseY, this.pickerSortButton.isMouseOver(), context);
     }
 
     private void renderPickerGrid(class_332 context, PickerLayout layout, int mouseX, int mouseY) {
@@ -365,6 +388,9 @@ public class GuiItemIdStringListEdit extends GuiListBase<String, WidgetItemIdStr
         PickerLayout layout = this.pickerLayout();
         this.pickerSearchFocused = this.isPickerSearchHovered(layout, mouseX, mouseY);
         if (this.pickerCloseButton.onMouseClicked((int) mouseX, (int) mouseY, button)) {
+            return true;
+        }
+        if (this.pickerSortButton.onMouseClicked((int) mouseX, (int) mouseY, button)) {
             return true;
         }
 
@@ -414,14 +440,14 @@ public class GuiItemIdStringListEdit extends GuiListBase<String, WidgetItemIdStr
     }
 
     private PickerLayout pickerLayout() {
-        int width = Math.min(430, Math.max(320, GuiUtils.getScaledWindowWidth() - 160));
-        int height = Math.min(330, Math.max(250, GuiUtils.getScaledWindowHeight() - 120));
+        int width = Math.min(460, Math.max(340, GuiUtils.getScaledWindowWidth() - 160));
+        int height = Math.min(370, Math.max(280, GuiUtils.getScaledWindowHeight() - 120));
         int left = Math.max(10, (GuiUtils.getScaledWindowWidth() - width) / 2);
         int top = Math.max(10, (GuiUtils.getScaledWindowHeight() - height) / 2);
         int gridLeft = left + 10;
-        int gridTop = top + 70;
+        int gridTop = top + 94;
         int gridWidth = width - 30;
-        int gridHeight = height - 84;
+        int gridHeight = Math.max(80, height - 108);
         int columns = Math.max(1, (gridWidth - 8) / (PICKER_SLOT + PICKER_SLOT_GAP));
         return new PickerLayout(left, top, width, height, gridLeft, gridTop, gridWidth, gridHeight, columns);
     }
@@ -443,7 +469,8 @@ public class GuiItemIdStringListEdit extends GuiListBase<String, WidgetItemIdStr
             return -1;
         }
 
-        int index = row * layout.columns() + column;
+        int index = row * layout.columns();
+        index += column;
         return index >= 0 && index < this.filteredCandidates.size() ? index : -1;
     }
 
@@ -458,6 +485,44 @@ public class GuiItemIdStringListEdit extends GuiListBase<String, WidgetItemIdStr
         return rows * layout.cellStride() + 8;
     }
 
+    private void sortCandidates(List<Candidate> candidates) {
+        candidates.sort(this.candidateComparator());
+    }
+
+    private Comparator<Candidate> candidateComparator() {
+        return switch (pickerSortMode) {
+            case CREATIVE -> Comparator
+                    .comparingInt(Candidate::creativeOrder)
+                    .thenComparingInt(GuiItemIdStringListEdit::namespacePriority)
+                    .thenComparing(Candidate::namespace)
+                    .thenComparing(Candidate::path)
+                    .thenComparing(Candidate::id);
+            case NAME -> Comparator
+                    .comparing((Candidate candidate) -> candidate.name().toLowerCase(Locale.ROOT))
+                    .thenComparing(Candidate::id);
+            case NAMESPACE -> Comparator
+                    .comparingInt(GuiItemIdStringListEdit::namespacePriority)
+                    .thenComparing(Candidate::namespace)
+                    .thenComparing(Candidate::path)
+                    .thenComparing(Candidate::id);
+            case REGISTRY_ID -> Comparator.comparing(Candidate::id);
+        };
+    }
+
+    private static int namespacePriority(Candidate candidate) {
+        return "minecraft".equals(candidate.namespace()) ? 0 : 1;
+    }
+
+    private void updatePickerSortButton() {
+        this.pickerSortButton.setDisplayString(StringUtils.translate("lmlp.gui.item_id_picker.sort_mode." + pickerSortMode.key));
+    }
+
+    private void cyclePickerSortMode() {
+        pickerSortMode = pickerSortMode.next();
+        this.updatePickerSortButton();
+        this.updateFilteredCandidates();
+    }
+
     private static class_1799 asItemStack(EntryStack<?> stack) {
         try {
             class_1799 itemStack = stack.cheatsAs().getValue();
@@ -467,7 +532,34 @@ public class GuiItemIdStringListEdit extends GuiListBase<String, WidgetItemIdStr
         }
     }
 
-    private record Candidate(class_1799 stack, String id, String name) {
+    private enum SortMode {
+        CREATIVE("creative"),
+        NAME("name"),
+        NAMESPACE("namespace"),
+        REGISTRY_ID("registry_id");
+
+        private final String key;
+
+        SortMode(String key) {
+            this.key = key;
+        }
+
+        private SortMode next() {
+            SortMode[] values = values();
+            return values[(this.ordinal() + 1) % values.length];
+        }
+    }
+
+    private record Candidate(class_1799 stack, String id, String name, int creativeOrder) {
+        private String namespace() {
+            int separator = this.id.indexOf(':');
+            return separator > 0 ? this.id.substring(0, separator) : "minecraft";
+        }
+
+        private String path() {
+            int separator = this.id.indexOf(':');
+            return separator >= 0 && separator < this.id.length() - 1 ? this.id.substring(separator + 1) : this.id;
+        }
     }
 
     private record PickerLayout(int left, int top, int width, int height, int gridLeft, int gridTop, int gridWidth, int gridHeight, int columns) {
