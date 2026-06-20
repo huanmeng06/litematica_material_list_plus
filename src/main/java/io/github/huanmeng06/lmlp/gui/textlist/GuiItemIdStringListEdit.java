@@ -20,6 +20,7 @@ import net.minecraft.class_332;
 import net.minecraft.class_437;
 import org.lwjgl.glfw.GLFW;
 
+import java.text.Collator;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -37,10 +38,16 @@ public class GuiItemIdStringListEdit extends GuiListBase<String, WidgetItemIdStr
     private static final int PICKER_WHEEL_PIXELS = 28;
     private static final int PICKER_SORT_WIDTH = 138;
     private static SortMode pickerSortMode = SortMode.CREATIVE;
+    private static final Collator NAME_COLLATOR = Collator.getInstance(Locale.getDefault());
+
+    static {
+        NAME_COLLATOR.setStrength(Collator.PRIMARY);
+    }
 
     private final IConfigStringList config;
     private final IConfigGui configGui;
     private final IDialogHandler dialogHandler;
+    private final List<String> editorEntries = new ArrayList<>();
     private final GuiScrollBar pickerScrollBar = new GuiScrollBar();
     private final ButtonGeneric pickerCloseButton = new ButtonGeneric(0, 0, 92, 20, "");
     private final ButtonGeneric pickerSortButton = new ButtonGeneric(0, 0, PICKER_SORT_WIDTH, 20, "");
@@ -65,6 +72,7 @@ public class GuiItemIdStringListEdit extends GuiListBase<String, WidgetItemIdStr
         this.config = config;
         this.configGui = configGui;
         this.dialogHandler = dialogHandler;
+        this.editorEntries.addAll(config.getStrings());
         this.title = StringUtils.translate("malilib.gui.title.string_list_edit", config.getName());
         this.pickerCloseButton.setDisplayString(StringUtils.translate("lmlp.gui.button.item_id_picker.close"));
         this.pickerCloseButton.setTextCentered(true);
@@ -82,6 +90,10 @@ public class GuiItemIdStringListEdit extends GuiListBase<String, WidgetItemIdStr
 
     public IConfigStringList getConfig() {
         return this.config;
+    }
+
+    List<String> getEditorEntries() {
+        return this.editorEntries;
     }
 
     void setHoveredText(String text) {
@@ -131,11 +143,7 @@ public class GuiItemIdStringListEdit extends GuiListBase<String, WidgetItemIdStr
 
     @Override
     public void method_25432() {
-        WidgetListItemIdStringListEdit list = this.getListWidget();
-        if (list.wereConfigsModified()) {
-            list.applyPendingModifications();
-            ConfigManager.getInstance().onConfigsChanged(this.configGui.getModId());
-        }
+        this.saveEditorEntries();
         super.method_25432();
     }
 
@@ -226,7 +234,7 @@ public class GuiItemIdStringListEdit extends GuiListBase<String, WidgetItemIdStr
             return this.onPickerKeyPressed(keyCode, scanCode, modifiers);
         }
         if (keyCode == GLFW.GLFW_KEY_ESCAPE && this.dialogHandler != null) {
-            this.dialogHandler.closeDialog();
+            this.closeEditor();
             return true;
         }
         return super.onKeyTyped(keyCode, scanCode, modifiers);
@@ -258,11 +266,22 @@ public class GuiItemIdStringListEdit extends GuiListBase<String, WidgetItemIdStr
     }
 
     private void closeEditor() {
+        this.saveEditorEntries();
         if (this.dialogHandler != null) {
             this.dialogHandler.closeDialog();
         } else {
             this.closeGui(true);
         }
+    }
+
+    private void saveEditorEntries() {
+        WidgetListItemIdStringListEdit list = this.getListWidget();
+        if (list != null) {
+            list.applyPendingModifications();
+        }
+
+        this.config.setStrings(new ArrayList<>(this.editorEntries));
+        ConfigManager.getInstance().onConfigsChanged(this.configGui.getModId());
     }
 
     private void closeItemPicker() {
@@ -275,18 +294,23 @@ public class GuiItemIdStringListEdit extends GuiListBase<String, WidgetItemIdStr
     private void reloadCandidates() {
         Map<String, Integer> creativeOrder = CreativeItemOrderResolver.createOrder();
         Map<String, Candidate> byId = new LinkedHashMap<>();
+        int originalIndex = 0;
         for (EntryStack<?> entry : EntryRegistry.getInstance().getPreFilteredList()) {
             class_1799 stack = asItemStack(entry);
             if (stack.method_7960()) {
                 continue;
             }
             String id = ItemStackTexts.id(stack);
+            String name = ItemStackTexts.name(stack);
             byId.putIfAbsent(id, new Candidate(
                     stack.method_7972(),
                     id,
-                    ItemStackTexts.name(stack),
-                    creativeOrder.getOrDefault(id, Integer.MAX_VALUE)
+                    name,
+                    normalizeDisplayName(name),
+                    creativeOrder.getOrDefault(id, Integer.MAX_VALUE),
+                    originalIndex
             ));
+            originalIndex++;
         }
 
         this.allCandidates.clear();
@@ -496,19 +520,43 @@ public class GuiItemIdStringListEdit extends GuiListBase<String, WidgetItemIdStr
                     .thenComparingInt(GuiItemIdStringListEdit::namespacePriority)
                     .thenComparing(Candidate::namespace)
                     .thenComparing(Candidate::path)
-                    .thenComparing(Candidate::id);
-            case NAME -> Comparator
-                    .comparing((Candidate candidate) -> candidate.name().toLowerCase(Locale.ROOT))
-                    .thenComparing(Candidate::id);
+                    .thenComparing(Candidate::id)
+                    .thenComparingInt(Candidate::originalIndex);
+            case NAME -> (a, b) -> {
+                int compare = NAME_COLLATOR.compare(a.normalizedName(), b.normalizedName());
+                if (compare != 0) {
+                    return compare;
+                }
+
+                compare = a.id().compareTo(b.id());
+                return compare != 0 ? compare : Integer.compare(a.originalIndex(), b.originalIndex());
+            };
             case NAMESPACE -> Comparator
                     .comparingInt(GuiItemIdStringListEdit::namespacePriority)
                     .thenComparing(Candidate::namespace)
                     .thenComparing(Candidate::path)
-                    .thenComparing(Candidate::id);
-            case REGISTRY_ID -> Comparator.comparing(Candidate::id);
+                    .thenComparing(Candidate::id)
+                    .thenComparingInt(Candidate::originalIndex);
+            case REGISTRY_ID -> Comparator
+                    .comparing(Candidate::id)
+                    .thenComparingInt(Candidate::originalIndex);
         };
     }
 
+    private static String normalizeDisplayName(String name) {
+        String raw = name == null ? "" : name;
+        StringBuilder builder = new StringBuilder(raw.length());
+        for (int i = 0; i < raw.length(); i++) {
+            char character = raw.charAt(i);
+            if (character == 167 && i + 1 < raw.length()) {
+                i++;
+                continue;
+            }
+            builder.append(character);
+        }
+
+        return builder.toString().trim().toLowerCase(Locale.ROOT);
+    }
     private static int namespacePriority(Candidate candidate) {
         return "minecraft".equals(candidate.namespace()) ? 0 : 1;
     }
@@ -550,7 +598,7 @@ public class GuiItemIdStringListEdit extends GuiListBase<String, WidgetItemIdStr
         }
     }
 
-    private record Candidate(class_1799 stack, String id, String name, int creativeOrder) {
+    private record Candidate(class_1799 stack, String id, String name, String normalizedName, int creativeOrder, int originalIndex) {
         private String namespace() {
             int separator = this.id.indexOf(':');
             return separator > 0 ? this.id.substring(0, separator) : "minecraft";

@@ -4,6 +4,7 @@ import fi.dy.masa.malilib.config.IConfigStringList;
 import fi.dy.masa.malilib.gui.widgets.WidgetListConfigOptionsBase;
 
 import java.util.Collection;
+import java.util.List;
 
 public class WidgetListItemIdStringListEdit extends WidgetListConfigOptionsBase<String, WidgetItemIdStringListEditEntry> {
     private final IConfigStringList config;
@@ -20,9 +21,23 @@ public class WidgetListItemIdStringListEdit extends WidgetListConfigOptionsBase<
         return this.config;
     }
 
+    List<String> getEntries() {
+        return this.editor.getEditorEntries();
+    }
+
+    void setEntryValue(int index, String value) {
+        List<String> entries = this.getEntries();
+        if (index >= 0 && index < entries.size()) {
+            entries.set(index, value);
+        }
+        if (index >= 0 && index < this.listContents.size()) {
+            this.listContents.set(index, value);
+        }
+    }
+
     @Override
     protected Collection<String> getAllEntries() {
-        return this.config.getStrings();
+        return this.editor.getEditorEntries();
     }
 
     @Override

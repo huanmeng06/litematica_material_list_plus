@@ -109,7 +109,7 @@ public class WidgetItemIdStringListEditEntry extends WidgetConfigOptionBase<Stri
         GuiTextFieldGeneric field = this.createTextField(x, y + 1, width, height - 3);
         field.method_1880(this.maxTextfieldTextLength);
         field.method_1852(value);
-        this.addTextField(field, new StableResetListener(new RowStringRepresentable(this.defaultValue), field, resetButton));
+        this.addTextField(field, new StableResetListener(new RowStringRepresentable(this.defaultValue), field, resetButton, this));
     }
 
     private void addSelectButton(int x, int y) {
@@ -137,6 +137,7 @@ public class WidgetItemIdStringListEditEntry extends WidgetConfigOptionBase<Stri
         this.addButton(button, (clickedButton, mouseButton) -> {
             if (this.textField != null) {
                 this.textField.getTextField().method_1852(this.defaultValue);
+                this.applyNewValueToConfig();
                 this.listWidget.markConfigsModified();
             }
         });
@@ -158,12 +159,9 @@ public class WidgetItemIdStringListEditEntry extends WidgetConfigOptionBase<Stri
             return;
         }
 
-        List<String> strings = this.listWidget.getConfig().getStrings();
-        if (strings.size() > this.listIndex) {
-            String value = this.currentText();
-            strings.set(this.listIndex, value);
-            this.lastAppliedValue = value;
-        }
+        String value = this.currentText();
+        this.listWidget.setEntryValue(this.listIndex, value);
+        this.lastAppliedValue = value;
     }
 
     @Override
@@ -195,7 +193,7 @@ public class WidgetItemIdStringListEditEntry extends WidgetConfigOptionBase<Stri
 
     private void insertEntryBefore() {
         this.listWidget.applyPendingModifications();
-        List<String> strings = this.listWidget.getConfig().getStrings();
+        List<String> strings = this.listWidget.getEntries();
         int size = strings.size();
         int index = this.listIndex < 0 || this.listIndex >= size ? size : this.listIndex;
         strings.add(index, "");
@@ -204,7 +202,8 @@ public class WidgetItemIdStringListEditEntry extends WidgetConfigOptionBase<Stri
     }
 
     private void removeEntry() {
-        List<String> strings = this.listWidget.getConfig().getStrings();
+        this.listWidget.applyPendingModifications();
+        List<String> strings = this.listWidget.getEntries();
         if (this.listIndex >= 0 && this.listIndex < strings.size()) {
             strings.remove(this.listIndex);
             this.listWidget.refreshEntries();
@@ -213,7 +212,8 @@ public class WidgetItemIdStringListEditEntry extends WidgetConfigOptionBase<Stri
     }
 
     private void moveEntry(boolean down) {
-        List<String> strings = this.listWidget.getConfig().getStrings();
+        this.listWidget.applyPendingModifications();
+        List<String> strings = this.listWidget.getEntries();
         int size = strings.size();
         if (this.listIndex < 0 || this.listIndex >= size) {
             return;
@@ -225,7 +225,6 @@ public class WidgetItemIdStringListEditEntry extends WidgetConfigOptionBase<Stri
         }
 
         this.listWidget.markConfigsModified();
-        this.listWidget.applyPendingModifications();
         String value = strings.get(this.listIndex);
         strings.set(this.listIndex, strings.get(next));
         strings.set(next, value);
@@ -233,17 +232,22 @@ public class WidgetItemIdStringListEditEntry extends WidgetConfigOptionBase<Stri
     }
 
     private boolean canBeMoved(boolean down) {
-        int size = this.listWidget.getConfig().getStrings().size();
+        int size = this.listWidget.getEntries().size();
         return this.listIndex >= 0 && this.listIndex < size && (down ? this.listIndex < size - 1 : this.listIndex > 0);
     }
 
     private static final class StableResetListener extends ConfigOptionChangeListenerTextField {
-        private StableResetListener(IStringRepresentable config, GuiTextFieldGeneric textField, ButtonBase resetButton) {
+        private final WidgetItemIdStringListEditEntry entry;
+
+        private StableResetListener(IStringRepresentable config, GuiTextFieldGeneric textField, ButtonBase resetButton, WidgetItemIdStringListEditEntry entry) {
             super(config, textField, resetButton);
+            this.entry = entry;
         }
 
         @Override
         public boolean onTextChange(GuiTextFieldGeneric textField) {
+            this.entry.applyNewValueToConfig();
+            this.entry.listWidget.markConfigsModified();
             return false;
         }
     }
