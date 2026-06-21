@@ -523,7 +523,6 @@ public class GuiItemIdStringListEdit extends GuiListBase<String, WidgetItemIdStr
             GuiTextFieldGeneric field = new GuiTextFieldGeneric(x, y, width, 20, this.textRenderer);
             field.method_1880(128);
             field.method_1852(this.pickerQuery);
-            field.method_1887(StringUtils.translate("lmlp.gui.item_id_picker.search_placeholder"));
             field.method_1863(value -> {
                 if (!this.pickerQuery.equals(value)) {
                     this.pickerQuery = value;
@@ -536,7 +535,6 @@ public class GuiItemIdStringListEdit extends GuiListBase<String, WidgetItemIdStr
         } else {
             this.pickerSearchField.method_46421(x);
             this.pickerSearchField.method_46419(y);
-            this.pickerSearchField.method_1887(StringUtils.translate("lmlp.gui.item_id_picker.search_placeholder"));
             this.pickerSearchField.method_25365(this.pickerSearchFocused);
         }
 
