@@ -14,7 +14,6 @@ import fi.dy.masa.malilib.util.StringUtils;
 import io.github.huanmeng06.lmlp.access.MinimalChoiceTooltipAccess;
 import io.github.huanmeng06.lmlp.access.WidgetListBoundsAccess;
 import io.github.huanmeng06.lmlp.config.Configs;
-import io.github.huanmeng06.lmlp.config.Hotkeys;
 import io.github.huanmeng06.lmlp.gui.MaterialListColumnLayout;
 import io.github.huanmeng06.lmlp.gui.MaterialListPlusState;
 import io.github.huanmeng06.lmlp.gui.ItemTooltipRenderer;
@@ -640,76 +639,6 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
                 && mouseY < y + height;
     }
 
-    private void renderMaterialHoverTooltip(class_332 drawContext, int mouseX, int mouseY, boolean detailed) {
-        class_1799 stack = MinimalSubMaterialListView.displayStack(this.entry);
-        String totalLabel = StringUtils.translate(detailed ? "litematica.gui.label.material_list.title.total" : "lmlp.label.recipe.total_short");
-        String missingLabel = StringUtils.translate(detailed ? "litematica.gui.label.material_list.title.missing" : "lmlp.label.recipe.missing_short");
-        String availableLabel = StringUtils.translate("litematica.gui.label.material_list.title.available");
-        String itemText = MinimalSubMaterialListView.displayName(this.entry);
-        int total = MinimalSubMaterialListView.total(this.entry, this.materialList);
-        int missing = MinimalSubMaterialListView.missing(this.entry, this.materialList);
-        int available = this.entry.getCountAvailable();
-        int maxPanelWidth = Math.max(80, this.mc.method_22683().method_4486() - HOVER_TOOLTIP_MARGIN * 2);
-        int maxTextWidth = Math.max(40, maxPanelWidth - HOVER_TOOLTIP_PADDING * 2);
-        int maxHeaderTextWidth = Math.max(20, maxTextWidth - HOVER_TOOLTIP_ICON_SIZE - HOVER_TOOLTIP_ICON_GAP);
-        String headerText = this.truncateToWidth(itemText, maxHeaderTextWidth);
-        String totalText = detailed ? CountFormatter.format(stack, total) : Integer.toString(total);
-        String missingText = detailed ? CountFormatter.format(stack, missing) : Integer.toString(missing);
-        String availableText = detailed ? CountFormatter.format(stack, available) : Integer.toString(available);
-        String countLine = missingLabel + ": " + missingText + " / " + availableLabel + ": " + availableText;
-        String availableLine = availableLabel + ": " + availableText;
-        String hintLine = detailed ? "" : GuiBase.TXT_YELLOW + GuiBase.TXT_ITALIC + StringUtils.translate("lmlp.label.hover.detail_hint", this.detailHoverKeyDisplayName()) + GuiBase.TXT_RST;
-
-        if (detailed) {
-            countLine = totalLabel + ": " + totalText;
-        }
-
-        countLine = this.truncateToWidth(countLine, maxTextWidth);
-        availableLine = this.truncateToWidth(availableLine, maxTextWidth);
-        hintLine = this.truncateToWidth(hintLine, maxTextWidth);
-        String missingLine = this.truncateToWidth(missingLabel + ": " + missingText, maxTextWidth);
-        int headerWidth = HOVER_TOOLTIP_ICON_SIZE + HOVER_TOOLTIP_ICON_GAP + this.getStringWidth(headerText);
-        int countWidth = this.getStringWidth(countLine);
-        int missingWidth = detailed ? this.getStringWidth(missingLine) : 0;
-        int availableWidth = detailed ? this.getStringWidth(availableLine) : 0;
-        int hintWidth = detailed ? 0 : this.getStringWidth(hintLine);
-        int panelWidth = Math.min(maxPanelWidth, Math.max(headerWidth, Math.max(countWidth, Math.max(missingWidth, Math.max(availableWidth, hintWidth)))) + HOVER_TOOLTIP_PADDING * 2);
-        int lineCount = detailed ? 4 : 3;
-        int panelHeight = HOVER_TOOLTIP_PADDING * 2 + Math.max(HOVER_TOOLTIP_ICON_SIZE, HOVER_TOOLTIP_LINE_HEIGHT) + HOVER_TOOLTIP_HEADER_GAP + (lineCount - 1) * HOVER_TOOLTIP_LINE_HEIGHT;
-
-        PanelBounds bounds = this.hoverTooltipBounds(mouseX, mouseY, panelWidth, panelHeight);
-        int panelX = bounds.x();
-        int panelY = bounds.y();
-        int lineX = panelX + HOVER_TOOLTIP_PADDING;
-        int lineY = panelY + HOVER_TOOLTIP_PADDING + 4;
-
-        drawContext.method_51448().method_22903();
-        drawContext.method_51448().method_46416(0.0F, 0.0F, 200.0F);
-        RenderUtils.drawOutlinedBox(panelX, panelY, panelWidth, panelHeight, 0xF0000000, 0xFF999999);
-
-        RenderUtils.drawRect(lineX, lineY - 4, HOVER_TOOLTIP_ICON_SIZE, HOVER_TOOLTIP_ICON_SIZE, 0x20FFFFFF);
-        RenderUtils.enableDiffuseLightingGui3D();
-        drawContext.method_51427(stack, lineX, lineY - 4);
-        RenderUtils.disableDiffuseLighting();
-        this.drawString(lineX + HOVER_TOOLTIP_ICON_SIZE + HOVER_TOOLTIP_ICON_GAP, lineY, 0xFFFFFFFF, headerText, drawContext);
-
-        lineY += HOVER_TOOLTIP_LINE_HEIGHT + HOVER_TOOLTIP_HEADER_GAP;
-        this.drawString(lineX, lineY, detailed ? 0xFFFFFFFF : missingColorInt(missing, available), countLine, drawContext);
-
-        if (detailed) {
-            lineY += HOVER_TOOLTIP_LINE_HEIGHT;
-            this.drawString(lineX, lineY, missingColorInt(missing, available), missingLine, drawContext);
-
-            lineY += HOVER_TOOLTIP_LINE_HEIGHT;
-            this.drawString(lineX, lineY, availableColorInt(available, missing), availableLine, drawContext);
-        } else {
-            lineY += HOVER_TOOLTIP_LINE_HEIGHT;
-            this.drawString(lineX, lineY, 0xFFFFFFFF, hintLine, drawContext);
-        }
-
-        drawContext.method_51448().method_22909();
-    }
-
     private void renderVanillaMaterialHoverTooltip(class_332 drawContext, int mouseX, int mouseY) {
         class_1799 stack = MinimalSubMaterialListView.displayStack(this.entry);
         String itemLabel = GuiBase.TXT_BOLD + StringUtils.translate("litematica.gui.label.material_list.title.item");
@@ -756,15 +685,6 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         drawContext.method_51427(stack, valueX, iconY);
         RenderUtils.disableDiffuseLighting();
         drawContext.method_51448().method_22909();
-    }
-
-    private boolean isDetailHoverKeyDown() {
-        return Hotkeys.SHOW_HOVER_DETAILS.getKeybind().isKeybindHeld();
-    }
-
-    private String detailHoverKeyDisplayName() {
-        String keyName = Hotkeys.SHOW_HOVER_DETAILS.getKeybind().getKeysDisplayString();
-        return keyName.isEmpty() ? StringUtils.translate("lmlp.label.hover.detail_key_unbound") : keyName;
     }
 
     private String formatVanillaCount(int count, int maxStackSize) {

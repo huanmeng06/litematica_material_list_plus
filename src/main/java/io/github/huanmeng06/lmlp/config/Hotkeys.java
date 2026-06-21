@@ -23,18 +23,9 @@ public final class Hotkeys {
             "lmlp.config.name.clear_origin_marker"
     );
 
-    public static final ConfigHotkey SHOW_HOVER_DETAILS = new ConfigHotkey(
-            "showHoverDetails",
-            "LEFT_ALT",
-            KeybindSettings.MODIFIER_GUI,
-            "Hold to show the detailed material hover tooltip.",
-            "lmlp.config.name.show_hover_details"
-    );
-
     public static final List<ConfigHotkey> HOTKEY_LIST = ImmutableList.of(
             OPEN_CONFIG_GUI,
-            CLEAR_ORIGIN_MARKER,
-            SHOW_HOVER_DETAILS
+            CLEAR_ORIGIN_MARKER
     );
 
     private Hotkeys() {
