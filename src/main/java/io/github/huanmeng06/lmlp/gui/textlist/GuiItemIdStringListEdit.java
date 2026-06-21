@@ -5,6 +5,7 @@ import fi.dy.masa.malilib.config.IConfigStringList;
 import fi.dy.masa.malilib.gui.GuiBase;
 import fi.dy.masa.malilib.gui.GuiListBase;
 import fi.dy.masa.malilib.gui.GuiScrollBar;
+import fi.dy.masa.malilib.gui.GuiTextFieldGeneric;
 import fi.dy.masa.malilib.gui.button.ButtonGeneric;
 import fi.dy.masa.malilib.gui.interfaces.IConfigGui;
 import fi.dy.masa.malilib.gui.interfaces.IDialogHandler;
@@ -55,15 +56,19 @@ public class GuiItemIdStringListEdit extends GuiListBase<String, WidgetItemIdStr
     private final List<Candidate> allCandidates = new ArrayList<>();
     private final List<Candidate> filteredCandidates = new ArrayList<>();
     private WidgetItemIdStringListEditEntry pickerTarget;
+    private GuiTextFieldGeneric pickerSearchField;
     private class_1799 hoveredStack = class_1799.field_8037;
     private String hoveredText = "";
     private String pickerQuery = "";
+    private int pickerSearchFieldWidth;
+    private int pickerSearchDragAnchor;
     private int dialogWidth;
     private int dialogHeight;
     private int dialogLeft;
     private int dialogTop;
     private boolean pickerOpen;
     private boolean pickerSearchFocused;
+    private boolean draggingPickerSearch;
     private boolean draggingPickerScrollbar;
     private double pickerScrollRemainder;
 
@@ -108,6 +113,9 @@ public class GuiItemIdStringListEdit extends GuiListBase<String, WidgetItemIdStr
         this.pickerTarget = target;
         this.pickerOpen = true;
         this.pickerSearchFocused = true;
+        if (this.pickerSearchField != null) {
+            this.pickerSearchField.method_25365(true);
+        }
         this.updatePickerSortButton();
         this.updateFilteredCandidates();
     }
@@ -200,11 +208,25 @@ public class GuiItemIdStringListEdit extends GuiListBase<String, WidgetItemIdStr
     @Override
     public boolean method_25406(double mouseX, double mouseY, int button) {
         if (this.pickerOpen) {
+            this.draggingPickerSearch = false;
             this.draggingPickerScrollbar = false;
             this.pickerScrollBar.setIsDragging(false);
             return true;
         }
         return super.method_25406(mouseX, mouseY, button);
+    }
+
+    @Override
+    public boolean method_25403(double mouseX, double mouseY, int button, double deltaX, double deltaY) {
+        if (this.pickerOpen) {
+            if (button == 0 && this.draggingPickerSearch) {
+                GuiTextFieldGeneric field = this.ensurePickerSearchField(this.pickerLayout());
+                field.method_25348(mouseX, mouseY);
+                field.method_1884(this.pickerSearchDragAnchor);
+            }
+            return true;
+        }
+        return super.method_25403(mouseX, mouseY, button, deltaX, deltaY);
     }
 
     @Override
@@ -218,11 +240,7 @@ public class GuiItemIdStringListEdit extends GuiListBase<String, WidgetItemIdStr
     @Override
     public boolean method_25400(char chr, int modifiers) {
         if (this.pickerOpen) {
-            if (this.pickerSearchFocused && chr >= 32) {
-                this.pickerQuery += chr;
-                this.updateFilteredCandidates();
-                return true;
-            }
+            this.ensurePickerSearchField(this.pickerLayout()).method_25400(chr, modifiers);
             return true;
         }
         return super.method_25400(chr, modifiers);
@@ -287,7 +305,12 @@ public class GuiItemIdStringListEdit extends GuiListBase<String, WidgetItemIdStr
     private void closeItemPicker() {
         this.pickerOpen = false;
         this.pickerTarget = null;
+        this.pickerSearchFocused = false;
+        this.draggingPickerSearch = false;
         this.draggingPickerScrollbar = false;
+        if (this.pickerSearchField != null) {
+            this.pickerSearchField.method_25365(false);
+        }
         this.pickerScrollBar.setIsDragging(false);
     }
 
@@ -337,7 +360,7 @@ public class GuiItemIdStringListEdit extends GuiListBase<String, WidgetItemIdStr
         this.hoveredStack = class_1799.field_8037;
         this.hoveredText = "";
         this.pickerCloseButton.setPosition(layout.right() - 96, layout.top() + 8);
-        this.pickerSortButton.setPosition(layout.left() + 70, layout.top() + 62);
+        this.pickerSortButton.setPosition(layout.gridLeft() + 60, this.pickerSortY(layout));
         this.updatePickerSortButton();
         this.pickerScrollBar.setMaxValue(Math.max(0, this.pickerContentHeight(layout) - layout.gridHeight()));
 
@@ -345,7 +368,7 @@ public class GuiItemIdStringListEdit extends GuiListBase<String, WidgetItemIdStr
         RenderUtils.drawOutlinedBox(layout.left(), layout.top(), layout.width(), layout.height(), 0xEE000000, 0xFFAAAAAA);
         context.method_51433(this.textRenderer, StringUtils.translate("lmlp.gui.item_id_picker.title"), layout.left() + 10, layout.top() + 12, 0xFFFFFFFF, false);
         this.pickerCloseButton.render(mouseX, mouseY, false, context);
-        this.renderPickerSearch(context, layout);
+        this.renderPickerSearch(context, layout, mouseX, mouseY, delta);
         this.renderPickerSort(context, layout, mouseX, mouseY);
         this.renderPickerGrid(context, layout, mouseX, mouseY);
         if (this.pickerScrollBar.getMaxValue() > 0) {
@@ -353,22 +376,14 @@ public class GuiItemIdStringListEdit extends GuiListBase<String, WidgetItemIdStr
         }
     }
 
-    private void renderPickerSearch(class_332 context, PickerLayout layout) {
-        int y = layout.top() + 38;
-        context.method_51433(this.textRenderer, StringUtils.translate("lmlp.gui.item_id_picker.search"), layout.left() + 10, y + 6, 0xFFE0E0E0, false);
-        int fieldX = layout.left() + 70;
-        int fieldWidth = layout.right() - fieldX - 12;
-        RenderUtils.drawOutlinedBox(fieldX, y, fieldWidth, 20, 0xDD000000, this.pickerSearchFocused ? 0xFFFFFF88 : 0xFF888888);
-        String shown = this.pickerQuery.isEmpty() ? StringUtils.translate("lmlp.gui.item_id_picker.search_placeholder") : this.pickerQuery;
-        int color = this.pickerQuery.isEmpty() ? 0xFFAAAAAA : 0xFFFFFFFF;
-        context.method_44379(fieldX + 4, y + 2, fieldX + fieldWidth - 4, y + 18);
-        context.method_51433(this.textRenderer, shown, fieldX + 4, y + 6, color, false);
-        context.method_44380();
+    private void renderPickerSearch(class_332 context, PickerLayout layout, int mouseX, int mouseY, float delta) {
+        context.method_51433(this.textRenderer, StringUtils.translate("lmlp.gui.item_id_picker.search"), layout.gridLeft(), layout.top() + 36, 0xFFE0E0E0, false);
+        this.ensurePickerSearchField(layout).method_48579(context, mouseX, mouseY, delta);
     }
 
     private void renderPickerSort(class_332 context, PickerLayout layout, int mouseX, int mouseY) {
-        int y = layout.top() + 62;
-        context.method_51433(this.textRenderer, StringUtils.translate("lmlp.gui.item_id_picker.sort"), layout.left() + 10, y + 6, 0xFFE0E0E0, false);
+        int y = this.pickerSortY(layout);
+        context.method_51433(this.textRenderer, StringUtils.translate("lmlp.gui.item_id_picker.sort"), layout.gridLeft(), y + 6, 0xFFE0E0E0, false);
         this.pickerSortButton.render(mouseX, mouseY, this.pickerSortButton.isMouseOver(), context);
     }
 
@@ -410,13 +425,22 @@ public class GuiItemIdStringListEdit extends GuiListBase<String, WidgetItemIdStr
 
     private boolean onPickerClicked(double mouseX, double mouseY, int button) {
         PickerLayout layout = this.pickerLayout();
-        this.pickerSearchFocused = this.isPickerSearchHovered(layout, mouseX, mouseY);
+        GuiTextFieldGeneric searchField = this.ensurePickerSearchField(layout);
         if (this.pickerCloseButton.onMouseClicked((int) mouseX, (int) mouseY, button)) {
             return true;
         }
         if (this.pickerSortButton.onMouseClicked((int) mouseX, (int) mouseY, button)) {
             return true;
         }
+        if (searchField.method_25402(mouseX, mouseY, button)) {
+            this.pickerSearchFocused = true;
+            this.draggingPickerSearch = button == 0 && searchField.isMouseOver((int) mouseX, (int) mouseY);
+            this.pickerSearchDragAnchor = searchField.method_1881();
+            return true;
+        }
+        this.pickerSearchFocused = false;
+        this.draggingPickerSearch = false;
+        searchField.method_25365(false);
 
         int index = this.pickerIndexAt(layout, mouseX, mouseY);
         if (index >= 0 && this.pickerTarget != null) {
@@ -437,18 +461,7 @@ public class GuiItemIdStringListEdit extends GuiListBase<String, WidgetItemIdStr
             this.closeItemPicker();
             return true;
         }
-        if (this.pickerSearchFocused) {
-            if (keyCode == GLFW.GLFW_KEY_BACKSPACE && !this.pickerQuery.isEmpty()) {
-                this.pickerQuery = this.pickerQuery.substring(0, this.pickerQuery.length() - 1);
-                this.updateFilteredCandidates();
-                return true;
-            }
-            if (keyCode == GLFW.GLFW_KEY_DELETE) {
-                this.pickerQuery = "";
-                this.updateFilteredCandidates();
-                return true;
-            }
-        }
+        this.ensurePickerSearchField(this.pickerLayout()).method_25404(keyCode, scanCode, modifiers);
         return true;
     }
 
@@ -468,11 +481,15 @@ public class GuiItemIdStringListEdit extends GuiListBase<String, WidgetItemIdStr
         int height = Math.min(370, Math.max(280, GuiUtils.getScaledWindowHeight() - 120));
         int left = Math.max(10, (GuiUtils.getScaledWindowWidth() - width) / 2);
         int top = Math.max(10, (GuiUtils.getScaledWindowHeight() - height) / 2);
-        int gridLeft = left + 10;
-        int gridTop = top + 94;
-        int gridWidth = width - 30;
-        int gridHeight = Math.max(80, height - 108);
-        int columns = Math.max(1, (gridWidth - 8) / (PICKER_SLOT + PICKER_SLOT_GAP));
+        int margin = 10;
+        int scrollbarWidth = 8;
+        int scrollbarGap = 6;
+        int gridLeft = left + margin;
+        int gridTop = top + 104;
+        int contentWidth = Math.max(PICKER_SLOT + 8, width - margin * 2 - scrollbarWidth - scrollbarGap);
+        int columns = Math.max(1, (contentWidth - 8 + PICKER_SLOT_GAP) / (PICKER_SLOT + PICKER_SLOT_GAP));
+        int gridWidth = Math.min(contentWidth, 8 + columns * PICKER_SLOT + (columns - 1) * PICKER_SLOT_GAP);
+        int gridHeight = Math.max(80, height - 118);
         return new PickerLayout(left, top, width, height, gridLeft, gridTop, gridWidth, gridHeight, columns);
     }
 
@@ -498,10 +515,40 @@ public class GuiItemIdStringListEdit extends GuiListBase<String, WidgetItemIdStr
         return index >= 0 && index < this.filteredCandidates.size() ? index : -1;
     }
 
-    private boolean isPickerSearchHovered(PickerLayout layout, double mouseX, double mouseY) {
-        int fieldX = layout.left() + 70;
-        int fieldY = layout.top() + 38;
-        return GuiBase.isMouseOver((int) mouseX, (int) mouseY, fieldX, fieldY, layout.right() - fieldX - 12, 20);
+    private GuiTextFieldGeneric ensurePickerSearchField(PickerLayout layout) {
+        int x = layout.gridLeft();
+        int y = this.pickerSearchY(layout);
+        int width = layout.gridWidth();
+        if (this.pickerSearchField == null || this.pickerSearchFieldWidth != width) {
+            GuiTextFieldGeneric field = new GuiTextFieldGeneric(x, y, width, 20, this.textRenderer);
+            field.method_1880(128);
+            field.method_1852(this.pickerQuery);
+            field.method_1887(StringUtils.translate("lmlp.gui.item_id_picker.search_placeholder"));
+            field.method_1863(value -> {
+                if (!this.pickerQuery.equals(value)) {
+                    this.pickerQuery = value;
+                    this.updateFilteredCandidates();
+                }
+            });
+            field.method_25365(this.pickerSearchFocused);
+            this.pickerSearchField = field;
+            this.pickerSearchFieldWidth = width;
+        } else {
+            this.pickerSearchField.method_46421(x);
+            this.pickerSearchField.method_46419(y);
+            this.pickerSearchField.method_1887(StringUtils.translate("lmlp.gui.item_id_picker.search_placeholder"));
+            this.pickerSearchField.method_25365(this.pickerSearchFocused);
+        }
+
+        return this.pickerSearchField;
+    }
+
+    private int pickerSearchY(PickerLayout layout) {
+        return layout.top() + 52;
+    }
+
+    private int pickerSortY(PickerLayout layout) {
+        return layout.top() + 78;
     }
 
     private int pickerContentHeight(PickerLayout layout) {
