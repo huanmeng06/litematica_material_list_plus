@@ -109,6 +109,11 @@ public final class AlternativeItemDisplay {
     }
 
     private static String directAlternativeName(List<class_1799> icons, List<String> alternatives) {
+        String coalCharcoalName = coalCharcoalName(icons, alternatives);
+        if (!coalCharcoalName.isEmpty()) {
+            return coalCharcoalName;
+        }
+
         if (isPurpurPair(icons)) {
             return StringUtils.translate("lmlp.label.recipe.any.purpur");
         }
@@ -128,6 +133,27 @@ public final class AlternativeItemDisplay {
         }
 
         return joiner.toString();
+    }
+
+    private static String coalCharcoalName(List<class_1799> icons, List<String> alternatives) {
+        if (icons.size() != 2 || icons.size() != alternatives.size()) {
+            return "";
+        }
+
+        String coal = "";
+        String charcoal = "";
+        for (int index = 0; index < icons.size(); index++) {
+            String id = ItemStackTexts.id(icons.get(index));
+            if (id.equals("minecraft:coal")) {
+                coal = alternatives.get(index);
+            } else if (id.equals("minecraft:charcoal")) {
+                charcoal = alternatives.get(index);
+            } else {
+                return "";
+            }
+        }
+
+        return coal.isEmpty() || charcoal.isEmpty() ? "" : charcoal + "/" + coal;
     }
 
     private static boolean isSandPair(List<class_1799> icons) {
