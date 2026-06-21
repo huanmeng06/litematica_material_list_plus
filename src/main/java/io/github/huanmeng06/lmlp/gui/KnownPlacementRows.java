@@ -95,9 +95,11 @@ public final class KnownPlacementRows {
             List<KnownPlacementContext> groupContexts = entry.getValue().stream()
                     .sorted(sortComparator(pageId))
                     .toList();
+            String animationKey = collapseKey(pageId, dimension);
             boolean expanded = !isCollapsed(pageId, dimension);
+            float progress = GROUP_ANIMATIONS.progress(animationKey, expanded);
             rows.add(KnownPlacementRow.header(pageId, dimension, displayName(dimension), expanded, groupContexts));
-            if (expanded) {
+            if (expanded || progress > 0.001F) {
                 for (KnownPlacementContext context : groupContexts) {
                     rows.add(KnownPlacementRow.placement(pageId, dimension, displayName(dimension), context));
                 }
@@ -136,6 +138,14 @@ public final class KnownPlacementRows {
         boolean nextExpanded = !expanded;
         COLLAPSED_GROUPS.put(key, !nextExpanded);
         GROUP_ANIMATIONS.start(key, startProgress, nextExpanded ? 1.0F : 0.0F);
+    }
+
+    public static boolean hasActiveGroupAnimations() {
+        return GROUP_ANIMATIONS.isActive();
+    }
+
+    public static void pruneGroupAnimations() {
+        GROUP_ANIMATIONS.prune();
     }
 
     public static List<String> filterStrings(KnownPlacementRow row) {
@@ -184,6 +194,19 @@ public final class KnownPlacementRows {
         GROUP_ANIMATIONS.prune();
     }
 
+    public static int rowHeight(KnownPlacementRow row) {
+        if (row == null || !row.isPlacement()) {
+            return ROW_HEIGHT;
+        }
+
+        float progress = groupProgress(row);
+        if (progress <= 0.001F) {
+            return 0;
+        }
+
+        return Math.max(1, Math.round(ROW_HEIGHT * progress));
+    }
+
     public static void renderTableHeader(WidgetBase widget, KnownPlacementRow row, int mouseX, int mouseY, class_332 drawContext) {
         RenderUtils.drawRect(widget.getX(), widget.getY(), widget.getWidth(), widget.getHeight(), ORIGINAL_HEADER_BACKGROUND);
         SortableHeaderRenderer renderer = SortableHeaderRenderer.create(widget, row);
@@ -219,7 +242,7 @@ public final class KnownPlacementRows {
     }
 
     public static void renderSelectedOutline(WidgetBase widget) {
-        RenderUtils.drawOutline(contentLeft(widget), widget.getY() + 1, widget.getWidth() - 2, widget.getHeight() - 2, 0xFFFFFFFF);
+        RenderUtils.drawOutline(contentLeft(widget), widget.getY() + 1, widget.getWidth() - 2, Math.max(0, Math.min(ROW_HEIGHT, widget.getHeight()) - 2), 0xFFFFFFFF);
     }
 
     public static void renderPlacementIcon(WidgetBase widget, float zLevel, class_332 drawContext) {
@@ -227,7 +250,7 @@ public final class KnownPlacementRows {
         widget.bindTexture(Icons.TEXTURE);
         Icons.SCHEMATIC_TYPE_FILE.renderAt(
                 widget.getX() + PLACEMENT_ICON_X,
-                widget.getY() + (widget.getHeight() - Icons.SCHEMATIC_TYPE_FILE.getHeight()) / 2,
+                widget.getY() + (ROW_HEIGHT - Icons.SCHEMATIC_TYPE_FILE.getHeight()) / 2,
                 zLevel,
                 false,
                 false);
@@ -360,7 +383,7 @@ public final class KnownPlacementRows {
     }
 
     public static int textY(WidgetBase widget) {
-        return widget.getY() + (widget.getHeight() - TEXT_HEIGHT) / 2;
+        return widget.getY() + (Math.max(widget.getHeight(), ROW_HEIGHT) - TEXT_HEIGHT) / 2;
     }
 
     public static int buttonY(int rowY) {
@@ -368,6 +391,10 @@ public final class KnownPlacementRows {
     }
 
     private static float arrowProgress(KnownPlacementRow row) {
+        return GROUP_ANIMATIONS.progress(collapseKey(row.pageId(), row.dimension()), row.expanded());
+    }
+
+    private static float groupProgress(KnownPlacementRow row) {
         return GROUP_ANIMATIONS.progress(collapseKey(row.pageId(), row.dimension()), row.expanded());
     }
 
@@ -849,10 +876,10 @@ public final class KnownPlacementRows {
     }
 
     public enum ReadStatus {
-        LIVE("lmlp.gui.known_placement.status.live", "lmlp.gui.known_placement.status.live_hint", 0xFF66CC66, 0),
+        LIVE("lmlp.gui.known_placement.status.live", "lmlp.gui.known_placement.status.live_hint", 0xFF33FF33, 0),
         CHUNK_CACHE("lmlp.gui.known_placement.status.chunk_cache", "lmlp.gui.known_placement.status.chunk_cache_hint", 0xFFFFCC66, 1),
         DIMENSION_CACHE("lmlp.gui.known_placement.status.dimension_cache", "lmlp.gui.known_placement.status.dimension_cache_hint", 0xFF66CCFF, 2),
-        OFFLINE("lmlp.gui.known_placement.status.offline_cache", "lmlp.gui.known_placement.status.offline_cache_hint", 0xFFFFAA66, 3);
+        OFFLINE("lmlp.gui.known_placement.status.offline_cache", "lmlp.gui.known_placement.status.offline_cache_hint", 0xFFFF9900, 3);
 
         private final String translationKey;
         private final String tooltipKey;

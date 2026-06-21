@@ -36,7 +36,7 @@ public class KnownPlacementListRowEntry extends WidgetListEntryBase<KnownPlaceme
             KnownPlacementRow row,
             int listIndex,
             WidgetListSchematicPlacements parent) {
-        super(x, y, width, KnownPlacementRows.ROW_HEIGHT, row, listIndex);
+        super(x, y, width, KnownPlacementRows.rowHeight(row), row, listIndex);
         this.row = row;
         this.parent = parent;
         this.isOdd = isOdd;
@@ -222,6 +222,11 @@ public class KnownPlacementListRowEntry extends WidgetListEntryBase<KnownPlaceme
         }
 
         KnownPlacementContext context = this.row.context();
+        if (this.height <= 0) {
+            return;
+        }
+
+        drawContext.method_44379(this.x, this.y, this.x + this.width, this.y + this.height);
         if (this.isMouseOver(mouseX, mouseY)) {
             RenderUtils.drawRect(this.x, this.y, this.width, this.height, 0xA0707070);
         } else if (this.isOdd) {
@@ -246,6 +251,7 @@ public class KnownPlacementListRowEntry extends WidgetListEntryBase<KnownPlaceme
         KnownPlacementRows.renderPlacementLine(this, this.zLevel, drawContext, line, color, nameHovered, context, originHovered);
 
         this.drawSubWidgets(mouseX, mouseY, drawContext);
+        drawContext.method_44380();
     }
 
     @Override
@@ -297,15 +303,28 @@ public class KnownPlacementListRowEntry extends WidgetListEntryBase<KnownPlaceme
 }
 
 class OfflineCacheMissingConfirmGui extends GuiConfirmAction {
+    private static final int INITIAL_DIALOG_WIDTH = 260;
+    private static final int MIN_DIALOG_WIDTH = 200;
+    private static final int MAX_DIALOG_WIDTH = 320;
+
     OfflineCacheMissingConfirmGui(KnownPlacementContext context, IConfirmationListener listener, class_437 parent) {
         super(
-                360,
+                INITIAL_DIALOG_WIDTH,
                 "lmlp.gui.title.offline_cache_not_found",
                 listener,
                 parent,
                 "lmlp.gui.confirm.offline_cache_not_found",
                 KnownPlacementRows.displayName(context.dimension()),
                 originText(context));
+        this.messageLines.clear();
+        this.messageLines.add(StringUtils.translate("lmlp.gui.confirm.offline_cache_not_found.line1"));
+        this.messageLines.add(StringUtils.translate(
+                "lmlp.gui.confirm.offline_cache_not_found.line2",
+                KnownPlacementRows.displayName(context.dimension()),
+                originText(context)));
+        this.messageLines.add(StringUtils.translate("lmlp.gui.confirm.offline_cache_not_found.line3"));
+        this.setWidthAndHeight(this.fittedDialogWidth(), this.getMessageHeight() + 50);
+        this.centerOnScreen();
     }
 
     @Override
@@ -331,5 +350,15 @@ class OfflineCacheMissingConfirmGui extends GuiConfirmAction {
         }
 
         return context.originPosition();
+    }
+
+    private int fittedDialogWidth() {
+        int width = this.getStringWidth(this.getTitleString()) + 20;
+        for (String line : this.messageLines) {
+            width = Math.max(width, this.getStringWidth(line) + 20);
+        }
+
+        width = Math.max(width, this.getButtonWidth() * 2 + 30);
+        return Math.max(MIN_DIALOG_WIDTH, Math.min(MAX_DIALOG_WIDTH, width));
     }
 }

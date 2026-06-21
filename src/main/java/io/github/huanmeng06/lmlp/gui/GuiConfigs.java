@@ -46,7 +46,7 @@ public class GuiConfigs extends GuiConfigsBase {
 
     @Override
     protected int getConfigWidth() {
-        if (currentTab == ConfigGuiTab.GENERIC || currentTab == ConfigGuiTab.HOTKEYS) {
+        if (currentTab == ConfigGuiTab.GENERIC || currentTab == ConfigGuiTab.HOTKEYS || currentTab == ConfigGuiTab.CONFIG_FORMS) {
             return 140;
         }
 
@@ -57,6 +57,7 @@ public class GuiConfigs extends GuiConfigsBase {
     public List<ConfigOptionWrapper> getConfigs() {
         Collection<? extends IConfigBase> configs = switch (currentTab) {
             case GENERIC -> Configs.Generic.OPTIONS;
+            case CONFIG_FORMS -> Configs.ConfigForms.OPTIONS;
             case HOTKEYS -> Hotkeys.HOTKEY_LIST;
         };
         return ConfigOptionWrapper.createFor(configs);
@@ -71,6 +72,7 @@ public class GuiConfigs extends GuiConfigsBase {
 
     private enum ConfigGuiTab {
         GENERIC("lmlp.gui.button.config_gui.generic"),
+        CONFIG_FORMS("lmlp.gui.button.config_gui.config_forms"),
         HOTKEYS("lmlp.gui.button.config_gui.hotkeys");
 
         private final String translationKey;
