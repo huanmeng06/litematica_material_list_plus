@@ -2,13 +2,20 @@
 
 这个 README 只记录 `dev-newFeature` 分支的开发过程和每个小版本做了什么。完整的项目介绍、安装说明、功能说明和截图展示放在 `main` 分支维护。
 
-当前正式版：`v1.6.27`
+当前正式版：`v1.6.28`
 
-当前构建：`1.6.27+mc1.20.6`
+当前构建：`1.6.28+mc1.20.6`
 
 适配目标：Minecraft `1.20.6` / Fabric / Litematica / MaLiLib / REI
 
 ## 版本说明
+
+### v1.6.28
+
+- HUD 开关改为全局单一状态：v1.6.26 的"placement 上下文级共享"仍依赖上下文键解析一致，而 `resolvePlacementForMaterialList` 会优先解析到 `selectedMaterialListContext`（可能与当前列表的 placement 不同），M+L 重开材料列表时可能换出另一个 placement 的列表实例导致键漂移、状态丢失。改为全局布尔后，HUD 开了就一直开着直到手动关掉，与实例/键/placement 完全解耦；修复切页面和 ESC 后 M+L 重开导致 HUD 关闭的问题。
+- HUD 开关切换和渲染器重同步增加 `[lmlp hud]` 日志，便于后续排查。
+- 同步 `fabric.mod.json` 和运行时 `MOD_VERSION` 到 `1.6.28+mc1.20.6`。
+- 构建产物改为 `1.6.28+mc1.20.6`。
 
 ### v1.6.27
 
