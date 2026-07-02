@@ -717,43 +717,64 @@ public final class KnownPlacementRows {
         }
 
         String firstLine;
-        StringBuilder remainder = new StringBuilder();
+        List<String> remainderSegments;
 
         if (schematicsIndex > 0) {
             firstLine = "~/" + segments.get(schematicsIndex - 1) + "/" + segments.get(schematicsIndex);
-            for (int i = schematicsIndex + 1; i < segments.size(); i++) {
-                remainder.append('/').append(segments.get(i));
-            }
+            remainderSegments = segments.subList(schematicsIndex + 1, segments.size());
         } else if (segments.size() > 2) {
             firstLine = "~/.../" + segments.get(segments.size() - 2);
-            remainder.append('/').append(segments.get(segments.size() - 1));
+            remainderSegments = segments.subList(segments.size() - 1, segments.size());
         } else {
             return normalized;
         }
 
         StringBuilder result = new StringBuilder(firstLine);
         int maxWidth = Math.max(widget.getStringWidth(firstLine), 120);
-        for (String wrappedLine : wrapToWidth(widget, remainder.toString(), maxWidth)) {
+        String pad = alignmentPad(widget);
+        for (String wrappedLine : wrapSegments(widget, remainderSegments, pad, maxWidth)) {
             result.append('\n').append(wrappedLine);
         }
 
         return result.toString();
     }
 
-    private static List<String> wrapToWidth(WidgetBase widget, String text, int maxWidth) {
-        List<String> lines = new ArrayList<>();
-        StringBuilder current = new StringBuilder();
-        for (int i = 0; i < text.length(); i++) {
-            current.append(text.charAt(i));
-            if (current.length() > 1 && widget.getStringWidth(current.toString()) > maxWidth) {
-                current.deleteCharAt(current.length() - 1);
-                lines.add(current.toString());
-                current.setLength(0);
-                current.append(text.charAt(i));
-            }
+    /**
+     * Spaces whose width best matches "~", so continuation lines' leading
+     * slash lines up under the slash in the first line's "~/".
+     */
+    private static String alignmentPad(WidgetBase widget) {
+        int target = widget.getStringWidth("~");
+        StringBuilder pad = new StringBuilder();
+        while (widget.getStringWidth(pad.toString()) < target) {
+            pad.append(' ');
         }
 
-        if (current.length() > 0) {
+        return pad.toString();
+    }
+
+    /**
+     * Greedily packs "/segment" tokens into lines no wider than maxWidth,
+     * never breaking inside a folder or file name. A single oversized token
+     * gets its own line.
+     */
+    private static List<String> wrapSegments(WidgetBase widget, List<String> segments, String pad, int maxWidth) {
+        List<String> lines = new ArrayList<>();
+        StringBuilder current = new StringBuilder(pad);
+        boolean lineEmpty = true;
+        for (String segment : segments) {
+            String token = "/" + segment;
+            if (!lineEmpty && widget.getStringWidth(current + token) > maxWidth) {
+                lines.add(current.toString());
+                current = new StringBuilder(pad);
+                lineEmpty = true;
+            }
+
+            current.append(token);
+            lineEmpty = false;
+        }
+
+        if (!lineEmpty) {
             lines.add(current.toString());
         }
 

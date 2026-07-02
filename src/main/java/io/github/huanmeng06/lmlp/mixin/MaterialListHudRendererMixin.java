@@ -6,6 +6,7 @@ import fi.dy.masa.malilib.config.HudAlignment;
 import io.github.huanmeng06.lmlp.gui.MinimalSubMaterialHudRenderer;
 import io.github.huanmeng06.lmlp.gui.MinimalSubMaterialListView;
 import io.github.huanmeng06.lmlp.material.CountFormatter;
+import io.github.huanmeng06.lmlp.material.MaterialListHudState;
 import net.minecraft.class_332;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -35,5 +36,24 @@ public abstract class MaterialListHudRendererMixin {
     @Overwrite
     protected String getFormattedCountString(int count, int maxStackSize) {
         return CountFormatter.format(count, maxStackSize);
+    }
+
+    /**
+     * @author Huan_meeng (lmlp)
+     * @reason Share the HUD toggle per placement context so the state survives
+     * the cache layer swapping in fresh MaterialListBase instances.
+     */
+    @Overwrite
+    public boolean getShouldRenderCustom() {
+        return MaterialListHudState.isEnabled(this.materialList);
+    }
+
+    /**
+     * @author Huan_meeng (lmlp)
+     * @reason Route the HUD toggle to the shared placement-scoped state.
+     */
+    @Overwrite
+    public void toggleShouldRender() {
+        MaterialListHudState.toggle(this.materialList);
     }
 }

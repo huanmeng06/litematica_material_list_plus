@@ -2,13 +2,21 @@
 
 这个 README 只记录 `dev-newFeature` 分支的开发过程和每个小版本做了什么。完整的项目介绍、安装说明、功能说明和截图展示放在 `main` 分支维护。
 
-当前正式版：`v1.6.25`
+当前正式版：`v1.6.26`
 
-当前构建：`1.6.25+mc1.20.6`
+当前构建：`1.6.26+mc1.20.6`
 
 适配目标：Minecraft `1.20.6` / Fabric / Litematica / MaLiLib / REI
 
 ## 版本说明
+
+### v1.6.26
+
+- 从机制上修复 HUD 开关跨页面/跨实例失效：HUD 开关状态由"材料列表实例级"改为"placement 上下文级"共享（`MaterialListHudState` 注册表 + `MaterialListHudRendererMixin` 重写 `getShouldRenderCustom`/`toggleShouldRender`），同一投影的任何列表实例读写同一状态，缓存层怎么替换实例都不再丢状态；移除 1.6.25 的逐点 transfer 方案。
+- 新增 `DataManagerMixin`：在 `DataManager.setMaterialList`（所有列表替换路径的统一必经点）同步 InfoHud 渲染器注册，保证 HUD 始终渲染当前实例的数据。
+- 文件路径悬停折行改为只在 `/` 处折行，保留完整文件夹名；后续行的 `/` 与第一行 `~/` 的 `/` 对齐。
+- 同步 `fabric.mod.json` 和运行时 `MOD_VERSION` 到 `1.6.26+mc1.20.6`。
+- 构建产物改为 `1.6.26+mc1.20.6`。
 
 ### v1.6.25
 
