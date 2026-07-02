@@ -2,13 +2,23 @@
 
 这个 README 只记录 `dev-newFeature` 分支的开发过程和每个小版本做了什么。完整的项目介绍、安装说明、功能说明和截图展示放在 `main` 分支维护。
 
-当前正式版：`v1.6.23`
+当前正式版：`v1.6.24`
 
-当前构建：`1.6.23+mc1.20.6`
+当前构建：`1.6.24+mc1.20.6`
 
 适配目标：Minecraft `1.20.6` / Fabric / Litematica / MaLiLib / REI
 
 ## 版本说明
+
+### v1.6.24
+
+- 「投影文件名称」列悬停提示改为多行相对路径：无论文件名是否被截断都会显示，第一行为 `~/<实例版本文件夹>/schematics`，第二行为 schematics 之后的相对位置；路径中找不到 `schematics` 时回退为 `~/.../父目录` + 文件名两行。
+- 材料列表 HUD（「显示HUD」）的数量文本改为套用本模组 `countDisplayStyle` 配置的计数风格（盒/组/个等 4 种）。
+- 切换到最小子材料页面时，HUD 改为展示最小子材料列表（仅显示仍缺少的条目，按数量降序），标题由「材料列表」改为「最小子材料列表」；全部/渲染层页面 HUD 仍展示默认缺失材料列表。
+- HUD 开关状态在全部/渲染层/最小子材料三个页面间共享保持（同一材料列表共用同一个 HUD 渲染器）。
+- 新增 mixin `MaterialListHudRendererMixin` 和 HUD 渲染类 `MinimalSubMaterialHudRenderer`，新增语言键 `lmlp.hud.title.minimal_sub_material`。
+- 同步 `fabric.mod.json` 和运行时 `MOD_VERSION` 到 `1.6.24+mc1.20.6`。
+- 构建产物改为 `1.6.24+mc1.20.6`。
 
 ### v1.6.23
 

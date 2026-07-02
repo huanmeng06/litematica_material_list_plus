@@ -167,7 +167,7 @@ public class KnownPlacementListEntry extends WidgetSchematicPlacement {
             } else if (line.nameTooltipHovered(this, mouseX, mouseY)) {
                 lines.add(line.nameHoverText());
             } else if (line.fileHovered(this, mouseX, mouseY) && !line.fileHoverText().isEmpty()) {
-                lines.add(line.fileHoverText());
+                line.fileHoverText().lines().forEach(lines::add);
             } else if (PlacementOriginMarker.originHovered(this.context, line, this, mouseX, mouseY)) {
                 lines.add(StringUtils.translate("lmlp.gui.known_placement.origin_highlight_hint"));
             } else if (PlacementOriginMarker.disabledOriginHovered(this.context, line, this, mouseX, mouseY)) {

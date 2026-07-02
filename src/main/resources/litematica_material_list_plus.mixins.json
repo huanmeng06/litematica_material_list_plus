@@ -17,6 +17,7 @@
     "KeyCallbackHotkeysMixin",
     "SliderCallbackIntegerAccess",
     "MaterialListBaseMixin",
+    "MaterialListHudRendererMixin",
     "MaterialListPlacementMixin",
     "SchematicPlacementManagerMixin",
     "SchematicPlacementMixin",

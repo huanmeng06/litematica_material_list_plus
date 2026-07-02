@@ -699,19 +699,8 @@ public final class KnownPlacementRows {
     }
 
     private static String shortenPath(String absolutePath) {
-        String userHome = System.getProperty("user.home");
         String normalized = absolutePath.replace('\\', '/');
-        String display = normalized;
-        if (userHome != null && !userHome.isEmpty()) {
-            String normalizedHome = userHome.replace('\\', '/');
-            if (normalized.startsWith(normalizedHome)) {
-                display = "~" + normalized.substring(normalizedHome.length());
-            }
-        }
-
-        boolean hasHomePrefix = display.startsWith("~");
-        String rest = hasHomePrefix ? display.substring(1) : display;
-        String[] parts = rest.split("/");
+        String[] parts = normalized.split("/");
         List<String> segments = new ArrayList<>();
         for (String part : parts) {
             if (!part.isEmpty()) {
@@ -719,14 +708,30 @@ public final class KnownPlacementRows {
             }
         }
 
+        int schematicsIndex = -1;
+        for (int i = segments.size() - 2; i >= 0; i--) {
+            if (segments.get(i).equalsIgnoreCase("schematics")) {
+                schematicsIndex = i;
+                break;
+            }
+        }
+
+        if (schematicsIndex > 0) {
+            String instanceName = segments.get(schematicsIndex - 1);
+            StringBuilder remainder = new StringBuilder();
+            for (int i = schematicsIndex + 1; i < segments.size(); i++) {
+                remainder.append('/').append(segments.get(i));
+            }
+            return "~/" + instanceName + "/" + segments.get(schematicsIndex) + "\n" + remainder;
+        }
+
         if (segments.size() <= 2) {
-            return display;
+            return normalized;
         }
 
         String parent = segments.get(segments.size() - 2);
         String fileName = segments.get(segments.size() - 1);
-        String prefix = hasHomePrefix ? "~" : "/" + segments.get(0);
-        return prefix + "/.../" + parent + "/" + fileName;
+        return "~/.../" + parent + "\n/" + fileName;
     }
 
     private static String originPosition(KnownPlacementContext context) {
@@ -812,7 +817,7 @@ public final class KnownPlacementRows {
         }
 
         public boolean fileHovered(WidgetBase widget, int mouseX, int mouseY) {
-            return this.fileTruncated && isTextHovered(widget, this.layout.fileX(), this.fileTextWidth, mouseX, mouseY);
+            return isTextHovered(widget, this.layout.fileX(), this.fileTextWidth, mouseX, mouseY);
         }
 
         public boolean statusHovered(WidgetBase widget, int mouseX, int mouseY) {
