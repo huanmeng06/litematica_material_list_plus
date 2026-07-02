@@ -10,3 +10,11 @@ out/
 *.log
 Thumbs.db
 .DS_Store
+
+# Local build scaffolding (not committed to GitHub)
+build.gradle
+settings.gradle
+gradle.properties
+gradlew
+gradlew.bat
+gradle/

@@ -275,6 +275,8 @@ public class KnownPlacementListRowEntry extends WidgetListEntryBase<KnownPlaceme
             List<String> lines = new ArrayList<>();
             if (line.statusHovered(this, mouseX, mouseY)) {
                 lines.addAll(line.status().tooltipLines());
+            } else if (line.nameTooltipHovered(this, mouseX, mouseY)) {
+                lines.add(line.nameHoverText());
             } else if (line.fileHovered(this, mouseX, mouseY) && !line.fileHoverText().isEmpty()) {
                 lines.add(line.fileHoverText());
             } else if (PlacementOriginMarker.originHovered(context, line, this, mouseX, mouseY)) {

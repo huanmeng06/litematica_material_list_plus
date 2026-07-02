@@ -261,7 +261,9 @@ public final class KnownPlacementRows {
         int statusTextWidth = status == null ? 0 : widget.getStringWidth(status.text());
         ColumnLayout columns = computeColumns(widget, pageId);
         PlacementLineLayout layout = columns.placementLineLayout();
-        String nameText = truncateToWidth(widget, placementName == null ? "" : placementName, layout.nameWidth());
+        String fullName = placementName == null ? "" : placementName;
+        String nameText = truncateToWidth(widget, fullName, layout.nameWidth());
+        boolean nameTruncated = !nameText.equals(fullName);
         String fileName = schematicDisplayName(context);
         String fileText = truncateToWidth(widget, fileName, layout.fileWidth());
         boolean fileTruncated = !fileText.equals(fileName);
@@ -273,6 +275,8 @@ public final class KnownPlacementRows {
                 layout,
                 nameText,
                 widget.getStringWidth(nameText),
+                nameTruncated,
+                fullName,
                 fileText,
                 widget.getStringWidth(fileText),
                 fileTruncated,
@@ -688,10 +692,41 @@ public final class KnownPlacementRows {
         }
 
         if (!context.schematicPath().isEmpty()) {
-            return context.schematicPath();
+            return shortenPath(context.schematicPath());
         }
 
         return schematicDisplayName(context);
+    }
+
+    private static String shortenPath(String absolutePath) {
+        String userHome = System.getProperty("user.home");
+        String normalized = absolutePath.replace('\\', '/');
+        String display = normalized;
+        if (userHome != null && !userHome.isEmpty()) {
+            String normalizedHome = userHome.replace('\\', '/');
+            if (normalized.startsWith(normalizedHome)) {
+                display = "~" + normalized.substring(normalizedHome.length());
+            }
+        }
+
+        boolean hasHomePrefix = display.startsWith("~");
+        String rest = hasHomePrefix ? display.substring(1) : display;
+        String[] parts = rest.split("/");
+        List<String> segments = new ArrayList<>();
+        for (String part : parts) {
+            if (!part.isEmpty()) {
+                segments.add(part);
+            }
+        }
+
+        if (segments.size() <= 2) {
+            return display;
+        }
+
+        String parent = segments.get(segments.size() - 2);
+        String fileName = segments.get(segments.size() - 1);
+        String prefix = hasHomePrefix ? "~" : "/" + segments.get(0);
+        return prefix + "/.../" + parent + "/" + fileName;
     }
 
     private static String originPosition(KnownPlacementContext context) {
@@ -757,6 +792,8 @@ public final class KnownPlacementRows {
             PlacementLineLayout layout,
             String nameText,
             int nameTextWidth,
+            boolean nameTruncated,
+            String nameHoverText,
             String fileText,
             int fileTextWidth,
             boolean fileTruncated,
@@ -768,6 +805,10 @@ public final class KnownPlacementRows {
             int statusTextWidth) {
         public boolean nameHovered(WidgetBase widget, int mouseX, int mouseY) {
             return isTextHovered(widget, this.layout.nameX(), this.nameTextWidth, mouseX, mouseY);
+        }
+
+        public boolean nameTooltipHovered(WidgetBase widget, int mouseX, int mouseY) {
+            return this.nameTruncated && isTextHovered(widget, this.layout.nameX(), this.nameTextWidth, mouseX, mouseY);
         }
 
         public boolean fileHovered(WidgetBase widget, int mouseX, int mouseY) {
