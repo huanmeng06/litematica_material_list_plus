@@ -4,10 +4,12 @@ import fi.dy.masa.litematica.materials.MaterialListEntry;
 import io.github.huanmeng06.lmlp.access.MaterialListSourceAccess;
 import io.github.huanmeng06.lmlp.cache.ChunkMissingMaterialListCache;
 import io.github.huanmeng06.lmlp.cache.MaterialListDataSource;
+import io.github.huanmeng06.lmlp.material.WaterBucketIceSubstitution;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.util.List;
@@ -25,6 +27,11 @@ public abstract class MaterialListBaseMixin implements MaterialListSourceAccess 
     @Override
     public void lmlp$setDataSource(MaterialListDataSource dataSource) {
         this.lmlp$dataSource = dataSource;
+    }
+
+    @ModifyVariable(method = "setMaterialListEntries", at = @At("HEAD"), argsOnly = true)
+    private List<MaterialListEntry> lmlp$applyMaterialSubstitutions(List<MaterialListEntry> entries) {
+        return WaterBucketIceSubstitution.apply(entries);
     }
 
     @Inject(method = "setMaterialListEntries", at = @At("TAIL"))

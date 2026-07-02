@@ -109,11 +109,19 @@ public class Configs implements IConfigHandler {
                 "Items in this list are treated as base materials. Use {color} to match all 16 Minecraft colors, for example minecraft:{color}_wool."
         );
 
+        public static final ConfigBoolean REPLACE_WATER_BUCKET_WITH_ICE = new ConfigBoolean(
+                "replaceWaterBucketWithIce",
+                false,
+                "When enabled, water buckets required by the material list are shown and counted as ice instead, one ice per bucket.",
+                "lmlp.config.name.replace_water_bucket_with_ice"
+        );
+
         public static final List<IConfigBase> OPTIONS = ImmutableList.of(
                 DISABLE_LITEMATICA_HOVER_TOOLTIP,
                 COUNT_DISPLAY_STYLE,
                 ORIGIN_MARKER_TIME,
-                ORIGIN_MARKER_TEXT_SCALE
+                ORIGIN_MARKER_TEXT_SCALE,
+                REPLACE_WATER_BUCKET_WITH_ICE
         );
 
         private Generic() {
@@ -131,6 +139,7 @@ public class Configs implements IConfigHandler {
 
     static {
         Generic.RECIPE_STOP_ITEMS.setValueChangeCallback(config -> MaterialListPlusState.clearRecipeCaches());
+        Generic.REPLACE_WATER_BUCKET_WITH_ICE.setValueChangeCallback(config -> MaterialListPlusState.clearRecipeCaches());
     }
 
     public static void loadFromFile() {
