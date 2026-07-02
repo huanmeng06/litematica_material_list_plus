@@ -2,13 +2,20 @@
 
 这个 README 只记录 `dev-newFeature` 分支的开发过程和每个小版本做了什么。完整的项目介绍、安装说明、功能说明和截图展示放在 `main` 分支维护。
 
-当前正式版：`v1.6.26`
+当前正式版：`v1.6.27`
 
-当前构建：`1.6.26+mc1.20.6`
+当前构建：`1.6.27+mc1.20.6`
 
 适配目标：Minecraft `1.20.6` / Fabric / Litematica / MaLiLib / REI
 
 ## 版本说明
+
+### v1.6.27
+
+- 页面切换触发"已计划任务"（方块统计扫描）完成写回材料列表后，按记住的 placement 级 HUD 状态自动重新同步 InfoHud 渲染器注册（`MaterialListHudState.resyncAfterScan`，挂在 `setMaterialListEntries` 世界扫描写回之后），HUD 开关不再被任务完成流程重置。
+- `syncCurrentList` 改用 `disableIfEmpty=false` 移除旧渲染器，避免重同步的间隙把 InfoHud 全局 enabled 关掉。
+- 同步 `fabric.mod.json` 和运行时 `MOD_VERSION` 到 `1.6.27+mc1.20.6`。
+- 构建产物改为 `1.6.27+mc1.20.6`。
 
 ### v1.6.26
 

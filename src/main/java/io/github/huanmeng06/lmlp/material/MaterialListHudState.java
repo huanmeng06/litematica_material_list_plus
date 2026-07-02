@@ -1,5 +1,6 @@
 package io.github.huanmeng06.lmlp.material;
 
+import fi.dy.masa.litematica.data.DataManager;
 import fi.dy.masa.litematica.materials.MaterialListBase;
 import fi.dy.masa.litematica.materials.MaterialListHudRenderer;
 import fi.dy.masa.litematica.render.infohud.InfoHud;
@@ -55,6 +56,8 @@ public final class MaterialListHudState {
     /**
      * Keeps InfoHud pointing at the current list instance's renderer so the
      * HUD keeps rendering (with fresh data) after the active list is swapped.
+     * Uses disableIfEmpty=false so re-syncing never flips InfoHud's global
+     * enabled flag off in the window between remove and add.
      */
     public static void syncCurrentList(MaterialListBase materialList) {
         if (materialList == null) {
@@ -62,10 +65,20 @@ public final class MaterialListHudState {
         }
 
         MaterialListHudRenderer renderer = materialList.getHudRenderer();
-        InfoHud.getInstance().removeInfoHudRenderersOfType(renderer.getClass(), true);
+        InfoHud.getInstance().removeInfoHudRenderersOfType(renderer.getClass(), false);
         if (isEnabled(materialList)) {
             InfoHud.getInstance().addInfoHudRenderer(renderer, true);
         }
+    }
+
+    /**
+     * Re-applies the remembered HUD state after a scheduled scan task wrote
+     * its results back: the task ran against the list instance that was
+     * current at schedule time, which may have been replaced since.
+     */
+    public static void resyncAfterScan(MaterialListBase taskList) {
+        MaterialListBase current = DataManager.getMaterialList();
+        syncCurrentList(current != null ? current : taskList);
     }
 
     private static String keyFor(MaterialListBase materialList) {

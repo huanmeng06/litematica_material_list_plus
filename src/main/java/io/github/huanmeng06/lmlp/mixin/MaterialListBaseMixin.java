@@ -4,6 +4,7 @@ import fi.dy.masa.litematica.materials.MaterialListEntry;
 import io.github.huanmeng06.lmlp.access.MaterialListSourceAccess;
 import io.github.huanmeng06.lmlp.cache.ChunkMissingMaterialListCache;
 import io.github.huanmeng06.lmlp.cache.MaterialListDataSource;
+import io.github.huanmeng06.lmlp.material.MaterialListHudState;
 import io.github.huanmeng06.lmlp.material.WaterBucketIceSubstitution;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
@@ -44,5 +45,6 @@ public abstract class MaterialListBaseMixin implements MaterialListSourceAccess 
         this.lmlp$setDataSource(MaterialListDataSource.WORLD_SCAN);
         ChunkMissingMaterialListCache.rememberIfPlacementList((fi.dy.masa.litematica.materials.MaterialListBase) (Object) this);
         ChunkMissingMaterialListCache.markLiveScanCompleted((fi.dy.masa.litematica.materials.MaterialListBase) (Object) this);
+        MaterialListHudState.resyncAfterScan((fi.dy.masa.litematica.materials.MaterialListBase) (Object) this);
     }
 }
