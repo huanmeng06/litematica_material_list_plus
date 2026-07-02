@@ -2,13 +2,20 @@
 
 这个 README 只记录 `dev-newFeature` 分支的开发过程和每个小版本做了什么。完整的项目介绍、安装说明、功能说明和截图展示放在 `main` 分支维护。
 
-当前正式版：`v1.6.24`
+当前正式版：`v1.6.25`
 
-当前构建：`1.6.24+mc1.20.6`
+当前构建：`1.6.25+mc1.20.6`
 
 适配目标：Minecraft `1.20.6` / Fabric / Litematica / MaLiLib / REI
 
 ## 版本说明
+
+### v1.6.25
+
+- 文件路径悬停提示：第二行（schematics 之后的相对位置）超过第一行宽度时自动按第一行宽度折行，不再出现超长单行。
+- 修复 HUD 开关状态在切换页面（全部/渲染层/最小子材料）时被重置的问题：页面切换或缓存刷新替换材料列表实例时，HUD 开启状态会随之迁移到新实例（新增 `MaterialListHudState.transfer`，接入 `ChunkMissingMaterialListCache` 的全部列表替换路径）。
+- 同步 `fabric.mod.json` 和运行时 `MOD_VERSION` 到 `1.6.25+mc1.20.6`。
+- 构建产物改为 `1.6.25+mc1.20.6`。
 
 ### v1.6.24
 

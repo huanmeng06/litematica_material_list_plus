@@ -280,7 +280,7 @@ public final class KnownPlacementRows {
                 fileText,
                 widget.getStringWidth(fileText),
                 fileTruncated,
-                schematicHoverText(context),
+                schematicHoverText(widget, context),
                 originText,
                 widget.getStringWidth(originText),
                 originTruncated,
@@ -686,19 +686,19 @@ public final class KnownPlacementRows {
         return StringUtils.translate("litematica.gui.label.schematic_placement.in_memory");
     }
 
-    private static String schematicHoverText(KnownPlacementContext context) {
+    private static String schematicHoverText(WidgetBase widget, KnownPlacementContext context) {
         if (context == null) {
             return "";
         }
 
         if (!context.schematicPath().isEmpty()) {
-            return shortenPath(context.schematicPath());
+            return shortenPath(widget, context.schematicPath());
         }
 
         return schematicDisplayName(context);
     }
 
-    private static String shortenPath(String absolutePath) {
+    private static String shortenPath(WidgetBase widget, String absolutePath) {
         String normalized = absolutePath.replace('\\', '/');
         String[] parts = normalized.split("/");
         List<String> segments = new ArrayList<>();
@@ -716,22 +716,48 @@ public final class KnownPlacementRows {
             }
         }
 
+        String firstLine;
+        StringBuilder remainder = new StringBuilder();
+
         if (schematicsIndex > 0) {
-            String instanceName = segments.get(schematicsIndex - 1);
-            StringBuilder remainder = new StringBuilder();
+            firstLine = "~/" + segments.get(schematicsIndex - 1) + "/" + segments.get(schematicsIndex);
             for (int i = schematicsIndex + 1; i < segments.size(); i++) {
                 remainder.append('/').append(segments.get(i));
             }
-            return "~/" + instanceName + "/" + segments.get(schematicsIndex) + "\n" + remainder;
-        }
-
-        if (segments.size() <= 2) {
+        } else if (segments.size() > 2) {
+            firstLine = "~/.../" + segments.get(segments.size() - 2);
+            remainder.append('/').append(segments.get(segments.size() - 1));
+        } else {
             return normalized;
         }
 
-        String parent = segments.get(segments.size() - 2);
-        String fileName = segments.get(segments.size() - 1);
-        return "~/.../" + parent + "\n/" + fileName;
+        StringBuilder result = new StringBuilder(firstLine);
+        int maxWidth = Math.max(widget.getStringWidth(firstLine), 120);
+        for (String wrappedLine : wrapToWidth(widget, remainder.toString(), maxWidth)) {
+            result.append('\n').append(wrappedLine);
+        }
+
+        return result.toString();
+    }
+
+    private static List<String> wrapToWidth(WidgetBase widget, String text, int maxWidth) {
+        List<String> lines = new ArrayList<>();
+        StringBuilder current = new StringBuilder();
+        for (int i = 0; i < text.length(); i++) {
+            current.append(text.charAt(i));
+            if (current.length() > 1 && widget.getStringWidth(current.toString()) > maxWidth) {
+                current.deleteCharAt(current.length() - 1);
+                lines.add(current.toString());
+                current.setLength(0);
+                current.append(text.charAt(i));
+            }
+        }
+
+        if (current.length() > 0) {
+            lines.add(current.toString());
+        }
+
+        return lines;
     }
 
     private static String originPosition(KnownPlacementContext context) {

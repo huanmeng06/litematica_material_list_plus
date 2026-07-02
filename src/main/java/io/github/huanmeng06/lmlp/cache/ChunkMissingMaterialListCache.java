@@ -29,6 +29,7 @@ import io.github.huanmeng06.lmlp.cache.WorldMaterialCacheIndex.LoadResult;
 import io.github.huanmeng06.lmlp.cache.WorldMaterialCacheIndex.PlacementRecord;
 import io.github.huanmeng06.lmlp.gui.IgnoredMaterialRegistry;
 import io.github.huanmeng06.lmlp.gui.MaterialListPlusState;
+import io.github.huanmeng06.lmlp.material.MaterialListHudState;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import net.minecraft.class_1923;
 import net.minecraft.class_2338;
@@ -103,6 +104,7 @@ public final class ChunkMissingMaterialListCache {
             list.reCreateMaterialList();
         }
 
+        MaterialListHudState.transfer(optionsSource, list);
         DataManager.setMaterialList(list);
         return list;
     }
@@ -204,7 +206,7 @@ public final class ChunkMissingMaterialListCache {
         PlacementContext context = resolution.context();
         if (context.isOfflineCache()) {
             logRoute(resolution, context, ReadMode.OFFLINE_CACHE);
-            return getOrCreateOffline(context, caller);
+            return MaterialListHudState.transfer(materialList, getOrCreateOffline(context, caller));
         }
 
         return refreshForPlacementState(resolution, materialList, false);
@@ -231,7 +233,7 @@ public final class ChunkMissingMaterialListCache {
                 return null;
             }
 
-            return getOrCreateOffline(context, caller + ".explicit_context");
+            return MaterialListHudState.transfer(materialList, getOrCreateOffline(context, caller + ".explicit_context"));
         }
 
         return refreshForPlacementState(resolution, materialList, false);
@@ -244,7 +246,7 @@ public final class ChunkMissingMaterialListCache {
         }
 
         if (resolution.context().isOfflineCache()) {
-            return getOrCreateOffline(resolution.context(), "refreshLastKnownPlacement");
+            return MaterialListHudState.transfer(materialList, getOrCreateOffline(resolution.context(), "refreshLastKnownPlacement"));
         }
 
         return refreshForPlacementState(resolution, materialList, false);
@@ -460,7 +462,7 @@ public final class ChunkMissingMaterialListCache {
         }
 
         if (materialList == null || placementFor(materialList) != placement) {
-            materialList = getOrCreatePlacementMaterialList(placement, materialList);
+            materialList = MaterialListHudState.transfer(materialList, getOrCreatePlacementMaterialList(placement, materialList));
         }
 
         DataManager.setMaterialList(materialList);
