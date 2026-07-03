@@ -48,6 +48,7 @@ public abstract class WidgetListBaseMixin implements WidgetListBoundsAccess {
     private static final int WHEEL_SCROLL_PIXELS = 36;
     private static final int BROWSER_BOTTOM_INSET = 8;
     private static final int MINIMAL_SOURCE_PANEL_SIDE_WIDTH = 50;
+    private static final int SEARCH_ICON_RESERVE = 20;
 
     private int lmlp$lastLayoutMultiplier = Integer.MIN_VALUE;
     private int lmlp$lastLayoutEntryCount = -1;
@@ -350,6 +351,9 @@ public abstract class WidgetListBaseMixin implements WidgetListBoundsAccess {
             return;
         }
 
+        // Reserve room for the search icon floating over the header row's
+        // top-right corner so a fully-fit column layout doesn't sit under it.
+        MaterialListColumnLayout.updateAvailableEntryWidth(this.totalWidth - 14 - SEARCH_ICON_RESERVE);
         this.browserWidth = Math.max(this.totalWidth, Math.max(MaterialListColumnLayout.requiredEntryWidth() + 14, this.lmlp$getRequiredMinimalSourceBrowserWidth()));
         this.browserEntryWidth = this.browserWidth - 14;
         this.lmlp$reCreateListEntryWidgetsByPixels();

@@ -153,17 +153,42 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
      */
     @Overwrite
     protected int getColumnPosX(int column) {
+        boolean totalVisible = MaterialListColumnLayout.isTotalVisible();
+        boolean missingVisible = MaterialListColumnLayout.isMissingVisible();
+        boolean availableVisible = MaterialListColumnLayout.isAvailableVisible();
+
         int xItem = this.x + 4;
-        int xTotal = xItem + MaterialListColumnLayout.nameWidth() + MaterialListColumnLayout.nameToTotalGap();
-        int xMissing = xTotal + MaterialListColumnLayout.totalWidth() + MaterialListColumnLayout.countColumnGap();
-        int xAvailable = xMissing + MaterialListColumnLayout.missingWidth() + MaterialListColumnLayout.countColumnGap();
+        int cursor = xItem + MaterialListColumnLayout.nameWidth();
+
+        int xTotal = cursor;
+        if (totalVisible) {
+            cursor += MaterialListColumnLayout.nameToTotalGap();
+            xTotal = cursor;
+            cursor += MaterialListColumnLayout.totalWidth();
+        }
+
+        int xMissing = cursor;
+        if (missingVisible) {
+            cursor += totalVisible ? MaterialListColumnLayout.countColumnGap() : MaterialListColumnLayout.nameToTotalGap();
+            xMissing = cursor;
+            cursor += MaterialListColumnLayout.missingWidth();
+        }
+
+        int xAvailable = cursor;
+        if (availableVisible) {
+            cursor += (totalVisible || missingVisible) ? MaterialListColumnLayout.countColumnGap() : MaterialListColumnLayout.nameToTotalGap();
+            xAvailable = cursor;
+            cursor += MaterialListColumnLayout.availableWidth();
+        }
+
+        int xEnd = cursor + ((totalVisible || missingVisible || availableVisible) ? MaterialListColumnLayout.countColumnGap() : MaterialListColumnLayout.nameToTotalGap());
 
         return switch (column) {
             case 0 -> xItem;
             case 1 -> xTotal;
             case 2 -> xMissing;
             case 3 -> xAvailable;
-            case 4 -> xAvailable + MaterialListColumnLayout.availableWidth() + MaterialListColumnLayout.countColumnGap();
+            case 4 -> xEnd;
             default -> xItem;
         };
     }
@@ -299,9 +324,15 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         if (this.header1 != null) {
             if (!this.listWidget.getSearchBarWidget().isSearchOpen()) {
                 this.drawString(xItem, yText, -1, this.header1, drawContext);
-                this.drawString(xTotal, yText, -1, this.header2, drawContext);
-                this.drawString(xMissing, yText, -1, this.header3, drawContext);
-                this.drawString(xAvailable, yText, -1, this.header4, drawContext);
+                if (MaterialListColumnLayout.isTotalVisible()) {
+                    this.drawString(xTotal, yText, -1, this.header2, drawContext);
+                }
+                if (MaterialListColumnLayout.isMissingVisible()) {
+                    this.drawString(xMissing, yText, -1, this.header3, drawContext);
+                }
+                if (MaterialListColumnLayout.isAvailableVisible()) {
+                    this.drawString(xAvailable, yText, -1, this.header4, drawContext);
+                }
                 this.renderColumnHeader(mouseX, mouseY, Icons.ARROW_DOWN, Icons.ARROW_UP);
             }
 
@@ -322,9 +353,15 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
 
         int iconX = xItem;
         this.drawString(xItem + 20, yText, -1, name, drawContext);
-        this.drawString(xTotal, yText, -1, CountFormatter.formatAligned(stack, total, lmlpMaxTotalDigits), drawContext);
-        this.drawString(xMissing, yText, -1, netMissingColor(missing) + CountFormatter.formatAligned(stack, missing, lmlpMaxMissingDigits), drawContext);
-        this.drawString(xAvailable, yText, -1, availableColor(available, rawMissing) + CountFormatter.formatAligned(stack, available, lmlpMaxAvailableDigits), drawContext);
+        if (MaterialListColumnLayout.isTotalVisible()) {
+            this.drawString(xTotal, yText, -1, CountFormatter.formatAligned(stack, total, lmlpMaxTotalDigits), drawContext);
+        }
+        if (MaterialListColumnLayout.isMissingVisible()) {
+            this.drawString(xMissing, yText, -1, netMissingColor(missing) + CountFormatter.formatAligned(stack, missing, lmlpMaxMissingDigits), drawContext);
+        }
+        if (MaterialListColumnLayout.isAvailableVisible()) {
+            this.drawString(xAvailable, yText, -1, availableColor(available, rawMissing) + CountFormatter.formatAligned(stack, available, lmlpMaxAvailableDigits), drawContext);
+        }
 
         drawContext.method_51448().method_22903();
         RenderUtils.enableDiffuseLightingGui3D();

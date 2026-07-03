@@ -21,6 +21,15 @@ public final class MaterialListColumnLayout {
     private static boolean animating;
     private static boolean animateShrinkForNextUpdate = true;
 
+    // Rows can't scroll horizontally, so when the window is narrower than the
+    // full 4-column layout needs, lower-priority columns are dropped entirely
+    // instead of compressing every column down to nothing: available drops
+    // first, then total; missing (and name) always stay.
+    private static int availableEntryWidth = Integer.MAX_VALUE;
+    private static boolean totalVisible = true;
+    private static boolean missingVisible = true;
+    private static boolean availableVisible = true;
+
     private MaterialListColumnLayout() {
     }
 
@@ -78,8 +87,81 @@ public final class MaterialListColumnLayout {
         animating = true;
     }
 
+    public static void updateAvailableEntryWidth(int available) {
+        availableEntryWidth = available <= 0 ? Integer.MAX_VALUE : available;
+    }
+
+    public static boolean isTotalVisible() {
+        advanceAnimation();
+        recomputeVisibility();
+        return totalVisible;
+    }
+
+    public static boolean isMissingVisible() {
+        advanceAnimation();
+        recomputeVisibility();
+        return missingVisible;
+    }
+
+    public static boolean isAvailableVisible() {
+        advanceAnimation();
+        recomputeVisibility();
+        return availableVisible;
+    }
+
     public static int requiredEntryWidth() {
-        return 4 + nameWidth() + NAME_TO_TOTAL_GAP + totalWidth() + COUNT_COLUMN_GAP + missingWidth() + COUNT_COLUMN_GAP + availableWidth() + COUNT_COLUMN_GAP;
+        advanceAnimation();
+        recomputeVisibility();
+        int width = 4 + nameWidth;
+        boolean any = totalVisible || missingVisible || availableVisible;
+        if (totalVisible) {
+            width += NAME_TO_TOTAL_GAP + totalWidth;
+        }
+        if (missingVisible) {
+            width += (totalVisible ? COUNT_COLUMN_GAP : NAME_TO_TOTAL_GAP) + missingWidth;
+        }
+        if (availableVisible) {
+            width += ((totalVisible || missingVisible) ? COUNT_COLUMN_GAP : NAME_TO_TOTAL_GAP) + availableWidth;
+        }
+        if (any) {
+            width += COUNT_COLUMN_GAP;
+        }
+        return width;
+    }
+
+    // Decides which of the total/missing/available columns fit in the
+    // available width, dropping available first, then total; missing is
+    // never dropped. Recomputed lazily whenever a getter is read, using
+    // whatever the (possibly still-animating) content widths currently are.
+    private static void recomputeVisibility() {
+        if (availableEntryWidth == Integer.MAX_VALUE) {
+            totalVisible = true;
+            missingVisible = true;
+            availableVisible = true;
+            return;
+        }
+
+        int base = 4 + nameWidth;
+        int full = base + NAME_TO_TOTAL_GAP + totalWidth + COUNT_COLUMN_GAP + missingWidth + COUNT_COLUMN_GAP + availableWidth;
+        if (full <= availableEntryWidth) {
+            totalVisible = true;
+            missingVisible = true;
+            availableVisible = true;
+            return;
+        }
+
+        int withoutAvailable = base + NAME_TO_TOTAL_GAP + totalWidth + COUNT_COLUMN_GAP + missingWidth;
+        if (withoutAvailable <= availableEntryWidth) {
+            totalVisible = true;
+            missingVisible = true;
+            availableVisible = false;
+            return;
+        }
+
+        missingVisible = true;
+        availableVisible = false;
+        int withoutTotalAvailable = base + NAME_TO_TOTAL_GAP + missingWidth;
+        totalVisible = withoutTotalAvailable <= availableEntryWidth;
     }
 
     public static int nameWidth() {
