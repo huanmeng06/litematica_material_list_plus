@@ -2,13 +2,21 @@
 
 这个 README 只记录 `dev-newFeature` 分支的开发过程和每个小版本做了什么。完整的项目介绍、安装说明、功能说明和截图展示放在 `main` 分支维护。
 
-当前正式版：`v1.6.30`
+当前正式版：`v1.6.31`
 
-当前构建：`1.6.30+mc1.20.6`
+当前构建：`1.6.31+mc1.20.6`
 
 适配目标：Minecraft `1.20.6` / Fabric / Litematica / MaLiLib / REI
 
 ## 版本说明
+
+### v1.6.31
+
+- 修复材料列表搜索图标不随窗口尺寸更新：malilib 的列表 widget 只创建一次，窗口缩放时只调 `setSize` 而搜索栏位置在构造时定死；现在在 `setSize` 后按新宽度重建搜索栏（`WidgetListBaseMixin` + 新增 `WidgetSearchBarAccessor`），搜索文字和展开状态在缩放后保留。
+- 小窗口下列布局自适应压缩：新增 `MaterialListColumnLayout.updateAvailableEntryWidth`，宽度不足时先把列间距从 44/40px 线性收缩到 16/12px，仍不够再压缩项目名称列（下限 60px）；计数格式（盒/组/个）不变。名称被截断时显示 `...`，悬停名称弹出完整名称。
+- 小窗口下底部按钮二次换行：换行到底部的按钮行超出窗口宽度时，放不下的按钮自动排到上一行，不再溢出（`GuiMaterialListMixin.lmlp$reflowWrappedBottomButtons`，`GuiBaseHoverAccess` 新增 buttons 访问器）。
+- 同步 `fabric.mod.json` 和运行时 `MOD_VERSION` 到 `1.6.31+mc1.20.6`。
+- 构建产物改为 `1.6.31+mc1.20.6`。
 
 ### v1.6.30
 

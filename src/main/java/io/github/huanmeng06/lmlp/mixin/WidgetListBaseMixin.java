@@ -1,11 +1,13 @@
 package io.github.huanmeng06.lmlp.mixin;
 
+import fi.dy.masa.litematica.gui.Icons;
 import fi.dy.masa.litematica.gui.widgets.WidgetListMaterialList;
 import fi.dy.masa.litematica.gui.widgets.WidgetListSchematicPlacements;
 import fi.dy.masa.litematica.gui.widgets.WidgetMaterialListEntry;
 import fi.dy.masa.litematica.materials.MaterialListEntry;
 import fi.dy.masa.litematica.schematic.placement.SchematicPlacement;
 import fi.dy.masa.malilib.gui.GuiScrollBar;
+import fi.dy.masa.malilib.gui.LeftRight;
 import fi.dy.masa.malilib.gui.widgets.WidgetBase;
 import fi.dy.masa.malilib.gui.widgets.WidgetListBase;
 import fi.dy.masa.malilib.gui.widgets.WidgetListEntryBase;
@@ -348,9 +350,29 @@ public abstract class WidgetListBaseMixin implements WidgetListBoundsAccess {
             return;
         }
 
+        MaterialListColumnLayout.updateAvailableEntryWidth(this.totalWidth - 14);
         this.browserWidth = Math.max(this.totalWidth, Math.max(MaterialListColumnLayout.requiredEntryWidth() + 14, this.lmlp$getRequiredMinimalSourceBrowserWidth()));
         this.browserEntryWidth = this.browserWidth - 14;
         this.lmlp$reCreateListEntryWidgetsByPixels();
+    }
+
+    // Litematica creates the search bar once in the WidgetListMaterialList
+    // constructor with the width at that moment; on window resize GuiListBase
+    // only calls setSize, so the search icon would stay anchored to the old
+    // right edge. Rebuild it with the new geometry, keeping text and state.
+    @Inject(method = "setSize", at = @At("TAIL"))
+    private void lmlp$repositionSearchBarOnResize(int width, int height, CallbackInfo ci) {
+        if (!((Object) this instanceof WidgetListMaterialList) || this.widgetSearchBar == null) {
+            return;
+        }
+
+        WidgetSearchBar old = this.widgetSearchBar;
+        WidgetSearchBar fresh = new WidgetSearchBar(this.posX + 2, this.posY + 8, this.totalWidth - 16, 14, 0, Icons.FILE_ICON_SEARCH, LeftRight.RIGHT);
+        fresh.setZLevel(1);
+        fresh.setSearchOpen(old.isSearchOpen());
+        String text = ((WidgetSearchBarAccessor) old).lmlp$getSearchBox().method_1882();
+        ((WidgetSearchBarAccessor) fresh).lmlp$getSearchBox().method_1852(text);
+        this.widgetSearchBar = fresh;
     }
 
     /**

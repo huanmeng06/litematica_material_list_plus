@@ -4,6 +4,10 @@ public final class MaterialListColumnLayout {
     private static final long ANIMATION_DURATION_MS = 150L;
     private static final int NAME_TO_TOTAL_GAP = 44;
     private static final int COUNT_COLUMN_GAP = 40;
+    private static final int MIN_NAME_TO_TOTAL_GAP = 16;
+    private static final int MIN_COUNT_COLUMN_GAP = 12;
+    private static final int MIN_NAME_WIDTH = 60;
+    private static int availableEntryWidth = Integer.MAX_VALUE;
     private static int nameWidth = 1;
     private static int totalWidth = 1;
     private static int missingWidth = 1;
@@ -78,13 +82,27 @@ public final class MaterialListColumnLayout {
         animating = true;
     }
 
+    public static void updateAvailableEntryWidth(int available) {
+        availableEntryWidth = available <= 0 ? Integer.MAX_VALUE : available;
+    }
+
     public static int requiredEntryWidth() {
-        return 4 + nameWidth() + NAME_TO_TOTAL_GAP + totalWidth() + COUNT_COLUMN_GAP + missingWidth() + COUNT_COLUMN_GAP + availableWidth() + COUNT_COLUMN_GAP;
+        return 4 + nameWidth() + nameToTotalGap() + totalWidth() + countColumnGap() + missingWidth() + countColumnGap() + availableWidth() + countColumnGap();
     }
 
     public static int nameWidth() {
         advanceAnimation();
-        return nameWidth;
+        int overflow = compressionOverflow();
+        if (overflow <= 0) {
+            return nameWidth;
+        }
+
+        int gapCapacity = gapReductionCapacity();
+        if (overflow <= gapCapacity) {
+            return nameWidth;
+        }
+
+        return Math.max(MIN_NAME_WIDTH, nameWidth - (overflow - gapCapacity));
     }
 
     public static int totalWidth() {
@@ -112,11 +130,42 @@ public final class MaterialListColumnLayout {
     }
 
     public static int nameToTotalGap() {
-        return NAME_TO_TOTAL_GAP;
+        int overflow = compressionOverflow();
+        if (overflow <= 0) {
+            return NAME_TO_TOTAL_GAP;
+        }
+
+        float factor = Math.min(1.0F, (float) overflow / (float) gapReductionCapacity());
+        return NAME_TO_TOTAL_GAP - Math.round((NAME_TO_TOTAL_GAP - MIN_NAME_TO_TOTAL_GAP) * factor);
     }
 
     public static int countColumnGap() {
-        return COUNT_COLUMN_GAP;
+        int overflow = compressionOverflow();
+        if (overflow <= 0) {
+            return COUNT_COLUMN_GAP;
+        }
+
+        float factor = Math.min(1.0F, (float) overflow / (float) gapReductionCapacity());
+        return COUNT_COLUMN_GAP - Math.round((COUNT_COLUMN_GAP - MIN_COUNT_COLUMN_GAP) * factor);
+    }
+
+    /**
+     * How much the uncompressed layout overflows the available widget width.
+     * Positive values trigger gap shrinking, then name column clamping.
+     */
+    private static int compressionOverflow() {
+        if (availableEntryWidth == Integer.MAX_VALUE) {
+            return 0;
+        }
+
+        advanceAnimation();
+        int fullWidth = 4 + nameWidth + NAME_TO_TOTAL_GAP + totalWidth + COUNT_COLUMN_GAP
+                + missingWidth + COUNT_COLUMN_GAP + availableWidth + COUNT_COLUMN_GAP;
+        return fullWidth - availableEntryWidth;
+    }
+
+    private static int gapReductionCapacity() {
+        return (NAME_TO_TOTAL_GAP - MIN_NAME_TO_TOTAL_GAP) + 3 * (COUNT_COLUMN_GAP - MIN_COUNT_COLUMN_GAP);
     }
 
     private static void setWidths(int nameWidth, int totalWidth, int missingWidth, int availableWidth) {

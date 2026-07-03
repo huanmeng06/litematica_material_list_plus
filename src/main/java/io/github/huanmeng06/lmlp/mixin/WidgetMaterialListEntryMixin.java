@@ -321,7 +321,7 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         boolean minimalSubMaterialView = MinimalSubMaterialListView.isActive(this.materialList);
 
         int iconX = xItem;
-        this.drawString(xItem + 20, yText, -1, name, drawContext);
+        this.drawString(xItem + 20, yText, -1, this.truncateToWidth(name, this.lmlp$nameTextLimit(xItem, xTotal)), drawContext);
         this.drawString(xTotal, yText, -1, CountFormatter.formatAligned(stack, total, lmlpMaxTotalDigits), drawContext);
         this.drawString(xMissing, yText, -1, netMissingColor(missing) + CountFormatter.formatAligned(stack, missing, lmlpMaxMissingDigits), drawContext);
         this.drawString(xAvailable, yText, -1, availableColor(available, rawMissing) + CountFormatter.formatAligned(stack, available, lmlpMaxAvailableDigits), drawContext);
@@ -373,6 +373,10 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         }
 
         if (MinimalSubMaterialListView.isActive(this.materialList) && this.minimalChoiceTooltipTarget(mouseX, mouseY) != null) {
+            return;
+        }
+
+        if (this.lmlp$renderTruncatedNameTooltip(drawContext, mouseX, mouseY)) {
             return;
         }
 
@@ -790,6 +794,35 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         x = clamp(x, minX, maxX);
         y = clamp(y, minY, maxY);
         return new PanelBounds(x, y);
+    }
+
+    private int lmlp$nameTextLimit(int xItem, int xTotal) {
+        return Math.max(20, xTotal - (xItem + 20) - 6);
+    }
+
+    private boolean lmlp$renderTruncatedNameTooltip(class_332 drawContext, int mouseX, int mouseY) {
+        if (this.entry == null || this.header1 != null) {
+            return false;
+        }
+
+        int xItem = this.getColumnPosX(0);
+        int xTotal = this.getColumnPosX(1);
+        String fullName = MinimalSubMaterialListView.displayName(this.entry);
+        String shownName = this.truncateToWidth(fullName, this.lmlp$nameTextLimit(xItem, xTotal));
+        if (shownName.equals(fullName)) {
+            return false;
+        }
+
+        int nameX = xItem + 20;
+        if (mouseX < nameX
+                || mouseX >= nameX + this.getStringWidth(shownName)
+                || mouseY < this.y + 1
+                || mouseY >= this.y + Math.min(this.height, 22)) {
+            return false;
+        }
+
+        RenderUtils.drawHoverText(mouseX, mouseY, List.of(fullName), drawContext);
+        return true;
     }
 
     private String truncateToWidth(String text, int maxWidth) {
