@@ -51,7 +51,6 @@ public final class KnownPlacementRows {
     private static final int MIN_PLACEMENT_WIDTH = 160;
     private static final int STATUS_COLUMN_PADDING = 24;
     private static final int ORIGIN_COLUMN_PADDING = 24;
-    private static final int ORIGIN_COLUMN_WIDTH = 220;
     private static final int BUTTON_GAP = 2;
     private static final int HEADER_RENDER_LEFT_OVERHANG = 3;
     private static final int HEADER_RENDER_RIGHT_TRIM = 6;
@@ -335,7 +334,6 @@ public final class KnownPlacementRows {
         int operationWidth = actionColumnWidth(widget);
         int actionX = hasActionColumn ? Math.max(nameX + MIN_NAME_WIDTH, right - operationWidth) : right;
         int statusWidth = statusColumnWidth(widget);
-        int originNatural = originColumnWidth(widget);
         int originMin = originCompactWidth(widget);
 
         // Space the placement/status/file/origin columns share (before the
@@ -368,15 +366,9 @@ public final class KnownPlacementRows {
         int gaps = (visibleCount - 1) * COLUMN_GAP;
         int afterStatus = middle - gaps - (statusVisible ? statusWidth : 0);
 
-        // Origin grows from its compact minimum up to its preferred width,
-        // taking only the room left after the flexible columns keep their
-        // minimums, so it doesn't starve the name column and vice versa.
-        int originWidth = 0;
-        if (originVisible) {
-            int flexMinSum = MIN_PLACEMENT_WIDTH + (fileVisible ? MIN_FILE_WIDTH : 0);
-            int roomForOrigin = afterStatus - flexMinSum;
-            originWidth = Math.max(originMin, Math.min(originNatural, roomForOrigin));
-        }
+        // Origin always renders at its compact width instead of growing to
+        // fill leftover space; any extra room goes to the name/file columns.
+        int originWidth = originVisible ? originMin : 0;
 
         int flexSpace = Math.max(0, afterStatus - originWidth);
         int placementWidth;
@@ -594,16 +586,10 @@ public final class KnownPlacementRows {
         return width + STATUS_COLUMN_PADDING;
     }
 
-    private static int originColumnWidth(WidgetBase widget) {
-        int headerWidth = widget.getStringWidth(StringUtils.translate("lmlp.gui.known_placement.header.origin"));
-        int coordinateWidth = widget.getStringWidth("[-123456, 64, 123456]");
-        return Math.max(ORIGIN_COLUMN_WIDTH, Math.max(headerWidth, coordinateWidth) + ORIGIN_COLUMN_PADDING);
-    }
-
-    // A compact origin width used to decide whether the origin column is worth
-    // showing on a narrow window: enough for the header and a typical
-    // coordinate, without the generous ORIGIN_COLUMN_WIDTH floor or the
-    // worst-case coordinate reservation used for the preferred width.
+    // The origin column always renders at this compact width (enough for the
+    // header and a typical coordinate) rather than growing to fill leftover
+    // space; unusually long coordinates fall back to the "..." truncation
+    // already used elsewhere.
     private static int originCompactWidth(WidgetBase widget) {
         int headerWidth = widget.getStringWidth(StringUtils.translate("lmlp.gui.known_placement.header.origin"));
         int coordinateWidth = widget.getStringWidth("[-1234, 64, -1234]");
