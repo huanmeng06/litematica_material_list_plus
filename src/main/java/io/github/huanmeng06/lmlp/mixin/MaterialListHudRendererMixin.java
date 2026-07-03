@@ -13,7 +13,9 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Overwrite;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Constant;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.ModifyConstant;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(value = MaterialListHudRenderer.class, remap = false)
@@ -27,6 +29,11 @@ public abstract class MaterialListHudRendererMixin {
         if (MinimalSubMaterialListView.isActive(this.materialList)) {
             cir.setReturnValue(MinimalSubMaterialHudRenderer.render(this.materialList, xOffset, yOffset, alignment, drawContext));
         }
+    }
+
+    @ModifyConstant(method = "render", constant = @Constant(longValue = 2000))
+    private long lmlp$hudRefreshInterval(long interval) {
+        return 1000L;
     }
 
     /**

@@ -27,7 +27,7 @@ import java.util.WeakHashMap;
  * MinimalSubMaterialListView and formatting counts with the mod's style.
  */
 public final class MinimalSubMaterialHudRenderer {
-    private static final long UPDATE_INTERVAL_MS = 2000;
+    private static final long UPDATE_INTERVAL_MS = 1000;
     private static final Map<MaterialListBase, CachedLines> LINE_CACHES = new WeakHashMap<>();
 
     private MinimalSubMaterialHudRenderer() {

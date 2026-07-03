@@ -2,13 +2,19 @@
 
 这个 README 只记录 `dev-newFeature` 分支的开发过程和每个小版本做了什么。完整的项目介绍、安装说明、功能说明和截图展示放在 `main` 分支维护。
 
-当前正式版：`v1.6.29`
+当前正式版：`v1.6.30`
 
-当前构建：`1.6.29+mc1.20.6`
+当前构建：`1.6.30+mc1.20.6`
 
 适配目标：Minecraft `1.20.6` / Fabric / Litematica / MaLiLib / REI
 
 ## 版本说明
+
+### v1.6.30
+
+- 材料列表 HUD 的数据刷新间隔从 2 秒改为 1 秒：普通 HUD（全部/渲染层页面）通过 `@ModifyConstant` 修改原版 `render` 中硬编码的 2000ms；最小子材料 HUD 的 `UPDATE_INTERVAL_MS` 同步改为 1000ms。
+- 同步 `fabric.mod.json` 和运行时 `MOD_VERSION` 到 `1.6.30+mc1.20.6`。
+- 构建产物改为 `1.6.30+mc1.20.6`。
 
 ### v1.6.29
 
