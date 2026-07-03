@@ -27,6 +27,7 @@
     "WidgetListSchematicPlacementsMixin",
     "WidgetMaterialListEntryButtonListenerMixin",
     "WidgetMaterialListEntryMixin",
+    "WidgetSearchBarAccessor",
     "WidgetSliderMixin"
   ],
   "injectors": {
