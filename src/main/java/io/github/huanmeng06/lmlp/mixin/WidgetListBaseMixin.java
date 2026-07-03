@@ -354,7 +354,14 @@ public abstract class WidgetListBaseMixin implements WidgetListBoundsAccess {
         // Reserve room for the search icon floating over the header row's
         // top-right corner so a fully-fit column layout doesn't sit under it.
         MaterialListColumnLayout.updateAvailableEntryWidth(this.totalWidth - 14 - SEARCH_ICON_RESERVE);
-        this.browserWidth = Math.max(this.totalWidth, Math.max(MaterialListColumnLayout.requiredEntryWidth() + 14, this.lmlp$getRequiredMinimalSourceBrowserWidth()));
+        int required = Math.max(MaterialListColumnLayout.requiredEntryWidth() + 14, this.lmlp$getRequiredMinimalSourceBrowserWidth());
+        boolean columnsDropped = !MaterialListColumnLayout.isTotalVisible() || !MaterialListColumnLayout.isAvailableVisible();
+        // Once columns are being dropped for lack of space, also stop
+        // stretching each row's own width (and thus its background and the
+        // vanilla ignore button, which is right-anchored to it) out to the
+        // full window: fit it to the now-narrower visible content instead so
+        // there's no dead space and the ignore button stays reachable.
+        this.browserWidth = columnsDropped ? required : Math.max(this.totalWidth, required);
         this.browserEntryWidth = this.browserWidth - 14;
         this.lmlp$reCreateListEntryWidgetsByPixels();
     }
