@@ -29,8 +29,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.io.File;
-import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 
 @Mixin(value = GuiMaterialList.class, remap = false)
@@ -104,38 +102,6 @@ public abstract class GuiMaterialListMixin extends GuiListBase {
             String status = StringUtils.translate("lmlp.gui.material_list.read_status", readStatus.label());
             int width = this.getStringWidth(status);
             this.addLabel(12, this.field_22790 - 24, width, 12, readStatus.color(), status);
-        }
-    }
-
-    // When the narrow layout wraps buttons to the bottom row, that row itself
-    // can overflow the window width; re-lay it left to right and continue on
-    // an additional row above when a button no longer fits.
-    @Inject(method = "initGui", at = @At("TAIL"))
-    private void lmlp$reflowWrappedBottomButtons(CallbackInfo ci) {
-        if (this.field_22789 >= this.lmlp$originalElementTotalWidth()) {
-            return;
-        }
-
-        int rowY = this.field_22790 - WRAPPED_BUTTON_Y_OFFSET;
-        List<ButtonBase> row = new ArrayList<>();
-        for (ButtonBase button : ((GuiBaseHoverAccess) (Object) this).lmlp$getButtons()) {
-            if (button.getY() == rowY) {
-                row.add(button);
-            }
-        }
-
-        row.sort(Comparator.comparingInt(ButtonBase::getX));
-        int limit = this.field_22789 - 12;
-        int x = 12;
-        int y = rowY;
-        for (ButtonBase button : row) {
-            if (x > 12 && x + button.getWidth() > limit) {
-                y -= WRAPPED_BUTTON_Y_OFFSET;
-                x = 12;
-            }
-
-            button.setPosition(x, y);
-            x += button.getWidth() + BUTTON_SPACING;
         }
     }
 
