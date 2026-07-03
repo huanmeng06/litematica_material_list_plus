@@ -212,10 +212,10 @@ public final class KnownPlacementRows {
         SortableHeaderRenderer renderer = SortableHeaderRenderer.create(widget, row);
         ColumnLayout columns = computeColumns(widget, row.pageId());
         int textY = textY(widget);
-        drawHeaderLabel(widget, SortColumn.PROJECT, headerTextX(columns.placementX()), textY, drawContext);
-        drawHeaderLabel(widget, SortColumn.STATUS, headerTextX(columns.statusX()), textY, drawContext);
-        drawHeaderLabel(widget, SortColumn.FILE, headerTextX(columns.fileX()), textY, drawContext);
-        drawHeaderLabel(widget, SortColumn.ORIGIN, headerTextX(columns.originX()), textY, drawContext);
+        drawHeaderLabel(widget, SortColumn.PROJECT, headerTextX(columns.placementX()), textY, columns.placementWidth(), drawContext);
+        drawHeaderLabel(widget, SortColumn.STATUS, headerTextX(columns.statusX()), textY, columns.statusWidth(), drawContext);
+        drawHeaderLabel(widget, SortColumn.FILE, headerTextX(columns.fileX()), textY, columns.fileWidth(), drawContext);
+        drawHeaderLabel(widget, SortColumn.ORIGIN, headerTextX(columns.originX()), textY, columns.originWidth(), drawContext);
         if (hasActionColumn(row.pageId())) {
             widget.drawString(
                     headerTextX(columns.actionX()),
@@ -615,14 +615,15 @@ public final class KnownPlacementRows {
         return headerRendererX(visualColumnX);
     }
 
-    private static void drawHeaderLabel(WidgetBase widget, SortColumn column, int x, int y, class_332 drawContext) {
+    private static void drawHeaderLabel(WidgetBase widget, SortColumn column, int x, int y, int maxWidth, class_332 drawContext) {
         String label = switch (column) {
             case PROJECT -> StringUtils.translate("lmlp.gui.known_placement.header.project");
             case STATUS -> StringUtils.translate("lmlp.gui.known_placement.header.status");
             case FILE -> StringUtils.translate("lmlp.gui.known_placement.header.schematic_name");
             case ORIGIN -> StringUtils.translate("lmlp.gui.known_placement.header.origin");
         };
-        widget.drawString(x, y, -1, GuiBase.TXT_BOLD + label + GuiBase.TXT_RST, drawContext);
+        String truncated = truncateToWidth(widget, label, maxWidth);
+        widget.drawString(x, y, -1, GuiBase.TXT_BOLD + truncated + GuiBase.TXT_RST, drawContext);
     }
 
     private static Comparator<KnownPlacementContext> sortComparator(String pageId) {
