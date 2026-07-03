@@ -25,10 +25,12 @@ public final class MaterialListColumnLayout {
     // full 4-column layout needs, lower-priority columns are dropped entirely
     // instead of compressing every column down to nothing: available drops
     // first, then total; missing (and name) always stay.
+    private static final int MIN_NAME_WIDTH = 60;
     private static int availableEntryWidth = Integer.MAX_VALUE;
     private static boolean totalVisible = true;
     private static boolean missingVisible = true;
     private static boolean availableVisible = true;
+    private static int nameClamp;
 
     private MaterialListColumnLayout() {
     }
@@ -112,7 +114,11 @@ public final class MaterialListColumnLayout {
     public static int requiredEntryWidth() {
         advanceAnimation();
         recomputeVisibility();
-        int width = 4 + nameWidth;
+        return rowWidth(effectiveNameWidth());
+    }
+
+    private static int rowWidth(int nameColumnWidth) {
+        int width = 4 + nameColumnWidth;
         boolean any = totalVisible || missingVisible || availableVisible;
         if (totalVisible) {
             width += NAME_TO_TOTAL_GAP + totalWidth;
@@ -133,11 +139,16 @@ public final class MaterialListColumnLayout {
     // available width, dropping available first, then total; missing is
     // never dropped. Recomputed lazily whenever a getter is read, using
     // whatever the (possibly still-animating) content widths currently are.
+    // Whatever overflow remains after hiding becomes the name-column clamp:
+    // the name column (the only column with no other shrink mechanism) gives
+    // up that much width, down to MIN_NAME_WIDTH, so rows fit the window and
+    // the right-anchored ignore button stays visible.
     private static void recomputeVisibility() {
         if (availableEntryWidth == Integer.MAX_VALUE) {
             totalVisible = true;
             missingVisible = true;
             availableVisible = true;
+            nameClamp = 0;
             return;
         }
 
@@ -147,6 +158,7 @@ public final class MaterialListColumnLayout {
             totalVisible = true;
             missingVisible = true;
             availableVisible = true;
+            nameClamp = 0;
             return;
         }
 
@@ -155,6 +167,7 @@ public final class MaterialListColumnLayout {
             totalVisible = true;
             missingVisible = true;
             availableVisible = false;
+            nameClamp = 0;
             return;
         }
 
@@ -162,11 +175,17 @@ public final class MaterialListColumnLayout {
         availableVisible = false;
         int withoutTotalAvailable = base + NAME_TO_TOTAL_GAP + missingWidth;
         totalVisible = withoutTotalAvailable <= availableEntryWidth;
+        nameClamp = Math.max(0, rowWidth(nameWidth) - availableEntryWidth);
+    }
+
+    private static int effectiveNameWidth() {
+        return nameClamp <= 0 ? nameWidth : Math.max(MIN_NAME_WIDTH, nameWidth - nameClamp);
     }
 
     public static int nameWidth() {
         advanceAnimation();
-        return nameWidth;
+        recomputeVisibility();
+        return effectiveNameWidth();
     }
 
     public static int totalWidth() {

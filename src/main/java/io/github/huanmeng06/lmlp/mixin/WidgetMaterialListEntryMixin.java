@@ -181,7 +181,26 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
             cursor += MaterialListColumnLayout.availableWidth();
         }
 
-        int xEnd = cursor + ((totalVisible || missingVisible || availableVisible) ? MaterialListColumnLayout.countColumnGap() : MaterialListColumnLayout.nameToTotalGap());
+        // The trailing gap only applies while the available column is shown;
+        // once it is hidden the row's sortable content ends at the last
+        // visible column, so the ignore-button boundary starts right there.
+        int xEnd = availableVisible
+                ? cursor + MaterialListColumnLayout.countColumnGap()
+                : cursor;
+
+        // Collapse hidden columns rightward onto the next visible position so
+        // malilib's renderColumnHeader (which draws a box from getColumnPosX(i)
+        // to getColumnPosX(i+1) for every column index) draws zero-width boxes
+        // for them instead of leftover empty frames spanning the gaps.
+        if (!availableVisible) {
+            xAvailable = xEnd;
+        }
+        if (!missingVisible) {
+            xMissing = xAvailable;
+        }
+        if (!totalVisible) {
+            xTotal = xMissing;
+        }
 
         return switch (column) {
             case 0 -> xItem;
@@ -352,7 +371,7 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         boolean minimalSubMaterialView = MinimalSubMaterialListView.isActive(this.materialList);
 
         int iconX = xItem;
-        this.drawString(xItem + 20, yText, -1, name, drawContext);
+        this.drawString(xItem + 20, yText, -1, this.truncateToWidth(name, this.lmlp$nameTextLimit()), drawContext);
         if (MaterialListColumnLayout.isTotalVisible()) {
             this.drawString(xTotal, yText, -1, CountFormatter.formatAligned(stack, total, lmlpMaxTotalDigits), drawContext);
         }
@@ -413,6 +432,10 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
             return;
         }
 
+        if (this.lmlp$renderTruncatedNameTooltip(drawContext, mouseX, mouseY)) {
+            return;
+        }
+
         if (this.lmlp$renderPanelItemTooltip(drawContext, mouseX, mouseY)) {
             return;
         }
@@ -422,6 +445,38 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         }
 
         this.renderVanillaMaterialHoverTooltip(drawContext, mouseX, mouseY);
+    }
+
+    // The narrow-window name clamp truncates the name column text; show the
+    // full name as a tooltip when hovering a truncated name.
+    private int lmlp$nameTextLimit() {
+        // The name text starts 20px into the name column (after the item
+        // icon); the raw column width never truncates because it was measured
+        // from the widest name, so this only bites once the clamp kicks in.
+        return MaterialListColumnLayout.nameWidth() + 20;
+    }
+
+    private boolean lmlp$renderTruncatedNameTooltip(class_332 drawContext, int mouseX, int mouseY) {
+        if (this.entry == null || this.header1 != null) {
+            return false;
+        }
+
+        String fullName = MinimalSubMaterialListView.displayName(this.entry);
+        String shownName = this.truncateToWidth(fullName, this.lmlp$nameTextLimit());
+        if (shownName.equals(fullName)) {
+            return false;
+        }
+
+        int nameX = this.getColumnPosX(0) + 20;
+        if (mouseX < nameX
+                || mouseX >= nameX + this.getStringWidth(shownName)
+                || mouseY < this.y + 1
+                || mouseY >= this.y + Math.min(this.height, 22)) {
+            return false;
+        }
+
+        RenderUtils.drawHoverText(mouseX, mouseY, List.of(fullName), drawContext);
+        return true;
     }
 
     @Override

@@ -87,10 +87,21 @@ public abstract class GuiMaterialListMixin extends GuiListBase {
         }
     }
 
+    // Vanilla's getElementTotalWidth() estimates the top button row from bare
+    // string widths plus a fixed 130px buffer. It knows nothing about the
+    // mod's extra export button and underestimates per-button padding and the
+    // multiplier label/textfield zone, so the row overlapped the multiplier
+    // before vanilla's isNarrow check wrapped it. Raise the threshold to the
+    // real row width so the wrap happens first.
+    @Inject(method = "getElementTotalWidth", at = @At("RETURN"), cancellable = true)
+    private void lmlp$useRealTopRowWidth(CallbackInfoReturnable<Integer> cir) {
+        cir.setReturnValue(Math.max(cir.getReturnValue(), this.lmlp$fullTopRowWidth()));
+    }
+
     @Inject(method = "initGui", at = @At("TAIL"))
     private void lmlp$addSubMaterialExportButton(CallbackInfo ci) {
         int x = this.lmlp$subMaterialExportButtonX();
-        int y = this.field_22789 < this.lmlp$originalElementTotalWidth() ? this.field_22790 - WRAPPED_BUTTON_Y_OFFSET : BUTTON_Y;
+        int y = this.field_22789 < this.lmlp$fullTopRowWidth() ? this.field_22790 - WRAPPED_BUTTON_Y_OFFSET : BUTTON_Y;
         String label = StringUtils.translate("lmlp.gui.button.material_list.write_sub_materials");
         ButtonGeneric button = new ButtonGeneric(x, y, -1, 20, label, new String[0]);
         button.setHoverStrings("lmlp.gui.button.hover.material_list.write_sub_materials");
@@ -106,7 +117,7 @@ public abstract class GuiMaterialListMixin extends GuiListBase {
             // In narrow mode the vanilla button row wraps down to height-22,
             // right where this label normally sits; move it above the
             // progress line (vanilla puts that at height-36) so nothing overlaps.
-            boolean narrow = this.field_22789 < this.lmlp$originalElementTotalWidth();
+            boolean narrow = this.field_22789 < this.lmlp$fullTopRowWidth();
             int y = narrow ? this.field_22790 - 48 : this.field_22790 - 24;
             this.addLabel(12, y, width, 12, readStatus.color(), status);
         }
@@ -114,23 +125,35 @@ public abstract class GuiMaterialListMixin extends GuiListBase {
 
     // When the narrow layout wraps buttons to the bottom row, that row itself
     // can overflow the window width; re-lay it left to right and continue on
-    // an additional row above when a button no longer fits.
+    // an additional row above when a button no longer fits. The vanilla main
+    // menu button (fixed at height-36, overlapping the progress line and
+    // misaligned with the wrapped row at height-22) is pulled down onto the
+    // wrapped row, and the row limit stops short of it.
     @Inject(method = "initGui", at = @At("TAIL"))
     private void lmlp$reflowWrappedBottomButtons(CallbackInfo ci) {
-        if (this.field_22789 >= this.lmlp$originalElementTotalWidth()) {
+        if (this.field_22789 >= this.lmlp$fullTopRowWidth()) {
             return;
         }
 
         int rowY = this.field_22790 - WRAPPED_BUTTON_Y_OFFSET;
+        int menuRowY = this.field_22790 - 36;
+        ButtonBase menuButton = null;
         List<ButtonBase> row = new ArrayList<>();
         for (ButtonBase button : ((GuiBaseHoverAccess) (Object) this).lmlp$getButtons()) {
             if (button.getY() == rowY) {
                 row.add(button);
+            } else if (button.getY() == menuRowY) {
+                menuButton = button;
             }
         }
 
-        row.sort(Comparator.comparingInt(ButtonBase::getX));
         int limit = this.field_22789 - 12;
+        if (menuButton != null) {
+            menuButton.setPosition(menuButton.getX(), rowY);
+            limit = menuButton.getX() - 4;
+        }
+
+        row.sort(Comparator.comparingInt(ButtonBase::getX));
         int x = 12;
         int y = rowY;
         for (ButtonBase button : row) {
@@ -152,7 +175,7 @@ public abstract class GuiMaterialListMixin extends GuiListBase {
         }
         x += this.lmlp$onOffButtonWidth("litematica.gui.button.material_list.hide_available", this.materialList.getHideAvailable()) + BUTTON_SPACING;
         x += this.lmlp$onOffButtonWidth("litematica.gui.button.material_list.toggle_info_hud", this.materialList.getHudRenderer().getShouldRenderCustom()) + BUTTON_SPACING;
-        if (this.field_22789 < this.lmlp$originalElementTotalWidth()) {
+        if (this.field_22789 < this.lmlp$fullTopRowWidth()) {
             x = 12;
         }
 
@@ -162,17 +185,24 @@ public abstract class GuiMaterialListMixin extends GuiListBase {
         return x;
     }
 
-    private int lmlp$originalElementTotalWidth() {
-        int width = 0;
-        width += this.getStringWidth(StringUtils.translate("litematica.gui.button.material_list.refresh_list"));
-        width += this.getStringWidth(this.lmlp$listTypeDisplayName());
-        width += this.getStringWidth(StringUtils.translate("litematica.gui.button.material_list.clear_ignored"));
-        width += this.getStringWidth(StringUtils.translate("litematica.gui.button.material_list.clear_cache"));
-        width += this.getStringWidth(StringUtils.translate("litematica.gui.button.material_list.write_to_file"));
-        width += this.lmlp$onOffButtonWidth("litematica.gui.button.material_list.hide_available", false);
-        width += this.lmlp$onOffButtonWidth("litematica.gui.button.material_list.toggle_info_hud", false);
-        width += this.getStringWidth(StringUtils.translate("litematica.gui.label.material_list.multiplier"));
-        return width + 130;
+    // The real single-row width of the top button row: actual button widths
+    // (including the mod's export button) plus spacing, plus the multiplier
+    // label/textfield zone vanilla reserves at the right edge (label width +
+    // 56px for the 40px textfield and margins).
+    private int lmlp$fullTopRowWidth() {
+        int width = 12;
+        width += this.lmlp$genericButtonWidth(StringUtils.translate("litematica.gui.button.material_list.refresh_list")) + BUTTON_SPACING;
+        if (this.materialList.supportsRenderLayers()) {
+            width += this.lmlp$genericButtonWidth(this.lmlp$listTypeDisplayName()) + BUTTON_SPACING;
+        }
+        width += this.lmlp$onOffButtonWidth("litematica.gui.button.material_list.hide_available", this.materialList.getHideAvailable()) + BUTTON_SPACING;
+        width += this.lmlp$onOffButtonWidth("litematica.gui.button.material_list.toggle_info_hud", this.materialList.getHudRenderer().getShouldRenderCustom()) + BUTTON_SPACING;
+        width += this.lmlp$genericButtonWidth(StringUtils.translate("litematica.gui.button.material_list.clear_ignored")) + BUTTON_SPACING;
+        width += this.lmlp$genericButtonWidth(StringUtils.translate("litematica.gui.button.material_list.clear_cache")) + BUTTON_SPACING;
+        width += this.lmlp$genericButtonWidth(StringUtils.translate("litematica.gui.button.material_list.write_to_file")) + BUTTON_SPACING;
+        width += this.lmlp$genericButtonWidth(StringUtils.translate("lmlp.gui.button.material_list.write_sub_materials")) + BUTTON_SPACING;
+        width += this.getStringWidth(StringUtils.translate("litematica.gui.label.material_list.multiplier")) + 56;
+        return width + 6;
     }
 
     private int lmlp$genericButtonWidth(String label) {
