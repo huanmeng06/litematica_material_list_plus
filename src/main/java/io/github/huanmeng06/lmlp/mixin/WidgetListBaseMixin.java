@@ -8,11 +8,13 @@ import fi.dy.masa.litematica.materials.MaterialListEntry;
 import fi.dy.masa.litematica.schematic.placement.SchematicPlacement;
 import fi.dy.masa.malilib.gui.GuiScrollBar;
 import fi.dy.masa.malilib.gui.LeftRight;
+import fi.dy.masa.malilib.gui.button.ButtonGeneric;
 import fi.dy.masa.malilib.gui.widgets.WidgetBase;
 import fi.dy.masa.malilib.gui.widgets.WidgetListBase;
 import fi.dy.masa.malilib.gui.widgets.WidgetListEntryBase;
 import fi.dy.masa.malilib.gui.widgets.WidgetSearchBar;
 import fi.dy.masa.malilib.render.RenderUtils;
+import fi.dy.masa.malilib.util.StringUtils;
 import io.github.huanmeng06.lmlp.access.MinimalChoiceTooltipAccess;
 import io.github.huanmeng06.lmlp.access.WidgetMaterialListAccess;
 import io.github.huanmeng06.lmlp.access.WidgetListBoundsAccess;
@@ -48,6 +50,13 @@ public abstract class WidgetListBaseMixin implements WidgetListBoundsAccess {
     private static final int WHEEL_SCROLL_PIXELS = 36;
     private static final int BROWSER_BOTTOM_INSET = 8;
     private static final int MINIMAL_SOURCE_PANEL_SIDE_WIDTH = 50;
+    // The per-row "ignore" button is right-anchored inside the row's own
+    // width (it eats into the row, not past it), and the search icon floats
+    // over the top-right corner of the column header row. Both need to be
+    // reserved out of the budget the column layout compresses into, or they
+    // overlap the "available" column / get clipped past the window edge.
+    private static final int SEARCH_ICON_RESERVE = 20;
+    private static int lmlp$ignoreButtonWidthCache = -1;
 
     private int lmlp$lastLayoutMultiplier = Integer.MIN_VALUE;
     private int lmlp$lastLayoutEntryCount = -1;
@@ -350,7 +359,7 @@ public abstract class WidgetListBaseMixin implements WidgetListBoundsAccess {
             return;
         }
 
-        MaterialListColumnLayout.updateAvailableEntryWidth(this.totalWidth - 14);
+        MaterialListColumnLayout.updateAvailableEntryWidth(this.totalWidth - 14 - lmlp$ignoreButtonWidth() - SEARCH_ICON_RESERVE);
         this.browserWidth = Math.max(this.totalWidth, Math.max(MaterialListColumnLayout.requiredEntryWidth() + 14, this.lmlp$getRequiredMinimalSourceBrowserWidth()));
         this.browserEntryWidth = this.browserWidth - 14;
         this.lmlp$reCreateListEntryWidgetsByPixels();
@@ -373,6 +382,15 @@ public abstract class WidgetListBaseMixin implements WidgetListBoundsAccess {
         String text = ((WidgetSearchBarAccessor) old).lmlp$getSearchBox().method_1882();
         ((WidgetSearchBarAccessor) fresh).lmlp$getSearchBox().method_1852(text);
         this.widgetSearchBar = fresh;
+    }
+
+    private static int lmlp$ignoreButtonWidth() {
+        if (lmlp$ignoreButtonWidthCache < 0) {
+            String label = StringUtils.translate("litematica.gui.button.material_list.ignore");
+            lmlp$ignoreButtonWidthCache = new ButtonGeneric(0, 0, -1, true, label).getWidth();
+        }
+
+        return lmlp$ignoreButtonWidthCache;
     }
 
     /**
