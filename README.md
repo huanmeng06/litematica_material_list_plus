@@ -2,13 +2,20 @@
 
 这个 README 只记录 `dev-newFeature` 分支的开发过程和每个小版本做了什么。完整的项目介绍、安装说明、功能说明和截图展示放在 `main` 分支维护。
 
-当前正式版：`v1.6.28`
+当前正式版：`v1.6.29`
 
-当前构建：`1.6.28+mc1.20.6`
+当前构建：`1.6.29+mc1.20.6`
 
 适配目标：Minecraft `1.20.6` / Fabric / Litematica / MaLiLib / REI
 
 ## 版本说明
+
+### v1.6.29
+
+- 找到并修复 HUD 反复被重置的真正根因：Litematica 原版 `DataManager.setMaterialList` 在替换当前材料列表时会无条件把旧列表的 HUD 强制 toggle 关闭（甚至不检查新旧是否同一个列表），而本模组缓存层在每次打开 GUI、切页面、刷新时都会调用它，导致 v1.6.25–v1.6.28 的所有状态共享方案都被这个强制 toggle 击穿（日志中非用户触发的 `[lmlp hud] toggled enabled=false` 即来源于此）。
+- 修复方式：`DataManagerMixin` 新增 `@Redirect`，让 `setMaterialList` 内部读取 `getShouldRenderCustom()` 恒为 false，跳过原生强制关闭分支；HUD 开关唯一变化入口回归用户点击，列表实例更换后的 InfoHud 渲染器注册仍由 TAIL 注入的 `syncCurrentList` 维护。
+- 同步 `fabric.mod.json` 和运行时 `MOD_VERSION` 到 `1.6.29+mc1.20.6`。
+- 构建产物改为 `1.6.29+mc1.20.6`。
 
 ### v1.6.28
 
