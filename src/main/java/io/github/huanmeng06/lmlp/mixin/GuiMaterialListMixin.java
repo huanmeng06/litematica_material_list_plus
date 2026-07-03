@@ -103,12 +103,7 @@ public abstract class GuiMaterialListMixin extends GuiListBase {
         if (readStatus != null) {
             String status = StringUtils.translate("lmlp.gui.material_list.read_status", readStatus.label());
             int width = this.getStringWidth(status);
-            // In narrow mode the vanilla button row wraps down to height-22,
-            // right where this label normally sits; move it above the
-            // progress line (vanilla puts that at height-36) so nothing overlaps.
-            boolean narrow = this.field_22789 < this.lmlp$originalElementTotalWidth();
-            int y = narrow ? this.field_22790 - 48 : this.field_22790 - 24;
-            this.addLabel(12, y, width, 12, readStatus.color(), status);
+            this.addLabel(12, this.field_22790 - 24, width, 12, readStatus.color(), status);
         }
     }
 
