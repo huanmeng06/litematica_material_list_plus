@@ -303,7 +303,7 @@ public final class KnownPlacementRows {
             widget.drawString(line.layout().fileX(), textY, FILE_TEXT_COLOR, line.fileText(), drawContext);
         }
 
-        if (line.status() != null) {
+        if (line.status() != null && line.layout().statusWidth() > 0) {
             widget.drawString(line.layout().statusX(), textY, line.status().color(), line.status().text(), drawContext);
         }
 
@@ -330,45 +330,101 @@ public final class KnownPlacementRows {
         int rowLeft = widget.getX();
         int placementX = contentLeft(widget);
         int nameX = rowLeft + PLACEMENT_INDENT;
-        int nameOffset = Math.max(0, nameX - placementX);
         int right = contentRight(widget);
-        int operationWidth = actionColumnWidth(widget);
         boolean hasActionColumn = hasActionColumn(pageId);
+        int operationWidth = actionColumnWidth(widget);
         int actionX = hasActionColumn ? Math.max(nameX + MIN_NAME_WIDTH, right - operationWidth) : right;
-        int originWidth = originColumnWidth(widget);
         int statusWidth = statusColumnWidth(widget);
+        int originWidth = originColumnWidth(widget);
 
-        int minPlacementWidth = nameOffset + MIN_NAME_WIDTH;
-        minPlacementWidth = Math.max(minPlacementWidth, MIN_PLACEMENT_WIDTH);
-        int primaryAvailable = Math.max(0, actionX - placementX - statusWidth - originWidth - (COLUMN_GAP * 4));
-        int placementWidth = primaryAvailable / 2;
-        int fileWidth = primaryAvailable - placementWidth;
+        // Space the placement/status/file/origin columns share (before the
+        // right-anchored action column, if any). Rows cannot scroll
+        // horizontally, so when this is too small we drop lower-priority
+        // columns (file, then origin, then status) instead of letting the
+        // flexible columns collapse to zero while origin balloons.
+        int middleEnd = hasActionColumn ? actionX - COLUMN_GAP : right;
+        int middle = Math.max(0, middleEnd - placementX);
 
-        if (primaryAvailable >= minPlacementWidth + MIN_FILE_WIDTH) {
-            if (placementWidth < minPlacementWidth) {
-                placementWidth = minPlacementWidth;
-                fileWidth = primaryAvailable - placementWidth;
-            } else if (fileWidth < MIN_FILE_WIDTH) {
-                fileWidth = MIN_FILE_WIDTH;
-                placementWidth = primaryAvailable - fileWidth;
-            }
+        int minAll = MIN_PLACEMENT_WIDTH + statusWidth + MIN_FILE_WIDTH + originWidth + (COLUMN_GAP * 3);
+        int minNoFile = MIN_PLACEMENT_WIDTH + statusWidth + originWidth + (COLUMN_GAP * 2);
+        int minNoOrigin = MIN_PLACEMENT_WIDTH + statusWidth + COLUMN_GAP;
+
+        boolean statusVisible;
+        boolean fileVisible;
+        boolean originVisible;
+        if (middle >= minAll) {
+            statusVisible = true;
+            fileVisible = true;
+            originVisible = true;
+        } else if (middle >= minNoFile) {
+            statusVisible = true;
+            fileVisible = false;
+            originVisible = true;
+        } else if (middle >= minNoOrigin) {
+            statusVisible = true;
+            fileVisible = false;
+            originVisible = false;
+        } else {
+            statusVisible = false;
+            fileVisible = false;
+            originVisible = false;
         }
 
-        int statusX = placementX + placementWidth + COLUMN_GAP;
-        int fileX = statusX + statusWidth + COLUMN_GAP;
-        int originX = fileX + fileWidth + COLUMN_GAP;
+        int visibleCount = 1 + (statusVisible ? 1 : 0) + (fileVisible ? 1 : 0) + (originVisible ? 1 : 0);
+        int gaps = (visibleCount - 1) * COLUMN_GAP;
+        int fixedVisible = (statusVisible ? statusWidth : 0) + (originVisible ? originWidth : 0);
+        int flexSpace = Math.max(0, middle - gaps - fixedVisible);
+
+        int placementWidth;
+        int fileWidth;
+        if (fileVisible) {
+            int surplus = Math.max(0, flexSpace - MIN_PLACEMENT_WIDTH - MIN_FILE_WIDTH);
+            placementWidth = MIN_PLACEMENT_WIDTH + surplus / 2;
+            fileWidth = flexSpace - placementWidth;
+        } else {
+            placementWidth = flexSpace;
+            fileWidth = 0;
+        }
+
+        int cursor = placementX + placementWidth;
+        int statusXPos = 0;
+        int fileXPos = 0;
+        int originXPos = 0;
+        if (statusVisible) {
+            cursor += COLUMN_GAP;
+            statusXPos = cursor;
+            cursor += statusWidth;
+        }
+        if (fileVisible) {
+            cursor += COLUMN_GAP;
+            fileXPos = cursor;
+            cursor += fileWidth;
+        }
+        if (originVisible) {
+            cursor += COLUMN_GAP;
+            originXPos = cursor;
+            cursor += originWidth;
+        }
+
+        // Hidden columns collapse onto the next visible column's start so the
+        // header sort-position array stays monotonic and their click/hover
+        // regions shrink to zero width.
+        int anchorAfterOrigin = hasActionColumn ? actionX : right;
+        int originXFinal = originVisible ? originXPos : anchorAfterOrigin;
+        int fileXFinal = fileVisible ? fileXPos : originXFinal;
+        int statusXFinal = statusVisible ? statusXPos : fileXFinal;
 
         return new ColumnLayout(
                 placementX,
                 placementWidth,
                 nameX,
-                Math.max(0, statusX - COLUMN_GAP - nameX),
-                statusX,
-                statusWidth,
-                fileX,
-                fileWidth,
-                originX,
-                Math.max(0, actionX - COLUMN_GAP - originX),
+                Math.max(0, statusXFinal - COLUMN_GAP - nameX),
+                statusXFinal,
+                statusVisible ? statusWidth : 0,
+                fileXFinal,
+                fileVisible ? fileWidth : 0,
+                originXFinal,
+                originVisible ? originWidth : 0,
                 actionX,
                 Math.max(0, right - actionX),
                 right);
