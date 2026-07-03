@@ -335,46 +335,50 @@ public final class KnownPlacementRows {
         int operationWidth = actionColumnWidth(widget);
         int actionX = hasActionColumn ? Math.max(nameX + MIN_NAME_WIDTH, right - operationWidth) : right;
         int statusWidth = statusColumnWidth(widget);
-        int originWidth = originColumnWidth(widget);
+        int originNatural = originColumnWidth(widget);
+        int originMin = originCompactWidth(widget);
 
         // Space the placement/status/file/origin columns share (before the
         // right-anchored action column, if any). Rows cannot scroll
         // horizontally, so when this is too small we drop lower-priority
-        // columns (file, then origin, then status) instead of letting the
-        // flexible columns collapse to zero while origin balloons.
+        // columns (file, then origin, then status). Visibility is decided
+        // against each column's MINIMUM width (origin uses a compact minimum
+        // so the coordinate shows before the name column hogs all the space)
+        // rather than its preferred width.
         int middleEnd = hasActionColumn ? actionX - COLUMN_GAP : right;
         int middle = Math.max(0, middleEnd - placementX);
 
-        int minAll = MIN_PLACEMENT_WIDTH + statusWidth + MIN_FILE_WIDTH + originWidth + (COLUMN_GAP * 3);
-        int minNoFile = MIN_PLACEMENT_WIDTH + statusWidth + originWidth + (COLUMN_GAP * 2);
-        int minNoOrigin = MIN_PLACEMENT_WIDTH + statusWidth + COLUMN_GAP;
-
-        boolean statusVisible;
-        boolean fileVisible;
-        boolean originVisible;
-        if (middle >= minAll) {
+        boolean statusVisible = false;
+        boolean fileVisible = false;
+        boolean originVisible = false;
+        int need = MIN_PLACEMENT_WIDTH;
+        if (need + COLUMN_GAP + statusWidth <= middle) {
             statusVisible = true;
-            fileVisible = true;
-            originVisible = true;
-        } else if (middle >= minNoFile) {
-            statusVisible = true;
-            fileVisible = false;
-            originVisible = true;
-        } else if (middle >= minNoOrigin) {
-            statusVisible = true;
-            fileVisible = false;
-            originVisible = false;
-        } else {
-            statusVisible = false;
-            fileVisible = false;
-            originVisible = false;
+            need += COLUMN_GAP + statusWidth;
+            if (need + COLUMN_GAP + originMin <= middle) {
+                originVisible = true;
+                need += COLUMN_GAP + originMin;
+                if (need + COLUMN_GAP + MIN_FILE_WIDTH <= middle) {
+                    fileVisible = true;
+                }
+            }
         }
 
         int visibleCount = 1 + (statusVisible ? 1 : 0) + (fileVisible ? 1 : 0) + (originVisible ? 1 : 0);
         int gaps = (visibleCount - 1) * COLUMN_GAP;
-        int fixedVisible = (statusVisible ? statusWidth : 0) + (originVisible ? originWidth : 0);
-        int flexSpace = Math.max(0, middle - gaps - fixedVisible);
+        int afterStatus = middle - gaps - (statusVisible ? statusWidth : 0);
 
+        // Origin grows from its compact minimum up to its preferred width,
+        // taking only the room left after the flexible columns keep their
+        // minimums, so it doesn't starve the name column and vice versa.
+        int originWidth = 0;
+        if (originVisible) {
+            int flexMinSum = MIN_PLACEMENT_WIDTH + (fileVisible ? MIN_FILE_WIDTH : 0);
+            int roomForOrigin = afterStatus - flexMinSum;
+            originWidth = Math.max(originMin, Math.min(originNatural, roomForOrigin));
+        }
+
+        int flexSpace = Math.max(0, afterStatus - originWidth);
         int placementWidth;
         int fileWidth;
         if (fileVisible) {
@@ -594,6 +598,16 @@ public final class KnownPlacementRows {
         int headerWidth = widget.getStringWidth(StringUtils.translate("lmlp.gui.known_placement.header.origin"));
         int coordinateWidth = widget.getStringWidth("[-123456, 64, 123456]");
         return Math.max(ORIGIN_COLUMN_WIDTH, Math.max(headerWidth, coordinateWidth) + ORIGIN_COLUMN_PADDING);
+    }
+
+    // A compact origin width used to decide whether the origin column is worth
+    // showing on a narrow window: enough for the header and a typical
+    // coordinate, without the generous ORIGIN_COLUMN_WIDTH floor or the
+    // worst-case coordinate reservation used for the preferred width.
+    private static int originCompactWidth(WidgetBase widget) {
+        int headerWidth = widget.getStringWidth(StringUtils.translate("lmlp.gui.known_placement.header.origin"));
+        int coordinateWidth = widget.getStringWidth("[-1234, 64, -1234]");
+        return Math.max(headerWidth, coordinateWidth) + ORIGIN_COLUMN_PADDING;
     }
 
     private static int actionColumnWidth(WidgetBase widget) {
