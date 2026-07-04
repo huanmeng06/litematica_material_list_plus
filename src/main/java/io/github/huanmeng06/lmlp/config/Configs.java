@@ -103,6 +103,15 @@ public class Configs implements IConfigHandler {
                 "Text scale for the placement origin marker label. 1 is smallest, 5 is largest."
         );
 
+        public static final ConfigInteger MISSING_PLACEMENT_BUTTON_RANGE = new ConfigInteger(
+                "missingPlacementButtonRange",
+                64,
+                8,
+                512,
+                true,
+                "How close (in blocks) the player must be to an offline-cached placement's recorded origin for the \"I can't find it\" button to appear on that row."
+        );
+
         public static final ConfigStringList RECIPE_STOP_ITEMS = new ConfigStringList(
                 "recipeStopItems",
                 DEFAULT_RECIPE_STOP_ITEMS,
@@ -121,6 +130,7 @@ public class Configs implements IConfigHandler {
                 COUNT_DISPLAY_STYLE,
                 ORIGIN_MARKER_TIME,
                 ORIGIN_MARKER_TEXT_SCALE,
+                MISSING_PLACEMENT_BUTTON_RANGE,
                 REPLACE_WATER_BUCKET_WITH_ICE
         );
 

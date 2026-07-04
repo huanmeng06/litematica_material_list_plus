@@ -14,6 +14,7 @@ import io.github.huanmeng06.lmlp.cache.ChunkMissingMaterialListCache;
 import io.github.huanmeng06.lmlp.cache.ChunkMissingMaterialListCache.KnownPlacementContext;
 import io.github.huanmeng06.lmlp.cache.ChunkMissingMaterialListCache.ReadMode;
 import io.github.huanmeng06.lmlp.cache.MaterialListDataSource;
+import io.github.huanmeng06.lmlp.config.Configs;
 import net.minecraft.class_1297;
 import net.minecraft.class_2338;
 import net.minecraft.class_2960;
@@ -633,11 +634,6 @@ public final class KnownPlacementRows {
         return new ButtonGeneric(0, 0, -1, true, label).getWidth();
     }
 
-    // 64 blocks: generous enough that the player doesn't need to stand
-    // exactly on the recorded coordinate, tight enough to actually filter
-    // out "same dimension, but nowhere near the site" false triggers.
-    private static final double OFFLINE_MISSING_PROXIMITY_SQUARED = 64.0 * 64.0;
-
     public static boolean shouldShowOfflineMissingButton(KnownPlacementContext context) {
         String currentDimension = currentDimensionId();
         if (context == null
@@ -657,7 +653,12 @@ public final class KnownPlacementRows {
             return false;
         }
 
-        return player.method_5707(origin.method_46558()) <= OFFLINE_MISSING_PROXIMITY_SQUARED;
+        // Range is configurable (see Configs.Generic.MISSING_PLACEMENT_BUTTON_RANGE):
+        // large enough that the player doesn't need to stand exactly on the
+        // recorded coordinate, small enough to filter out "same dimension, but
+        // nowhere near the site" false triggers.
+        double range = Configs.Generic.MISSING_PLACEMENT_BUTTON_RANGE.getIntegerValue();
+        return player.method_5707(origin.method_46558()) <= range * range;
     }
 
     private static int[] headerColumnPositions(WidgetBase widget, KnownPlacementRow row) {
