@@ -1,6 +1,7 @@
 package io.github.huanmeng06.lmlp.mixin;
 
 import fi.dy.masa.litematica.gui.GuiMaterialList;
+import fi.dy.masa.litematica.materials.MaterialListAreaAnalyzer;
 import fi.dy.masa.litematica.materials.MaterialListBase;
 import fi.dy.masa.litematica.materials.MaterialListEntry;
 import fi.dy.masa.litematica.materials.MaterialListUtils;
@@ -90,13 +91,52 @@ public abstract class GuiMaterialListMixin extends GuiListBase {
     @Inject(method = "getBrowserHeight", at = @At("RETURN"), cancellable = true)
     private void lmlp$makeRoomForChunkMissingStatus(CallbackInfoReturnable<Integer> cir) {
         int reserve = KnownPlacementRows.readStatus(this.materialList) != null ? 12 : 0;
-        // lmlp$progressLineCount reflects the previous initGui pass (getBrowserHeight
-        // runs before this pass' progress label is rebuilt), which just means a
-        // one-resize lag if the wrap count changes; acceptable for this cosmetic reserve.
         reserve += PROGRESS_LINE_HEIGHT * (this.lmlp$progressLineCount - 1);
         if (reserve > 0) {
             cir.setReturnValue(Math.max(0, cir.getReturnValue() - reserve));
         }
+    }
+
+    // getBrowserHeight() (called from super.initGui(), before this pass' own
+    // progress label is rebuilt near the end of the method) needs this pass'
+    // wrap decision, not the previous pass' — otherwise the row list keeps
+    // its old (too-tall) height for one resize, overlapping the now-taller
+    // label block below it. Mirrors vanilla's exact string construction so
+    // the predicted width matches what will actually be measured later.
+    @Inject(method = "initGui", at = @At("HEAD"))
+    private void lmlp$precomputeProgressLineCount(CallbackInfo ci) {
+        this.lmlp$progressLineCount = this.lmlp$computeProgressLineCount();
+    }
+
+    private int lmlp$computeProgressLineCount() {
+        long total = this.materialList.getCountTotal();
+        if (total == 0 || (Object) this.materialList instanceof MaterialListAreaAnalyzer) {
+            return 1;
+        }
+
+        long missing = this.materialList.getCountMissing() - this.materialList.getCountMismatched();
+        long mismatch = this.materialList.getCountMismatched();
+        double pctDone = ((double) (total - (missing + mismatch)) / (double) total) * 100;
+        double pctMissing = ((double) missing / (double) total) * 100;
+        double pctMismatch = ((double) mismatch / (double) total) * 100;
+        String strt = StringUtils.translate("litematica.gui.label.material_list.total", total);
+        String strp;
+        if (missing == 0 && mismatch == 0) {
+            strp = StringUtils.translate("litematica.gui.label.material_list.progress.done", String.format("%.0f %%%%", pctDone));
+        } else {
+            String str1 = StringUtils.translate("litematica.gui.label.material_list.progress.done", String.format("%.1f %%%%", pctDone));
+            String str2 = StringUtils.translate("litematica.gui.label.material_list.progress.missing", String.format("%.1f %%%%", pctMissing));
+            String str3 = StringUtils.translate("litematica.gui.label.material_list.progress.mismatch", String.format("%.1f %%%%", pctMismatch));
+            strp = String.format("%s / %s / %s", str1, str2, str3);
+        }
+
+        String full = strt + " / " + StringUtils.translate("litematica.gui.label.material_list.progress", strp);
+        int budget = this.field_22789 - 12 - 4;
+        if (this.getStringWidth(full) <= budget) {
+            return 1;
+        }
+
+        return this.lmlp$wrapBySeparator(full, budget).size();
     }
 
     // Vanilla draws the "总计 / 进度: 完成 x% / 缺少 x% / 不匹配的 x%" summary
