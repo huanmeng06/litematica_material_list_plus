@@ -723,7 +723,7 @@ public final class ChunkMissingMaterialListCache {
         String dimension = inCurrentManager ? currentDimension : null;
         PlacementContext context = PLACEMENT_CONTEXTS.get(placement);
         if (context == null) {
-            PlacementKey key = PlacementKey.of(dimension, placement);
+            PlacementKey key = PlacementKey.of(placement);
             context = PLACEMENT_CONTEXTS_BY_KEY.get(key);
             if (context != null) {
                 context.upgradeOnline(placement, dimension, reason);
@@ -1276,8 +1276,21 @@ public final class ChunkMissingMaterialListCache {
     }
 
     private static void restoreOfflineContext(PlacementRecord record) {
-        PlacementKey key = PlacementKey.fromString(record.key());
-        if (PLACEMENT_CONTEXTS_BY_KEY.containsKey(key)) {
+        PlacementKey key = PlacementKey.ofIdentity(record.schematicPath(), record.placementName(), record.placementIdentity());
+        PlacementContext existing = PLACEMENT_CONTEXTS_BY_KEY.get(key);
+        if (existing != null) {
+            // A pre-fix disk file can hold several records for the same physical
+            // placement under different dimensions; they now collapse onto one
+            // key. Keep whichever restored record carries the richer material
+            // cache so the migration doesn't drop cached entries.
+            if (record.entries().size() > existing.materialEntries().size()) {
+                PlacementContext replacement = new PlacementContext(record);
+                PLACEMENT_CONTEXTS_BY_KEY.put(replacement.key(), replacement);
+                if (replacement.selected()) {
+                    selectContextWithoutPersist(replacement);
+                }
+                lastKnownContext = latestKnownContext();
+            }
             return;
         }
 
@@ -1438,9 +1451,23 @@ public final class ChunkMissingMaterialListCache {
     }
 
     private record PlacementKey(String value) {
-        private static PlacementKey of(String dimension, SchematicPlacement placement) {
-            String keyDimension = dimension == null ? "unknown" : dimension;
-            return new PlacementKey(keyDimension + '|' + schematicPath(placement) + '|' + placement.getName() + '|' + identitySignature(placement));
+        // The identity key is deliberately dimension-independent. Litematica
+        // placements are not dimension-scoped (getAllSchematicsPlacements()
+        // returns them all regardless of the player's dimension), and the
+        // dimension LMLP records is only the heuristic "where the player was
+        // when this placement was first remembered". Embedding it here used to
+        // let the same physical placement key differently across dimensions,
+        // orphaning its persisted record into a ghost OFFLINE_CACHE row.
+        private static PlacementKey of(SchematicPlacement placement) {
+            return ofIdentity(schematicPath(placement), placement.getName(), identitySignature(placement));
+        }
+
+        private static PlacementKey ofIdentity(String schematicPath, String name, String identitySignature) {
+            return new PlacementKey(nz(schematicPath) + '|' + nz(name) + '|' + nz(identitySignature));
+        }
+
+        private static String nz(String value) {
+            return value == null ? "" : value;
         }
 
         private static PlacementKey fromString(String value) {
@@ -1480,7 +1507,7 @@ public final class ChunkMissingMaterialListCache {
             this.schematicPath = ChunkMissingMaterialListCache.schematicPath(placement);
             this.schematicName = ChunkMissingMaterialListCache.schematicName(this.schematicPath);
             this.originPosition = ChunkMissingMaterialListCache.originPosition(placement);
-            this.key = PlacementKey.of(dimension, placement);
+            this.key = PlacementKey.of(placement);
             this.name = placement.getName();
             this.dimension = dimension;
             this.lastReason = reason;
@@ -1490,7 +1517,11 @@ public final class ChunkMissingMaterialListCache {
         private PlacementContext(PlacementRecord record) {
             this.placement = null;
             this.sourceState = SourceState.OFFLINE_CACHE;
-            this.key = PlacementKey.fromString(record.key());
+            // Recompute the key from the record's stable identity fields rather
+            // than trusting record.key(): old records carry a dimension prefix,
+            // and rebuilding here migrates them to the dimension-independent
+            // format (and collapses per-dimension duplicates on load).
+            this.key = PlacementKey.ofIdentity(record.schematicPath(), record.placementName(), record.placementIdentity());
             this.dimension = record.dimension();
             this.name = record.placementName();
             this.schematicName = record.schematicName();
@@ -1540,7 +1571,7 @@ public final class ChunkMissingMaterialListCache {
             }
 
             PlacementKey oldKey = this.key;
-            this.key = PlacementKey.of(this.dimension, placement);
+            this.key = PlacementKey.of(placement);
             rekeyContext(this, oldKey);
         }
 
