@@ -173,7 +173,19 @@ public abstract class GuiMaterialListMixin extends GuiListBase {
         List<String> lines = this.lmlp$wrapBySeparator(full, budget);
         this.lmlp$progressLineCount = lines.size();
         int topY = y - PROGRESS_LINE_HEIGHT * (lines.size() - 1);
-        return this.addLabel(x, topY, width, height, color, lines.toArray(new String[0]));
+        // A single WidgetLabel packs its lines at a fixed 9px pitch
+        // (malilib's WidgetBase.fontHeight), noticeably tighter than the
+        // 12px rhythm the rest of this bottom block uses (row height, the
+        // read-status label gap, etc.) — one multi-line label made the wrap
+        // look cramped next to everything around it. Give each line its own
+        // label instead, spaced at the same 12px pitch as the surrounding
+        // layout math already assumes.
+        WidgetLabel first = this.addLabel(x, topY, width, height, color, lines.get(0));
+        for (int i = 1; i < lines.size(); i++) {
+            this.addLabel(x, topY + PROGRESS_LINE_HEIGHT * i, width, height, color, lines.get(i));
+        }
+
+        return first;
     }
 
     private List<String> lmlp$wrapBySeparator(String text, int maxWidth) {
