@@ -322,7 +322,7 @@ public abstract class WidgetListBaseMixin implements WidgetListBoundsAccess {
                     MinimalSubMaterialListView.sourceProgress(materialEntry));
             cir.setReturnValue(23 + visibleOuterHeight);
         } else if (MaterialListPlusState.isRecipeVisible(materialEntry)) {
-            int visibleOuterHeight = RecipeInlineRenderer.getOuterHeight(MaterialListPlusState.getCachedSummaries(materialEntry), MaterialListPlusState.recipeProgress(materialEntry));
+            int visibleOuterHeight = RecipeInlineRenderer.getOuterHeight(MaterialListPlusState.getCachedSummaries(materialEntry), this.lmlp$getRecipePanelWidthForHeight(), MaterialListPlusState.recipeProgress(materialEntry));
             cir.setReturnValue(23 + visibleOuterHeight);
         }
     }
@@ -554,7 +554,7 @@ public abstract class WidgetListBaseMixin implements WidgetListBoundsAccess {
                         this.lmlp$getMinimalSourcePanelWidthForHeight());
             }
             if (MaterialListPlusState.isRecipeExpanded(materialEntry)) {
-                return 23 + RecipeInlineRenderer.getTargetOuterHeight(MaterialListPlusState.getCachedSummaries(materialEntry));
+                return 23 + RecipeInlineRenderer.getTargetOuterHeight(MaterialListPlusState.getCachedSummaries(materialEntry), this.lmlp$getRecipePanelWidthForHeight());
             }
         }
 
@@ -571,6 +571,10 @@ public abstract class WidgetListBaseMixin implements WidgetListBoundsAccess {
 
     private int lmlp$getMinimalSourcePanelWidthForHeight() {
         return Math.max(180, this.browserEntryWidth - 36);
+    }
+
+    private int lmlp$getRecipePanelWidthForHeight() {
+        return Math.max(180, this.browserEntryWidth - 64);
     }
 
     private int lmlp$getRequiredMinimalSourceBrowserWidth() {

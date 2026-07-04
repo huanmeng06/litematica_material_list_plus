@@ -23,42 +23,44 @@ public final class RecipeInlineRenderer {
     private static final int INGREDIENT_TOGGLE_WIDTH = 18;
     private static final int INGREDIENT_ICON_OFFSET = 20;
     private static final int TREE_INDENT_WIDTH = 18;
+    private static final int HEADER_ROW_HEIGHT = 18;
 
     private RecipeInlineRenderer() {
     }
 
-    public static int getHeight(List<RecipeSummary> summaries) {
+    public static int getHeight(List<RecipeSummary> summaries, int width) {
         MaterialListPlusState.pruneTreeAnimations();
         if (summaries.isEmpty()) {
             return 48;
         }
 
         RecipeSummary summary = summaries.get(0);
-        int height = 64 + visibleIngredientHeight(summary) + INNER_BOTTOM_PADDING;
+        int lineBudget = Math.max(160, width) - PADDING * 2;
+        int height = 64 + headerExtraHeight(summary, lineBudget) + visibleIngredientHeight(summary) + INNER_BOTTOM_PADDING;
         if (summaries.size() > 1) {
             height += 22;
         }
         return height;
     }
 
-    public static int getOuterHeight(List<RecipeSummary> summaries) {
-        return getHeight(summaries) + ENTRY_BOTTOM_GAP;
+    public static int getOuterHeight(List<RecipeSummary> summaries, int width) {
+        return getHeight(summaries, width) + ENTRY_BOTTOM_GAP;
     }
 
-    public static int getOuterHeight(List<RecipeSummary> summaries, float progress) {
-        return Math.round(getOuterHeight(summaries) * progress);
+    public static int getOuterHeight(List<RecipeSummary> summaries, int width, float progress) {
+        return Math.round(getOuterHeight(summaries, width) * progress);
     }
 
-    public static int getTargetOuterHeight(List<RecipeSummary> summaries) {
-        return getTargetHeight(summaries) + ENTRY_BOTTOM_GAP;
+    public static int getTargetOuterHeight(List<RecipeSummary> summaries, int width) {
+        return getTargetHeight(summaries, width) + ENTRY_BOTTOM_GAP;
     }
 
     public static void render(WidgetBase widget, class_332 context, int x, int y, int width, List<RecipeSummary> summaries, int mouseX, int mouseY) {
-        render(widget, context, x, y, width, summaries, getOuterHeight(summaries), mouseX, mouseY);
+        render(widget, context, x, y, width, summaries, getOuterHeight(summaries, width), mouseX, mouseY);
     }
 
     public static void render(WidgetBase widget, class_332 context, int x, int y, int width, List<RecipeSummary> summaries, int visibleOuterHeight, int mouseX, int mouseY) {
-        int height = getHeight(summaries);
+        int height = getHeight(summaries, width);
         int panelWidth = Math.max(160, width);
         int visibleHeight = Math.max(0, Math.min(height, visibleOuterHeight));
         if (visibleHeight <= 0) {
@@ -86,18 +88,20 @@ public final class RecipeInlineRenderer {
 
         RecipeSummary summary = summaries.get(0);
         int cursorY = y + PADDING;
-        String itemName = truncateToWidth(widget, ItemStackTexts.name(summary.outputIcon()), lineBudget - 24);
+        String itemName = truncateToWidth(ItemStackTexts.name(summary.outputIcon()), lineBudget - 24);
         context.method_51427(summary.outputIcon(), textX, cursorY);
         widget.drawString(textX + 24, cursorY + 4, 0xFFFFFFFF, GuiBase.TXT_BOLD + itemName, context);
         cursorY += 24;
 
-        widget.drawString(textX, cursorY, 0xFFFFFFFF, fitHeaderText(widget, summary, lineBudget), context);
-        cursorY += 18;
+        for (String headerLine : headerLines(summary, lineBudget)) {
+            widget.drawString(textX, cursorY, 0xFFFFFFFF, headerLine, context);
+            cursorY += HEADER_ROW_HEIGHT;
+        }
 
         int ingredientBoxY = cursorY;
         int ingredientBoxHeight = 18 + visibleIngredientHeight(summary);
         RenderUtils.drawRect(textX - 2, ingredientBoxY - 2, panelWidth - PADDING * 2 + 4, ingredientBoxHeight, 0x66000000);
-        String missingLabel = truncateToWidth(widget, StringUtils.translate("lmlp.label.recipe.ingredients_missing"), lineBudget);
+        String missingLabel = truncateToWidth(StringUtils.translate("lmlp.label.recipe.ingredients_missing"), lineBudget);
         widget.drawString(textX, cursorY, 0xFFAAAAAA, missingLabel, context);
         cursorY += 18;
 
@@ -119,7 +123,7 @@ public final class RecipeInlineRenderer {
         }
 
         if (summaries.size() > 1) {
-            String moreHint = truncateToWidth(widget, StringUtils.translate("lmlp.label.recipe.more_hint"), lineBudget);
+            String moreHint = truncateToWidth(StringUtils.translate("lmlp.label.recipe.more_hint"), lineBudget);
             widget.drawString(textX, y + height - 16, 0xFFFFFFFF, GuiBase.TXT_GOLD + moreHint, context);
         }
 
@@ -128,19 +132,19 @@ public final class RecipeInlineRenderer {
     }
 
     public static ToggleTarget toggleAt(List<RecipeSummary> summaries, int x, int y, int width, int mouseX, int mouseY) {
-        return toggleAt(summaries, x, y, width, getOuterHeight(summaries), mouseX, mouseY);
+        return toggleAt(summaries, x, y, width, getOuterHeight(summaries, width), mouseX, mouseY);
     }
 
     public static ToggleTarget toggleAt(List<RecipeSummary> summaries, int x, int y, int width, int visibleOuterHeight, int mouseX, int mouseY) {
         int panelWidth = Math.max(160, width);
-        int height = Math.min(getHeight(summaries), Math.max(0, visibleOuterHeight));
+        int height = Math.min(getHeight(summaries, width), Math.max(0, visibleOuterHeight));
         if (mouseX < x || mouseX >= x + panelWidth || mouseY < y || mouseY >= y + height || summaries.isEmpty()) {
             return ToggleTarget.NONE;
         }
 
         RecipeSummary summary = summaries.get(0);
         int textX = x + PADDING;
-        int cursorY = y + PADDING + 24 + 18 + 18;
+        int cursorY = y + PADDING + 24 + HEADER_ROW_HEIGHT * headerLines(summary, panelWidth - PADDING * 2).size() + 18;
         for (IngredientSummary ingredient : summary.ingredients()) {
             if (isToggleHit(textX, cursorY, 0, mouseX, mouseY) && MaterialListPlusState.hasTree(ingredient)) {
                 return ToggleTarget.ingredient(ingredient);
@@ -164,7 +168,7 @@ public final class RecipeInlineRenderer {
 
     public static class_1799 hoveredStackAt(List<RecipeSummary> summaries, int x, int y, int width, int visibleOuterHeight, int mouseX, int mouseY) {
         int panelWidth = Math.max(160, width);
-        int height = Math.min(getHeight(summaries), Math.max(0, visibleOuterHeight));
+        int height = Math.min(getHeight(summaries, width), Math.max(0, visibleOuterHeight));
         if (mouseX < x || mouseX >= x + panelWidth || mouseY < y || mouseY >= y + height || summaries.isEmpty()) {
             return class_1799.field_8037;
         }
@@ -176,7 +180,7 @@ public final class RecipeInlineRenderer {
             return summary.outputIcon();
         }
 
-        cursorY += 24 + 18 + 18;
+        cursorY += 24 + HEADER_ROW_HEIGHT * headerLines(summary, panelWidth - PADDING * 2).size() + 18;
         class_1799 stack = hoveredIngredientStackAt(summary.ingredients(), textX, cursorY, 0, Integer.MAX_VALUE, mouseX, mouseY);
         return stack == null ? class_1799.field_8037 : stack;
     }
@@ -313,8 +317,8 @@ public final class RecipeInlineRenderer {
         int textStartX = rowX + INGREDIENT_ICON_OFFSET + 26;
         // Never truncate the count itself (the number matters more than the
         // name), only shrink the plain name in front of it.
-        int nameBudget = rightEdge - textStartX - widget.getStringWidth(": " + count);
-        String line = truncateToWidth(widget, name, nameBudget) + ": " + countColor + count;
+        int nameBudget = rightEdge - textStartX - StringUtils.getStringWidth(": " + count);
+        String line = truncateToWidth(name, nameBudget) + ": " + countColor + count;
         widget.drawString(textStartX, y + 2, 0xFFFFFFFF, line, context);
     }
 
@@ -331,13 +335,14 @@ public final class RecipeInlineRenderer {
         return height;
     }
 
-    private static int getTargetHeight(List<RecipeSummary> summaries) {
+    private static int getTargetHeight(List<RecipeSummary> summaries, int width) {
         if (summaries.isEmpty()) {
             return 48;
         }
 
         RecipeSummary summary = summaries.get(0);
-        int height = 64 + targetIngredientHeight(summary) + INNER_BOTTOM_PADDING;
+        int lineBudget = Math.max(160, width) - PADDING * 2;
+        int height = 64 + headerExtraHeight(summary, lineBudget) + targetIngredientHeight(summary) + INNER_BOTTOM_PADDING;
         if (summaries.size() > 1) {
             height += 22;
         }
@@ -419,36 +424,45 @@ public final class RecipeInlineRenderer {
     }
 
     // The " / missing" suffix in RecipeSummaryFormatter.header() carries
-    // color codes as one unit; fall back to the plain base text (never a
-    // mid-string cut) when the full header doesn't fit, only truncating the
-    // base itself as a last resort.
-    private static String fitHeaderText(WidgetBase widget, RecipeSummary summary, int maxWidth) {
+    // color codes as one unit, so it's never safe to cut mid-string — wrap
+    // it onto its own line instead of truncating it away. Only the plain
+    // base text (no color codes) ever gets character-truncated, and only if
+    // it alone still doesn't fit on one line.
+    private static List<String> headerLines(RecipeSummary summary, int lineBudget) {
         String full = RecipeSummaryFormatter.header(summary, 1);
-        if (widget.getStringWidth(full) <= maxWidth) {
-            return full;
+        if (StringUtils.getStringWidth(full) <= lineBudget) {
+            return List.of(full);
         }
 
         String base = RecipeSummaryFormatter.headerBase(summary, 1);
-        return widget.getStringWidth(base) <= maxWidth ? base : truncateToWidth(widget, base, maxWidth);
+        if (StringUtils.getStringWidth(base) <= lineBudget) {
+            return List.of(base, RecipeSummaryFormatter.headerMissing(summary));
+        }
+
+        return List.of(truncateToWidth(base, lineBudget));
     }
 
-    private static String truncateToWidth(WidgetBase widget, String text, int maxWidth) {
+    private static int headerExtraHeight(RecipeSummary summary, int lineBudget) {
+        return (headerLines(summary, lineBudget).size() - 1) * HEADER_ROW_HEIGHT;
+    }
+
+    private static String truncateToWidth(String text, int maxWidth) {
         if (text == null || text.isEmpty() || maxWidth <= 0) {
             return "";
         }
 
-        if (widget.getStringWidth(text) <= maxWidth) {
+        if (StringUtils.getStringWidth(text) <= maxWidth) {
             return text;
         }
 
         String suffix = "...";
-        int suffixWidth = widget.getStringWidth(suffix);
+        int suffixWidth = StringUtils.getStringWidth(suffix);
         if (suffixWidth > maxWidth) {
             return "";
         }
 
         int end = text.length();
-        while (end > 0 && widget.getStringWidth(text.substring(0, end)) + suffixWidth > maxWidth) {
+        while (end > 0 && StringUtils.getStringWidth(text.substring(0, end)) + suffixWidth > maxWidth) {
             end--;
         }
 

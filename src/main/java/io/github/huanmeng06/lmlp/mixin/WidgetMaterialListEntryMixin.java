@@ -397,8 +397,9 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
                 summaries = MaterialListPlusState.getCachedSummaries(this.entry);
             }
             int panelY = this.y + 23;
-            int visibleOuterHeight = RecipeInlineRenderer.getOuterHeight(summaries, MaterialListPlusState.recipeProgress(this.entry));
-            RecipeInlineRenderer.render(this, drawContext, this.x + 28, panelY, Math.max(180, this.width - 64), summaries, visibleOuterHeight, mouseX, mouseY);
+            int panelWidth = Math.max(180, this.width - 64);
+            int visibleOuterHeight = RecipeInlineRenderer.getOuterHeight(summaries, panelWidth, MaterialListPlusState.recipeProgress(this.entry));
+            RecipeInlineRenderer.render(this, drawContext, this.x + 28, panelY, panelWidth, summaries, visibleOuterHeight, mouseX, mouseY);
         }
 
         if (minimalSubMaterialView && MinimalSubMaterialListView.isSourcesVisible(this.entry)) {
@@ -698,7 +699,7 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
             int panelX = this.x + 28;
             int panelY = this.y + 23;
             int panelWidth = Math.max(180, this.width - 64);
-            int visibleOuterHeight = RecipeInlineRenderer.getOuterHeight(summaries, MaterialListPlusState.recipeProgress(this.entry));
+            int visibleOuterHeight = RecipeInlineRenderer.getOuterHeight(summaries, panelWidth, MaterialListPlusState.recipeProgress(this.entry));
             return RecipeInlineRenderer.hoveredStackAt(summaries, panelX, panelY, panelWidth, visibleOuterHeight, mouseX, mouseY);
         }
 
@@ -912,7 +913,7 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         int panelX = this.x + 28;
         int panelY = this.y + 23;
         int panelWidth = Math.max(180, this.width - 64);
-        int visibleOuterHeight = RecipeInlineRenderer.getOuterHeight(summaries, MaterialListPlusState.recipeProgress(this.entry));
+        int visibleOuterHeight = RecipeInlineRenderer.getOuterHeight(summaries, panelWidth, MaterialListPlusState.recipeProgress(this.entry));
         RecipeInlineRenderer.ToggleTarget target = RecipeInlineRenderer.toggleAt(summaries, panelX, panelY, panelWidth, visibleOuterHeight, mouseX, mouseY);
         if (target.isNone()) {
             return false;
