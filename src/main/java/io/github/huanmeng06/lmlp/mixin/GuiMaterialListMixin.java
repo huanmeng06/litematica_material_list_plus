@@ -11,6 +11,7 @@ import fi.dy.masa.malilib.gui.button.ButtonBase;
 import fi.dy.masa.malilib.gui.button.ButtonGeneric;
 import fi.dy.masa.malilib.gui.button.ButtonOnOff;
 import fi.dy.masa.malilib.gui.button.IButtonActionListener;
+import fi.dy.masa.malilib.gui.widgets.WidgetLabel;
 import fi.dy.masa.malilib.util.StringUtils;
 import io.github.huanmeng06.lmlp.cache.ChunkMissingMaterialListCache;
 import io.github.huanmeng06.lmlp.gui.KnownPlacementRows;
@@ -38,10 +39,16 @@ public abstract class GuiMaterialListMixin extends GuiListBase {
     private static final int BUTTON_SPACING = 1;
     private static final int BUTTON_Y = 24;
     private static final int WRAPPED_BUTTON_Y_OFFSET = 22;
+    private static final int PROGRESS_LINE_HEIGHT = 12;
 
     @Shadow
     @Final
     private MaterialListBase materialList;
+
+    // How many lines the "总计 / 进度 / 缺少 / 不匹配的" summary was last
+    // wrapped into; read by lmlp$addSchematicCacheStatus to keep the read
+    // status label above it instead of overlapping.
+    private int lmlp$progressLineCount = 1;
 
     protected GuiMaterialListMixin(int listX, int listY) {
         super(listX, listY);
@@ -82,9 +89,60 @@ public abstract class GuiMaterialListMixin extends GuiListBase {
 
     @Inject(method = "getBrowserHeight", at = @At("RETURN"), cancellable = true)
     private void lmlp$makeRoomForChunkMissingStatus(CallbackInfoReturnable<Integer> cir) {
-        if (KnownPlacementRows.readStatus(this.materialList) != null) {
-            cir.setReturnValue(Math.max(0, cir.getReturnValue() - 12));
+        int reserve = KnownPlacementRows.readStatus(this.materialList) != null ? 12 : 0;
+        // lmlp$progressLineCount reflects the previous initGui pass (getBrowserHeight
+        // runs before this pass' progress label is rebuilt), which just means a
+        // one-resize lag if the wrap count changes; acceptable for this cosmetic reserve.
+        reserve += PROGRESS_LINE_HEIGHT * (this.lmlp$progressLineCount - 1);
+        if (reserve > 0) {
+            cir.setReturnValue(Math.max(0, cir.getReturnValue() - reserve));
         }
+    }
+
+    // Vanilla draws the "总计 / 进度: 完成 x% / 缺少 x% / 不匹配的 x%" summary
+    // as a single unwrapped line sized to its full content width, which runs
+    // past the window edge on narrow windows. Wrap it at the " / " separators
+    // instead of letting it overflow or blindly truncating it (truncation
+    // would cut off the tail — exactly the "不匹配的" part users want to see).
+    @Redirect(
+            method = "initGui",
+            at = @At(
+                    value = "INVOKE",
+                    target = "Lfi/dy/masa/malilib/gui/GuiBase;addLabel(IIIII[Ljava/lang/String;)Lfi/dy/masa/malilib/gui/widgets/WidgetLabel;",
+                    ordinal = 1))
+    private WidgetLabel lmlp$wrapProgressSummary(GuiMaterialList self, int x, int y, int width, int height, int color, String[] text) {
+        String full = text.length > 0 ? text[0] : "";
+        int budget = this.field_22789 - x - 4;
+        if (this.getStringWidth(full) <= budget) {
+            this.lmlp$progressLineCount = 1;
+            return this.addLabel(x, y, width, height, color, full);
+        }
+
+        List<String> lines = this.lmlp$wrapBySeparator(full, budget);
+        this.lmlp$progressLineCount = lines.size();
+        int topY = y - PROGRESS_LINE_HEIGHT * (lines.size() - 1);
+        return this.addLabel(x, topY, width, height, color, lines.toArray(new String[0]));
+    }
+
+    private List<String> lmlp$wrapBySeparator(String text, int maxWidth) {
+        String[] tokens = text.split(" / ");
+        List<String> lines = new ArrayList<>();
+        StringBuilder current = new StringBuilder();
+        for (String token : tokens) {
+            String candidate = current.isEmpty() ? token : current + " / " + token;
+            if (!current.isEmpty() && this.getStringWidth(candidate) > maxWidth) {
+                lines.add(current.toString());
+                current = new StringBuilder(token);
+            } else {
+                current = new StringBuilder(candidate);
+            }
+        }
+
+        if (!current.isEmpty()) {
+            lines.add(current.toString());
+        }
+
+        return lines.isEmpty() ? List.of(text) : lines;
     }
 
     // Vanilla's getElementTotalWidth() estimates the top button row from bare
@@ -116,9 +174,13 @@ public abstract class GuiMaterialListMixin extends GuiListBase {
             int width = this.getStringWidth(status);
             // In narrow mode the vanilla button row wraps down to height-22,
             // right where this label normally sits; move it above the
-            // progress line (vanilla puts that at height-36) so nothing overlaps.
+            // progress line (vanilla puts that at height-36) so nothing
+            // overlaps. The progress line's own top can shift further up when
+            // it wraps to extra lines, so this label needs to follow it.
             boolean narrow = this.field_22789 < this.lmlp$fullTopRowWidth();
-            int y = narrow ? this.field_22790 - 48 : this.field_22790 - 24;
+            int y = narrow
+                    ? this.field_22790 - 48 - PROGRESS_LINE_HEIGHT * (this.lmlp$progressLineCount - 1)
+                    : this.field_22790 - 24;
             this.addLabel(12, y, width, 12, readStatus.color(), status);
         }
     }
