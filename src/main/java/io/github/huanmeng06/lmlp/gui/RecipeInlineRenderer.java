@@ -81,24 +81,28 @@ public final class RecipeInlineRenderer {
             return;
         }
 
+        int lineBudget = panelWidth - PADDING * 2;
+        int rightEdge = x + panelWidth - PADDING;
+
         RecipeSummary summary = summaries.get(0);
         int cursorY = y + PADDING;
-        String itemName = ItemStackTexts.name(summary.outputIcon());
+        String itemName = truncateToWidth(widget, ItemStackTexts.name(summary.outputIcon()), lineBudget - 24);
         context.method_51427(summary.outputIcon(), textX, cursorY);
         widget.drawString(textX + 24, cursorY + 4, 0xFFFFFFFF, GuiBase.TXT_BOLD + itemName, context);
         cursorY += 24;
 
-        widget.drawString(textX, cursorY, 0xFFFFFFFF, RecipeSummaryFormatter.header(summary, 1), context);
+        widget.drawString(textX, cursorY, 0xFFFFFFFF, fitHeaderText(widget, summary, lineBudget), context);
         cursorY += 18;
 
         int ingredientBoxY = cursorY;
         int ingredientBoxHeight = 18 + visibleIngredientHeight(summary);
         RenderUtils.drawRect(textX - 2, ingredientBoxY - 2, panelWidth - PADDING * 2 + 4, ingredientBoxHeight, 0x66000000);
-        widget.drawString(textX, cursorY, 0xFFAAAAAA, StringUtils.translate("lmlp.label.recipe.ingredients_missing"), context);
+        String missingLabel = truncateToWidth(widget, StringUtils.translate("lmlp.label.recipe.ingredients_missing"), lineBudget);
+        widget.drawString(textX, cursorY, 0xFFAAAAAA, missingLabel, context);
         cursorY += 18;
 
         for (IngredientSummary ingredient : summary.ingredients()) {
-            renderIngredient(widget, context, textX, cursorY, ingredient, mouseX, mouseY);
+            renderIngredient(widget, context, textX, cursorY, rightEdge, ingredient, mouseX, mouseY);
             cursorY += INGREDIENT_HEIGHT;
 
             MaterialTreeNode root = MaterialListPlusState.getVisibleIngredientTree(ingredient);
@@ -107,7 +111,7 @@ public final class RecipeInlineRenderer {
                 int childVisibleHeight = Math.min(fullHeight, Math.round(fullHeight * MaterialListPlusState.treeProgress(root.path())));
                 if (childVisibleHeight > 0) {
                     context.method_44379(textX, cursorY - 3, x + panelWidth - PADDING, cursorY + childVisibleHeight);
-                    renderChildren(widget, context, textX, cursorY, root.children(), 1, childVisibleHeight, mouseX, mouseY);
+                    renderChildren(widget, context, textX, cursorY, root.children(), 1, childVisibleHeight, rightEdge, mouseX, mouseY);
                     context.method_44380();
                     cursorY += childVisibleHeight;
                 }
@@ -115,7 +119,8 @@ public final class RecipeInlineRenderer {
         }
 
         if (summaries.size() > 1) {
-            widget.drawString(textX, y + height - 16, 0xFFFFFFFF, GuiBase.TXT_GOLD + StringUtils.translate("lmlp.label.recipe.more_hint"), context);
+            String moreHint = truncateToWidth(widget, StringUtils.translate("lmlp.label.recipe.more_hint"), lineBudget);
+            widget.drawString(textX, y + height - 16, 0xFFFFFFFF, GuiBase.TXT_GOLD + moreHint, context);
         }
 
         context.method_44380();
@@ -176,14 +181,14 @@ public final class RecipeInlineRenderer {
         return stack == null ? class_1799.field_8037 : stack;
     }
 
-    private static void renderIngredient(WidgetBase widget, class_332 context, int textX, int y, IngredientSummary ingredient, int mouseX, int mouseY) {
+    private static void renderIngredient(WidgetBase widget, class_332 context, int textX, int y, int rightEdge, IngredientSummary ingredient, int mouseX, int mouseY) {
         boolean hasTree = MaterialListPlusState.hasTree(ingredient);
         MaterialTreeNode root = MaterialListPlusState.getVisibleIngredientTree(ingredient);
         float expandProgress = root == null ? 0.0F : MaterialListPlusState.treeProgress(root.path());
-        renderRow(widget, context, textX, y, 0, hasTree, expandProgress, AlternativeItemDisplay.icon(ingredient), RecipeSummaryFormatter.ingredientName(ingredient), ingredient.countTotal(), ingredient.countMissing(), ingredient.maxStackSize(), mouseX, mouseY);
+        renderRow(widget, context, textX, y, 0, hasTree, expandProgress, AlternativeItemDisplay.icon(ingredient), RecipeSummaryFormatter.ingredientName(ingredient), ingredient.countTotal(), ingredient.countMissing(), ingredient.maxStackSize(), rightEdge, mouseX, mouseY);
     }
 
-    private static int renderChildren(WidgetBase widget, class_332 context, int textX, int y, List<MaterialTreeNode> nodes, int depth, int visibleHeight, int mouseX, int mouseY) {
+    private static int renderChildren(WidgetBase widget, class_332 context, int textX, int y, List<MaterialTreeNode> nodes, int depth, int visibleHeight, int rightEdge, int mouseX, int mouseY) {
         int cursorY = y;
         int remainingHeight = visibleHeight;
         for (MaterialTreeNode node : nodes) {
@@ -192,7 +197,7 @@ public final class RecipeInlineRenderer {
             }
 
             float expandProgress = node.hasChildren() ? MaterialListPlusState.treeProgress(node.path()) : 0.0F;
-            renderRow(widget, context, textX, cursorY, depth, node.hasChildren(), expandProgress, AlternativeItemDisplay.icon(node), node.name(), node.totalCount(), node.missingCount(), node.maxStackSize(), mouseX, mouseY);
+            renderRow(widget, context, textX, cursorY, depth, node.hasChildren(), expandProgress, AlternativeItemDisplay.icon(node), node.name(), node.totalCount(), node.missingCount(), node.maxStackSize(), rightEdge, mouseX, mouseY);
 
             int visibleRowHeight = Math.min(INGREDIENT_HEIGHT, remainingHeight);
             cursorY += INGREDIENT_HEIGHT;
@@ -202,7 +207,7 @@ public final class RecipeInlineRenderer {
                 int visibleChildrenHeight = Math.min(fullChildrenHeight, Math.round(fullChildrenHeight * MaterialListPlusState.treeProgress(node.path())));
                 visibleChildrenHeight = Math.min(visibleChildrenHeight, remainingHeight);
                 if (visibleChildrenHeight > 0) {
-                    cursorY = renderChildren(widget, context, textX, cursorY, node.children(), depth + 1, visibleChildrenHeight, mouseX, mouseY);
+                    cursorY = renderChildren(widget, context, textX, cursorY, node.children(), depth + 1, visibleChildrenHeight, rightEdge, mouseX, mouseY);
                     remainingHeight -= visibleChildrenHeight;
                 }
             }
@@ -291,7 +296,7 @@ public final class RecipeInlineRenderer {
                 && mouseY < y - 3 + Math.min(18, visibleRowHeight);
     }
 
-    private static void renderRow(WidgetBase widget, class_332 context, int textX, int y, int depth, boolean hasTree, float expandProgress, net.minecraft.class_1799 icon, String name, int totalCount, int missingCount, int maxStackSize, int mouseX, int mouseY) {
+    private static void renderRow(WidgetBase widget, class_332 context, int textX, int y, int depth, boolean hasTree, float expandProgress, net.minecraft.class_1799 icon, String name, int totalCount, int missingCount, int maxStackSize, int rightEdge, int mouseX, int mouseY) {
         int rowX = textX + depth * TREE_INDENT_WIDTH;
         int iconX = rowX + INGREDIENT_ICON_OFFSET;
         int iconY = y - 2;
@@ -304,8 +309,13 @@ public final class RecipeInlineRenderer {
         context.method_51427(icon, iconX + 1, iconY);
 
         String countColor = missingCount == 0 ? GuiBase.TXT_GREEN : GuiBase.TXT_RED;
-        String line = name + ": " + countColor + CountFormatter.format(missingCount, maxStackSize);
-        widget.drawString(rowX + INGREDIENT_ICON_OFFSET + 26, y + 2, 0xFFFFFFFF, line, context);
+        String count = CountFormatter.format(missingCount, maxStackSize);
+        int textStartX = rowX + INGREDIENT_ICON_OFFSET + 26;
+        // Never truncate the count itself (the number matters more than the
+        // name), only shrink the plain name in front of it.
+        int nameBudget = rightEdge - textStartX - widget.getStringWidth(": " + count);
+        String line = truncateToWidth(widget, name, nameBudget) + ": " + countColor + count;
+        widget.drawString(textStartX, y + 2, 0xFFFFFFFF, line, context);
     }
 
     private static int visibleIngredientHeight(RecipeSummary summary) {
@@ -406,6 +416,43 @@ public final class RecipeInlineRenderer {
 
     private static boolean isInside(int mouseX, int mouseY, int x, int y, int width, int height) {
         return mouseX >= x && mouseX < x + width && mouseY >= y && mouseY < y + height;
+    }
+
+    // The " / missing" suffix in RecipeSummaryFormatter.header() carries
+    // color codes as one unit; fall back to the plain base text (never a
+    // mid-string cut) when the full header doesn't fit, only truncating the
+    // base itself as a last resort.
+    private static String fitHeaderText(WidgetBase widget, RecipeSummary summary, int maxWidth) {
+        String full = RecipeSummaryFormatter.header(summary, 1);
+        if (widget.getStringWidth(full) <= maxWidth) {
+            return full;
+        }
+
+        String base = RecipeSummaryFormatter.headerBase(summary, 1);
+        return widget.getStringWidth(base) <= maxWidth ? base : truncateToWidth(widget, base, maxWidth);
+    }
+
+    private static String truncateToWidth(WidgetBase widget, String text, int maxWidth) {
+        if (text == null || text.isEmpty() || maxWidth <= 0) {
+            return "";
+        }
+
+        if (widget.getStringWidth(text) <= maxWidth) {
+            return text;
+        }
+
+        String suffix = "...";
+        int suffixWidth = widget.getStringWidth(suffix);
+        if (suffixWidth > maxWidth) {
+            return "";
+        }
+
+        int end = text.length();
+        while (end > 0 && widget.getStringWidth(text.substring(0, end)) + suffixWidth > maxWidth) {
+            end--;
+        }
+
+        return end > 0 ? text.substring(0, end) + suffix : suffix;
     }
 
     private static void drawOutline(int x, int y, int width, int height, int color) {
