@@ -35,6 +35,7 @@ public class InitHandler implements IInitializationHandler {
             return true;
         });
         ClientTickEvents.END_CLIENT_TICK.register(InitHandler::handleHotkeyFallback);
+        ClientTickEvents.END_CLIENT_TICK.register(client -> ChunkMissingMaterialListCache.flushPendingPersistence());
         ClientPlayConnectionEvents.JOIN.register((handler, sender, client) ->
                 ChunkMissingMaterialListCache.onWorldJoined(client, "client_play.join"));
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
