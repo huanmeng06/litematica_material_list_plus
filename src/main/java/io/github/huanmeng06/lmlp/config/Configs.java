@@ -105,9 +105,9 @@ public class Configs implements IConfigHandler {
 
         public static final ConfigInteger MISSING_PLACEMENT_BUTTON_RANGE = new ConfigInteger(
                 "missingPlacementButtonRange",
-                64,
+                256,
                 8,
-                512,
+                1024,
                 true,
                 "How close (in blocks) the player must be to an offline-cached placement's recorded origin for the \"I can't find it\" button to appear on that row."
         );
