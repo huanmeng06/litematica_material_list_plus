@@ -128,10 +128,10 @@ public class Configs implements IConfigHandler {
         public static final List<IConfigBase> OPTIONS = ImmutableList.of(
                 DISABLE_LITEMATICA_HOVER_TOOLTIP,
                 COUNT_DISPLAY_STYLE,
+                REPLACE_WATER_BUCKET_WITH_ICE,
                 ORIGIN_MARKER_TIME,
                 ORIGIN_MARKER_TEXT_SCALE,
-                MISSING_PLACEMENT_BUTTON_RANGE,
-                REPLACE_WATER_BUCKET_WITH_ICE
+                MISSING_PLACEMENT_BUTTON_RANGE
         );
 
         private Generic() {
