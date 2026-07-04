@@ -14,6 +14,8 @@ import io.github.huanmeng06.lmlp.cache.ChunkMissingMaterialListCache;
 import io.github.huanmeng06.lmlp.cache.ChunkMissingMaterialListCache.KnownPlacementContext;
 import io.github.huanmeng06.lmlp.cache.ChunkMissingMaterialListCache.ReadMode;
 import io.github.huanmeng06.lmlp.cache.MaterialListDataSource;
+import net.minecraft.class_1297;
+import net.minecraft.class_2338;
 import net.minecraft.class_2960;
 import net.minecraft.class_310;
 import net.minecraft.class_332;
@@ -631,12 +633,31 @@ public final class KnownPlacementRows {
         return new ButtonGeneric(0, 0, -1, true, label).getWidth();
     }
 
+    // 64 blocks: generous enough that the player doesn't need to stand
+    // exactly on the recorded coordinate, tight enough to actually filter
+    // out "same dimension, but nowhere near the site" false triggers.
+    private static final double OFFLINE_MISSING_PROXIMITY_SQUARED = 64.0 * 64.0;
+
     public static boolean shouldShowOfflineMissingButton(KnownPlacementContext context) {
         String currentDimension = currentDimensionId();
-        return context != null
-                && context.offlineCache()
-                && currentDimension != null
-                && normalizedDimension(context.dimension()).equals(normalizedDimension(currentDimension));
+        if (context == null
+                || !context.offlineCache()
+                || currentDimension == null
+                || !normalizedDimension(context.dimension()).equals(normalizedDimension(currentDimension))) {
+            return false;
+        }
+
+        return isNearOrigin(context);
+    }
+
+    private static boolean isNearOrigin(KnownPlacementContext context) {
+        class_2338 origin = PlacementOriginMarker.parseOrigin(context.originPosition());
+        class_1297 player = class_310.method_1551().field_1724;
+        if (origin == null || player == null) {
+            return false;
+        }
+
+        return player.method_5707(origin.method_46558()) <= OFFLINE_MISSING_PROXIMITY_SQUARED;
     }
 
     private static int[] headerColumnPositions(WidgetBase widget, KnownPlacementRow row) {
