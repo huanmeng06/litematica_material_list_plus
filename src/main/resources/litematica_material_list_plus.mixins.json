@@ -23,6 +23,7 @@
     "SchematicPlacementManagerMixin",
     "SchematicPlacementMixin",
     "WidgetListBaseMixin",
+    "WidgetListEntrySortableMixin",
     "WidgetListMaterialListMixin",
     "WidgetListSchematicPlacementsMixin",
     "WidgetMaterialListEntryButtonListenerMixin",
