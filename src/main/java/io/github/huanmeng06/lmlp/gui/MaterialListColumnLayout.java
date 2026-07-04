@@ -152,29 +152,25 @@ public final class MaterialListColumnLayout {
             return;
         }
 
-        int base = 4 + nameWidth;
-        int full = base + NAME_TO_TOTAL_GAP + totalWidth + COUNT_COLUMN_GAP + missingWidth + COUNT_COLUMN_GAP + availableWidth;
-        if (full <= availableEntryWidth) {
-            totalVisible = true;
-            missingVisible = true;
-            availableVisible = true;
-            nameClamp = 0;
-            return;
-        }
-
-        int withoutAvailable = base + NAME_TO_TOTAL_GAP + totalWidth + COUNT_COLUMN_GAP + missingWidth;
-        if (withoutAvailable <= availableEntryWidth) {
-            totalVisible = true;
-            missingVisible = true;
-            availableVisible = false;
-            nameClamp = 0;
-            return;
-        }
-
+        // Decide with the exact same formula rowWidth() uses (including its
+        // trailing gap); anything else lets a state pass the check here while
+        // rowWidth() still exceeds the budget, pushing rows past the window
+        // and clipping the right-anchored ignore button.
         missingVisible = true;
+        totalVisible = true;
+        availableVisible = true;
+        if (rowWidth(nameWidth) <= availableEntryWidth) {
+            nameClamp = 0;
+            return;
+        }
+
         availableVisible = false;
-        int withoutTotalAvailable = base + NAME_TO_TOTAL_GAP + missingWidth;
-        totalVisible = withoutTotalAvailable <= availableEntryWidth;
+        if (rowWidth(nameWidth) <= availableEntryWidth) {
+            nameClamp = 0;
+            return;
+        }
+
+        totalVisible = false;
         nameClamp = Math.max(0, rowWidth(nameWidth) - availableEntryWidth);
     }
 
