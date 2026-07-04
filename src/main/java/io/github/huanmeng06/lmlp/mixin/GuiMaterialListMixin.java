@@ -19,6 +19,7 @@ import io.github.huanmeng06.lmlp.gui.KnownPlacementRows;
 import io.github.huanmeng06.lmlp.gui.KnownPlacementRows.ReadStatus;
 import io.github.huanmeng06.lmlp.export.SubMaterialExporter;
 import io.github.huanmeng06.lmlp.gui.MinimalSubMaterialListView;
+import io.github.huanmeng06.lmlp.material.CountFormatter;
 import net.minecraft.class_437;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -106,6 +107,10 @@ public abstract class GuiMaterialListMixin extends GuiListBase {
     @Inject(method = "initGui", at = @At("HEAD"))
     private void lmlp$precomputeProgressLineCount(CallbackInfo ci) {
         this.lmlp$progressLineCount = this.lmlp$computeProgressLineCount();
+        // Reset the count-string memo on GUI (re)open so a language switch —
+        // which forces the screen to close and reopen — can't surface stale
+        // localized count text from a previous language.
+        CountFormatter.clearCache();
     }
 
     private int lmlp$computeProgressLineCount() {

@@ -14,6 +14,7 @@ import fi.dy.masa.malilib.util.FileUtils;
 import fi.dy.masa.malilib.util.JsonUtils;
 import io.github.huanmeng06.lmlp.LitematicaMaterialListPlus;
 import io.github.huanmeng06.lmlp.gui.MaterialListPlusState;
+import io.github.huanmeng06.lmlp.material.CountFormatter;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -150,6 +151,7 @@ public class Configs implements IConfigHandler {
     static {
         Generic.RECIPE_STOP_ITEMS.setValueChangeCallback(config -> MaterialListPlusState.clearRecipeCaches());
         Generic.REPLACE_WATER_BUCKET_WITH_ICE.setValueChangeCallback(config -> MaterialListPlusState.clearRecipeCaches());
+        Generic.COUNT_DISPLAY_STYLE.setValueChangeCallback(config -> CountFormatter.clearCache());
     }
 
     public static void loadFromFile() {

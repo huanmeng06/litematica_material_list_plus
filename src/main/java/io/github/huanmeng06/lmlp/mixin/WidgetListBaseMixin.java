@@ -58,6 +58,15 @@ public abstract class WidgetListBaseMixin implements WidgetListBoundsAccess {
     private long lmlp$lastLayoutMinimalSubMaterialRevision = Long.MIN_VALUE;
     private String lmlp$lastMaterialDataSignature = "";
     private double lmlp$scrollRemainder;
+    // Frame-scoped memo of per-entry scroll-target heights. An entry's target
+    // height is constant within a single frame (it depends on expansion state /
+    // panel width, which only change via input that also re-lays the list), so
+    // caching it lets the several O(N) height passes per frame (totalEntryHeight
+    // twice in drawContents, plus firstVisibleEntryIndex/entryTop/loop during a
+    // rebuild) compute each entry once instead of 2-5x. Cleared at the top of
+    // every height-loop entry point so it never carries stale values across a
+    // relayout.
+    private final java.util.Map<Object, Integer> lmlp$frameEntryHeights = new java.util.IdentityHashMap<>();
 
     @Shadow
     @Final
@@ -241,6 +250,7 @@ public abstract class WidgetListBaseMixin implements WidgetListBoundsAccess {
     public void drawContents(class_332 drawContext, int mouseX, int mouseY, float partialTicks) {
         RenderUtils.color(1.0F, 1.0F, 1.0F, 1.0F);
         this.lmlp$refreshAnimatedRecipeExpansion();
+        this.lmlp$frameEntryHeights.clear();
 
         WidgetBase hovered = null;
         int viewportHeight = this.lmlp$getListViewportHeight();
@@ -436,6 +446,7 @@ public abstract class WidgetListBaseMixin implements WidgetListBoundsAccess {
     }
 
     private void lmlp$reCreateListEntryWidgetsByPixels() {
+        this.lmlp$frameEntryHeights.clear();
         this.listWidgets.clear();
         this.maxVisibleBrowserEntries = 0;
 
@@ -476,6 +487,7 @@ public abstract class WidgetListBaseMixin implements WidgetListBoundsAccess {
     }
 
     private void lmlp$scrollEntryIndexIntoView(int targetIndex, int bottomPadding) {
+        this.lmlp$frameEntryHeights.clear();
         int viewportHeight = this.lmlp$getEntryViewportHeight(bottomPadding);
         int top = this.lmlp$entryTop(targetIndex);
         int bottom = top + Math.max(1, this.lmlp$getScrollTargetEntryHeightFor(this.listContents.get(targetIndex)));
@@ -541,6 +553,17 @@ public abstract class WidgetListBaseMixin implements WidgetListBoundsAccess {
     }
 
     private int lmlp$getScrollTargetEntryHeightFor(Object entry) {
+        Integer cached = this.lmlp$frameEntryHeights.get(entry);
+        if (cached != null) {
+            return cached;
+        }
+
+        int computed = this.lmlp$computeScrollTargetEntryHeightFor(entry);
+        this.lmlp$frameEntryHeights.put(entry, computed);
+        return computed;
+    }
+
+    private int lmlp$computeScrollTargetEntryHeightFor(Object entry) {
         if (entry instanceof MaterialListEntry materialEntry) {
             boolean minimalSubMaterialView = (Object) this instanceof WidgetMaterialListAccess access && MinimalSubMaterialListView.isActive(access.lmlp$getMaterialList());
             if (minimalSubMaterialView && MinimalSubMaterialListView.isSourcesExpanded(materialEntry)) {
