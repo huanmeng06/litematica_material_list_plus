@@ -108,9 +108,21 @@ public abstract class GuiMaterialListMixin extends GuiListBase {
             method = "initGui",
             at = @At(
                     value = "INVOKE",
-                    target = "Lfi/dy/masa/malilib/gui/GuiBase;addLabel(IIIII[Ljava/lang/String;)Lfi/dy/masa/malilib/gui/widgets/WidgetLabel;",
+                    // javac compiles this.addLabel(...) (an inherited GuiBase
+                    // method) with GuiMaterialList itself as the invokevirtual
+                    // owner in the constant pool, not the declaring class;
+                    // targeting GuiBase here found zero call sites and made
+                    // the whole mixin fail to apply (crash on launch).
+                    target = "Lfi/dy/masa/litematica/gui/GuiMaterialList;addLabel(IIIII[Ljava/lang/String;)Lfi/dy/masa/malilib/gui/widgets/WidgetLabel;",
                     ordinal = 1))
     private WidgetLabel lmlp$wrapProgressSummary(GuiMaterialList self, int x, int y, int width, int height, int color, String[] text) {
+        // Defensive fallback in case a future vanilla change shifts which
+        // addLabel call this ordinal lands on: only wrap the one at the
+        // expected progress-line position, pass everything else through.
+        if (y != this.field_22790 - 36) {
+            return this.addLabel(x, y, width, height, color, text);
+        }
+
         String full = text.length > 0 ? text[0] : "";
         int budget = this.field_22789 - x - 4;
         if (this.getStringWidth(full) <= budget) {

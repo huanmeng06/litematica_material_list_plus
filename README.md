@@ -2,13 +2,19 @@
 
 这个 README 只记录 `dev-newFeature` 分支的开发过程和每个小版本做了什么。完整的项目介绍、安装说明、功能说明和截图展示放在 `main` 分支维护。
 
-当前正式版：`v1.6.43`
+当前正式版：`v1.6.44`
 
-当前构建：`1.6.43+mc1.20.6`
+当前构建：`1.6.44+mc1.20.6`
 
 适配目标：Minecraft `1.20.6` / Fabric / Litematica / MaLiLib / REI
 
 ## 版本说明
+
+### v1.6.44
+
+- 修复 v1.6.43 导致游戏一启动就崩溃（`Mixin transformation of GuiMaterialList failed`）：进度文字换行那个 `@Redirect` 写的 owner 类名是 `GuiBase`（方法实际声明的地方），但 `this.addLabel(...)` 这种继承方法调用，javac 编译出的 `invokevirtual` 常量池条目记的 owner 其实是调用点的类（`GuiMaterialList` 本身），不是方法的声明类——用反编译出来的 Java 源码猜测字节码细节，这次猜错了，Redirect 一个字节码调用点都没匹配上（日志显示 `Scanned 0 target(s)`），整个 mixin 加载失败、直接崩溃。这次改用真实字节码（`javap -v` 看常量池）核实后修正 owner 为 `GuiMaterialList`，并加了一层按 y 坐标的兜底判断，避免以后类似假设出错时又整体崩溃。
+- 同步 `fabric.mod.json` 和运行时 `MOD_VERSION` 到 `1.6.44+mc1.20.6`。
+- 构建产物改为 `1.6.44+mc1.20.6`。
 
 ### v1.6.43
 
