@@ -196,6 +196,40 @@ public final class ChunkMissingMaterialListCache {
         return refreshForPlacementState(resolution, materialList, false);
     }
 
+    // A context can point at a stale SchematicPlacement instance (Litematica
+    // rebuilds its placement list on dimension change, handing out new objects)
+    // or be a disk-restored OFFLINE_CACHE with no placement, while a live
+    // placement of the same identity is actually loaded right now. Before
+    // opening or treating a context as offline, re-link the current live
+    // in-manager placement of the same identity so it opens live instead of
+    // showing "离线缓存". No-op when the context is already backed by a live
+    // in-manager placement, and a genuine offline context (no live match) is
+    // left untouched.
+    private static PlacementContext relinkLivePlacement(PlacementContext context) {
+        if (context == null) {
+            return null;
+        }
+        if (context.placement() != null && isPlacementInCurrentManager(context.placement())) {
+            return context;
+        }
+
+        SchematicPlacementManager manager = DataManager.getSchematicPlacementManager();
+        if (manager == null) {
+            return context;
+        }
+
+        for (SchematicPlacement placement : manager.getAllSchematicsPlacements()) {
+            if (PlacementKey.of(placement).equals(context.key())) {
+                PlacementContext relinked = rememberPlacement(placement, "relink.live_by_identity");
+                LOGGER.info("[LMLP cache-index] relinked live placement by identity key={} name={} sourceState={} placementDimension={} currentDimension={}",
+                        context.key(), context.name(), relinked == null ? null : relinked.sourceState(), context.dimension(), currentDimensionId());
+                return relinked == null ? context : relinked;
+            }
+        }
+
+        return context;
+    }
+
     public static MaterialListBase getOrCreateMaterialListForOpen(MaterialListBase materialList, String caller) {
         PlacementResolution resolution = resolvePlacementForMaterialList(materialList, caller);
         if (!resolution.hasTarget()) {
@@ -203,7 +237,7 @@ public final class ChunkMissingMaterialListCache {
             return null;
         }
 
-        PlacementContext context = resolution.context();
+        PlacementContext context = relinkLivePlacement(resolution.context());
         if (context.isOfflineCache()) {
             logRoute(resolution, context, ReadMode.OFFLINE_CACHE);
             return getOrCreateOffline(context, caller);
@@ -222,6 +256,7 @@ public final class ChunkMissingMaterialListCache {
             return null;
         }
 
+        context = relinkLivePlacement(context);
         selectContext(context, caller + ".explicit_context");
         PlacementResolution resolution = PlacementResolution.direct(context, caller + ".explicit_context");
         if (context.isOfflineCache()) {
