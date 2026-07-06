@@ -276,9 +276,24 @@ public class GuiItemIdStringListEdit extends GuiListBase<String, WidgetItemIdStr
         // forced 520px even on small windows / high GUI scale, clipping the
         // right edge (and the back button) off screen.
         this.dialogWidth = Math.min(screenWidth - 16, Math.max(360, screenWidth - PANEL_MARGIN_X * 2));
-        this.dialogHeight = Math.min(screenHeight - 16, Math.max(220, screenHeight - PANEL_MARGIN_TOP - PANEL_MARGIN_BOTTOM));
+
+        // The dialog is pinned at PANEL_MARGIN_TOP, so its height must be capped
+        // to the room BELOW that top, not just to a raw `screenHeight - 16`.
+        // The old cap ignored the top offset, so at small windows / high GUI
+        // scale `dialogTop + dialogHeight` ran past the screen bottom and the
+        // last rows were clipped off. Cap to the available space; if even the
+        // 220px minimum won't fit, pull the top up to reclaim room.
+        int bottomMargin = 8;
+        int top = PANEL_MARGIN_TOP;
+        int desired = Math.max(220, screenHeight - PANEL_MARGIN_TOP - PANEL_MARGIN_BOTTOM);
+        int height = Math.min(desired, screenHeight - top - bottomMargin);
+        if (height < 220) {
+            top = Math.max(8, screenHeight - bottomMargin - 220);
+            height = Math.min(220, screenHeight - top - bottomMargin);
+        }
+        this.dialogHeight = height;
         this.dialogLeft = Math.max(8, (screenWidth - this.dialogWidth) / 2);
-        this.dialogTop = PANEL_MARGIN_TOP;
+        this.dialogTop = top;
         this.updateBackButtonPosition();
     }
 

@@ -2,13 +2,21 @@
 
 这个 README 只记录 `dev-newFeature` 分支的开发过程和每个小版本做了什么。完整的项目介绍、安装说明、功能说明和截图展示放在 `main` 分支维护。
 
-当前正式版：`v1.6.63`
+当前正式版：`v1.6.64`
 
-当前构建：`1.6.63+mc1.20.6`
+当前构建：`1.6.64+mc1.20.6`
 
 适配目标：Minecraft `1.20.6` / Fabric / Litematica / MaLiLib / REI
 
 ## 版本说明
+
+### v1.6.64
+
+- 按实测反馈修两处：
+  - **配方面板"沙子 / 红沙"改成"任意沙子"**：以前 `directAlternativeName` 遇到沙子对是把各备选名用" / "拼起来（沙子 / 红沙），而最小子材料页早已用 `lmlp.label.recipe.any.sand`。现在配方面板也直接返回"任意沙子"，两处口径一致。
+  - **配置表单在部分分辨率下底部内容被截断**：`GuiItemIdStringListEdit` 把对话框顶部固定在 `PANEL_MARGIN_TOP`，但高度只按 `screenHeight - 16` 封顶（没算顶部偏移），于是小窗口 / 高 GUI 缩放下 `dialogTop + dialogHeight` 超出屏幕底部，最后几行被裁掉。现在高度按顶部下方的实际可用空间封顶；连 220px 最小高度都放不下时，再上提顶部腾出空间。
+- 同步 `fabric.mod.json` 和运行时 `MOD_VERSION` 到 `1.6.64+mc1.20.6`。
+- 构建产物改为 `1.6.64+mc1.20.6`。
 
 ### v1.6.63
 

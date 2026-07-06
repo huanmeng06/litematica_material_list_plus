@@ -3,7 +3,6 @@ package io.github.huanmeng06.lmlp.recipe;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.StringJoiner;
 
 import fi.dy.masa.malilib.util.StringUtils;
 import io.github.huanmeng06.lmlp.material.ItemStackTexts;
@@ -123,21 +122,11 @@ public final class AlternativeItemDisplay {
             return StringUtils.translate("lmlp.label.recipe.any.purpur");
         }
 
-        if (!isSandPair(icons)) {
-            return "";
+        if (isSandPair(icons)) {
+            return StringUtils.translate("lmlp.label.recipe.any.sand");
         }
 
-        StringJoiner joiner = new StringJoiner(" / ");
-        int limit = Math.min(alternatives.size(), 4);
-        for (int i = 0; i < limit; i++) {
-            joiner.add(alternatives.get(i));
-        }
-
-        if (alternatives.size() > limit) {
-            joiner.add("...");
-        }
-
-        return joiner.toString();
+        return "";
     }
 
     private static String coalCharcoalName(List<class_1799> icons, List<String> alternatives) {
