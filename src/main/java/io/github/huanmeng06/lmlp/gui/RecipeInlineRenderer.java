@@ -185,6 +185,110 @@ public final class RecipeInlineRenderer {
         return stack == null ? class_1799.field_8037 : stack;
     }
 
+    private static final int MAX_ALTERNATIVE_TOOLTIP_LINES = 15;
+
+    // When the mouse is over a choice-group row's NAME text (not its item
+    // icon), return the concrete items the "任意X" tag stands for, so it can be
+    // shown as a hover tooltip. Empty list when not over a choice-group name.
+    public static List<String> hoveredChoiceGroupAlternatives(List<RecipeSummary> summaries, int x, int y, int width, int visibleOuterHeight, int mouseX, int mouseY) {
+        int panelWidth = Math.max(160, width);
+        int height = Math.min(getHeight(summaries, width), Math.max(0, visibleOuterHeight));
+        if (mouseX < x || mouseX >= x + panelWidth || mouseY < y || mouseY >= y + height || summaries.isEmpty()) {
+            return List.of();
+        }
+
+        RecipeSummary summary = summaries.get(0);
+        int textX = x + PADDING;
+        int cursorY = y + PADDING + 24 + HEADER_ROW_HEIGHT * headerLines(summary, panelWidth - PADDING * 2).size() + 18;
+        List<String> found = hoveredIngredientAlternatives(summary.ingredients(), textX, cursorY, 0, Integer.MAX_VALUE, mouseX, mouseY);
+        return found == null ? List.of() : capAlternatives(found);
+    }
+
+    private static List<String> capAlternatives(List<String> alternatives) {
+        if (alternatives.size() <= MAX_ALTERNATIVE_TOOLTIP_LINES) {
+            return alternatives;
+        }
+        List<String> capped = new java.util.ArrayList<>(alternatives.subList(0, MAX_ALTERNATIVE_TOOLTIP_LINES));
+        capped.add(StringUtils.translate("lmlp.label.recipe.alternatives_more", alternatives.size() - MAX_ALTERNATIVE_TOOLTIP_LINES));
+        return capped;
+    }
+
+    private static List<String> hoveredIngredientAlternatives(List<IngredientSummary> ingredients, int textX, int y, int depth, int visibleHeight, int mouseX, int mouseY) {
+        int cursorY = y;
+        int remainingHeight = visibleHeight;
+        for (IngredientSummary ingredient : ingredients) {
+            if (remainingHeight <= 0) {
+                break;
+            }
+
+            int visibleRowHeight = Math.min(INGREDIENT_HEIGHT, remainingHeight);
+            if (ingredient.isChoiceGroup() && isNameRegionHovered(textX, cursorY, depth, visibleRowHeight, mouseX, mouseY)) {
+                return ingredient.alternatives();
+            }
+
+            cursorY += INGREDIENT_HEIGHT;
+            remainingHeight -= visibleRowHeight;
+            MaterialTreeNode root = MaterialListPlusState.getVisibleIngredientTree(ingredient);
+            if (root != null && remainingHeight > 0) {
+                int fullChildrenHeight = visibleChildrenHeight(root.children());
+                int childVisibleHeight = Math.min(fullChildrenHeight, Math.round(fullChildrenHeight * MaterialListPlusState.treeProgress(root.path())));
+                childVisibleHeight = Math.min(childVisibleHeight, remainingHeight);
+                if (childVisibleHeight > 0) {
+                    List<String> childHit = hoveredNodeAlternatives(root.children(), textX, cursorY, depth + 1, childVisibleHeight, mouseX, mouseY);
+                    if (childHit != null) {
+                        return childHit;
+                    }
+                    cursorY += childVisibleHeight;
+                    remainingHeight -= childVisibleHeight;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private static List<String> hoveredNodeAlternatives(List<MaterialTreeNode> nodes, int textX, int y, int depth, int visibleHeight, int mouseX, int mouseY) {
+        int cursorY = y;
+        int remainingHeight = visibleHeight;
+        for (MaterialTreeNode node : nodes) {
+            if (remainingHeight <= 0) {
+                break;
+            }
+
+            int visibleRowHeight = Math.min(INGREDIENT_HEIGHT, remainingHeight);
+            if (node.isChoiceGroup() && isNameRegionHovered(textX, cursorY, depth, visibleRowHeight, mouseX, mouseY)) {
+                return node.alternatives();
+            }
+
+            cursorY += INGREDIENT_HEIGHT;
+            remainingHeight -= visibleRowHeight;
+            if (node.hasChildren() && remainingHeight > 0) {
+                int fullChildrenHeight = visibleChildrenHeight(node.children());
+                int childVisibleHeight = Math.min(fullChildrenHeight, Math.round(fullChildrenHeight * MaterialListPlusState.treeProgress(node.path())));
+                childVisibleHeight = Math.min(childVisibleHeight, remainingHeight);
+                if (childVisibleHeight > 0) {
+                    List<String> childHit = hoveredNodeAlternatives(node.children(), textX, cursorY, depth + 1, childVisibleHeight, mouseX, mouseY);
+                    if (childHit != null) {
+                        return childHit;
+                    }
+                    cursorY += childVisibleHeight;
+                    remainingHeight -= childVisibleHeight;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private static boolean isNameRegionHovered(int textX, int y, int depth, int visibleRowHeight, int mouseX, int mouseY) {
+        int rowX = textX + depth * TREE_INDENT_WIDTH;
+        int nameStartX = rowX + INGREDIENT_ICON_OFFSET + 26;
+        return visibleRowHeight > 0
+                && mouseX >= nameStartX
+                && mouseY >= y - 3
+                && mouseY < y - 3 + Math.min(18, visibleRowHeight);
+    }
+
     private static void renderIngredient(WidgetBase widget, class_332 context, int textX, int y, int rightEdge, IngredientSummary ingredient, int mouseX, int mouseY) {
         boolean hasTree = MaterialListPlusState.hasTree(ingredient);
         MaterialTreeNode root = MaterialListPlusState.getVisibleIngredientTree(ingredient);

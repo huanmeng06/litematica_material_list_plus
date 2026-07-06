@@ -437,6 +437,10 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
             return;
         }
 
+        if (this.lmlp$renderRecipeChoiceGroupTooltip(drawContext, mouseX, mouseY)) {
+            return;
+        }
+
         if (this.lmlp$renderPanelItemTooltip(drawContext, mouseX, mouseY)) {
             return;
         }
@@ -477,6 +481,31 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         }
 
         RenderUtils.drawHoverText(mouseX, mouseY, List.of(fullName), drawContext);
+        return true;
+    }
+
+    // Hovering a choice-group ("任意X") name in the recipe panel shows the
+    // concrete items it stands for, distinct from hovering its item icon
+    // (which still shows the vanilla item tooltip via lmlp$renderPanelItemTooltip).
+    private boolean lmlp$renderRecipeChoiceGroupTooltip(class_332 drawContext, int mouseX, int mouseY) {
+        if (this.entry == null || !MaterialListPlusState.isRecipeVisible(this.entry)) {
+            return false;
+        }
+
+        List<RecipeSummary> summaries = MaterialListPlusState.getSummaries(this.entry, this.materialList);
+        if (summaries.isEmpty()) {
+            summaries = MaterialListPlusState.getCachedSummaries(this.entry);
+        }
+        int panelX = this.x + 28;
+        int panelY = this.y + 23;
+        int panelWidth = Math.max(180, this.width - 64);
+        int visibleOuterHeight = RecipeInlineRenderer.getOuterHeight(summaries, panelWidth, MaterialListPlusState.recipeProgress(this.entry));
+        List<String> alternatives = RecipeInlineRenderer.hoveredChoiceGroupAlternatives(summaries, panelX, panelY, panelWidth, visibleOuterHeight, mouseX, mouseY);
+        if (alternatives.isEmpty()) {
+            return false;
+        }
+
+        RenderUtils.drawHoverText(mouseX, mouseY, alternatives, drawContext);
         return true;
     }
 

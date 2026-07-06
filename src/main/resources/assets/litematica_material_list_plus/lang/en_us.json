@@ -13,6 +13,7 @@
   "lmlp.label.recipe.total_short": "Total",
   "lmlp.label.recipe.missing_short": "Missing",
   "lmlp.label.recipe.any_short": "Any %s",
+  "lmlp.label.recipe.alternatives_more": "...and %d more",
   "lmlp.label.recipe.any.planks": "Any plank",
   "lmlp.label.recipe.any.log": "Any log",
   "lmlp.label.recipe.any.wood": "Any wood",
