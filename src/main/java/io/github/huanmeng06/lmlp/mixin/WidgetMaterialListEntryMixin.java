@@ -511,7 +511,7 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
             return false;
         }
 
-        return this.lmlp$renderChoiceGrid(drawContext, mouseX, mouseY, hover.icon(), hover.name(), candidates);
+        return this.lmlp$renderChoiceGrid(drawContext, mouseX, mouseY, hover.icon(), MinimalSubMaterialListView.emphasizeChoiceGroupName(hover.name()), candidates);
     }
 
     // Build the grid candidates for a hovered choice group. The names list can

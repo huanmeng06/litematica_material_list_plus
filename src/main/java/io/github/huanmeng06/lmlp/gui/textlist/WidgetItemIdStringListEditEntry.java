@@ -63,10 +63,13 @@ public class WidgetItemIdStringListEditEntry extends WidgetConfigOptionBase<Stri
         int centerY = y + height / 2;
         int buttonY = centerY - CONTROL_HEIGHT / 2;
         int textY = buttonY;
-        // Only reserve the icon-button slots that are actually shown (+/- always;
-        // move-down at slot 2, move-up at slot 3), so narrow rows don't waste
-        // space on absent buttons.
-        int reservedIconSlots = this.canBeMoved(false) ? 4 : (this.canBeMoved(true) ? 3 : 2);
+        // Always reserve all four icon-button slots (+/- , move-down at slot 2,
+        // move-up at slot 3) even when a row hides one of the move buttons. The
+        // buttons sit at fixed slot offsets from actionStartX, so a per-row slot
+        // count would shift actionStartX (and every text field's right edge)
+        // between rows -- that's why the first row's field looked wider than the
+        // rest. A constant reservation keeps the whole column aligned.
+        int reservedIconSlots = 4;
         int actionStartX = x + width - ICON_BUTTON_WIDTH * reservedIconSlots - 8;
         int resetX = actionStartX - RESET_WIDTH - 8;
         int selectX = resetX - SELECT_WIDTH - ACTION_GAP;

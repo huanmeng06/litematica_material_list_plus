@@ -299,6 +299,16 @@ public final class MinimalSubMaterialListView {
         return requirement.icons().size() > 1 && isAnyGroupName(requirement.name()) ? emphasizeVariable(requirement.name()) : requirement.name();
     }
 
+    // Style a choice-group ("任意X" / tag) title so the recipe-panel hover popup
+    // matches the minimal sub-material page: yellow, bold, underlined. The name
+    // may already carry format codes (defensive: only add ours when it doesn't).
+    public static String emphasizeChoiceGroupName(String name) {
+        if (name == null || name.isEmpty() || name.indexOf('§') >= 0) {
+            return name;
+        }
+        return emphasizeVariable(name);
+    }
+
     public static String upstreamDisplayName(UpstreamRequirement upstream) {
         return upstream.icons().size() > 1 && isAnyGroupName(upstream.name()) ? emphasizeVariable(upstream.name()) : upstream.name();
     }
