@@ -6,6 +6,7 @@ import fi.dy.masa.litematica.materials.MaterialListBase;
 import fi.dy.masa.litematica.materials.MaterialListEntry;
 import fi.dy.masa.litematica.materials.MaterialListUtils;
 import fi.dy.masa.litematica.util.BlockInfoListType;
+import fi.dy.masa.malilib.gui.GuiBase;
 import fi.dy.masa.malilib.gui.GuiListBase;
 import fi.dy.masa.malilib.gui.Message.MessageType;
 import fi.dy.masa.malilib.gui.button.ButtonBase;
@@ -15,6 +16,7 @@ import fi.dy.masa.malilib.gui.button.IButtonActionListener;
 import fi.dy.masa.malilib.gui.widgets.WidgetLabel;
 import fi.dy.masa.malilib.util.StringUtils;
 import io.github.huanmeng06.lmlp.cache.ChunkMissingMaterialListCache;
+import io.github.huanmeng06.lmlp.gui.GuiConfigs;
 import io.github.huanmeng06.lmlp.gui.KnownPlacementRows;
 import io.github.huanmeng06.lmlp.gui.KnownPlacementRows.ReadStatus;
 import io.github.huanmeng06.lmlp.export.SubMaterialExporter;
@@ -235,6 +237,39 @@ public abstract class GuiMaterialListMixin extends GuiListBase {
         this.addButton(button, new SubMaterialExportButtonListener((GuiMaterialList) (Object) this));
     }
 
+    // Add an "LMLP 配置" button next to vanilla's bottom-right "主菜单" button
+    // so the mod's config screen is reachable from the material list directly.
+    // Declared before lmlp$reflowWrappedBottomButtons so it's already in the
+    // buttons list when the narrow-mode reflow runs (mixin applies TAIL
+    // injectors in declaration order); in narrow mode it sits on the wrapped
+    // row (height-22) and flows with the rest, in wide mode it sits at
+    // height-36 immediately left of the main-menu button.
+    @Inject(method = "initGui", at = @At("TAIL"))
+    private void lmlp$addOpenConfigButton(CallbackInfo ci) {
+        String label = StringUtils.translate("lmlp.gui.button.material_list.open_config");
+        boolean narrow = this.field_22789 < this.lmlp$fullTopRowWidth();
+        ButtonGeneric button;
+        if (narrow) {
+            // A large starting X sorts it last in the reflow's left-to-right
+            // pass; reflow recomputes every X from 12 so the value only sets
+            // order, not the final position.
+            button = new ButtonGeneric(this.field_22789, this.field_22790 - WRAPPED_BUTTON_Y_OFFSET, -1, 20, label, new String[0]);
+        } else {
+            int width = this.getStringWidth(label) + 20;
+            button = new ButtonGeneric(this.lmlp$mainMenuButtonX() - width - 4, this.field_22790 - 36, width, 20, label, new String[0]);
+        }
+        button.setHoverStrings("lmlp.gui.button.hover.material_list.open_config");
+        this.addButton(button, new OpenConfigButtonListener((GuiMaterialList) (Object) this));
+    }
+
+    // Mirrors vanilla's own placement of the bottom-right main-menu button
+    // (width = label width + 20, x = window width - width - 10).
+    private int lmlp$mainMenuButtonX() {
+        String menuLabel = StringUtils.translate("litematica.gui.button.change_menu.to_main_menu");
+        int menuWidth = this.getStringWidth(menuLabel) + 20;
+        return this.field_22789 - menuWidth - 10;
+    }
+
     @Inject(method = "initGui", at = @At("TAIL"))
     private void lmlp$addSchematicCacheStatus(CallbackInfo ci) {
         ReadStatus readStatus = KnownPlacementRows.readStatus(this.materialList);
@@ -369,6 +404,19 @@ public abstract class GuiMaterialListMixin extends GuiListBase {
             }
 
             this.parent.initGui();
+        }
+    }
+
+    private static final class OpenConfigButtonListener implements IButtonActionListener {
+        private final GuiMaterialList parent;
+
+        private OpenConfigButtonListener(GuiMaterialList parent) {
+            this.parent = parent;
+        }
+
+        @Override
+        public void actionPerformedWithButton(ButtonBase button, int mouseButton) {
+            GuiBase.openGui(new GuiConfigs().setParent(this.parent));
         }
     }
 }

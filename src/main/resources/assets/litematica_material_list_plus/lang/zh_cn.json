@@ -70,6 +70,8 @@
   "lmlp.gui.button.keep_looking": "再找找看",
   "lmlp.gui.button.material_list.write_sub_materials": "写入子材料文件",
   "lmlp.gui.button.hover.material_list.write_sub_materials": "写入树状子材料 XLSX。",
+  "lmlp.gui.button.material_list.open_config": "LMLP 配置",
+  "lmlp.gui.button.hover.material_list.open_config": "打开 Litematica Material List Plus 的配置界面。",
   "lmlp.gui.material_list.display_type.minimal_sub_materials": "最小子材料",
   "lmlp.hud.title.minimal_sub_material": "最小子材料列表",
   "lmlp.gui.material_list.chunk_missing_status": "\u5f53\u524d\u6750\u6599\u5217\u8868\u662f\u4f9d\u7167\u539f\u7406\u56fe\u7f13\u5b58\u8bfb\u53d6\u7684",

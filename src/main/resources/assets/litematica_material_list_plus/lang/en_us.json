@@ -70,6 +70,8 @@
   "lmlp.gui.button.keep_looking": "Keep looking",
   "lmlp.gui.button.material_list.write_sub_materials": "Write sub-material file",
   "lmlp.gui.button.hover.material_list.write_sub_materials": "Write a tree-structured sub-material XLSX.",
+  "lmlp.gui.button.material_list.open_config": "LMLP Config",
+  "lmlp.gui.button.hover.material_list.open_config": "Open the Litematica Material List Plus config screen.",
   "lmlp.gui.material_list.display_type.minimal_sub_materials": "Minimal sub-materials",
   "lmlp.hud.title.minimal_sub_material": "Minimal Sub-Materials",
   "lmlp.gui.material_list.chunk_missing_status": "Current material list is loaded from schematic cache",
