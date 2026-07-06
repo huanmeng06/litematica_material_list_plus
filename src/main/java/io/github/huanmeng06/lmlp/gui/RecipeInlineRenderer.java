@@ -211,7 +211,7 @@ public final class RecipeInlineRenderer {
             }
 
             int visibleRowHeight = Math.min(INGREDIENT_HEIGHT, remainingHeight);
-            if (ingredient.isChoiceGroup() && isNameRegionHovered(textX, cursorY, depth, visibleRowHeight, mouseX, mouseY)) {
+            if (ingredient.isChoiceGroup() && isNameRegionHovered(textX, cursorY, depth, RecipeSummaryFormatter.ingredientName(ingredient), visibleRowHeight, mouseX, mouseY)) {
                 return new ChoiceGroupHover(AlternativeItemDisplay.icon(ingredient), RecipeSummaryFormatter.ingredientName(ingredient), ingredient.icons(), ingredient.alternatives());
             }
 
@@ -245,7 +245,7 @@ public final class RecipeInlineRenderer {
             }
 
             int visibleRowHeight = Math.min(INGREDIENT_HEIGHT, remainingHeight);
-            if (node.isChoiceGroup() && isNameRegionHovered(textX, cursorY, depth, visibleRowHeight, mouseX, mouseY)) {
+            if (node.isChoiceGroup() && isNameRegionHovered(textX, cursorY, depth, node.name(), visibleRowHeight, mouseX, mouseY)) {
                 return new ChoiceGroupHover(AlternativeItemDisplay.icon(node), node.name(), node.icons(), node.alternatives());
             }
 
@@ -274,11 +274,17 @@ public final class RecipeInlineRenderer {
     public record ChoiceGroupHover(class_1799 icon, String name, List<class_1799> icons, List<String> alternatives) {
     }
 
-    private static boolean isNameRegionHovered(int textX, int y, int depth, int visibleRowHeight, int mouseX, int mouseY) {
+    // Only the yellow underlined name text is hoverable, not the whole row.
+    // The name is rendered bold (each glyph ~1px wider), so widen the plain
+    // width by the character count to approximate the drawn extent and stop
+    // short of the trailing ": count".
+    private static boolean isNameRegionHovered(int textX, int y, int depth, String name, int visibleRowHeight, int mouseX, int mouseY) {
         int rowX = textX + depth * TREE_INDENT_WIDTH;
         int nameStartX = rowX + INGREDIENT_ICON_OFFSET + 26;
+        int nameWidth = StringUtils.getStringWidth(name) + (name == null ? 0 : name.length());
         return visibleRowHeight > 0
                 && mouseX >= nameStartX
+                && mouseX < nameStartX + nameWidth
                 && mouseY >= y - 3
                 && mouseY < y - 3 + Math.min(18, visibleRowHeight);
     }

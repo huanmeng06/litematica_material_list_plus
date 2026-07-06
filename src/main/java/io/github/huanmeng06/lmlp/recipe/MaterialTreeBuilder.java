@@ -217,17 +217,20 @@ public final class MaterialTreeBuilder {
             class_1799 icon = ingredient.icon().method_7972();
             String path = parentPath + "/" + index + ":" + ItemStackTexts.id(icon);
             if (ingredient.isChoiceGroup()) {
-                children.add(new MaterialTreeNode(
-                        path,
+                // A choice group reached through a plain item's recipe (e.g.
+                // chest -> "任意木板") must keep decomposing as a choice group
+                // (任意木板 -> 任意原木), not dead-end as a leaf. Delegate to the
+                // same recursive builder the top-level choice-group path uses.
+                children.add(buildChoiceGroupNode(
                         icon,
                         ingredient.icons().isEmpty() ? List.of(icon) : ingredient.icons(),
                         ingredient.alternatives(),
                         RecipeSummaryFormatter.ingredientName(ingredient),
                         ingredient.countTotal(),
                         ingredient.countMissing(),
-                        Math.max(1, icon.method_7914()),
+                        path,
                         depth,
-                        List.of()));
+                        seenItems));
             } else {
                 children.add(build(
                         icon,
