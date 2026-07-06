@@ -17,6 +17,7 @@ import io.github.huanmeng06.lmlp.config.Configs;
 import io.github.huanmeng06.lmlp.gui.MaterialListColumnLayout;
 import io.github.huanmeng06.lmlp.gui.MaterialListPlusState;
 import io.github.huanmeng06.lmlp.gui.ItemTooltipRenderer;
+import io.github.huanmeng06.lmlp.material.ItemStackTexts;
 import io.github.huanmeng06.lmlp.gui.MinimalSubMaterialListView;
 import io.github.huanmeng06.lmlp.gui.MinimalSourceInlineRenderer;
 import io.github.huanmeng06.lmlp.gui.RecipeDetailScreen;
@@ -500,13 +501,42 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         int panelY = this.y + 23;
         int panelWidth = Math.max(180, this.width - 64);
         int visibleOuterHeight = RecipeInlineRenderer.getOuterHeight(summaries, panelWidth, MaterialListPlusState.recipeProgress(this.entry));
-        List<String> alternatives = RecipeInlineRenderer.hoveredChoiceGroupAlternatives(summaries, panelX, panelY, panelWidth, visibleOuterHeight, mouseX, mouseY);
-        if (alternatives.isEmpty()) {
+        RecipeInlineRenderer.ChoiceGroupHover hover = RecipeInlineRenderer.hoveredChoiceGroup(summaries, panelX, panelY, panelWidth, visibleOuterHeight, mouseX, mouseY);
+        if (hover == null) {
             return false;
         }
 
-        RenderUtils.drawHoverText(mouseX, mouseY, alternatives, drawContext);
-        return true;
+        List<MinimalSubMaterialListView.TooltipCandidate> candidates = lmlp$choiceGroupCandidates(hover);
+        if (candidates.isEmpty()) {
+            return false;
+        }
+
+        return this.lmlp$renderChoiceGrid(drawContext, mouseX, mouseY, hover.icon(), hover.name(), candidates);
+    }
+
+    // Build the grid candidates for a hovered choice group. The names list can
+    // drift out of parallel with the icons (unioned children dedupe icons by id
+    // separately from names), so only trust names when it lines up 1:1;
+    // otherwise derive each row's label from its own icon to guarantee the
+    // icon and name always match.
+    private static List<MinimalSubMaterialListView.TooltipCandidate> lmlp$choiceGroupCandidates(RecipeInlineRenderer.ChoiceGroupHover hover) {
+        List<class_1799> icons = hover.icons();
+        List<String> names = hover.alternatives();
+        if (icons.isEmpty()) {
+            return List.of();
+        }
+
+        boolean namesParallel = names.size() == icons.size();
+        List<MinimalSubMaterialListView.TooltipCandidate> candidates = new java.util.ArrayList<>(icons.size());
+        for (int index = 0; index < icons.size(); index++) {
+            class_1799 icon = icons.get(index);
+            if (icon.method_7960()) {
+                continue;
+            }
+            String name = namesParallel ? names.get(index) : ItemStackTexts.name(icon);
+            candidates.add(new MinimalSubMaterialListView.TooltipCandidate(icon.method_7972(), name));
+        }
+        return candidates;
     }
 
     @Override
@@ -524,6 +554,12 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
             return false;
         }
 
+        return this.lmlp$renderChoiceGrid(drawContext, mouseX, mouseY, target.icon(), target.name(), candidates);
+    }
+
+    // Shared rich choice-group grid (icon + name, one/two columns) used by both
+    // the minimal sub-material page and the recipe panel's "任意X" hover.
+    private boolean lmlp$renderChoiceGrid(class_332 drawContext, int mouseX, int mouseY, class_1799 headerStack, String headerName, List<MinimalSubMaterialListView.TooltipCandidate> candidates) {
         int maxPanelWidth = Math.max(120, this.mc.method_22683().method_4486() - HOVER_TOOLTIP_MARGIN * 2);
         int maxContentWidth = Math.max(80, maxPanelWidth - HOVER_TOOLTIP_PADDING * 2);
         int maxCandidateNameWidth = 0;
@@ -543,9 +579,8 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         int rowsPerColumn = (candidates.size() + columns - 1) / columns;
         int candidateContentWidth = columns * columnWidth + columnGap;
 
-        class_1799 headerStack = target.icon();
         String headerText = this.truncateToWidth(
-                target.name(),
+                headerName,
                 Math.max(20, maxContentWidth - HOVER_TOOLTIP_ICON_SIZE - HOVER_TOOLTIP_ICON_GAP));
         int headerWidth = HOVER_TOOLTIP_ICON_SIZE + HOVER_TOOLTIP_ICON_GAP + this.getStringWidth(headerText);
         int contentWidth = Math.min(maxContentWidth, Math.max(headerWidth, candidateContentWidth));

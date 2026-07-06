@@ -80,6 +80,11 @@ public final class AlternativeItemDisplay {
             return alternatives.get(0);
         }
 
+        String familyGroupName = woodFamilyGroupName(icons);
+        if (!familyGroupName.isEmpty()) {
+            return familyGroupName;
+        }
+
         String directName = directAlternativeName(icons, alternatives);
         if (!directName.isEmpty()) {
             return directName;
@@ -335,11 +340,66 @@ public final class AlternativeItemDisplay {
         return value;
     }
 
+    // Group a union of icons that spans several wood families into a single
+    // "任意原木"/"任意木板" label, mirroring the minimal sub-material page's
+    // family check. This must run before the per-family / common-suffix
+    // heuristics, which only fire when every icon shares one family (e.g.
+    // oak_log + oak_wood) and would otherwise fall back to a single item name
+    // like "橡木原木" for a cross-family union.
+    private static String woodFamilyGroupName(List<class_1799> icons) {
+        if (icons.size() < 2) {
+            return "";
+        }
+
+        if (allIconsMatch(icons, AlternativeItemDisplay::isLogLike) && hasMultipleWoodFamilies(icons)) {
+            return StringUtils.translate("lmlp.label.recipe.any.log");
+        }
+
+        if (allIconsMatch(icons, path -> path.endsWith("_planks")) && hasMultipleWoodFamilies(icons)) {
+            return StringUtils.translate("lmlp.label.recipe.any.planks");
+        }
+
+        return "";
+    }
+
+    private static boolean hasMultipleWoodFamilies(List<class_1799> icons) {
+        String firstFamily = "";
+        for (class_1799 icon : icons) {
+            String family = woodFamily(itemPath(icon));
+            if (family.isEmpty()) {
+                return true;
+            }
+            if (firstFamily.isEmpty()) {
+                firstFamily = family;
+            } else if (!firstFamily.equals(family)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static boolean allIconsMatch(List<class_1799> icons, java.util.function.Predicate<String> predicate) {
+        if (icons.isEmpty()) {
+            return false;
+        }
+
+        for (class_1799 icon : icons) {
+            if (icon.method_7960() || !predicate.test(itemPath(icon))) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     private static boolean isLogLike(String path) {
         return path.endsWith("_log")
                 || path.endsWith("_wood")
                 || path.endsWith("_stem")
-                || path.endsWith("_hyphae");
+                || path.endsWith("_hyphae")
+                || path.equals("bamboo_block")
+                || path.equals("stripped_bamboo_block");
     }
 
     private static String woodFamily(String path) {

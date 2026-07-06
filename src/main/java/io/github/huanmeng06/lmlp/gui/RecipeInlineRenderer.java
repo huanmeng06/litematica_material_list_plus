@@ -185,35 +185,24 @@ public final class RecipeInlineRenderer {
         return stack == null ? class_1799.field_8037 : stack;
     }
 
-    private static final int MAX_ALTERNATIVE_TOOLTIP_LINES = 15;
-
     // When the mouse is over a choice-group row's NAME text (not its item
-    // icon), return the concrete items the "任意X" tag stands for, so it can be
-    // shown as a hover tooltip. Empty list when not over a choice-group name.
-    public static List<String> hoveredChoiceGroupAlternatives(List<RecipeSummary> summaries, int x, int y, int width, int visibleOuterHeight, int mouseX, int mouseY) {
+    // icon), return the concrete items the "任意X" tag stands for (icon +
+    // name pairs) plus the group's own label, so it can be shown as a rich
+    // hover grid. null when not over a choice-group name.
+    public static ChoiceGroupHover hoveredChoiceGroup(List<RecipeSummary> summaries, int x, int y, int width, int visibleOuterHeight, int mouseX, int mouseY) {
         int panelWidth = Math.max(160, width);
         int height = Math.min(getHeight(summaries, width), Math.max(0, visibleOuterHeight));
         if (mouseX < x || mouseX >= x + panelWidth || mouseY < y || mouseY >= y + height || summaries.isEmpty()) {
-            return List.of();
+            return null;
         }
 
         RecipeSummary summary = summaries.get(0);
         int textX = x + PADDING;
         int cursorY = y + PADDING + 24 + HEADER_ROW_HEIGHT * headerLines(summary, panelWidth - PADDING * 2).size() + 18;
-        List<String> found = hoveredIngredientAlternatives(summary.ingredients(), textX, cursorY, 0, Integer.MAX_VALUE, mouseX, mouseY);
-        return found == null ? List.of() : capAlternatives(found);
+        return hoveredIngredientChoiceGroup(summary.ingredients(), textX, cursorY, 0, Integer.MAX_VALUE, mouseX, mouseY);
     }
 
-    private static List<String> capAlternatives(List<String> alternatives) {
-        if (alternatives.size() <= MAX_ALTERNATIVE_TOOLTIP_LINES) {
-            return alternatives;
-        }
-        List<String> capped = new java.util.ArrayList<>(alternatives.subList(0, MAX_ALTERNATIVE_TOOLTIP_LINES));
-        capped.add(StringUtils.translate("lmlp.label.recipe.alternatives_more", alternatives.size() - MAX_ALTERNATIVE_TOOLTIP_LINES));
-        return capped;
-    }
-
-    private static List<String> hoveredIngredientAlternatives(List<IngredientSummary> ingredients, int textX, int y, int depth, int visibleHeight, int mouseX, int mouseY) {
+    private static ChoiceGroupHover hoveredIngredientChoiceGroup(List<IngredientSummary> ingredients, int textX, int y, int depth, int visibleHeight, int mouseX, int mouseY) {
         int cursorY = y;
         int remainingHeight = visibleHeight;
         for (IngredientSummary ingredient : ingredients) {
@@ -223,7 +212,7 @@ public final class RecipeInlineRenderer {
 
             int visibleRowHeight = Math.min(INGREDIENT_HEIGHT, remainingHeight);
             if (ingredient.isChoiceGroup() && isNameRegionHovered(textX, cursorY, depth, visibleRowHeight, mouseX, mouseY)) {
-                return ingredient.alternatives();
+                return new ChoiceGroupHover(AlternativeItemDisplay.icon(ingredient), RecipeSummaryFormatter.ingredientName(ingredient), ingredient.icons(), ingredient.alternatives());
             }
 
             cursorY += INGREDIENT_HEIGHT;
@@ -234,7 +223,7 @@ public final class RecipeInlineRenderer {
                 int childVisibleHeight = Math.min(fullChildrenHeight, Math.round(fullChildrenHeight * MaterialListPlusState.treeProgress(root.path())));
                 childVisibleHeight = Math.min(childVisibleHeight, remainingHeight);
                 if (childVisibleHeight > 0) {
-                    List<String> childHit = hoveredNodeAlternatives(root.children(), textX, cursorY, depth + 1, childVisibleHeight, mouseX, mouseY);
+                    ChoiceGroupHover childHit = hoveredNodeChoiceGroup(root.children(), textX, cursorY, depth + 1, childVisibleHeight, mouseX, mouseY);
                     if (childHit != null) {
                         return childHit;
                     }
@@ -247,7 +236,7 @@ public final class RecipeInlineRenderer {
         return null;
     }
 
-    private static List<String> hoveredNodeAlternatives(List<MaterialTreeNode> nodes, int textX, int y, int depth, int visibleHeight, int mouseX, int mouseY) {
+    private static ChoiceGroupHover hoveredNodeChoiceGroup(List<MaterialTreeNode> nodes, int textX, int y, int depth, int visibleHeight, int mouseX, int mouseY) {
         int cursorY = y;
         int remainingHeight = visibleHeight;
         for (MaterialTreeNode node : nodes) {
@@ -257,7 +246,7 @@ public final class RecipeInlineRenderer {
 
             int visibleRowHeight = Math.min(INGREDIENT_HEIGHT, remainingHeight);
             if (node.isChoiceGroup() && isNameRegionHovered(textX, cursorY, depth, visibleRowHeight, mouseX, mouseY)) {
-                return node.alternatives();
+                return new ChoiceGroupHover(AlternativeItemDisplay.icon(node), node.name(), node.icons(), node.alternatives());
             }
 
             cursorY += INGREDIENT_HEIGHT;
@@ -267,7 +256,7 @@ public final class RecipeInlineRenderer {
                 int childVisibleHeight = Math.min(fullChildrenHeight, Math.round(fullChildrenHeight * MaterialListPlusState.treeProgress(node.path())));
                 childVisibleHeight = Math.min(childVisibleHeight, remainingHeight);
                 if (childVisibleHeight > 0) {
-                    List<String> childHit = hoveredNodeAlternatives(node.children(), textX, cursorY, depth + 1, childVisibleHeight, mouseX, mouseY);
+                    ChoiceGroupHover childHit = hoveredNodeChoiceGroup(node.children(), textX, cursorY, depth + 1, childVisibleHeight, mouseX, mouseY);
                     if (childHit != null) {
                         return childHit;
                     }
@@ -278,6 +267,11 @@ public final class RecipeInlineRenderer {
         }
 
         return null;
+    }
+
+    // A hovered choice-group: the group's icon + label, and the concrete
+    // items (icon + name, kept parallel) it stands for.
+    public record ChoiceGroupHover(class_1799 icon, String name, List<class_1799> icons, List<String> alternatives) {
     }
 
     private static boolean isNameRegionHovered(int textX, int y, int depth, int visibleRowHeight, int mouseX, int mouseY) {
