@@ -5,6 +5,7 @@ import fi.dy.masa.litematica.materials.MaterialListEntry;
 import fi.dy.masa.litematica.util.BlockInfoListType;
 import fi.dy.masa.malilib.util.StringUtils;
 import io.github.huanmeng06.lmlp.config.Configs;
+import io.github.huanmeng06.lmlp.material.FamilyIconCycle;
 import io.github.huanmeng06.lmlp.material.InventoryCounts;
 import io.github.huanmeng06.lmlp.material.ItemStackTexts;
 import io.github.huanmeng06.lmlp.material.MaterialCounts;
@@ -32,7 +33,11 @@ import java.util.function.Predicate;
 public final class MinimalSubMaterialListView {
     private static final Logger LOGGER = LoggerFactory.getLogger("LMLP MinimalSubMaterialListView");
     private static final int MAX_RECIPE_DEPTH = 16;
+    // Non-wood fallback step; wood groups advance per family window instead.
+    // Kept equal to FamilyIconCycle's use in the renderers so the target row's
+    // own cycling icon stays in phase with its inline "所需" upstream icons.
     private static final long DISPLAY_CYCLE_MS = 900L;
+    private static final long FAMILY_CYCLE_MS = 2000L;
     private static final long BUILD_BUDGET_NS = 2_500_000L;
     private static final long INITIAL_BUILD_BUDGET_NS = 20_000_000L;
     private static final String COMMON_HIGHLIGHT = "\u00A7e\u00A7l\u00A7n";
@@ -1062,8 +1067,27 @@ public final class MinimalSubMaterialListView {
         }
 
         private Candidate currentCandidate() {
-            int index = this.candidates.size() == 1 ? 0 : (int) ((System.currentTimeMillis() / DISPLAY_CYCLE_MS) % this.candidates.size());
-            return this.candidates.get(index);
+            if (this.candidates.size() == 1) {
+                return this.candidates.get(0);
+            }
+
+            // Cycle the target row/header icon on the SAME family-grouped clock
+            // as the inline "所需" upstream icons (FamilyIconCycle), so 任意台阶
+            // / 任意木板 shown here stays on the same wood family that its
+            // upstream 任意原木 is currently showing. Pick the icon via the
+            // shared helper, then map it back to its candidate by id.
+            List<class_1799> icons = new ArrayList<>(this.candidates.size());
+            for (Candidate candidate : this.candidates) {
+                icons.add(candidate.icon());
+            }
+            class_1799 picked = FamilyIconCycle.pick(icons, System.currentTimeMillis(), FAMILY_CYCLE_MS, DISPLAY_CYCLE_MS);
+            String pickedId = ItemStackTexts.id(picked);
+            for (Candidate candidate : this.candidates) {
+                if (ItemStackTexts.id(candidate.icon()).equals(pickedId)) {
+                    return candidate;
+                }
+            }
+            return this.candidates.get(0);
         }
 
         private String stableName() {

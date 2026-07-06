@@ -7,6 +7,7 @@ import fi.dy.masa.malilib.gui.widgets.WidgetBase;
 import fi.dy.masa.malilib.render.RenderUtils;
 import fi.dy.masa.malilib.util.StringUtils;
 import io.github.huanmeng06.lmlp.material.CountFormatter;
+import io.github.huanmeng06.lmlp.material.FamilyIconCycle;
 import io.github.huanmeng06.lmlp.material.ItemStackTexts;
 import net.minecraft.class_1799;
 import net.minecraft.class_332;
@@ -31,6 +32,10 @@ public final class MinimalSourceInlineRenderer {
     private static final int TWO_COLUMN_THRESHOLD = 4;
     private static final int THREE_COLUMN_THRESHOLD = 7;
     private static final int COLUMN_SEPARATOR_COLOR = 0xFF999999;
+    // Per-family window + non-wood fallback step; see FamilyIconCycle. Kept in
+    // sync with AlternativeItemDisplay so the recipe panel and the minimal
+    // sub-material panel animate choice groups identically.
+    private static final long FAMILY_CYCLE_MILLIS = 2000L;
     private static final long ICON_CYCLE_MILLIS = 900L;
 
     private MinimalSourceInlineRenderer() {
@@ -513,8 +518,7 @@ public final class MinimalSourceInlineRenderer {
             return fallback;
         }
 
-        int index = (int) ((System.currentTimeMillis() / ICON_CYCLE_MILLIS) % icons.size());
-        class_1799 icon = icons.get(index);
+        class_1799 icon = FamilyIconCycle.pick(icons, System.currentTimeMillis(), FAMILY_CYCLE_MILLIS, ICON_CYCLE_MILLIS);
         return icon.method_7960() ? fallback : icon;
     }
 

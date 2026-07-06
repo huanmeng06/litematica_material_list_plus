@@ -5,10 +5,20 @@ import java.util.List;
 import java.util.Map;
 
 import fi.dy.masa.malilib.util.StringUtils;
+import io.github.huanmeng06.lmlp.material.FamilyIconCycle;
 import io.github.huanmeng06.lmlp.material.ItemStackTexts;
 import net.minecraft.class_1799;
 
 public final class AlternativeItemDisplay {
+    // How long each wood family stays on screen before the cycle advances to
+    // the next family. A family's icons are subdivided evenly within this
+    // window, so parallel lists (任意木板 with 1 icon/family, 任意原木 with N
+    // icons/family) always sit on the SAME family at the same moment — the
+    // planks icon and the log icon stay material-matched regardless of how
+    // many log variants each family has.
+    private static final long FAMILY_CYCLE_MILLIS = 2000L;
+    // Fallback period for non-wood groups (e.g. 沙子/红沙) that don't split by
+    // family: cycle the whole list one icon per this interval.
     private static final long ICON_CYCLE_MILLIS = 900L;
     private static final Map<String, String> COMMON_GROUP_KEYS = createCommonGroupKeys();
     private static final List<String> COMMON_PREFIXES = List.of(
@@ -251,8 +261,7 @@ public final class AlternativeItemDisplay {
             return fallback;
         }
 
-        int index = (int) ((System.currentTimeMillis() / ICON_CYCLE_MILLIS) % icons.size());
-        class_1799 icon = icons.get(index);
+        class_1799 icon = FamilyIconCycle.pick(icons, System.currentTimeMillis(), FAMILY_CYCLE_MILLIS, ICON_CYCLE_MILLIS);
         return icon.method_7960() ? fallback : icon;
     }
 
