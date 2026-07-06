@@ -364,7 +364,14 @@ public abstract class WidgetListBaseMixin implements WidgetListBoundsAccess {
         // Reserve room for the search icon floating over the header row's
         // top-right corner so a fully-fit column layout doesn't sit under it.
         MaterialListColumnLayout.updateAvailableEntryWidth(this.totalWidth - 14 - SEARCH_ICON_RESERVE);
-        this.browserWidth = Math.max(this.totalWidth, Math.max(MaterialListColumnLayout.requiredEntryWidth() + 14, this.lmlp$getRequiredMinimalSourceBrowserWidth()));
+        // Cap the expanded minimal-source panel's width demand at the viewport:
+        // growing browserWidth past totalWidth pushes the whole list (and the
+        // vertical scrollbar at browserWidth-9) off the window's right edge —
+        // the scrollbar got clipped at small/high-GUI-scale widths. The panel
+        // now wraps its upstream requirement to fit narrower widths, so it no
+        // longer needs the browser wider than the viewport.
+        int minimalSourceWidth = Math.min(this.totalWidth, this.lmlp$getRequiredMinimalSourceBrowserWidth());
+        this.browserWidth = Math.max(this.totalWidth, Math.max(MaterialListColumnLayout.requiredEntryWidth() + 14, minimalSourceWidth));
         this.browserEntryWidth = this.browserWidth - 14;
         this.lmlp$reCreateListEntryWidgetsByPixels();
     }
@@ -605,10 +612,16 @@ public abstract class WidgetListBaseMixin implements WidgetListBoundsAccess {
             return 0;
         }
 
+        var materialList = access.lmlp$getMaterialList();
         int requiredWidth = 0;
         for (Object entry : this.listContents) {
             if (entry instanceof MaterialListEntry materialEntry && MinimalSubMaterialListView.isSourcesExpanded(materialEntry)) {
-                requiredWidth = Math.max(requiredWidth, MinimalSourceInlineRenderer.getRequiredPanelWidth(MinimalSubMaterialListView.sourceContributions(materialEntry)));
+                int total = MinimalSubMaterialListView.total(materialEntry, materialList);
+                int missing = MinimalSubMaterialListView.netMissing(materialEntry, materialList);
+                List<MinimalSubMaterialListView.RequirementContribution> requirements =
+                        MinimalSubMaterialListView.sourceRequirements(materialEntry, total, missing);
+                requiredWidth = Math.max(requiredWidth, MinimalSourceInlineRenderer.getRequiredPanelWidth(
+                        requirements, MinimalSubMaterialListView.sourceContributions(materialEntry)));
             }
         }
 

@@ -735,7 +735,7 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         int panelWidth = this.minimalSourcePanelWidth();
         int panelY = this.y + 23;
         int visibleOuterHeight = MinimalSourceInlineRenderer.getOuterHeight(stack, requirements, sources, showAllSources, panelWidth, MinimalSubMaterialListView.sourceProgress(this.entry));
-        return MinimalSourceInlineRenderer.isTargetNameHovered(this.x + 28, panelY, stack, nameWidth, requirements, sources, visibleOuterHeight, mouseX, mouseY);
+        return MinimalSourceInlineRenderer.isTargetNameHovered(this.x + 28, panelY, panelWidth, stack, nameWidth, requirements, sources, visibleOuterHeight, mouseX, mouseY);
     }
 
     private static boolean isTextHovered(int textX, int textY, int textWidth, int mouseX, int mouseY) {

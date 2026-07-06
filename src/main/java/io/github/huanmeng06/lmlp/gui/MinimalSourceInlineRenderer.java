@@ -23,6 +23,10 @@ public final class MinimalSourceInlineRenderer {
     private static final int TEXT_HOVER_HEIGHT = 12;
     private static final int UPSTREAM_GAP = 18;
     private static final int UPSTREAM_ARROW_WIDTH = 18;
+    // When the upstream requirement doesn't fit on the same line as the main
+    // material, it wraps to a second line indented to align under the main
+    // material's text (past the 18px icon box + its 8px gap = 26px).
+    private static final int WRAP_INDENT = 26;
     private static final int COLUMN_GAP = 28;
     private static final int TWO_COLUMN_THRESHOLD = 4;
     private static final int THREE_COLUMN_THRESHOLD = 7;
@@ -44,9 +48,10 @@ public final class MinimalSourceInlineRenderer {
             return 56;
         }
 
-        int panelWidth = panelWidthFor(width, sources);
-        SourceColumnLayout layout = sourceColumnLayout(panelWidth - PADDING * 2, sources);
-        return 50 + requirementHeight(requirements) + layout.rowCount() * ROW_HEIGHT + INNER_BOTTOM_PADDING;
+        int panelWidth = panelWidthFor(width);
+        int contentWidth = panelWidth - PADDING * 2;
+        SourceColumnLayout layout = sourceColumnLayout(contentWidth, sources);
+        return 50 + requirementHeight(requirements, contentWidth) + layout.rowCount() * ROW_HEIGHT + INNER_BOTTOM_PADDING;
     }
 
     public static int getOuterHeight(class_1799 targetIcon, List<MinimalSubMaterialListView.RequirementContribution> requirements, List<MinimalSubMaterialListView.SourceContribution> sources, boolean showAll) {
@@ -65,11 +70,11 @@ public final class MinimalSourceInlineRenderer {
         return Math.round(getOuterHeight(targetIcon, requirements, sources, showAll, width) * progress);
     }
 
-    public static int getRequiredPanelWidth(List<MinimalSubMaterialListView.SourceContribution> sources) {
-        return panelWidthFor(0, sources);
+    public static int getRequiredPanelWidth(List<MinimalSubMaterialListView.RequirementContribution> requirements, List<MinimalSubMaterialListView.SourceContribution> sources) {
+        return requiredContentWidth(requirements, sources);
     }
 
-    public static boolean isTargetNameHovered(int x, int y, class_1799 targetIcon, int targetNameWidth, List<MinimalSubMaterialListView.RequirementContribution> requirements, List<MinimalSubMaterialListView.SourceContribution> sources, int visibleOuterHeight, int mouseX, int mouseY) {
+    public static boolean isTargetNameHovered(int x, int y, int width, class_1799 targetIcon, int targetNameWidth, List<MinimalSubMaterialListView.RequirementContribution> requirements, List<MinimalSubMaterialListView.SourceContribution> sources, int visibleOuterHeight, int mouseX, int mouseY) {
         int visibleHeight = Math.max(0, visibleOuterHeight - ENTRY_BOTTOM_GAP);
         int textX = x + PADDING + 24;
         int textY = y + PADDING + 4;
@@ -81,6 +86,7 @@ public final class MinimalSourceInlineRenderer {
             return false;
         }
 
+        int contentWidth = panelWidthFor(width) - PADDING * 2;
         int cursorY = y + PADDING + 24;
         textX = x + PADDING;
         if (isSelfSource(targetIcon, sources)) {
@@ -91,7 +97,7 @@ public final class MinimalSourceInlineRenderer {
             if (isVisibleTextHovered(textX, cursorY, targetNameWidth, y, visibleHeight, mouseX, mouseY)) {
                 return true;
             }
-            cursorY += 18 + requirements.size() * ROW_HEIGHT + SECTION_GAP;
+            cursorY += 18 + requirementsBlockRowsHeight(requirements, contentWidth) + SECTION_GAP;
         }
 
         return isVisibleTextHovered(textX, cursorY, targetNameWidth, y, visibleHeight, mouseX, mouseY);
@@ -102,15 +108,15 @@ public final class MinimalSourceInlineRenderer {
             return null;
         }
 
-        int panelWidth = panelWidthFor(width, sources);
+        int panelWidth = panelWidthFor(width);
+        int contentWidth = Math.max(1, panelWidth - PADDING * 2);
         int visibleHeight = Math.max(0, Math.min(getHeight(targetIcon, requirements, sources, showAll, width), visibleOuterHeight));
         int cursorY = y + PADDING + 24;
         if (!requirements.isEmpty()) {
-            cursorY += 18 + requirements.size() * ROW_HEIGHT + SECTION_GAP;
+            cursorY += 18 + requirementsBlockRowsHeight(requirements, contentWidth) + SECTION_GAP;
         }
         cursorY += 18;
 
-        int contentWidth = Math.max(1, panelWidth - PADDING * 2);
         int contentX = x + PADDING;
         SourceColumnLayout layout = sourceColumnLayout(contentWidth, sources);
         int visibleCount = visibleSourceCount(sources);
@@ -137,7 +143,8 @@ public final class MinimalSourceInlineRenderer {
             return class_1799.field_8037;
         }
 
-        int panelWidth = panelWidthFor(width, sources);
+        int panelWidth = panelWidthFor(width);
+        int contentWidth = Math.max(1, panelWidth - PADDING * 2);
         int visibleHeight = Math.max(0, Math.min(getHeight(targetIcon, requirements, sources, showAll, width), visibleOuterHeight));
         int textX = x + PADDING;
         int cursorY = y + PADDING;
@@ -153,17 +160,16 @@ public final class MinimalSourceInlineRenderer {
         if (!requirements.isEmpty()) {
             cursorY += 18;
             for (MinimalSubMaterialListView.RequirementContribution requirement : requirements) {
-                class_1799 stack = hoveredRequirementStackAt(requirement, textX, cursorY, y, visibleHeight, mouseX, mouseY);
+                class_1799 stack = hoveredRequirementStackAt(requirement, textX, cursorY, y, visibleHeight, mouseX, mouseY, contentWidth);
                 if (!stack.method_7960()) {
                     return stack;
                 }
-                cursorY += ROW_HEIGHT;
+                cursorY += requirementLineCount(requirement, contentWidth) * ROW_HEIGHT;
             }
             cursorY += SECTION_GAP;
         }
 
         cursorY += 18;
-        int contentWidth = Math.max(1, panelWidth - PADDING * 2);
         SourceColumnLayout layout = sourceColumnLayout(contentWidth, sources);
         int visibleCount = visibleSourceCount(sources);
 
@@ -183,7 +189,8 @@ public final class MinimalSourceInlineRenderer {
 
     public static void render(WidgetBase widget, class_332 context, int x, int y, int width, class_1799 targetIcon, String targetName, List<MinimalSubMaterialListView.RequirementContribution> requirements, List<MinimalSubMaterialListView.SourceContribution> sources, boolean showAll, int visibleOuterHeight, int mouseX, int mouseY) {
         int height = getHeight(targetIcon, requirements, sources, showAll, width);
-        int panelWidth = panelWidthFor(width, sources);
+        int panelWidth = panelWidthFor(width);
+        int contentWidth = panelWidth - PADDING * 2;
         int visibleHeight = Math.max(0, Math.min(height, visibleOuterHeight));
         if (visibleHeight <= 0) {
             return;
@@ -223,21 +230,22 @@ public final class MinimalSourceInlineRenderer {
             cursorY += 18;
 
             int requirementBoxY = cursorY;
-            int requirementHeight = requirements.size() * ROW_HEIGHT;
-            RenderUtils.drawRect(textX - 2, requirementBoxY - 2, panelWidth - PADDING * 2 + 4, requirementHeight, 0x66000000);
+            int requirementBoxHeight = requirementsBlockRowsHeight(requirements, contentWidth);
+            RenderUtils.drawRect(textX - 2, requirementBoxY - 2, panelWidth - PADDING * 2 + 4, requirementBoxHeight, 0x66000000);
+            int rowTop = cursorY;
             for (int index = 0; index < requirements.size(); index++) {
                 MinimalSubMaterialListView.RequirementContribution requirement = requirements.get(index);
-                renderRequirementRow(widget, context, textX, cursorY + index * ROW_HEIGHT, requirement);
+                renderRequirementRow(widget, context, textX, rowTop, requirement, contentWidth);
+                rowTop += requirementLineCount(requirement, contentWidth) * ROW_HEIGHT;
             }
-            cursorY += requirementHeight + SECTION_GAP;
+            cursorY += requirementBoxHeight + SECTION_GAP;
         }
 
         widget.drawString(textX, cursorY, 0xFFFFFFFF, StringUtils.translate("lmlp.label.minimal_sources.header_named", boldTargetName), context);
         cursorY += 18;
 
         int boxY = cursorY;
-        int contentWidth = Math.max(1, panelWidth - PADDING * 2);
-        SourceColumnLayout layout = sourceColumnLayout(contentWidth, sources);
+        SourceColumnLayout layout = sourceColumnLayout(Math.max(1, contentWidth), sources);
         int visibleCount = visibleSourceCount(sources);
         int boxHeight = layout.rowCount() * ROW_HEIGHT;
         RenderUtils.drawRect(textX - 2, boxY - 2, panelWidth - PADDING * 2 + 4, boxHeight, 0x66000000);
@@ -267,8 +275,80 @@ public final class MinimalSourceInlineRenderer {
         return sources.size();
     }
 
-    private static int requirementHeight(List<MinimalSubMaterialListView.RequirementContribution> requirements) {
-        return requirements.isEmpty() ? 0 : 18 + requirements.size() * ROW_HEIGHT + SECTION_GAP;
+    private static int requirementHeight(List<MinimalSubMaterialListView.RequirementContribution> requirements, int contentWidth) {
+        return requirements.isEmpty() ? 0 : 18 + requirementsBlockRowsHeight(requirements, contentWidth) + SECTION_GAP;
+    }
+
+    // Total pixel height of the requirement rows (excluding the "所需" header
+    // and the section gap): each requirement is 1 row tall, or 2 when its
+    // upstream requirement wraps to a second line at this content width.
+    private static int requirementsBlockRowsHeight(List<MinimalSubMaterialListView.RequirementContribution> requirements, int contentWidth) {
+        int height = 0;
+        for (MinimalSubMaterialListView.RequirementContribution requirement : requirements) {
+            height += requirementLineCount(requirement, contentWidth) * ROW_HEIGHT;
+        }
+        return height;
+    }
+
+    // 1 line normally; 2 when the requirement has an upstream requirement and
+    // the full horizontal "main ▶ upstream" row is wider than the content
+    // width (so the upstream wraps to a second, indented line).
+    private static int requirementLineCount(MinimalSubMaterialListView.RequirementContribution requirement, int contentWidth) {
+        return requirement.upstream() != null && requirementFullWidth(requirement) > contentWidth ? 2 : 1;
+    }
+
+    // Width of the main material row: icon box (26 incl. gap) + "name: counts".
+    private static int requirementMainWidth(MinimalSubMaterialListView.RequirementContribution requirement) {
+        return 26 + StringUtils.getStringWidth(countLine(
+                MinimalSubMaterialListView.requirementDisplayName(requirement),
+                requirement.totalCount(),
+                requirement.missingCount(),
+                requirement.maxStackSize()));
+    }
+
+    // Width of the wrapped upstream line, measured from the row's left edge:
+    // indent + arrow + gap + upstream icon box (26) + "upstream: counts".
+    private static int upstreamLineWidth(MinimalSubMaterialListView.UpstreamRequirement upstream) {
+        return WRAP_INDENT + UPSTREAM_ARROW_WIDTH + 8 + 26 + StringUtils.getStringWidth(countLine(
+                MinimalSubMaterialListView.upstreamDisplayName(upstream),
+                upstream.totalCount(),
+                upstream.missingCount(),
+                upstream.maxStackSize()));
+    }
+
+    // Full width of the requirement rendered horizontally on one line:
+    // main + gap + arrow + gap + upstream icon box (26) + "upstream: counts".
+    private static int requirementFullWidth(MinimalSubMaterialListView.RequirementContribution requirement) {
+        int width = requirementMainWidth(requirement);
+        MinimalSubMaterialListView.UpstreamRequirement upstream = requirement.upstream();
+        if (upstream != null) {
+            width += UPSTREAM_GAP + UPSTREAM_ARROW_WIDTH + 8 + 26 + StringUtils.getStringWidth(countLine(
+                    MinimalSubMaterialListView.upstreamDisplayName(upstream),
+                    upstream.totalCount(),
+                    upstream.missingCount(),
+                    upstream.maxStackSize()));
+        }
+        return width;
+    }
+
+    // Minimum content width this requirement needs so that neither its main
+    // line nor its wrapped upstream line ever clips (independent of whether it
+    // ends up on one line or two). The full one-line width is intentionally
+    // NOT required — that's exactly what triggers wrapping.
+    private static int requirementContentWidth(MinimalSubMaterialListView.RequirementContribution requirement) {
+        MinimalSubMaterialListView.UpstreamRequirement upstream = requirement.upstream();
+        if (upstream == null) {
+            return requirementMainWidth(requirement);
+        }
+        return Math.max(requirementMainWidth(requirement), upstreamLineWidth(upstream));
+    }
+
+    private static int widestRequirementContentWidth(List<MinimalSubMaterialListView.RequirementContribution> requirements) {
+        int width = 0;
+        for (MinimalSubMaterialListView.RequirementContribution requirement : requirements) {
+            width = Math.max(width, requirementContentWidth(requirement));
+        }
+        return width;
     }
 
     private static boolean isVisibleTextHovered(int textX, int textY, int textWidth, int panelY, int visibleHeight, int mouseX, int mouseY) {
@@ -308,15 +388,27 @@ public final class MinimalSourceInlineRenderer {
         renderCountRow(widget, context, textX, y, source.icon(), source.name(), source.totalCount(), source.missingCount(), source.maxStackSize(), underlined);
     }
 
-    private static void renderRequirementRow(WidgetBase widget, class_332 context, int textX, int y, MinimalSubMaterialListView.RequirementContribution requirement) {
+    private static void renderRequirementRow(WidgetBase widget, class_332 context, int textX, int y, MinimalSubMaterialListView.RequirementContribution requirement, int contentWidth) {
         String line = renderCountRow(widget, context, textX, y, cyclingIcon(requirement.icons(), requirement.icon()), MinimalSubMaterialListView.requirementDisplayName(requirement), requirement.totalCount(), requirement.missingCount(), requirement.maxStackSize());
         MinimalSubMaterialListView.UpstreamRequirement upstream = requirement.upstream();
         if (upstream == null) {
             return;
         }
 
-        int arrowX = textX + 26 + StringUtils.getStringWidth(line) + UPSTREAM_GAP;
-        int centerY = y + SOURCE_ICON_BOX_Y_OFFSET + SOURCE_ICON_BOX_SIZE / 2;
+        int arrowX;
+        int rowY;
+        if (requirementLineCount(requirement, contentWidth) == 1) {
+            // Fits on one line: arrow + upstream right after the main material.
+            arrowX = textX + 26 + StringUtils.getStringWidth(line) + UPSTREAM_GAP;
+            rowY = y;
+        } else {
+            // Doesn't fit: wrap the arrow + upstream onto a second line, indented
+            // to align under the main material's text.
+            arrowX = textX + WRAP_INDENT;
+            rowY = y + ROW_HEIGHT;
+        }
+
+        int centerY = rowY + SOURCE_ICON_BOX_Y_OFFSET + SOURCE_ICON_BOX_SIZE / 2;
         ToggleArrowRenderer.render(context, arrowX, UPSTREAM_ARROW_WIDTH, centerY, 0.0F, false);
 
         int upstreamIconX = arrowX + UPSTREAM_ARROW_WIDTH + 8;
@@ -324,7 +416,7 @@ public final class MinimalSourceInlineRenderer {
                 widget,
                 context,
                 upstreamIconX,
-                y,
+                rowY,
                 cyclingIcon(upstream.icons(), upstream.icon()),
                 MinimalSubMaterialListView.upstreamDisplayName(upstream),
                 upstream.totalCount(),
@@ -332,7 +424,7 @@ public final class MinimalSourceInlineRenderer {
                 upstream.maxStackSize());
     }
 
-    private static class_1799 hoveredRequirementStackAt(MinimalSubMaterialListView.RequirementContribution requirement, int textX, int y, int panelY, int visibleHeight, int mouseX, int mouseY) {
+    private static class_1799 hoveredRequirementStackAt(MinimalSubMaterialListView.RequirementContribution requirement, int textX, int y, int panelY, int visibleHeight, int mouseX, int mouseY, int contentWidth) {
         String line = countLine(MinimalSubMaterialListView.requirementDisplayName(requirement), requirement.totalCount(), requirement.missingCount(), requirement.maxStackSize());
         if (isCountRowHovered(textX, y, line, panelY, visibleHeight, mouseX, mouseY)) {
             return cyclingIcon(requirement.icons(), requirement.icon());
@@ -343,10 +435,19 @@ public final class MinimalSourceInlineRenderer {
             return class_1799.field_8037;
         }
 
-        int arrowX = textX + 26 + StringUtils.getStringWidth(line) + UPSTREAM_GAP;
+        int arrowX;
+        int rowY;
+        if (requirementLineCount(requirement, contentWidth) == 1) {
+            arrowX = textX + 26 + StringUtils.getStringWidth(line) + UPSTREAM_GAP;
+            rowY = y;
+        } else {
+            arrowX = textX + WRAP_INDENT;
+            rowY = y + ROW_HEIGHT;
+        }
+
         int upstreamIconX = arrowX + UPSTREAM_ARROW_WIDTH + 8;
         String upstreamLine = countLine(MinimalSubMaterialListView.upstreamDisplayName(upstream), upstream.totalCount(), upstream.missingCount(), upstream.maxStackSize());
-        if (isCountRowHovered(upstreamIconX, y, upstreamLine, panelY, visibleHeight, mouseX, mouseY)) {
+        if (isCountRowHovered(upstreamIconX, rowY, upstreamLine, panelY, visibleHeight, mouseX, mouseY)) {
             return cyclingIcon(upstream.icons(), upstream.icon());
         }
 
@@ -426,8 +527,23 @@ public final class MinimalSourceInlineRenderer {
         }
     }
 
-    private static int panelWidthFor(int width, List<MinimalSubMaterialListView.SourceContribution> sources) {
-        return Math.max(160, Math.max(width, widestSourceRowWidth(sources) + PADDING * 2));
+    // The rendered panel exactly fills the width it is given (the entry's usable
+    // width, already capped to the viewport by the browser-width logic). It does
+    // NOT grow to fit content — growing past the entry made the panel overlap
+    // the vertical scrollbar. Content adapts instead: source rows drop columns,
+    // the upstream requirement wraps, and anything still too wide clips at the
+    // panel's own scissor.
+    private static int panelWidthFor(int width) {
+        return Math.max(160, width);
+    }
+
+    // Content-based width the panel would like, used only to negotiate the
+    // browser width (which is separately capped at the viewport). Covers the
+    // source rows and each requirement's main / wrapped-upstream line; the full
+    // one-line requirement width is excluded so a too-wide upstream wraps.
+    private static int requiredContentWidth(List<MinimalSubMaterialListView.RequirementContribution> requirements, List<MinimalSubMaterialListView.SourceContribution> sources) {
+        int content = Math.max(widestSourceRowWidth(sources), widestRequirementContentWidth(requirements));
+        return Math.max(160, content + PADDING * 2);
     }
 
     private static SourceColumnLayout sourceColumnLayout(int contentWidth, List<MinimalSubMaterialListView.SourceContribution> sources) {
