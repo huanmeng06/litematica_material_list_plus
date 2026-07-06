@@ -189,7 +189,7 @@ public final class RecipeInlineRenderer {
         boolean hasTree = MaterialListPlusState.hasTree(ingredient);
         MaterialTreeNode root = MaterialListPlusState.getVisibleIngredientTree(ingredient);
         float expandProgress = root == null ? 0.0F : MaterialListPlusState.treeProgress(root.path());
-        renderRow(widget, context, textX, y, 0, hasTree, expandProgress, AlternativeItemDisplay.icon(ingredient), RecipeSummaryFormatter.ingredientName(ingredient), ingredient.countTotal(), ingredient.countMissing(), ingredient.maxStackSize(), rightEdge, mouseX, mouseY);
+        renderRow(widget, context, textX, y, 0, hasTree, expandProgress, AlternativeItemDisplay.icon(ingredient), RecipeSummaryFormatter.ingredientName(ingredient), ingredient.isChoiceGroup(), ingredient.countTotal(), ingredient.countMissing(), ingredient.maxStackSize(), rightEdge, mouseX, mouseY);
     }
 
     private static int renderChildren(WidgetBase widget, class_332 context, int textX, int y, List<MaterialTreeNode> nodes, int depth, int visibleHeight, int rightEdge, int mouseX, int mouseY) {
@@ -201,7 +201,7 @@ public final class RecipeInlineRenderer {
             }
 
             float expandProgress = node.hasChildren() ? MaterialListPlusState.treeProgress(node.path()) : 0.0F;
-            renderRow(widget, context, textX, cursorY, depth, node.hasChildren(), expandProgress, AlternativeItemDisplay.icon(node), node.name(), node.totalCount(), node.missingCount(), node.maxStackSize(), rightEdge, mouseX, mouseY);
+            renderRow(widget, context, textX, cursorY, depth, node.hasChildren(), expandProgress, AlternativeItemDisplay.icon(node), node.name(), node.isChoiceGroup(), node.totalCount(), node.missingCount(), node.maxStackSize(), rightEdge, mouseX, mouseY);
 
             int visibleRowHeight = Math.min(INGREDIENT_HEIGHT, remainingHeight);
             cursorY += INGREDIENT_HEIGHT;
@@ -300,7 +300,7 @@ public final class RecipeInlineRenderer {
                 && mouseY < y - 3 + Math.min(18, visibleRowHeight);
     }
 
-    private static void renderRow(WidgetBase widget, class_332 context, int textX, int y, int depth, boolean hasTree, float expandProgress, net.minecraft.class_1799 icon, String name, int totalCount, int missingCount, int maxStackSize, int rightEdge, int mouseX, int mouseY) {
+    private static void renderRow(WidgetBase widget, class_332 context, int textX, int y, int depth, boolean hasTree, float expandProgress, net.minecraft.class_1799 icon, String name, boolean choiceGroup, int totalCount, int missingCount, int maxStackSize, int rightEdge, int mouseX, int mouseY) {
         int rowX = textX + depth * TREE_INDENT_WIDTH;
         int iconX = rowX + INGREDIENT_ICON_OFFSET;
         int iconY = y - 2;
@@ -318,7 +318,15 @@ public final class RecipeInlineRenderer {
         // Never truncate the count itself (the number matters more than the
         // name), only shrink the plain name in front of it.
         int nameBudget = rightEdge - textStartX - StringUtils.getStringWidth(": " + count);
-        String line = truncateToWidth(name, nameBudget) + ": " + countColor + count;
+        String shownName = truncateToWidth(name, nameBudget);
+        // Choice-group ("任意X" / tag) names get a yellow bold underline so
+        // they read as "any of a category" rather than a specific item. Wrap
+        // AFTER truncating the plain text so width math and the "..." are
+        // computed on the raw name, not the format codes.
+        if (choiceGroup) {
+            shownName = GuiBase.TXT_YELLOW + GuiBase.TXT_BOLD + GuiBase.TXT_UNDERLINE + shownName + GuiBase.TXT_RST;
+        }
+        String line = shownName + ": " + countColor + count;
         widget.drawString(textStartX, y + 2, 0xFFFFFFFF, line, context);
     }
 

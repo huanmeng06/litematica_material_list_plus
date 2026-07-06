@@ -413,6 +413,7 @@ public class RecipeDetailScreen extends class_437 {
                 hasRecipes,
                 AlternativeItemDisplay.icon(ingredient),
                 RecipeSummaryFormatter.ingredientName(ingredient),
+                ingredient.isChoiceGroup(),
                 RecipeSummaryFormatter.totalCount(ingredient),
                 RecipeSummaryFormatter.missingCount(ingredient),
                 ingredient.countMissing(),
@@ -450,7 +451,7 @@ public class RecipeDetailScreen extends class_437 {
         return lineY;
     }
 
-    private void renderMaterialLine(class_332 context, int left, int y, int depth, String path, boolean hasRecipes, class_1799 icon, String name, String totalText, String missingText, int missingCount, boolean showMissing, int mouseX, int mouseY) {
+    private void renderMaterialLine(class_332 context, int left, int y, int depth, String path, boolean hasRecipes, class_1799 icon, String name, boolean choiceGroup, String totalText, String missingText, int missingCount, boolean showMissing, int mouseX, int mouseY) {
         int rowX = left + depth * INGREDIENT_TREE_INDENT_WIDTH;
         int iconX = rowX + INGREDIENT_ICON_OFFSET;
         int iconY = y - 5;
@@ -466,7 +467,10 @@ public class RecipeDetailScreen extends class_437 {
         this.captureHoveredStack(icon, mouseX, mouseY, iconX, iconY, 16, 16);
 
         int textX = rowX + INGREDIENT_ICON_OFFSET + 24;
-        String prefix = name + ": ";
+        String namePart = choiceGroup
+                ? GuiBase.TXT_YELLOW + GuiBase.TXT_BOLD + GuiBase.TXT_UNDERLINE + name + GuiBase.TXT_RST
+                : name;
+        String prefix = namePart + ": ";
         context.method_51433(this.field_22793, prefix, textX, y, INGREDIENT_TEXT_COLOR, false);
         textX += this.field_22793.method_1727(prefix);
         context.method_51433(this.field_22793, totalText, textX, y, INGREDIENT_TOTAL_COLOR, false);

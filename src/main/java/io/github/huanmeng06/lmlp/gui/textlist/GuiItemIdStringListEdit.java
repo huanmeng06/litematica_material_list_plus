@@ -272,8 +272,11 @@ public class GuiItemIdStringListEdit extends GuiListBase<String, WidgetItemIdStr
     private void setWidthAndHeight() {
         int screenWidth = GuiUtils.getScaledWindowWidth();
         int screenHeight = GuiUtils.getScaledWindowHeight();
-        this.dialogWidth = Math.max(520, screenWidth - PANEL_MARGIN_X * 2);
-        this.dialogHeight = Math.max(260, screenHeight - PANEL_MARGIN_TOP - PANEL_MARGIN_BOTTOM);
+        // Never let the dialog exceed the window: the old `max(520, ...)` floor
+        // forced 520px even on small windows / high GUI scale, clipping the
+        // right edge (and the back button) off screen.
+        this.dialogWidth = Math.min(screenWidth - 16, Math.max(360, screenWidth - PANEL_MARGIN_X * 2));
+        this.dialogHeight = Math.min(screenHeight - 16, Math.max(220, screenHeight - PANEL_MARGIN_TOP - PANEL_MARGIN_BOTTOM));
         this.dialogLeft = Math.max(8, (screenWidth - this.dialogWidth) / 2);
         this.dialogTop = PANEL_MARGIN_TOP;
         this.updateBackButtonPosition();

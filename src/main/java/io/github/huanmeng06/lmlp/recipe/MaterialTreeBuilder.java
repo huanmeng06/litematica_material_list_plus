@@ -73,6 +73,7 @@ public final class MaterialTreeBuilder {
                         path,
                         icon,
                         ingredient.icons().isEmpty() ? List.of(icon) : ingredient.icons(),
+                        ingredient.alternatives(),
                         RecipeSummaryFormatter.ingredientName(ingredient),
                         ingredient.countTotal(),
                         ingredient.countMissing(),

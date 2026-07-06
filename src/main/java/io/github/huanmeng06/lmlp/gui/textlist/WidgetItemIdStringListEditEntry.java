@@ -63,13 +63,19 @@ public class WidgetItemIdStringListEditEntry extends WidgetConfigOptionBase<Stri
         int centerY = y + height / 2;
         int buttonY = centerY - CONTROL_HEIGHT / 2;
         int textY = buttonY;
-        int actionStartX = x + width - ICON_BUTTON_WIDTH * 4 - 8;
+        // Only reserve the icon-button slots that are actually shown (+/- always;
+        // move-down at slot 2, move-up at slot 3), so narrow rows don't waste
+        // space on absent buttons.
+        int reservedIconSlots = this.canBeMoved(false) ? 4 : (this.canBeMoved(true) ? 3 : 2);
+        int actionStartX = x + width - ICON_BUTTON_WIDTH * reservedIconSlots - 8;
         int resetX = actionStartX - RESET_WIDTH - 8;
         int selectX = resetX - SELECT_WIDTH - ACTION_GAP;
         this.iconX = x + INDEX_WIDTH + (ICON_AREA_WIDTH - ICON_SLOT_SIZE) / 2;
         this.iconY = centerY - ICON_SLOT_SIZE / 2;
         int textX = x + INDEX_WIDTH + ICON_AREA_WIDTH + ACTION_GAP;
-        int textWidth = Math.max(120, selectX - textX - ACTION_GAP);
+        // Clamp to the real gap before the select button (never force 120, which
+        // made the text field overlap the select/reset buttons on narrow rows).
+        int textWidth = Math.max(0, selectX - textX - ACTION_GAP);
 
         if (!this.isDummy()) {
             this.addLabel(x + 2, centerY - 5, INDEX_WIDTH - 4, 12, 0xFFC0C0C0, String.format("%3d:", listIndex + 1));
