@@ -16,7 +16,7 @@ public final class AlternativeItemDisplay {
     // icons/family) always sit on the SAME family at the same moment — the
     // planks icon and the log icon stay material-matched regardless of how
     // many log variants each family has.
-    private static final long FAMILY_CYCLE_MILLIS = 2000L;
+    private static final long FAMILY_CYCLE_MILLIS = 1000L;
     // Fallback period for non-wood groups (e.g. 沙子/红沙) that don't split by
     // family: cycle the whole list one icon per this interval.
     private static final long ICON_CYCLE_MILLIS = 900L;

@@ -35,7 +35,7 @@ public final class MinimalSourceInlineRenderer {
     // Per-family window + non-wood fallback step; see FamilyIconCycle. Kept in
     // sync with AlternativeItemDisplay so the recipe panel and the minimal
     // sub-material panel animate choice groups identically.
-    private static final long FAMILY_CYCLE_MILLIS = 2000L;
+    private static final long FAMILY_CYCLE_MILLIS = 1000L;
     private static final long ICON_CYCLE_MILLIS = 900L;
 
     private MinimalSourceInlineRenderer() {
