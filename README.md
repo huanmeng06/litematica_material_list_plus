@@ -2,13 +2,19 @@
 
 这个 README 只记录 `dev-newFeature` 分支的开发过程和每个小版本做了什么。完整的项目介绍、安装说明、功能说明和截图展示放在 `main` 分支维护。
 
-当前正式版：`v1.6.71`
+当前正式版：`v1.6.72`
 
-当前构建：`1.6.71+mc1.20.6`
+当前构建：`1.6.72+mc1.20.6`
 
 适配目标：Minecraft `1.20.6` / Fabric / Litematica / MaLiLib / REI
 
 ## 版本说明
+
+### v1.6.72
+
+- **木棍稳定沿「木板 ▶ 原木」链拆解，与台阶一致**：木棍本就会被拆解（`minecraft:stick` 不在 `recipeStopItems` 里），且产量数学正确（`ReiRecipeResolver` 按产出数取整，64 木棍 → 32 木板 → 8 原木）。但木棍有两个配方——木板（`minecraft:stick`）和竹子（`minecraft:stick_from_bamboo_item`），此前取 REI 枚举到的第一个（`summaries.get(0)`），非确定性；若竹子配方排前，木棍行会显示「所需 竹子」、不出现 planks→logs 上游徽标，与台阶不一致。现在给 `RecipeResolvers.applyPreferredOrder` 加了一个内置默认配方偏好：**用户没有手动 pin 配方时，若候选里存在「所有材料都是木板」的配方，就把它排到首位**。于是木棍稳定走木板配方，与任意台阶一样显示「所需 任意木板 ▶ 任意原木」、最终叶子落在原木。判定按材料 `_planks` 后缀（不依赖配方 id，跨版本更稳）；用户手动 pin（如改走竹子）永远优先，取消 pin 后回到木板默认。因所有拆解面（配方树、扁平最小列表、所需/上游徽标）都经由 `RecipeResolvers.findRecipes`，一处改动全部覆盖。
+- 同步 `fabric.mod.json` 和运行时 `MOD_VERSION` 到 `1.6.72+mc1.20.6`。
+- 构建产物改为 `1.6.72+mc1.20.6`。
 
 ### v1.6.71
 
