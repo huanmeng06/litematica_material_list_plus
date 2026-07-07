@@ -45,6 +45,22 @@ public final class FamilyIconCycle {
             "crimson",
             "warped");
 
+    /**
+     * How long each wood family stays on screen before the cycle advances to
+     * the next family. Shared by every call site so parallel "任意X" rows in
+     * different UI contexts (recipe panel, minimal sub-material target rows,
+     * inline "所需" upstream icons) all advance families on the SAME clock and
+     * stay material-matched. Do not redefine this per file — a mismatch here is
+     * exactly what desynced the target row (2s) from the inline row (1s).
+     */
+    public static final long FAMILY_WINDOW_MILLIS = 1000L;
+
+    /**
+     * Per-icon step used when a list has no wood families to group by (e.g.
+     * 沙子/红沙): cycle the whole list one icon per this interval.
+     */
+    public static final long FALLBACK_STEP_MILLIS = 900L;
+
     private FamilyIconCycle() {
     }
 

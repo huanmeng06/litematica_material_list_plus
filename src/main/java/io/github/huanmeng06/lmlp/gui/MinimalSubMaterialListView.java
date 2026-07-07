@@ -36,8 +36,8 @@ public final class MinimalSubMaterialListView {
     // Non-wood fallback step; wood groups advance per family window instead.
     // Kept equal to FamilyIconCycle's use in the renderers so the target row's
     // own cycling icon stays in phase with its inline "所需" upstream icons.
-    private static final long DISPLAY_CYCLE_MS = 900L;
-    private static final long FAMILY_CYCLE_MS = 2000L;
+    private static final long DISPLAY_CYCLE_MS = FamilyIconCycle.FALLBACK_STEP_MILLIS;
+    private static final long FAMILY_CYCLE_MS = FamilyIconCycle.FAMILY_WINDOW_MILLIS;
     private static final long BUILD_BUDGET_NS = 2_500_000L;
     private static final long INITIAL_BUILD_BUDGET_NS = 20_000_000L;
     private static final String COMMON_HIGHLIGHT = "\u00A7e\u00A7l\u00A7n";

@@ -2,13 +2,19 @@
 
 这个 README 只记录 `dev-newFeature` 分支的开发过程和每个小版本做了什么。完整的项目介绍、安装说明、功能说明和截图展示放在 `main` 分支维护。
 
-当前正式版：`v1.6.69`
+当前正式版：`v1.6.70`
 
-当前构建：`1.6.69+mc1.20.6`
+当前构建：`1.6.70+mc1.20.6`
 
 适配目标：Minecraft `1.20.6` / Fabric / Litematica / MaLiLib / REI
 
 ## 版本说明
+
+### v1.6.70
+
+- **修复最小子材料页「目标行/标题图标」与展开面板「所需」行图标的木料错位**：v1.6.68 把选择组图标的木料窗口从 2s 缩短到 1s 时，只改了配方面板（`AlternativeItemDisplay`）和「所需」渲染器（`MinimalSourceInlineRenderer`），漏掉了 `MinimalSubMaterialListView.FAMILY_CYCLE_MS`——它仍是 `2000L`。于是目标行/标题图标每 2s 换一次木料、而「所需」行每 1s 换一次，两处虽然各自内部（木板↔原木）同步，但彼此错位。现在把三处的窗口/回退步长统一收敛到 `FamilyIconCycle` 的公开常量 `FAMILY_WINDOW_MILLIS`(1s) 与 `FALLBACK_STEP_MILLIS`(0.9s)，任何调用点都引用同一份常量，杜绝再次因某处漏改而错位。所有木料类选择组（不管在配方面板、目标行、还是「所需」上游）现在都用同一个全局 1s 时钟推进木料，任意时刻停在同一木料上。
+- 同步 `fabric.mod.json` 和运行时 `MOD_VERSION` 到 `1.6.70+mc1.20.6`。
+- 构建产物改为 `1.6.70+mc1.20.6`。
 
 ### v1.6.69
 
