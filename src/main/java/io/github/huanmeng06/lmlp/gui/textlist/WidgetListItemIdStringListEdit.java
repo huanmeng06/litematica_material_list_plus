@@ -141,18 +141,11 @@ public class WidgetListItemIdStringListEdit extends WidgetListConfigOptionsBase<
             RenderUtils.drawRect(this.posX + 2, lineY, this.browserEntryWidth - 4, DRAG_LINE_HEIGHT, 0xFFFFCC00);
         }
 
-        // Offset well clear of the cursor graphic itself (which renders on
-        // top of everything, same as vanilla tooltips do via
-        // HOVER_TOOLTIP_CURSOR_OFFSET) -- centering vertically on mouseY put
-        // the label right under the cursor icon, which then visibly cut
-        // through the label's own text.
-        int labelX = mouseX + 14;
-        int labelY = mouseY + 14;
         String label = entries.get(this.dragIndex);
         String shown = label.isEmpty() ? StringUtils.translate("lmlp.gui.label.text_list.empty_entry") : label;
         int textWidth = this.getStringWidth(shown);
-        RenderUtils.drawRect(labelX, labelY, textWidth + DRAG_LABEL_PADDING * 2, DRAG_LABEL_HEIGHT, 0xCC101010);
-        this.drawStringWithShadow(context, shown, labelX + DRAG_LABEL_PADDING, labelY + 4, 0xFFFFCC66);
+        RenderUtils.drawRect(mouseX + 10, mouseY - DRAG_LABEL_HEIGHT / 2, textWidth + DRAG_LABEL_PADDING * 2, DRAG_LABEL_HEIGHT, 0xCC101010);
+        this.drawStringWithShadow(context, shown, mouseX + 10 + DRAG_LABEL_PADDING, mouseY - DRAG_LABEL_HEIGHT / 2 + 4, 0xFFFFCC66);
 
         context.method_51448().method_22909();
     }
