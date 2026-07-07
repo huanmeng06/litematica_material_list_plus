@@ -86,12 +86,12 @@ public class Configs implements IConfigHandler {
             "minecraft:{color}_terracotta"
     );
     // Materials kept as their own counted row (with a 所需 decomposition hint)
-    // instead of being decomposed into raw materials. Removing an entry lets that
-    // material keep decomposing toward logs.
-    private static final ImmutableList<String> DEFAULT_KEEP_AS_LEAF_ITEMS = ImmutableList.of(
-            "minecraft:stick",
-            "minecraft:{wood}_slab"
-    );
+    // instead of being decomposed into raw materials. Empty by default so the
+    // minimal view stays at a single "raw gatherable" abstraction: everything
+    // wood-based (slabs, sticks, planks) decomposes all the way to logs. Users
+    // who prefer to see intermediate products as their own rows can opt in by
+    // adding entries such as minecraft:{wood}_slab or minecraft:{wood}_planks.
+    private static final ImmutableList<String> DEFAULT_KEEP_AS_LEAF_ITEMS = ImmutableList.of();
 
     public static final class Generic {
         public static final ConfigBoolean DISABLE_LITEMATICA_HOVER_TOOLTIP = new ConfigBoolean(
