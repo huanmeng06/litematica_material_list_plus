@@ -118,19 +118,21 @@ public final class FamilyIconCycle {
             }
         }
 
-        int groupIndex = (int) (Math.floorDiv(nowMillis, familyWindowMillis) % groups.size());
+        long windowIndex = Math.floorDiv(nowMillis, familyWindowMillis);
+        int groupIndex = (int) (windowIndex % groups.size());
         int[] group = groups.get(groupIndex);
         int variantCount = group[1] - group[0];
         if (variantCount <= 1) {
             return icons.get(group[0]);
         }
 
-        // Subdivide the family window evenly among this family's variants.
-        long intoWindow = Math.floorMod(nowMillis, familyWindowMillis);
-        int variant = (int) (intoWindow * variantCount / familyWindowMillis);
-        if (variant >= variantCount) {
-            variant = variantCount - 1;
-        }
+        // Hold one variant steady for the whole family window (no flicker within
+        // it), advancing to the next variant only the next time this family's
+        // window comes around. A family with N variants (e.g. 任意原木's
+        // log/wood/stripped_log/stripped_wood) previously subdivided the window
+        // into N flashes, which felt too fast when this list is the primary,
+        // large row icon rather than a small inline hint.
+        int variant = (int) (windowIndex % variantCount);
         return icons.get(group[0] + variant);
     }
 

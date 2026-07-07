@@ -1215,6 +1215,14 @@ public final class MinimalSubMaterialListView {
 
         private boolean hasRequirementSection() {
             if (this.candidates.size() > 1) {
+                // Logs (任意原木) are the terminal raw-gatherable resource — they
+                // never decompose further. Without this guard, a stripping-axe
+                // "recipe" (log -> stripped_log) some candidates carry gets
+                // mistaken for a real decomposition step, producing a bogus
+                // self-referential "所需 任意原木" row under 任意原木 itself.
+                if (allCandidatesMatch(this.candidates, MinimalSubMaterialListView::isLogLike)) {
+                    return false;
+                }
                 return isAnyGroupName(this.stableName());
             }
             // Single-item wood intermediates kept as a leaf (e.g. 木棍) also carry
