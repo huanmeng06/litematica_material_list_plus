@@ -2,13 +2,19 @@
 
 这个 README 只记录 `dev-newFeature` 分支的开发过程和每个小版本做了什么。完整的项目介绍、安装说明、功能说明和截图展示放在 `main` 分支维护。
 
-当前正式版：`v1.6.78`
+当前正式版：`v1.6.79`
 
-当前构建：`1.6.78+mc1.20.6`
+当前构建：`1.6.79+mc1.20.6`
 
 适配目标：Minecraft `1.20.6` / Fabric / Litematica / MaLiLib / REI
 
 ## 版本说明
+
+### v1.6.79
+
+- **修复：「配方详情」页选择组悬浮提示样式跟别处不一致**：v1.6.78 给这个页面加悬浮提示时，图省事画了个纯文字的"- 物品名"列表，跟最小材料列表/内联配方面板里已有的"任意X"悬浮效果（图标+名称网格，`WidgetMaterialListEntryMixin#lmlp$renderChoiceGrid`）完全不是一回事。现在把那套网格渲染逻辑原样搬过来（新方法 `renderChoiceGrid`/`hoverTooltipBounds`/`truncateToWidth`，同样的间距、字号、单列/双列切换阈值），改成走屏幕自身的 `field_22789`/`field_22790`/`field_22793` 而不是 `WidgetMaterialListEntry` 的 `this.mc`，其余像素级布局逐行照抄，两处悬浮效果现在一模一样。
+- 同步 `fabric.mod.json` 和运行时 `MOD_VERSION` 到 `1.6.79+mc1.20.6`。
+- 构建产物改为 `1.6.79+mc1.20.6`。
 
 ### v1.6.78
 

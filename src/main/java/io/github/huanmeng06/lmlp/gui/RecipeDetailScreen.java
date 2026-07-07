@@ -85,6 +85,16 @@ public class RecipeDetailScreen extends class_437 {
     private static final int NESTED_RECIPE_INDENT = 24;
     private static final int MAX_NESTED_DEPTH = 3;
     private static final int WHEEL_SCROLL_PIXELS = 36;
+    private static final int HOVER_TOOLTIP_MARGIN = 8;
+    private static final int HOVER_TOOLTIP_CURSOR_OFFSET = 12;
+    private static final int HOVER_TOOLTIP_PADDING = 6;
+    private static final int HOVER_TOOLTIP_LINE_HEIGHT = 12;
+    private static final int HOVER_TOOLTIP_HEADER_GAP = 3;
+    private static final int HOVER_TOOLTIP_ICON_GAP = 6;
+    private static final int HOVER_TOOLTIP_ICON_SIZE = 16;
+    private static final int CHOICE_TOOLTIP_COLUMN_GAP = 14;
+    private static final int CHOICE_TOOLTIP_ROW_HEIGHT = 18;
+    private static final int CHOICE_TOOLTIP_TWO_COLUMN_THRESHOLD = 7;
     private static final String ROOT_RECIPE_LIST = "root";
     private static final class_2960 REI_DISPLAY_TEXTURE = new class_2960("roughlyenoughitems", "textures/gui/display.png");
     private static final class_2960 PREFERRED_WIDGETS_TEXTURE = new class_2960(LitematicaMaterialListPlus.MOD_ID, "textures/gui/gui_widgets.png");
@@ -1167,29 +1177,155 @@ public class RecipeDetailScreen extends class_437 {
 
     // Hovering a choice-group ("任意X") name shows the concrete items it
     // stands for, distinct from hovering its item icon (which shows the
-    // vanilla single-item tooltip via hoveredStack instead).
+    // vanilla single-item tooltip via hoveredStack instead). Same icon+name
+    // grid style as WidgetMaterialListEntryMixin#lmlp$renderChoiceGrid, used
+    // for the equivalent hover in the minimal material list / inline recipe
+    // panel, so the two choice-group tooltips look identical everywhere.
     private boolean renderChoiceGroupTooltip(class_332 context, int mouseX, int mouseY) {
         ChoiceGroupNameArea area = this.choiceGroupNameAreaAt(mouseX, mouseY);
         if (area == null) {
             return false;
         }
 
-        List<class_2561> lines = new ArrayList<>();
-        lines.add(class_2561.method_43470(area.name()));
+        List<MinimalSubMaterialListView.TooltipCandidate> candidates = choiceGroupCandidates(area);
+        if (candidates.isEmpty()) {
+            return false;
+        }
+
+        return this.renderChoiceGrid(context, mouseX, mouseY, area.icon(), MinimalSubMaterialListView.emphasizeChoiceGroupName(area.name()), candidates);
+    }
+
+    private static List<MinimalSubMaterialListView.TooltipCandidate> choiceGroupCandidates(ChoiceGroupNameArea area) {
         List<class_1799> icons = area.icons();
-        List<String> alternatives = area.alternatives();
-        boolean namesParallel = alternatives.size() == icons.size();
+        List<String> names = area.alternatives();
+        if (icons.isEmpty()) {
+            return List.of();
+        }
+
+        boolean namesParallel = names.size() == icons.size();
+        List<MinimalSubMaterialListView.TooltipCandidate> candidates = new ArrayList<>(icons.size());
         for (int index = 0; index < icons.size(); index++) {
             class_1799 icon = icons.get(index);
             if (icon.method_7960()) {
                 continue;
             }
-            String candidateName = namesParallel ? alternatives.get(index) : ItemStackTexts.name(icon);
-            lines.add(class_2561.method_43470("- " + candidateName));
+            String name = namesParallel ? names.get(index) : ItemStackTexts.name(icon);
+            candidates.add(new MinimalSubMaterialListView.TooltipCandidate(icon.method_7972(), name));
+        }
+        return candidates;
+    }
+
+    // Ported from WidgetMaterialListEntryMixin#lmlp$renderChoiceGrid so both
+    // choice-group hover tooltips (minimal list / inline recipe panel, and
+    // this full recipe-detail screen) render pixel-identical icon+name grids.
+    private boolean renderChoiceGrid(class_332 context, int mouseX, int mouseY, class_1799 headerStack, String headerName, List<MinimalSubMaterialListView.TooltipCandidate> candidates) {
+        int maxPanelWidth = Math.max(120, this.field_22789 - HOVER_TOOLTIP_MARGIN * 2);
+        int maxContentWidth = Math.max(80, maxPanelWidth - HOVER_TOOLTIP_PADDING * 2);
+        int maxCandidateNameWidth = 0;
+        for (MinimalSubMaterialListView.TooltipCandidate candidate : candidates) {
+            maxCandidateNameWidth = Math.max(maxCandidateNameWidth, this.field_22793.method_1727(candidate.name()));
         }
 
-        context.method_51434(this.field_22793, lines, mouseX, mouseY);
+        int naturalColumnWidth = HOVER_TOOLTIP_ICON_SIZE + HOVER_TOOLTIP_ICON_GAP + maxCandidateNameWidth;
+        int minTwoColumnWidth = HOVER_TOOLTIP_ICON_SIZE + HOVER_TOOLTIP_ICON_GAP + 60;
+        boolean twoColumns = candidates.size() >= CHOICE_TOOLTIP_TWO_COLUMN_THRESHOLD
+                && maxContentWidth >= minTwoColumnWidth * 2 + CHOICE_TOOLTIP_COLUMN_GAP;
+        int columns = twoColumns ? 2 : 1;
+        int columnGap = twoColumns ? CHOICE_TOOLTIP_COLUMN_GAP : 0;
+        int columnWidth = twoColumns
+                ? Math.min(naturalColumnWidth, Math.max(minTwoColumnWidth, (maxContentWidth - columnGap) / 2))
+                : Math.min(naturalColumnWidth, maxContentWidth);
+        int rowsPerColumn = (candidates.size() + columns - 1) / columns;
+        int candidateContentWidth = columns * columnWidth + columnGap;
+
+        String headerText = this.truncateToWidth(
+                headerName,
+                Math.max(20, maxContentWidth - HOVER_TOOLTIP_ICON_SIZE - HOVER_TOOLTIP_ICON_GAP));
+        int headerWidth = HOVER_TOOLTIP_ICON_SIZE + HOVER_TOOLTIP_ICON_GAP + this.field_22793.method_1727(headerText);
+        int contentWidth = Math.min(maxContentWidth, Math.max(headerWidth, candidateContentWidth));
+        int panelWidth = contentWidth + HOVER_TOOLTIP_PADDING * 2;
+        int panelHeight = HOVER_TOOLTIP_PADDING * 2
+                + Math.max(HOVER_TOOLTIP_ICON_SIZE, HOVER_TOOLTIP_LINE_HEIGHT)
+                + HOVER_TOOLTIP_HEADER_GAP
+                + rowsPerColumn * CHOICE_TOOLTIP_ROW_HEIGHT;
+
+        PanelBounds bounds = this.hoverTooltipBounds(mouseX, mouseY, panelWidth, panelHeight);
+        int panelX = bounds.x();
+        int panelY = bounds.y();
+        int contentX = panelX + HOVER_TOOLTIP_PADDING;
+        int headerY = panelY + HOVER_TOOLTIP_PADDING + 4;
+        int rowsY = headerY + Math.max(HOVER_TOOLTIP_ICON_SIZE, HOVER_TOOLTIP_LINE_HEIGHT) + HOVER_TOOLTIP_HEADER_GAP;
+
+        context.method_51448().method_22903();
+        context.method_51448().method_46416(0.0F, 0.0F, 200.0F);
+        RenderUtils.drawOutlinedBox(panelX, panelY, panelWidth, panelHeight, 0xF0000000, 0xFF999999);
+
+        RenderUtils.drawRect(contentX, headerY - 4, HOVER_TOOLTIP_ICON_SIZE, HOVER_TOOLTIP_ICON_SIZE, 0x20FFFFFF);
+        RenderUtils.enableDiffuseLightingGui3D();
+        context.method_51427(headerStack, contentX, headerY - 4);
+        RenderUtils.disableDiffuseLighting();
+        context.method_51433(this.field_22793, headerText, contentX + HOVER_TOOLTIP_ICON_SIZE + HOVER_TOOLTIP_ICON_GAP, headerY, 0xFFFFFFFF, false);
+
+        for (int index = 0; index < candidates.size(); index++) {
+            MinimalSubMaterialListView.TooltipCandidate candidate = candidates.get(index);
+            int column = index / rowsPerColumn;
+            int row = index % rowsPerColumn;
+            int rowX = contentX + column * (columnWidth + columnGap);
+            int rowTop = rowsY + row * CHOICE_TOOLTIP_ROW_HEIGHT;
+            int textX = rowX + HOVER_TOOLTIP_ICON_SIZE + HOVER_TOOLTIP_ICON_GAP;
+            int maxNameWidth = Math.max(20, columnWidth - HOVER_TOOLTIP_ICON_SIZE - HOVER_TOOLTIP_ICON_GAP);
+            String itemName = this.truncateToWidth(candidate.name(), maxNameWidth);
+
+            RenderUtils.drawRect(rowX, rowTop + 1, HOVER_TOOLTIP_ICON_SIZE, HOVER_TOOLTIP_ICON_SIZE, 0x20FFFFFF);
+            RenderUtils.enableDiffuseLightingGui3D();
+            context.method_51427(candidate.icon(), rowX, rowTop + 1);
+            RenderUtils.disableDiffuseLighting();
+            context.method_51433(this.field_22793, itemName, textX, rowTop + 5, 0xFFFFFFFF, false);
+        }
+
+        context.method_51448().method_22909();
         return true;
+    }
+
+    private PanelBounds hoverTooltipBounds(int mouseX, int mouseY, int panelWidth, int panelHeight) {
+        int screenWidth = this.field_22789;
+        int screenHeight = this.field_22790;
+        int minX = HOVER_TOOLTIP_MARGIN;
+        int minY = HOVER_TOOLTIP_MARGIN;
+        int maxX = Math.max(minX, screenWidth - panelWidth - HOVER_TOOLTIP_MARGIN);
+        int maxY = Math.max(minY, screenHeight - panelHeight - HOVER_TOOLTIP_MARGIN);
+        int x = mouseX + HOVER_TOOLTIP_CURSOR_OFFSET;
+        int y = mouseY + HOVER_TOOLTIP_CURSOR_OFFSET;
+
+        if (x > maxX) {
+            x = mouseX - HOVER_TOOLTIP_CURSOR_OFFSET - panelWidth;
+        }
+        if (y > maxY) {
+            y = mouseY - HOVER_TOOLTIP_CURSOR_OFFSET - panelHeight;
+        }
+
+        x = clamp(x, minX, maxX);
+        y = clamp(y, minY, maxY);
+        return new PanelBounds(x, y);
+    }
+
+    private String truncateToWidth(String text, int maxWidth) {
+        if (this.field_22793.method_1727(text) <= maxWidth) {
+            return text;
+        }
+
+        String suffix = "...";
+        int suffixWidth = this.field_22793.method_1727(suffix);
+        int end = text.length();
+        while (end > 0 && this.field_22793.method_1727(text.substring(0, end)) + suffixWidth > maxWidth) {
+            end--;
+        }
+
+        return end > 0 ? text.substring(0, end) + suffix : suffix;
+    }
+
+    private static int clamp(int value, int min, int max) {
+        return Math.max(min, Math.min(max, value));
     }
 
     private ChoiceGroupNameArea choiceGroupNameAreaAt(double mouseX, double mouseY) {
@@ -1359,6 +1495,9 @@ public class RecipeDetailScreen extends class_437 {
         private boolean contains(double mouseX, double mouseY) {
             return mouseX >= this.x && mouseX < this.x + this.width && mouseY >= this.y && mouseY < this.y + this.height;
         }
+    }
+
+    private record PanelBounds(int x, int y) {
     }
 
     private record NativeDisplayArea(RecipeSummary summary, int x, int y, int width, int height) {
