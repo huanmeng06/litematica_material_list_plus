@@ -34,6 +34,20 @@ final class GrayscaleItemIcon {
     private GrayscaleItemIcon() {
     }
 
+    /**
+     * Builds the grayscale textures for every icon the given entry value can display
+     * (wildcard values cycle through several items). Call this outside the render
+     * pass -- e.g. when the row widget is created -- so the framebuffer/matrix
+     * switching never happens mid-frame, which showed up as a visible flicker.
+     */
+    static void prewarm(String value) {
+        for (ItemIdListIconResolver.Display display : ItemIdListIconResolver.allIcons(value)) {
+            if (!display.stack().method_7960() && !CACHE.containsKey(display.id())) {
+                CACHE.put(display.id(), buildGrayscaleTexture(null, display.stack()));
+            }
+        }
+    }
+
     static boolean render(class_332 context, class_1799 stack, String cacheKey, int x, int y, int size) {
         if (!CACHE.containsKey(cacheKey)) {
             CACHE.put(cacheKey, buildGrayscaleTexture(context, stack));
@@ -51,8 +65,11 @@ final class GrayscaleItemIcon {
     private static class_2960 buildGrayscaleTexture(class_332 outerContext, class_1799 stack) {
         class_310 mc = class_310.method_1551();
         // The outer GUI shares the immediate vertex consumers; flush its pending
-        // geometry before retargeting the framebuffer and matrices.
-        outerContext.method_51452();
+        // geometry before retargeting the framebuffer and matrices. Null when
+        // called from prewarm(), outside any render pass.
+        if (outerContext != null) {
+            outerContext.method_51452();
+        }
         // The surrounding list widget may have a GL scissor active; its box is in
         // window coordinates, so it would clip the whole offscreen framebuffer away.
         boolean scissorWasEnabled = GL11.glIsEnabled(GL11.GL_SCISSOR_TEST);

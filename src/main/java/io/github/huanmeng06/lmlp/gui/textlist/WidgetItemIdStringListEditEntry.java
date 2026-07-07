@@ -110,6 +110,11 @@ public class WidgetItemIdStringListEditEntry extends WidgetConfigOptionBase<Stri
         this.handleWidth = INDEX_WIDTH + ICON_AREA_WIDTH;
 
         if (!this.isDummy()) {
+            if (!this.enabled) {
+                // Build the grayscale icon textures now, outside the render pass;
+                // doing it lazily mid-frame caused a visible flicker.
+                GrayscaleItemIcon.prewarm(cleanValue);
+            }
             this.addLabel(x + 2, centerY - 5, INDEX_WIDTH - 4, 12, 0xFFC0C0C0, String.format("%3d:", listIndex + 1));
             this.toggleButton = this.createToggleButton(toggleX, buttonY);
             this.addEntryTextField(textX, textY, textWidth, CONTROL_HEIGHT, cleanValue, this.toggleButton);
@@ -292,6 +297,11 @@ public class WidgetItemIdStringListEditEntry extends WidgetConfigOptionBase<Stri
 
         @Override
         public boolean onTextChange(GuiTextFieldGeneric textField) {
+            if (!this.entry.enabled) {
+                // Typing happens outside the render pass; prewarm here so the
+                // grayscale icon for the new id never builds mid-frame.
+                GrayscaleItemIcon.prewarm(this.entry.currentText());
+            }
             this.entry.applyNewValueToConfig();
             this.entry.listWidget.markConfigsModified();
             return false;

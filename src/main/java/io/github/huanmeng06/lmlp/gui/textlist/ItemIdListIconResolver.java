@@ -53,6 +53,10 @@ final class ItemIdListIconResolver {
     private ItemIdListIconResolver() {
     }
 
+    static List<Display> allIcons(String value) {
+        return displaysFor(value);
+    }
+
     static Display currentIcon(String value) {
         List<Display> displays = displaysFor(value);
         if (displays.isEmpty()) {
