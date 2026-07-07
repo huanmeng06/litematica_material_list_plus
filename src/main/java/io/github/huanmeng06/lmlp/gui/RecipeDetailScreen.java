@@ -988,6 +988,14 @@ public class RecipeDetailScreen extends class_437 {
                     repChild.maxStackSize()));
         }
 
+        // Keep the representative's own real REI Display so the crafting-grid
+        // box still renders through REI's genuine native widget (exactly what
+        // pressing R on that single item would show) instead of falling back
+        // to our hand-drawn grid, which only happened here because a bare
+        // synthetic RecipeSummary carries no nativeDisplay. Only the
+        // "总计子材料" total below needs the unioned ("任意原木") ingredient
+        // list; the grid itself showing one representative species (e.g. oak)
+        // is exactly how REI's own recipe browser behaves for a single recipe.
         return List.of(new RecipeSummary(
                 representative.category(),
                 representative.recipeId(),
@@ -999,7 +1007,8 @@ public class RecipeDetailScreen extends class_437 {
                 unionSlots(perAlternative, representative.inputSlots()),
                 representative.gridWidth(),
                 representative.gridHeight(),
-                representative.shapeless()));
+                representative.shapeless(),
+                representative.nativeDisplay()));
     }
 
     private static List<RecipeSlotSummary> unionSlots(List<RecipeSummary> perAlternative, List<RecipeSlotSummary> repSlots) {
