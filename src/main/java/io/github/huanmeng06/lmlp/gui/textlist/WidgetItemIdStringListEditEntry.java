@@ -37,6 +37,7 @@ public class WidgetItemIdStringListEditEntry extends WidgetConfigOptionBase<Stri
     private final boolean isOdd;
     private final int iconX;
     private final int iconY;
+    private int handleWidth;
     private ButtonGeneric resetButton;
 
     public WidgetItemIdStringListEditEntry(
@@ -63,13 +64,11 @@ public class WidgetItemIdStringListEditEntry extends WidgetConfigOptionBase<Stri
         int centerY = y + height / 2;
         int buttonY = centerY - CONTROL_HEIGHT / 2;
         int textY = buttonY;
-        // Always reserve all four icon-button slots (+/- , move-down at slot 2,
-        // move-up at slot 3) even when a row hides one of the move buttons. The
-        // buttons sit at fixed slot offsets from actionStartX, so a per-row slot
-        // count would shift actionStartX (and every text field's right edge)
-        // between rows -- that's why the first row's field looked wider than the
-        // rest. A constant reservation keeps the whole column aligned.
-        int reservedIconSlots = 4;
+        // Reserve both icon-button slots (+/-) even for rows where either
+        // could conceivably be hidden, so the buttons sit at fixed slot
+        // offsets from actionStartX and every text field's right edge lines
+        // up between rows.
+        int reservedIconSlots = 2;
         int actionStartX = x + width - ICON_BUTTON_WIDTH * reservedIconSlots - 8;
         int resetX = actionStartX - RESET_WIDTH - 8;
         int selectX = resetX - SELECT_WIDTH - ACTION_GAP;
@@ -79,6 +78,10 @@ public class WidgetItemIdStringListEditEntry extends WidgetConfigOptionBase<Stri
         // Clamp to the real gap before the select button (never force 120, which
         // made the text field overlap the select/reset buttons on narrow rows).
         int textWidth = Math.max(0, selectX - textX - ACTION_GAP);
+        // The index label + item icon area doubles as the drag handle (see
+        // onMouseClicked): press-and-hold there, then release over another
+        // row to reorder, replacing the old up/down move buttons.
+        this.handleWidth = INDEX_WIDTH + ICON_AREA_WIDTH;
 
         if (!this.isDummy()) {
             this.addLabel(x + 2, centerY - 5, INDEX_WIDTH - 4, 12, 0xFFC0C0C0, String.format("%3d:", listIndex + 1));
@@ -86,17 +89,25 @@ public class WidgetItemIdStringListEditEntry extends WidgetConfigOptionBase<Stri
             this.addEntryTextField(textX, textY, textWidth, CONTROL_HEIGHT, value, this.resetButton);
             this.addSelectButton(selectX, buttonY);
             this.addResetButton(this.resetButton);
-            this.addActionButton(actionStartX, buttonY, MaLiLibIcons.PLUS, "malilib.gui.button.hovertext.add", this::insertEntryBefore);
+            this.addActionButton(actionStartX, buttonY, MaLiLibIcons.PLUS, "lmlp.gui.button.hovertext.add_below", this::insertEntryAfter);
             this.addActionButton(actionStartX + ICON_BUTTON_WIDTH, buttonY, MaLiLibIcons.MINUS, "malilib.gui.button.hovertext.remove", this::removeEntry);
-            if (this.canBeMoved(true)) {
-                this.addActionButton(actionStartX + ICON_BUTTON_WIDTH * 2, buttonY, MaLiLibIcons.ARROW_DOWN, "malilib.gui.button.hovertext.move_down", () -> this.moveEntry(true));
-            }
-            if (this.canBeMoved(false)) {
-                this.addActionButton(actionStartX + ICON_BUTTON_WIDTH * 3, buttonY, MaLiLibIcons.ARROW_UP, "malilib.gui.button.hovertext.move_up", () -> this.moveEntry(false));
-            }
         } else {
-            this.addActionButton(textX, buttonY, MaLiLibIcons.PLUS, "malilib.gui.button.hovertext.add", this::insertEntryBefore);
+            this.addActionButton(textX, buttonY, MaLiLibIcons.PLUS, "malilib.gui.button.hovertext.add", this::insertEntryAfter);
         }
+    }
+
+    @Override
+    public boolean onMouseClicked(int mouseX, int mouseY, int mouseButton) {
+        if (!this.isDummy() && mouseButton == 0 && this.isHandleHovered(mouseX, mouseY)) {
+            this.listWidget.beginDrag(this.listIndex);
+            return true;
+        }
+
+        return super.onMouseClicked(mouseX, mouseY, mouseButton);
+    }
+
+    private boolean isHandleHovered(int mouseX, int mouseY) {
+        return GuiBase.isMouseOver(mouseX, mouseY, this.x, this.y, this.handleWidth, this.height);
     }
 
     public void setSelectedItemId(String id) {
@@ -185,14 +196,23 @@ public class WidgetItemIdStringListEditEntry extends WidgetConfigOptionBase<Stri
     }
 
     private void renderItemIcon(class_332 context, int mouseX, int mouseY) {
+        boolean overIconSlot = GuiBase.isMouseOver(mouseX, mouseY, this.iconX, this.iconY, ICON_SLOT_SIZE, ICON_SLOT_SIZE);
+        boolean handleHovered = this.isHandleHovered(mouseX, mouseY) && !this.listWidget.isDragging();
+        boolean isDraggedRow = this.listWidget.isDragging() && this.listWidget.dragIndex() == this.listIndex;
+        if (handleHovered || isDraggedRow) {
+            RenderUtils.drawRect(this.x, this.y, this.handleWidth, this.height, 0x40FFFFFF);
+        }
         RenderUtils.drawOutlinedBox(this.iconX, this.iconY, ICON_SLOT_SIZE, ICON_SLOT_SIZE, ICON_SLOT_BACKGROUND, ICON_SLOT_BORDER);
         ItemIdListIconResolver.Display display = ItemIdListIconResolver.currentIcon(this.currentText());
         class_1799 stack = display.stack();
+        if (!stack.method_7960() && overIconSlot) {
+            this.editor.setHoveredText(display.id());
+        }
         if (!stack.method_7960()) {
             context.method_51427(stack, this.iconX + (ICON_SLOT_SIZE - ITEM_ICON_SIZE) / 2, this.iconY + (ICON_SLOT_SIZE - ITEM_ICON_SIZE) / 2);
-            if (GuiBase.isMouseOver(mouseX, mouseY, this.iconX, this.iconY, ICON_SLOT_SIZE, ICON_SLOT_SIZE)) {
-                this.editor.setHoveredText(display.id());
-            }
+        }
+        if (handleHovered && !overIconSlot) {
+            this.editor.setHoveredText(StringUtils.translate("lmlp.gui.button.hovertext.drag_reorder"));
         }
     }
 
@@ -200,11 +220,11 @@ public class WidgetItemIdStringListEditEntry extends WidgetConfigOptionBase<Stri
         return this.textField != null ? this.textField.getTextField().method_1882() : "";
     }
 
-    private void insertEntryBefore() {
+    private void insertEntryAfter() {
         this.listWidget.applyPendingModifications();
         List<String> strings = this.listWidget.getEntries();
         int size = strings.size();
-        int index = this.listIndex < 0 || this.listIndex >= size ? size : this.listIndex;
+        int index = this.listIndex < 0 || this.listIndex >= size ? size : this.listIndex + 1;
         strings.add(index, "");
         this.listWidget.refreshEntries();
         this.listWidget.markConfigsModified();
@@ -218,31 +238,6 @@ public class WidgetItemIdStringListEditEntry extends WidgetConfigOptionBase<Stri
             this.listWidget.refreshEntries();
             this.listWidget.markConfigsModified();
         }
-    }
-
-    private void moveEntry(boolean down) {
-        this.listWidget.applyPendingModifications();
-        List<String> strings = this.listWidget.getEntries();
-        int size = strings.size();
-        if (this.listIndex < 0 || this.listIndex >= size) {
-            return;
-        }
-
-        int next = down ? this.listIndex + 1 : this.listIndex - 1;
-        if (next < 0 || next >= size) {
-            return;
-        }
-
-        this.listWidget.markConfigsModified();
-        String value = strings.get(this.listIndex);
-        strings.set(this.listIndex, strings.get(next));
-        strings.set(next, value);
-        this.listWidget.refreshEntries();
-    }
-
-    private boolean canBeMoved(boolean down) {
-        int size = this.listWidget.getEntries().size();
-        return this.listIndex >= 0 && this.listIndex < size && (down ? this.listIndex < size - 1 : this.listIndex > 0);
     }
 
     private static final class StableResetListener extends ConfigOptionChangeListenerTextField {
