@@ -12,6 +12,7 @@ import fi.dy.masa.malilib.gui.interfaces.IDialogHandler;
 import fi.dy.masa.malilib.render.RenderUtils;
 import fi.dy.masa.malilib.util.GuiUtils;
 import fi.dy.masa.malilib.util.StringUtils;
+import fi.dy.masa.litematica.gui.Icons;
 import io.github.huanmeng06.lmlp.gui.ItemTooltipRenderer;
 import io.github.huanmeng06.lmlp.material.ItemStackTexts;
 import me.shedaniel.rei.api.client.registry.entry.EntryRegistry;
@@ -34,6 +35,7 @@ public class GuiItemIdStringListEdit extends GuiListBase<String, WidgetItemIdStr
     private static final int PANEL_MARGIN_TOP = 48;
     private static final int PANEL_MARGIN_BOTTOM = 36;
     private static final int PANEL_TITLE_HEIGHT = 34;
+    private static final int TITLE_INFO_ICON_GAP = 6;
     private static final int PICKER_SLOT = 24;
     private static final int PICKER_SLOT_GAP = 2;
     private static final int PICKER_WHEEL_PIXELS = 28;
@@ -59,6 +61,7 @@ public class GuiItemIdStringListEdit extends GuiListBase<String, WidgetItemIdStr
     private GuiTextFieldGeneric pickerSearchField;
     private class_1799 hoveredStack = class_1799.field_8037;
     private String hoveredText = "";
+    private List<String> titleInfoTooltip = List.of();
     private String pickerQuery = "";
     private int pickerSearchFieldWidth;
     private int pickerSearchDragAnchor;
@@ -159,6 +162,7 @@ public class GuiItemIdStringListEdit extends GuiListBase<String, WidgetItemIdStr
     public void method_25394(class_332 context, int mouseX, int mouseY, float delta) {
         this.hoveredStack = class_1799.field_8037;
         this.hoveredText = "";
+        this.titleInfoTooltip = List.of();
 
         if (this.pickerOpen) {
             this.renderPicker(context, mouseX, mouseY, delta);
@@ -182,6 +186,8 @@ public class GuiItemIdStringListEdit extends GuiListBase<String, WidgetItemIdStr
             ItemTooltipRenderer.render(context, this.textRenderer, this.hoveredStack, mouseX, mouseY);
         } else if (!this.hoveredText.isEmpty()) {
             RenderUtils.drawHoverText(mouseX, mouseY, List.of(this.hoveredText), context);
+        } else if (!this.titleInfoTooltip.isEmpty()) {
+            RenderUtils.drawHoverText(mouseX, mouseY, this.titleInfoTooltip, context);
         }
     }
 
@@ -268,6 +274,22 @@ public class GuiItemIdStringListEdit extends GuiListBase<String, WidgetItemIdStr
     protected void drawTitle(class_332 context, int mouseX, int mouseY, float partialTicks) {
         int textY = this.dialogTop + (PANEL_TITLE_HEIGHT - this.textRenderer.field_2000) / 2;
         this.drawStringWithShadow(context, this.title, this.dialogLeft + 10, textY, 0xFFFFFFFF);
+
+        // "More info" icon next to the title: hovering it explains the
+        // {color}/{wood} wildcards supported by this item-id list editor.
+        int iconX = this.dialogLeft + 10 + this.textRenderer.method_1727(this.title) + TITLE_INFO_ICON_GAP;
+        int iconY = this.dialogTop + (PANEL_TITLE_HEIGHT - Icons.INFO_11.getHeight()) / 2;
+        boolean hovered = GuiBase.isMouseOver(mouseX, mouseY, iconX, iconY, Icons.INFO_11.getWidth(), Icons.INFO_11.getHeight());
+        RenderUtils.color(1.0F, 1.0F, 1.0F, 1.0F);
+        RenderUtils.bindTexture(Icons.TEXTURE);
+        Icons.INFO_11.renderAt(iconX, iconY, 0.0F, hovered, false);
+        if (hovered) {
+            this.titleInfoTooltip = List.of(
+                    StringUtils.translate("lmlp.gui.tooltip.wildcards.title"),
+                    StringUtils.translate("lmlp.gui.tooltip.wildcards.color"),
+                    StringUtils.translate("lmlp.gui.tooltip.wildcards.wood")
+            );
+        }
     }
 
     private void setWidthAndHeight() {
