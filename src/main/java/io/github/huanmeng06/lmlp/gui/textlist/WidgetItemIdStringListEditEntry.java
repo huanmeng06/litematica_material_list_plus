@@ -10,6 +10,7 @@ import fi.dy.masa.malilib.gui.button.ButtonGeneric;
 import fi.dy.masa.malilib.gui.widgets.WidgetConfigOptionBase;
 import fi.dy.masa.malilib.render.RenderUtils;
 import fi.dy.masa.malilib.util.StringUtils;
+import io.github.huanmeng06.lmlp.config.Configs;
 import io.github.huanmeng06.lmlp.material.ItemStackTexts;
 import net.minecraft.class_1799;
 import net.minecraft.class_332;
@@ -21,8 +22,8 @@ public class WidgetItemIdStringListEditEntry extends WidgetConfigOptionBase<Stri
     private static final int ICON_AREA_WIDTH = 24;
     private static final int ICON_SLOT_SIZE = 18;
     private static final int ITEM_ICON_SIZE = 16;
-    private static final int SELECT_WIDTH = 58;
-    private static final int RESET_WIDTH = 58;
+    // Shared by the "选择"/enable-disable toggle buttons so they always match widths.
+    private static final int ACTION_BUTTON_WIDTH = 58;
     private static final int ICON_BUTTON_WIDTH = 18;
     private static final int CONTROL_HEIGHT = 20;
     private static final int ACTION_GAP = 4;
@@ -30,16 +31,36 @@ public class WidgetItemIdStringListEditEntry extends WidgetConfigOptionBase<Stri
     private static final int ROW_BACKGROUND_EVEN = 0x30FFFFFF;
     private static final int ICON_SLOT_BACKGROUND = 0x55000000;
     private static final int ICON_SLOT_BORDER = 0xFF555555;
+    private static final IStringRepresentable NO_OP_STRING_REPRESENTABLE = new IStringRepresentable() {
+        @Override
+        public String getStringValue() {
+            return "";
+        }
+
+        @Override
+        public String getDefaultStringValue() {
+            return "";
+        }
+
+        @Override
+        public void setValueFromString(String value) {
+        }
+
+        @Override
+        public boolean isModified(String value) {
+            return false;
+        }
+    };
 
     private final WidgetListItemIdStringListEdit listWidget;
     private final GuiItemIdStringListEdit editor;
-    private final String defaultValue;
     private final int listIndex;
     private final boolean isOdd;
     private final int iconX;
     private final int iconY;
     private int handleWidth;
-    private ButtonGeneric resetButton;
+    private boolean enabled;
+    private ButtonGeneric toggleButton;
 
     public WidgetItemIdStringListEditEntry(
             int x,
@@ -48,19 +69,19 @@ public class WidgetItemIdStringListEditEntry extends WidgetConfigOptionBase<Stri
             int height,
             int listIndex,
             boolean isOdd,
-            String value,
-            String defaultValue,
+            String rawValue,
             WidgetListItemIdStringListEdit listWidget,
             GuiItemIdStringListEdit editor
     ) {
-        super(x, y, width, height, listWidget, value, listIndex);
+        super(x, y, width, height, listWidget, Configs.stripEntryDisabledPrefix(rawValue), listIndex);
         this.listWidget = listWidget;
         this.editor = editor;
         this.listIndex = listIndex;
         this.isOdd = isOdd;
-        this.defaultValue = defaultValue;
-        this.initialStringValue = value;
-        this.lastAppliedValue = value;
+        this.enabled = !Configs.isEntryDisabled(rawValue);
+        String cleanValue = Configs.stripEntryDisabledPrefix(rawValue);
+        this.initialStringValue = cleanValue;
+        this.lastAppliedValue = cleanValue;
 
         int centerY = y + height / 2;
         int buttonY = centerY - CONTROL_HEIGHT / 2;
@@ -71,13 +92,13 @@ public class WidgetItemIdStringListEditEntry extends WidgetConfigOptionBase<Stri
         // up between rows.
         int reservedIconSlots = 2;
         int actionStartX = x + width - ICON_BUTTON_WIDTH * reservedIconSlots - 8;
-        int resetX = actionStartX - RESET_WIDTH - 8;
-        int selectX = resetX - SELECT_WIDTH - ACTION_GAP;
+        int toggleX = actionStartX - ACTION_BUTTON_WIDTH - 8;
+        int selectX = toggleX - ACTION_BUTTON_WIDTH - ACTION_GAP;
         this.iconX = x + INDEX_WIDTH + (ICON_AREA_WIDTH - ICON_SLOT_SIZE) / 2;
         this.iconY = centerY - ICON_SLOT_SIZE / 2;
         int textX = x + INDEX_WIDTH + ICON_AREA_WIDTH + ACTION_GAP;
         // Clamp to the real gap before the select button (never force 120, which
-        // made the text field overlap the select/reset buttons on narrow rows).
+        // made the text field overlap the select/toggle buttons on narrow rows).
         int textWidth = Math.max(0, selectX - textX - ACTION_GAP);
         // The index label + item icon area doubles as the drag handle (see
         // onMouseClicked): press-and-hold there, then release over another
@@ -86,10 +107,10 @@ public class WidgetItemIdStringListEditEntry extends WidgetConfigOptionBase<Stri
 
         if (!this.isDummy()) {
             this.addLabel(x + 2, centerY - 5, INDEX_WIDTH - 4, 12, 0xFFC0C0C0, String.format("%3d:", listIndex + 1));
-            this.resetButton = this.createStringResetButton(resetX, buttonY);
-            this.addEntryTextField(textX, textY, textWidth, CONTROL_HEIGHT, value, this.resetButton);
+            this.toggleButton = this.createToggleButton(toggleX, buttonY);
+            this.addEntryTextField(textX, textY, textWidth, CONTROL_HEIGHT, cleanValue, this.toggleButton);
             this.addSelectButton(selectX, buttonY);
-            this.addResetButton(this.resetButton);
+            this.addToggleButton(this.toggleButton);
             this.addActionButton(actionStartX, buttonY, MaLiLibIcons.PLUS, "lmlp.gui.button.hovertext.add_below", this::insertEntryAfter);
             this.addActionButton(actionStartX + ICON_BUTTON_WIDTH, buttonY, MaLiLibIcons.MINUS, "malilib.gui.button.hovertext.remove", this::removeEntry);
         } else {
@@ -126,18 +147,18 @@ public class WidgetItemIdStringListEditEntry extends WidgetConfigOptionBase<Stri
         return this.listIndex < 0;
     }
 
-    private void addEntryTextField(int x, int y, int width, int height, String value, ButtonBase resetButton) {
+    private void addEntryTextField(int x, int y, int width, int height, String value, ButtonBase toggleButton) {
         GuiTextFieldGeneric field = this.createTextField(x, y + 1, width, height - 3);
         field.method_1880(this.maxTextfieldTextLength);
         field.method_1852(value);
-        this.addTextField(field, new StableResetListener(new RowStringRepresentable(this.defaultValue), field, resetButton, this));
+        this.addTextField(field, new EntryChangeListener(NO_OP_STRING_REPRESENTABLE, field, toggleButton, this));
     }
 
     private void addSelectButton(int x, int y) {
         ButtonGeneric button = new ButtonGeneric(
                 x,
                 y,
-                SELECT_WIDTH,
+                ACTION_BUTTON_WIDTH,
                 CONTROL_HEIGHT,
                 StringUtils.translate("lmlp.gui.button.text_list.select"),
                 new String[0]
@@ -146,21 +167,25 @@ public class WidgetItemIdStringListEditEntry extends WidgetConfigOptionBase<Stri
         this.addButton(button, (clickedButton, mouseButton) -> this.editor.openItemPicker(this));
     }
 
-    private ButtonGeneric createStringResetButton(int x, int y) {
-        String label = StringUtils.translate("malilib.gui.button.reset.caps");
-        ButtonGeneric button = new ButtonGeneric(x, y, RESET_WIDTH, CONTROL_HEIGHT, label, new String[0]);
+    private ButtonGeneric createToggleButton(int x, int y) {
+        ButtonGeneric button = new ButtonGeneric(x, y, ACTION_BUTTON_WIDTH, CONTROL_HEIGHT, this.toggleButtonLabel(), new String[0]);
         button.setTextCentered(true);
         button.setEnabled(true);
         return button;
     }
 
-    private void addResetButton(ButtonGeneric button) {
+    private String toggleButtonLabel() {
+        return StringUtils.translate(this.enabled ? "lmlp.gui.button.text_list.disable" : "lmlp.gui.button.text_list.enable");
+    }
+
+    private void addToggleButton(ButtonGeneric button) {
         this.addButton(button, (clickedButton, mouseButton) -> {
-            if (this.textField != null) {
-                this.textField.getTextField().method_1852(this.defaultValue);
-                this.applyNewValueToConfig();
-                this.listWidget.markConfigsModified();
-            }
+            this.enabled = !this.enabled;
+            this.applyNewValueToConfig();
+            this.listWidget.markConfigsModified();
+            // The button label depends on the new state; simplest way to
+            // refresh it is to let the list recreate this row's widgets.
+            this.listWidget.refreshEntries();
         });
     }
 
@@ -180,9 +205,9 @@ public class WidgetItemIdStringListEditEntry extends WidgetConfigOptionBase<Stri
             return;
         }
 
-        String value = this.currentText();
-        this.listWidget.setEntryValue(this.listIndex, value);
-        this.lastAppliedValue = value;
+        String cleanValue = this.currentText();
+        this.listWidget.setEntryValue(this.listIndex, Configs.withEntryDisabledState(cleanValue, !this.enabled));
+        this.lastAppliedValue = cleanValue;
     }
 
     @Override
@@ -245,11 +270,11 @@ public class WidgetItemIdStringListEditEntry extends WidgetConfigOptionBase<Stri
         }
     }
 
-    private static final class StableResetListener extends ConfigOptionChangeListenerTextField {
+    private static final class EntryChangeListener extends ConfigOptionChangeListenerTextField {
         private final WidgetItemIdStringListEditEntry entry;
 
-        private StableResetListener(IStringRepresentable config, GuiTextFieldGeneric textField, ButtonBase resetButton, WidgetItemIdStringListEditEntry entry) {
-            super(config, textField, resetButton);
+        private EntryChangeListener(IStringRepresentable config, GuiTextFieldGeneric textField, ButtonBase toggleButton, WidgetItemIdStringListEditEntry entry) {
+            super(config, textField, toggleButton);
             this.entry = entry;
         }
 
@@ -258,33 +283,6 @@ public class WidgetItemIdStringListEditEntry extends WidgetConfigOptionBase<Stri
             this.entry.applyNewValueToConfig();
             this.entry.listWidget.markConfigsModified();
             return false;
-        }
-    }
-
-    private static final class RowStringRepresentable implements IStringRepresentable {
-        private final String defaultValue;
-
-        private RowStringRepresentable(String defaultValue) {
-            this.defaultValue = defaultValue;
-        }
-
-        @Override
-        public String getStringValue() {
-            return this.defaultValue;
-        }
-
-        @Override
-        public String getDefaultStringValue() {
-            return this.defaultValue;
-        }
-
-        @Override
-        public void setValueFromString(String value) {
-        }
-
-        @Override
-        public boolean isModified(String value) {
-            return !this.defaultValue.equals(value);
         }
     }
 }

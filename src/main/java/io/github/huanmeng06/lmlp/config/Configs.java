@@ -86,12 +86,11 @@ public class Configs implements IConfigHandler {
             "minecraft:{color}_terracotta"
     );
     // Materials kept as their own counted row (with a 所需 decomposition hint)
-    // instead of being decomposed into raw materials. Empty by default so the
-    // minimal view stays at a single "raw gatherable" abstraction: everything
-    // wood-based (slabs, sticks, planks) decomposes all the way to logs. Users
-    // who prefer to see intermediate products as their own rows can opt in by
-    // adding entries such as minecraft:{wood}_slab or minecraft:{wood}_planks.
-    private static final ImmutableList<String> DEFAULT_KEEP_AS_LEAF_ITEMS = ImmutableList.of();
+    // instead of being decomposed into raw materials.
+    private static final ImmutableList<String> DEFAULT_KEEP_AS_LEAF_ITEMS = ImmutableList.of(
+            "minecraft:{wood}_slab",
+            "minecraft:stick"
+    );
 
     public static final class Generic {
         public static final ConfigBoolean DISABLE_LITEMATICA_HOVER_TOOLTIP = new ConfigBoolean(
@@ -223,7 +222,7 @@ public class Configs implements IConfigHandler {
     public static boolean shouldStopRecipeDecomposition(String itemId) {
         String normalizedItemId = normalizeItemId(itemId);
         for (String configuredId : Generic.RECIPE_STOP_ITEMS.getStrings()) {
-            if (matchesPattern(configuredId, normalizedItemId)) {
+            if (!isEntryDisabled(configuredId) && matchesPattern(configuredId, normalizedItemId)) {
                 return true;
             }
         }
@@ -234,12 +233,30 @@ public class Configs implements IConfigHandler {
     public static boolean shouldKeepAsLeaf(String itemId) {
         String normalizedItemId = normalizeItemId(itemId);
         for (String configuredId : Generic.KEEP_AS_LEAF_ITEMS.getStrings()) {
-            if (matchesPattern(configuredId, normalizedItemId)) {
+            if (!isEntryDisabled(configuredId) && matchesPattern(configuredId, normalizedItemId)) {
                 return true;
             }
         }
 
         return false;
+    }
+
+    // Item-id list entries can be temporarily "disabled" instead of deleted:
+    // the row (and its text) stays in the list, but it's skipped for matching,
+    // as if it weren't in the list at all. Represented as a leading marker
+    // character on the stored string, stripped for editing/display.
+    private static final String DISABLED_ENTRY_PREFIX = "!";
+
+    public static boolean isEntryDisabled(String rawEntry) {
+        return rawEntry != null && rawEntry.startsWith(DISABLED_ENTRY_PREFIX);
+    }
+
+    public static String stripEntryDisabledPrefix(String rawEntry) {
+        return isEntryDisabled(rawEntry) ? rawEntry.substring(DISABLED_ENTRY_PREFIX.length()) : rawEntry;
+    }
+
+    public static String withEntryDisabledState(String cleanId, boolean disabled) {
+        return disabled ? DISABLED_ENTRY_PREFIX + cleanId : cleanId;
     }
 
     // Match a configured id (possibly containing {color}/{wood} wildcards) against
@@ -330,7 +347,7 @@ public class Configs implements IConfigHandler {
         List<String> values = new ArrayList<>(Generic.RECIPE_STOP_ITEMS.getStrings());
         Set<String> normalizedValues = new HashSet<>();
         for (String value : values) {
-            normalizedValues.add(normalizeItemId(value));
+            normalizedValues.add(normalizeItemId(stripEntryDisabledPrefix(value)));
         }
 
         boolean modified = false;
@@ -352,7 +369,7 @@ public class Configs implements IConfigHandler {
         List<String> values = new ArrayList<>(Generic.KEEP_AS_LEAF_ITEMS.getStrings());
         Set<String> normalizedValues = new HashSet<>();
         for (String value : values) {
-            normalizedValues.add(normalizeItemId(value));
+            normalizedValues.add(normalizeItemId(stripEntryDisabledPrefix(value)));
         }
 
         boolean modified = false;

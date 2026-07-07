@@ -162,6 +162,8 @@
   "config.name.replacewaterbucketwithice": "Replace water buckets with ice",
   "config.comment.replacewaterbucketwithice": "When enabled, water buckets required by the material list are shown and counted as ice instead, one ice per bucket.",
   "lmlp.gui.button.text_list.select": "Select",
+  "lmlp.gui.button.text_list.enable": "Enable",
+  "lmlp.gui.button.text_list.disable": "Disable",
   "lmlp.gui.button.hovertext.add_below": "Add a new entry below",
   "lmlp.gui.button.hovertext.drag_reorder": "Drag to reorder",
   "lmlp.gui.label.text_list.empty_entry": "(empty)",

@@ -4,6 +4,7 @@ import fi.dy.masa.malilib.config.IConfigStringList;
 import fi.dy.masa.malilib.gui.widgets.WidgetListConfigOptionsBase;
 import fi.dy.masa.malilib.render.RenderUtils;
 import fi.dy.masa.malilib.util.StringUtils;
+import io.github.huanmeng06.lmlp.config.Configs;
 import io.github.huanmeng06.lmlp.material.ItemStackTexts;
 import net.minecraft.class_124;
 import net.minecraft.class_2561;
@@ -156,7 +157,7 @@ public class WidgetListItemIdStringListEdit extends WidgetListConfigOptionsBase<
         // icons. Vanilla tooltips are the one thing guaranteed to paint over
         // item icons (every inventory item tooltip does), so route the label
         // through method_51434 and let MC own the layering/shadow/position.
-        String label = entries.get(this.dragIndex);
+        String label = Configs.stripEntryDisabledPrefix(entries.get(this.dragIndex));
         // Prefer the item's localized display name over the raw configured id
         // (e.g. "移动：铁锭" instead of "移动：minecraft:iron_ingot"); fall back
         // to the raw text when the id doesn't resolve to a real item.
@@ -204,11 +205,6 @@ public class WidgetListItemIdStringListEdit extends WidgetListConfigOptionsBase<
 
     @Override
     protected WidgetItemIdStringListEditEntry createListEntryWidget(int x, int y, int listIndex, boolean isOdd, String value) {
-        String defaultValue = "";
-        if (listIndex >= 0 && listIndex < this.config.getDefaultStrings().size()) {
-            defaultValue = this.config.getDefaultStrings().get(listIndex);
-        }
-
         return new WidgetItemIdStringListEditEntry(
                 x,
                 y,
@@ -217,7 +213,6 @@ public class WidgetListItemIdStringListEdit extends WidgetListConfigOptionsBase<
                 listIndex,
                 isOdd,
                 value,
-                defaultValue,
                 this,
                 this.editor
         );
