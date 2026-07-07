@@ -205,13 +205,17 @@ public class WidgetItemIdStringListEditEntry extends WidgetConfigOptionBase<Stri
         RenderUtils.drawOutlinedBox(this.iconX, this.iconY, ICON_SLOT_SIZE, ICON_SLOT_SIZE, ICON_SLOT_BACKGROUND, ICON_SLOT_BORDER);
         ItemIdListIconResolver.Display display = ItemIdListIconResolver.currentIcon(this.currentText());
         class_1799 stack = display.stack();
-        if (!stack.method_7960() && overIconSlot) {
+        // While a drag is in progress, only the dragged-row ghost label should
+        // show -- suppress this row's own hover tooltips so the item id (or the
+        // drag hint) doesn't render behind the ghost label.
+        boolean dragging = this.listWidget.isDragging();
+        if (!dragging && !stack.method_7960() && overIconSlot) {
             this.editor.setHoveredText(display.id());
         }
         if (!stack.method_7960()) {
             context.method_51427(stack, this.iconX + (ICON_SLOT_SIZE - ITEM_ICON_SIZE) / 2, this.iconY + (ICON_SLOT_SIZE - ITEM_ICON_SIZE) / 2);
         }
-        if (handleHovered && !overIconSlot) {
+        if (!dragging && handleHovered && !overIconSlot) {
             this.editor.setHoveredText(StringUtils.translate("lmlp.gui.button.hovertext.drag_reorder"));
         }
     }
