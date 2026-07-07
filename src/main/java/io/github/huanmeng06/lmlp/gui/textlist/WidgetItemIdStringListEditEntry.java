@@ -200,7 +200,7 @@ public class WidgetItemIdStringListEditEntry extends WidgetConfigOptionBase<Stri
         boolean handleHovered = this.isHandleHovered(mouseX, mouseY) && !this.listWidget.isDragging();
         boolean isDraggedRow = this.listWidget.isDragging() && this.listWidget.dragIndex() == this.listIndex;
         if (handleHovered || isDraggedRow) {
-            RenderUtils.drawRect(this.x, this.y, this.handleWidth, this.height, 0x40FFFFFF);
+            RenderUtils.drawRect(this.x, this.y, this.width, this.height, 0x40FFFFFF);
         }
         RenderUtils.drawOutlinedBox(this.iconX, this.iconY, ICON_SLOT_SIZE, ICON_SLOT_SIZE, ICON_SLOT_BACKGROUND, ICON_SLOT_BORDER);
         ItemIdListIconResolver.Display display = ItemIdListIconResolver.currentIcon(this.currentText());
