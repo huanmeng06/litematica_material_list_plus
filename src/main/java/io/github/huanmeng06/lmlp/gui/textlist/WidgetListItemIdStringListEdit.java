@@ -4,14 +4,15 @@ import fi.dy.masa.malilib.config.IConfigStringList;
 import fi.dy.masa.malilib.gui.widgets.WidgetListConfigOptionsBase;
 import fi.dy.masa.malilib.render.RenderUtils;
 import fi.dy.masa.malilib.util.StringUtils;
+import net.minecraft.class_124;
+import net.minecraft.class_2561;
+import net.minecraft.class_310;
 import net.minecraft.class_332;
 
 import java.util.Collection;
 import java.util.List;
 
 public class WidgetListItemIdStringListEdit extends WidgetListConfigOptionsBase<String, WidgetItemIdStringListEditEntry> {
-    private static final int DRAG_LABEL_PADDING = 4;
-    private static final int DRAG_LABEL_HEIGHT = 16;
     private static final int DRAG_LINE_HEIGHT = 2;
     private final IConfigStringList config;
     private final GuiItemIdStringListEdit editor;
@@ -128,36 +129,26 @@ public class WidgetListItemIdStringListEdit extends WidgetListConfigOptionsBase<
             }
         }
 
-        // Row text fields/labels apparently flush through a render layer that
-        // ends up composited above plain immediate-mode rects drawn earlier in
-        // the same frame (the exact issue fixed for the recipe-detail choice
-        // tooltip in v1.6.81) -- without a Z push here, the dragged-row ghost
-        // label rendered underneath whatever row it happened to hover over.
-        // +400 matches vanilla's own tooltip offset, which reliably wins.
-        context.method_51448().method_22903();
-        context.method_51448().method_46416(0.0F, 0.0F, 400.0F);
-
+        // The drop-indicator line is a plain fill; a +400 Z push (matching
+        // vanilla's tooltip offset) keeps it above the row backgrounds.
         if (lineY != null) {
+            context.method_51448().method_22903();
+            context.method_51448().method_46416(0.0F, 0.0F, 400.0F);
             RenderUtils.drawRect(this.posX + 2, lineY, this.browserEntryWidth - 4, DRAG_LINE_HEIGHT, 0xFFFFCC00);
+            context.method_51448().method_22909();
         }
 
+        // The dragged-row ghost label is drawn as a REAL vanilla tooltip. Item
+        // icons in the GUI render through the item render layer, which
+        // composites above plain immediate-mode glyphs even under a Z push --
+        // so a hand-drawn label (or just its shadow) kept losing to the row
+        // icons. Vanilla tooltips are the one thing guaranteed to paint over
+        // item icons (every inventory item tooltip does), so route the label
+        // through method_51434 and let MC own the layering/shadow/position.
         String label = entries.get(this.dragIndex);
         String shown = label.isEmpty() ? StringUtils.translate("lmlp.gui.label.text_list.empty_entry") : label;
-        int textWidth = this.getStringWidth(shown);
-        RenderUtils.drawRect(mouseX + 10, mouseY - DRAG_LABEL_HEIGHT / 2, textWidth + DRAG_LABEL_PADDING * 2, DRAG_LABEL_HEIGHT, 0xCC101010);
-        // drawStringWithShadow's built-in drop shadow apparently submits
-        // through a different (later-flushing) render layer than the main
-        // glyphs, so under this Z push only the main text came out on top of
-        // the item icon while its shadow still rendered behind it. Drawing
-        // the shadow ourselves via two plain drawString calls keeps both
-        // passes on the same layer, so they flush together and stay above
-        // the icon as one unit.
-        int textX = mouseX + 10 + DRAG_LABEL_PADDING;
-        int textY = mouseY - DRAG_LABEL_HEIGHT / 2 + 4;
-        this.drawString(context, shown, textX + 1, textY + 1, 0xFF000000);
-        this.drawString(context, shown, textX, textY, 0xFFFFCC66);
-
-        context.method_51448().method_22909();
+        class_2561 text = class_2561.method_43470(shown).method_27692(class_124.field_1065);
+        context.method_51434(class_310.method_1551().field_1772, List.of(text), mouseX, mouseY);
     }
 
     List<String> getEntries() {

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "litematica_material_list_plus",
-  "version": "1.6.86+mc1.20.6",
+  "version": "1.6.87+mc1.20.6",
   "name": "Litematica Material List Plus",
   "description": "Enhances Litematica's material list with grouped counts and REI recipe summaries.",
   "icon": "assets/litematica_material_list_plus/icon.png",
