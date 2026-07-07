@@ -145,7 +145,17 @@ public class WidgetListItemIdStringListEdit extends WidgetListConfigOptionsBase<
         String shown = label.isEmpty() ? StringUtils.translate("lmlp.gui.label.text_list.empty_entry") : label;
         int textWidth = this.getStringWidth(shown);
         RenderUtils.drawRect(mouseX + 10, mouseY - DRAG_LABEL_HEIGHT / 2, textWidth + DRAG_LABEL_PADDING * 2, DRAG_LABEL_HEIGHT, 0xCC101010);
-        this.drawStringWithShadow(context, shown, mouseX + 10 + DRAG_LABEL_PADDING, mouseY - DRAG_LABEL_HEIGHT / 2 + 4, 0xFFFFCC66);
+        // drawStringWithShadow's built-in drop shadow apparently submits
+        // through a different (later-flushing) render layer than the main
+        // glyphs, so under this Z push only the main text came out on top of
+        // the item icon while its shadow still rendered behind it. Drawing
+        // the shadow ourselves via two plain drawString calls keeps both
+        // passes on the same layer, so they flush together and stay above
+        // the icon as one unit.
+        int textX = mouseX + 10 + DRAG_LABEL_PADDING;
+        int textY = mouseY - DRAG_LABEL_HEIGHT / 2 + 4;
+        this.drawString(context, shown, textX + 1, textY + 1, 0xFF000000);
+        this.drawString(context, shown, textX, textY, 0xFFFFCC66);
 
         context.method_51448().method_22909();
     }
