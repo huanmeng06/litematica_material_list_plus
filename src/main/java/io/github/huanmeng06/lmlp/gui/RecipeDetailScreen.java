@@ -1266,7 +1266,14 @@ public class RecipeDetailScreen extends class_437 {
         int rowsY = headerY + Math.max(HOVER_TOOLTIP_ICON_SIZE, HOVER_TOOLTIP_LINE_HEIGHT) + HOVER_TOOLTIP_HEADER_GAP;
 
         context.method_51448().method_22903();
-        context.method_51448().method_46416(0.0F, 0.0F, 200.0F);
+        // Match vanilla's own tooltip Z offset (see class_332's drawTooltip),
+        // not the +200 this was ported with. Now that the recipe box behind
+        // this panel can render REI's own native display (v1.6.80), its item
+        // slots sit at a Z high enough to paint over a +200 panel — the log
+        // icons and even the unrelated root recipe's output icon bled through
+        // on top of this tooltip. +400 is the same headroom vanilla tooltips
+        // rely on to stay above arbitrary GUI content.
+        context.method_51448().method_46416(0.0F, 0.0F, 400.0F);
         RenderUtils.drawOutlinedBox(panelX, panelY, panelWidth, panelHeight, 0xF0000000, 0xFF999999);
 
         RenderUtils.drawRect(contentX, headerY - 4, HOVER_TOOLTIP_ICON_SIZE, HOVER_TOOLTIP_ICON_SIZE, 0x20FFFFFF);
