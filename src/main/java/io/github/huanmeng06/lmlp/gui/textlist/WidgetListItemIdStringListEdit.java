@@ -117,9 +117,13 @@ public class WidgetListItemIdStringListEdit extends WidgetListConfigOptionsBase<
 
         int dropIndex = this.dropIndexAt(mouseY);
         Integer lineY = null;
+        int lineX = this.posX + 2;
+        int lineWidth = this.browserEntryWidth - 4;
         for (WidgetItemIdStringListEditEntry entry : this.listWidgets) {
             if (entry.getListIndex() == dropIndex) {
                 lineY = entry.getY() - 2;
+                lineX = entry.getX();
+                lineWidth = entry.getWidth();
                 break;
             }
         }
@@ -127,15 +131,21 @@ public class WidgetListItemIdStringListEdit extends WidgetListConfigOptionsBase<
             WidgetItemIdStringListEditEntry last = this.listWidgets.get(this.listWidgets.size() - 1);
             if (last.getListIndex() >= 0 && dropIndex == last.getListIndex() + 1) {
                 lineY = last.getY() + last.getHeight() + 2;
+                lineX = last.getX();
+                lineWidth = last.getWidth();
             }
         }
 
         // The drop-indicator line is a plain fill; a +400 Z push (matching
-        // vanilla's tooltip offset) keeps it above the row backgrounds.
+        // vanilla's tooltip offset) keeps it above the row backgrounds. Use
+        // the actual row widget's own x/width (same values its background
+        // rect uses) so the line reaches exactly as far right as the row
+        // itself, instead of the list's browserEntryWidth which can be a
+        // couple pixels narrower.
         if (lineY != null) {
             context.method_51448().method_22903();
             context.method_51448().method_46416(0.0F, 0.0F, 400.0F);
-            RenderUtils.drawRect(this.posX + 2, lineY, this.browserEntryWidth - 4, DRAG_LINE_HEIGHT, 0xFFFFCC00);
+            RenderUtils.drawRect(lineX, lineY, lineWidth, DRAG_LINE_HEIGHT, 0xFFFFCC00);
             context.method_51448().method_22909();
         }
 
