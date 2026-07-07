@@ -26,6 +26,7 @@ public class InitHandler implements IInitializationHandler {
     public void registerModHandlers() {
         ConfigManager.getInstance().registerConfigHandler(LitematicaMaterialListPlus.MOD_ID, new Configs());
         InputEventHandler.getKeybindManager().registerKeybindProvider(InputHandler.getInstance());
+        InputEventHandler.getInputManager().registerKeyboardInputHandler(InputHandler.getInstance());
         Hotkeys.OPEN_CONFIG_GUI.getKeybind().setCallback((action, key) -> {
             GuiBase.openGui(new GuiConfigs());
             return true;
@@ -49,6 +50,14 @@ public class InitHandler implements IInitializationHandler {
         WorldRenderEvents.LAST.register(PlacementOriginMarker::render);
     }
     private static void handleHotkeyFallback(net.minecraft.class_310 client) {
+        // The raw key polling below ignores malilib's keybind contexts, so it
+        // must not fire on the title screen or inside other GUIs.
+        if (client == null || client.field_1687 == null || client.field_1755 != null) {
+            openConfigHotkeyWasDown = false;
+            clearOriginMarkerHotkeyWasDown = false;
+            return;
+        }
+
         boolean openConfigDown = isHotkeyDown(client, Hotkeys.OPEN_CONFIG_GUI.getKeybind().getKeys());
         if (openConfigDown && !openConfigHotkeyWasDown) {
             GuiBase.openGui(new GuiConfigs());
