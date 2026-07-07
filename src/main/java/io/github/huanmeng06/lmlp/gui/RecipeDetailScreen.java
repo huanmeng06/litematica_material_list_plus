@@ -3,6 +3,7 @@ package io.github.huanmeng06.lmlp.gui;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -22,6 +23,7 @@ import io.github.huanmeng06.lmlp.material.CountFormatter;
 import io.github.huanmeng06.lmlp.material.ItemStackTexts;
 import io.github.huanmeng06.lmlp.recipe.AlternativeItemDisplay;
 import io.github.huanmeng06.lmlp.recipe.IngredientSummary;
+import io.github.huanmeng06.lmlp.recipe.IngredientUnion;
 import io.github.huanmeng06.lmlp.recipe.RecipeResolvers;
 import io.github.huanmeng06.lmlp.recipe.RecipeSlotSummary;
 import io.github.huanmeng06.lmlp.recipe.RecipeSummary;
@@ -99,6 +101,7 @@ public class RecipeDetailScreen extends class_437 {
     private final List<TransferButtonEntry> transferButtons = new ArrayList<>();
     private final List<PreferredRecipeButtonArea> preferredRecipeButtons = new ArrayList<>();
     private final List<ToggleArea> toggleAreas = new ArrayList<>();
+    private final List<ChoiceGroupNameArea> choiceGroupNameAreas = new ArrayList<>();
     private final Map<String, List<RecipeSummary>> nestedRecipeCache = new HashMap<>();
     private final Map<String, RecipeListSnapshot> recipeListSnapshots = new HashMap<>();
     private final Set<String> expandedNestedRecipes = new HashSet<>();
@@ -249,6 +252,7 @@ public class RecipeDetailScreen extends class_437 {
         this.transferButtons.clear();
         this.preferredRecipeButtons.clear();
         this.toggleAreas.clear();
+        this.choiceGroupNameAreas.clear();
         this.recipeListSnapshots.clear();
         this.scrollBar.setMaxValue(Math.max(0, this.contentHeight() - viewportHeight));
         this.updateBackButtonPosition(layout);
@@ -286,6 +290,10 @@ public class RecipeDetailScreen extends class_437 {
         }
 
         if (this.renderNativeTooltip(context, mouseX, mouseY)) {
+            return;
+        }
+
+        if (this.renderChoiceGroupTooltip(context, mouseX, mouseY)) {
             return;
         }
 
@@ -414,6 +422,8 @@ public class RecipeDetailScreen extends class_437 {
                 AlternativeItemDisplay.icon(ingredient),
                 RecipeSummaryFormatter.ingredientName(ingredient),
                 ingredient.isChoiceGroup(),
+                ingredient.icons(),
+                ingredient.alternatives(),
                 RecipeSummaryFormatter.totalCount(ingredient),
                 RecipeSummaryFormatter.missingCount(ingredient),
                 ingredient.countMissing(),
@@ -451,7 +461,7 @@ public class RecipeDetailScreen extends class_437 {
         return lineY;
     }
 
-    private void renderMaterialLine(class_332 context, int left, int y, int depth, String path, boolean hasRecipes, class_1799 icon, String name, boolean choiceGroup, String totalText, String missingText, int missingCount, boolean showMissing, int mouseX, int mouseY) {
+    private void renderMaterialLine(class_332 context, int left, int y, int depth, String path, boolean hasRecipes, class_1799 icon, String name, boolean choiceGroup, List<class_1799> choiceIcons, List<String> choiceAlternatives, String totalText, String missingText, int missingCount, boolean showMissing, int mouseX, int mouseY) {
         int rowX = left + depth * INGREDIENT_TREE_INDENT_WIDTH;
         int iconX = rowX + INGREDIENT_ICON_OFFSET;
         int iconY = y - 5;
@@ -470,9 +480,14 @@ public class RecipeDetailScreen extends class_437 {
         String namePart = choiceGroup
                 ? GuiBase.TXT_YELLOW + GuiBase.TXT_BOLD + GuiBase.TXT_UNDERLINE + name + GuiBase.TXT_RST
                 : name;
-        String prefix = namePart + ": ";
-        context.method_51433(this.field_22793, prefix, textX, y, INGREDIENT_TEXT_COLOR, false);
-        textX += this.field_22793.method_1727(prefix);
+        context.method_51433(this.field_22793, namePart, textX, y, INGREDIENT_TEXT_COLOR, false);
+        int namePartWidth = this.field_22793.method_1727(namePart);
+        if (choiceGroup && !choiceIcons.isEmpty() && this.isVisibleInActiveClip(y - 2, INGREDIENT_ROW_HEIGHT)) {
+            this.choiceGroupNameAreas.add(new ChoiceGroupNameArea(icon, name, choiceIcons, choiceAlternatives, textX, y - 2, namePartWidth, INGREDIENT_ROW_HEIGHT));
+        }
+        textX += namePartWidth;
+        context.method_51433(this.field_22793, ": ", textX, y, INGREDIENT_TEXT_COLOR, false);
+        textX += this.field_22793.method_1727(": ");
         context.method_51433(this.field_22793, totalText, textX, y, INGREDIENT_TOTAL_COLOR, false);
         textX += this.field_22793.method_1727(totalText);
         if (showMissing) {
@@ -887,7 +902,7 @@ public class RecipeDetailScreen extends class_437 {
     }
 
     private boolean hasRecipes(IngredientSummary ingredient) {
-        if (Configs.shouldStopRecipeDecomposition(ItemStackTexts.id(ingredient.icon()))) {
+        if (Configs.shouldStopRecipeDecomposition(ItemStackTexts.id(ingredient.icon())) || isTerminalLogGroup(ingredient)) {
             return false;
         }
 
@@ -895,12 +910,150 @@ public class RecipeDetailScreen extends class_437 {
     }
 
     private List<RecipeSummary> recipesFor(IngredientSummary ingredient) {
-        if (Configs.shouldStopRecipeDecomposition(ItemStackTexts.id(ingredient.icon()))) {
+        if (Configs.shouldStopRecipeDecomposition(ItemStackTexts.id(ingredient.icon())) || isTerminalLogGroup(ingredient)) {
             return List.of();
         }
 
         String key = key(ingredient);
-        return this.nestedRecipeCache.computeIfAbsent(key, ignored -> RecipeResolvers.findRecipes(ingredient.icon(), ingredient.countTotal(), ingredient.countMissing()));
+        return this.nestedRecipeCache.computeIfAbsent(key, ignored -> resolveRecipes(ingredient));
+    }
+
+    private static List<RecipeSummary> resolveRecipes(IngredientSummary ingredient) {
+        if (ingredient.isChoiceGroup()) {
+            List<RecipeSummary> union = unionChoiceGroupRecipes(ingredient);
+            if (!union.isEmpty()) {
+                return union;
+            }
+        }
+
+        return RecipeResolvers.findRecipes(ingredient.icon(), ingredient.countTotal(), ingredient.countMissing());
+    }
+
+    // Decompose a choice-group ("任意X") ingredient by resolving EVERY
+    // alternative's own recipe (oak_planks -> oak_log, spruce_planks ->
+    // spruce_log, ...) and unioning each ingredient/slot across them, instead
+    // of resolving only the representative icon (which would show a single
+    // "橡木原木" row with no cycling). Mirrors MaterialTreeBuilder's
+    // buildChoiceGroupChildren, but returns a RecipeSummary so it fits this
+    // screen's own recipe-box rendering. Falls back to the representative-only
+    // recipe (via resolveRecipes's caller) when any alternative lacks a
+    // recipe, since a partial union can't be resolved safely.
+    private static List<RecipeSummary> unionChoiceGroupRecipes(IngredientSummary ingredient) {
+        List<class_1799> icons = ingredient.icons();
+        if (icons.size() < 2) {
+            return List.of();
+        }
+
+        List<RecipeSummary> perAlternative = new ArrayList<>(icons.size());
+        for (class_1799 icon : icons) {
+            List<RecipeSummary> summaries = RecipeResolvers.findRecipes(icon, ingredient.countTotal(), ingredient.countMissing());
+            if (summaries.isEmpty() || summaries.get(0).ingredients().isEmpty()) {
+                return List.of();
+            }
+            perAlternative.add(summaries.get(0));
+        }
+
+        RecipeSummary representative = perAlternative.get(0);
+        List<IngredientSummary> repIngredients = representative.ingredients();
+        List<IngredientSummary> unionIngredients = new ArrayList<>(repIngredients.size());
+        for (int index = 0; index < repIngredients.size(); index++) {
+            IngredientSummary repChild = repIngredients.get(index);
+            Map<String, class_1799> unionIcons = new LinkedHashMap<>();
+            List<String> unionNames = new ArrayList<>();
+            IngredientUnion.addIngredient(repChild, unionIcons, unionNames);
+            for (RecipeSummary alt : perAlternative) {
+                if (index < alt.ingredients().size()) {
+                    IngredientUnion.addIngredient(alt.ingredients().get(index), unionIcons, unionNames);
+                }
+            }
+
+            List<class_1799> mergedIcons = new ArrayList<>(unionIcons.values());
+            unionIngredients.add(new IngredientSummary(
+                    repChild.icon(),
+                    mergedIcons.isEmpty() ? List.of(repChild.icon()) : mergedIcons,
+                    unionNames,
+                    repChild.countPerCraft(),
+                    repChild.countTotal(),
+                    repChild.countMissing(),
+                    repChild.maxStackSize()));
+        }
+
+        return List.of(new RecipeSummary(
+                representative.category(),
+                representative.recipeId(),
+                representative.outputIcon(),
+                representative.outputCount(),
+                representative.craftsTotal(),
+                representative.craftsMissing(),
+                unionIngredients,
+                unionSlots(perAlternative, representative.inputSlots()),
+                representative.gridWidth(),
+                representative.gridHeight(),
+                representative.shapeless()));
+    }
+
+    private static List<RecipeSlotSummary> unionSlots(List<RecipeSummary> perAlternative, List<RecipeSlotSummary> repSlots) {
+        List<RecipeSlotSummary> merged = new ArrayList<>(repSlots.size());
+        for (int index = 0; index < repSlots.size(); index++) {
+            RecipeSlotSummary repSlot = repSlots.get(index);
+            if (repSlot.isEmpty()) {
+                merged.add(repSlot);
+                continue;
+            }
+
+            Map<String, class_1799> unionIcons = new LinkedHashMap<>();
+            List<String> unionNames = new ArrayList<>();
+            IngredientUnion.addSlot(repSlot, unionIcons, unionNames);
+            for (RecipeSummary alt : perAlternative) {
+                if (index < alt.inputSlots().size()) {
+                    IngredientUnion.addSlot(alt.inputSlots().get(index), unionIcons, unionNames);
+                }
+            }
+
+            List<class_1799> mergedIcons = new ArrayList<>(unionIcons.values());
+            merged.add(new RecipeSlotSummary(
+                    repSlot.icon(),
+                    mergedIcons.isEmpty() ? List.of(repSlot.icon()) : mergedIcons,
+                    unionNames,
+                    repSlot.count()));
+        }
+
+        return merged;
+    }
+
+    // Logs (任意原木) are the terminal raw-gatherable resource — they never
+    // decompose further. Without this guard, a stripping-axe "recipe" (log ->
+    // stripped_log) some candidates carry gets mistaken for a real
+    // decomposition step, producing a bogus nested "配方" box under 任意原木
+    // itself (same root cause as the v1.6.76 minimal-list fix).
+    private static boolean isTerminalLogGroup(IngredientSummary ingredient) {
+        List<class_1799> icons = ingredient.icons().isEmpty() ? List.of(ingredient.icon()) : ingredient.icons();
+        if (icons.isEmpty()) {
+            return false;
+        }
+
+        for (class_1799 icon : icons) {
+            if (icon.method_7960() || !isLogLike(icon)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static boolean isLogLike(class_1799 icon) {
+        String path = itemPath(ItemStackTexts.id(icon));
+        return path.endsWith("_log")
+                || path.endsWith("_wood")
+                || path.endsWith("_stem")
+                || path.endsWith("_hyphae")
+                || path.equals("bamboo_block")
+                || path.equals("stripped_bamboo_block");
+    }
+
+    private static String itemPath(String id) {
+        int separator = id.indexOf(':');
+        return separator >= 0 ? id.substring(separator + 1) : id;
     }
 
     private void toggleNestedRecipes(String path) {
@@ -1010,6 +1163,44 @@ public class RecipeDetailScreen extends class_437 {
     private boolean renderNativeTooltip(class_332 context, int mouseX, int mouseY) {
         NativeDisplayArea area = this.nativeDisplayAreaAt(mouseX, mouseY);
         return this.dispatchNativeDisplay(area, "tooltip", summary -> this.nativeDisplayBridge.renderTooltip(summary, context, this.field_22793, mouseX, mouseY));
+    }
+
+    // Hovering a choice-group ("任意X") name shows the concrete items it
+    // stands for, distinct from hovering its item icon (which shows the
+    // vanilla single-item tooltip via hoveredStack instead).
+    private boolean renderChoiceGroupTooltip(class_332 context, int mouseX, int mouseY) {
+        ChoiceGroupNameArea area = this.choiceGroupNameAreaAt(mouseX, mouseY);
+        if (area == null) {
+            return false;
+        }
+
+        List<class_2561> lines = new ArrayList<>();
+        lines.add(class_2561.method_43470(area.name()));
+        List<class_1799> icons = area.icons();
+        List<String> alternatives = area.alternatives();
+        boolean namesParallel = alternatives.size() == icons.size();
+        for (int index = 0; index < icons.size(); index++) {
+            class_1799 icon = icons.get(index);
+            if (icon.method_7960()) {
+                continue;
+            }
+            String candidateName = namesParallel ? alternatives.get(index) : ItemStackTexts.name(icon);
+            lines.add(class_2561.method_43470("- " + candidateName));
+        }
+
+        context.method_51434(this.field_22793, lines, mouseX, mouseY);
+        return true;
+    }
+
+    private ChoiceGroupNameArea choiceGroupNameAreaAt(double mouseX, double mouseY) {
+        for (int i = this.choiceGroupNameAreas.size() - 1; i >= 0; i--) {
+            ChoiceGroupNameArea area = this.choiceGroupNameAreas.get(i);
+            if (area.contains(mouseX, mouseY)) {
+                return area;
+            }
+        }
+
+        return null;
     }
 
     private boolean canUseNativeLayout(RecipeSummary summary, int depth) {
@@ -1159,6 +1350,12 @@ public class RecipeDetailScreen extends class_437 {
     }
 
     private record ToggleArea(String path, int x, int y, int width, int height) {
+        private boolean contains(double mouseX, double mouseY) {
+            return mouseX >= this.x && mouseX < this.x + this.width && mouseY >= this.y && mouseY < this.y + this.height;
+        }
+    }
+
+    private record ChoiceGroupNameArea(class_1799 icon, String name, List<class_1799> icons, List<String> alternatives, int x, int y, int width, int height) {
         private boolean contains(double mouseX, double mouseY) {
             return mouseX >= this.x && mouseX < this.x + this.width && mouseY >= this.y && mouseY < this.y + this.height;
         }

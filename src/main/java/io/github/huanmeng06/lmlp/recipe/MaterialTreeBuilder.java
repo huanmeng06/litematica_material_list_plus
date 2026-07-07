@@ -105,10 +105,10 @@ public final class MaterialTreeBuilder {
 
             Map<String, class_1799> unionIcons = new LinkedHashMap<>();
             List<String> unionNames = new ArrayList<>();
-            addChildToUnion(repChild, unionIcons, unionNames);
+            IngredientUnion.addIngredient(repChild, unionIcons, unionNames);
             for (List<IngredientSummary> altIngredients : perAlternative) {
                 if (index < altIngredients.size()) {
-                    addChildToUnion(altIngredients.get(index), unionIcons, unionNames);
+                    IngredientUnion.addIngredient(altIngredients.get(index), unionIcons, unionNames);
                 }
             }
 
@@ -149,31 +149,6 @@ public final class MaterialTreeBuilder {
         }
 
         return children;
-    }
-
-    private static void addChildToUnion(IngredientSummary child, Map<String, class_1799> icons, List<String> names) {
-        List<class_1799> childIcons = child.icons().isEmpty() ? List.of(child.icon()) : child.icons();
-        for (class_1799 stack : childIcons) {
-            if (stack.method_7960()) {
-                continue;
-            }
-            icons.putIfAbsent(ItemStackTexts.id(stack), stack.method_7972());
-        }
-
-        List<String> childNames = child.alternatives();
-        if (childNames.isEmpty()) {
-            String name = ItemStackTexts.name(child.icon());
-            if (!name.isEmpty() && !names.contains(name)) {
-                names.add(name);
-            }
-            return;
-        }
-
-        for (String name : childNames) {
-            if (!names.contains(name)) {
-                names.add(name);
-            }
-        }
     }
 
     public static MaterialTreeNode build(class_1799 stack, String name, int totalCount, int missingCount) {
