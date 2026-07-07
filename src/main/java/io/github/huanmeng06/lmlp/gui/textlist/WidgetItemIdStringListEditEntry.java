@@ -10,6 +10,7 @@ import fi.dy.masa.malilib.gui.button.ButtonGeneric;
 import fi.dy.masa.malilib.gui.widgets.WidgetConfigOptionBase;
 import fi.dy.masa.malilib.render.RenderUtils;
 import fi.dy.masa.malilib.util.StringUtils;
+import io.github.huanmeng06.lmlp.material.ItemStackTexts;
 import net.minecraft.class_1799;
 import net.minecraft.class_332;
 
@@ -210,7 +211,7 @@ public class WidgetItemIdStringListEditEntry extends WidgetConfigOptionBase<Stri
         // drag hint) doesn't render behind the ghost label.
         boolean dragging = this.listWidget.isDragging();
         if (!dragging && !stack.method_7960() && overIconSlot) {
-            this.editor.setHoveredText(display.id());
+            this.editor.setHoveredText(ItemStackTexts.name(stack));
         }
         if (!stack.method_7960()) {
             context.method_51427(stack, this.iconX + (ICON_SLOT_SIZE - ITEM_ICON_SIZE) / 2, this.iconY + (ICON_SLOT_SIZE - ITEM_ICON_SIZE) / 2);
