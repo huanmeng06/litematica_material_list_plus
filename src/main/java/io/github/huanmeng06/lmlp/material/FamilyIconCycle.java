@@ -57,9 +57,12 @@ public final class FamilyIconCycle {
 
     /**
      * Per-icon step used when a list has no wood families to group by (e.g.
-     * 沙子/红沙): cycle the whole list one icon per this interval.
+     * 沙子/红沙): cycle the whole list one icon per this interval. Kept equal to
+     * {@link #FAMILY_WINDOW_MILLIS} so every choice-group row — wood-family or
+     * not — visibly changes at the same cadence (a non-wood group flickering
+     * faster/slower than a wood-family group next to it reads as a bug).
      */
-    public static final long FALLBACK_STEP_MILLIS = 900L;
+    public static final long FALLBACK_STEP_MILLIS = FAMILY_WINDOW_MILLIS;
 
     private FamilyIconCycle() {
     }
