@@ -450,7 +450,7 @@ public final class MinimalSubMaterialListView {
             return;
         }
 
-        if (depth >= MAX_RECIPE_DEPTH || seenItems.contains(itemId) || Configs.shouldStopRecipeDecomposition(itemId)) {
+        if (depth >= MAX_RECIPE_DEPTH || seenItems.contains(itemId) || Configs.shouldStopRecipeDecomposition(itemId) || keepAsLeaf(itemId)) {
             addLeaf(icon, icons, names, name, source, scaledCount(count, scale), prepared, materials);
             return;
         }
@@ -1059,7 +1059,13 @@ public final class MinimalSubMaterialListView {
         }
 
         private boolean hasRequirementSection() {
-            return this.candidates.size() > 1 && isAnyGroupName(this.stableName());
+            if (this.candidates.size() > 1) {
+                return isAnyGroupName(this.stableName());
+            }
+            // Single-item wood intermediates kept as a leaf (e.g. 木棍) also carry
+            // a "所需 任意木板 ▶ 任意原木" hint, resolved from their own recipe.
+            return this.candidates.size() == 1
+                    && keepAsLeaf(ItemStackTexts.id(this.candidates.get(0).icon()));
         }
 
         private String widestName() {
@@ -1236,6 +1242,16 @@ public final class MinimalSubMaterialListView {
 
     private static boolean isPlanksLike(String path) {
         return path.endsWith("_planks");
+    }
+
+    // Wood intermediates that are kept as their own counted leaf row (like the
+    // 任意台阶 choice group) instead of being decomposed away into planks/logs.
+    // The item stays recipe-resolvable (it's NOT added to recipeStopItems), so
+    // the row still shows the "所需 任意木板 ▶ 任意原木" decomposition hint.
+    // Sticks are a single item, so without this they would silently decompose
+    // and never appear as a row.
+    private static boolean keepAsLeaf(String itemId) {
+        return itemId.equals("minecraft:stick");
     }
 
     private static boolean hasMultipleWoodFamilies(List<class_1799> icons) {
