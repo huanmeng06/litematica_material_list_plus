@@ -54,6 +54,21 @@ public class Configs implements IConfigHandler {
             "black"
     );
     private static final List<String> COLOR_PATTERN_SUFFIXES = List.of("dye", "wool", "carpet", "terracotta");
+    // Wood families for the {wood} wildcard (mirrors MinimalSubMaterialListView.WOOD_FAMILIES).
+    private static final List<String> WOOD_NAMES = List.of(
+            "oak",
+            "spruce",
+            "birch",
+            "jungle",
+            "acacia",
+            "dark_oak",
+            "mangrove",
+            "cherry",
+            "bamboo",
+            "crimson",
+            "warped",
+            "pale_oak"
+    );
     private static final ImmutableList<String> DEFAULT_RECIPE_STOP_ITEMS = ImmutableList.of(
             "minecraft:iron_ingot",
             "minecraft:gold_ingot",
@@ -69,6 +84,13 @@ public class Configs implements IConfigHandler {
             "minecraft:{color}_wool",
             "minecraft:{color}_carpet",
             "minecraft:{color}_terracotta"
+    );
+    // Materials kept as their own counted row (with a 所需 decomposition hint)
+    // instead of being decomposed into raw materials. Removing an entry lets that
+    // material keep decomposing toward logs.
+    private static final ImmutableList<String> DEFAULT_KEEP_AS_LEAF_ITEMS = ImmutableList.of(
+            "minecraft:stick",
+            "minecraft:{wood}_slab"
     );
 
     public static final class Generic {
@@ -119,6 +141,12 @@ public class Configs implements IConfigHandler {
                 "Items in this list are treated as base materials. Use {color} to match all 16 Minecraft colors, for example minecraft:{color}_wool."
         );
 
+        public static final ConfigStringList KEEP_AS_LEAF_ITEMS = new ConfigStringList(
+                "keepAsLeafItems",
+                DEFAULT_KEEP_AS_LEAF_ITEMS,
+                "Materials in this list are kept as their own counted row (with a 所需 decomposition hint) instead of being decomposed into raw materials. Removing an entry lets that material keep decomposing toward logs. Use {color}/{wood} wildcards, for example minecraft:{wood}_slab."
+        );
+
         public static final ConfigBoolean REPLACE_WATER_BUCKET_WITH_ICE = new ConfigBoolean(
                 "replaceWaterBucketWithIce",
                 false,
@@ -141,7 +169,8 @@ public class Configs implements IConfigHandler {
 
     public static final class ConfigForms {
         public static final List<IConfigBase> OPTIONS = ImmutableList.of(
-                Generic.RECIPE_STOP_ITEMS
+                Generic.RECIPE_STOP_ITEMS,
+                Generic.KEEP_AS_LEAF_ITEMS
         );
 
         private ConfigForms() {
@@ -150,6 +179,7 @@ public class Configs implements IConfigHandler {
 
     static {
         Generic.RECIPE_STOP_ITEMS.setValueChangeCallback(config -> MaterialListPlusState.clearRecipeCaches());
+        Generic.KEEP_AS_LEAF_ITEMS.setValueChangeCallback(config -> MaterialListPlusState.clearRecipeCaches());
         Generic.REPLACE_WATER_BUCKET_WITH_ICE.setValueChangeCallback(config -> MaterialListPlusState.clearRecipeCaches());
         Generic.COUNT_DISPLAY_STYLE.setValueChangeCallback(config -> CountFormatter.clearCache());
     }
@@ -173,6 +203,7 @@ public class Configs implements IConfigHandler {
                 migrateDisableLitematicaHoverTooltipConfig(root);
                 migrateDefaultRecipeStopItems();
                 migrateRecipeStopColorPatterns();
+                migrateDefaultKeepAsLeafItems();
             }
         }
     }
@@ -192,7 +223,7 @@ public class Configs implements IConfigHandler {
     public static boolean shouldStopRecipeDecomposition(String itemId) {
         String normalizedItemId = normalizeItemId(itemId);
         for (String configuredId : Generic.RECIPE_STOP_ITEMS.getStrings()) {
-            if (matchesRecipeStopItem(configuredId, normalizedItemId)) {
+            if (matchesPattern(configuredId, normalizedItemId)) {
                 return true;
             }
         }
@@ -200,19 +231,46 @@ public class Configs implements IConfigHandler {
         return false;
     }
 
-    private static boolean matchesRecipeStopItem(String configuredId, String normalizedItemId) {
-        String normalizedConfiguredId = normalizeItemId(configuredId);
-        if (!normalizedConfiguredId.contains("{color}")) {
-            return normalizedConfiguredId.equals(normalizedItemId);
-        }
-
-        for (String color : COLOR_NAMES) {
-            if (normalizedConfiguredId.replace("{color}", color).equals(normalizedItemId)) {
+    public static boolean shouldKeepAsLeaf(String itemId) {
+        String normalizedItemId = normalizeItemId(itemId);
+        for (String configuredId : Generic.KEEP_AS_LEAF_ITEMS.getStrings()) {
+            if (matchesPattern(configuredId, normalizedItemId)) {
                 return true;
             }
         }
 
         return false;
+    }
+
+    // Match a configured id (possibly containing {color}/{wood} wildcards) against
+    // a concrete item id. With no wildcard it's an exact match; wildcards expand
+    // over their name lists (cartesian if both are present).
+    private static boolean matchesPattern(String configuredId, String normalizedItemId) {
+        String pattern = normalizeItemId(configuredId);
+        boolean hasColor = pattern.contains("{color}");
+        boolean hasWood = pattern.contains("{wood}");
+        if (!hasColor && !hasWood) {
+            return pattern.equals(normalizedItemId);
+        }
+
+        List<String> candidates = List.of(pattern);
+        if (hasColor) {
+            candidates = expandWildcard(candidates, "{color}", COLOR_NAMES);
+        }
+        if (hasWood) {
+            candidates = expandWildcard(candidates, "{wood}", WOOD_NAMES);
+        }
+        return candidates.contains(normalizedItemId);
+    }
+
+    private static List<String> expandWildcard(List<String> patterns, String token, List<String> values) {
+        List<String> expanded = new ArrayList<>(patterns.size() * values.size());
+        for (String pattern : patterns) {
+            for (String value : values) {
+                expanded.add(pattern.replace(token, value));
+            }
+        }
+        return expanded;
     }
 
     public static String preferredRecipeId(String itemId) {
@@ -287,6 +345,28 @@ public class Configs implements IConfigHandler {
 
         if (modified) {
             Generic.RECIPE_STOP_ITEMS.setStrings(values);
+        }
+    }
+
+    private static void migrateDefaultKeepAsLeafItems() {
+        List<String> values = new ArrayList<>(Generic.KEEP_AS_LEAF_ITEMS.getStrings());
+        Set<String> normalizedValues = new HashSet<>();
+        for (String value : values) {
+            normalizedValues.add(normalizeItemId(value));
+        }
+
+        boolean modified = false;
+        for (String defaultItem : DEFAULT_KEEP_AS_LEAF_ITEMS) {
+            String normalizedDefault = normalizeItemId(defaultItem);
+            if (!normalizedValues.contains(normalizedDefault)) {
+                values.add(defaultItem);
+                normalizedValues.add(normalizedDefault);
+                modified = true;
+            }
+        }
+
+        if (modified) {
+            Generic.KEEP_AS_LEAF_ITEMS.setStrings(values);
         }
     }
 

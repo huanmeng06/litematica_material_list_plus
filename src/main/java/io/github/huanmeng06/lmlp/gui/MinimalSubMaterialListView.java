@@ -468,12 +468,32 @@ public final class MinimalSubMaterialListView {
             List<String> ingredientNames = candidateNames(ingredientIcons, ingredient.alternatives());
             if (ingredient.isChoiceGroup()) {
                 CandidateSet refinedChoice = refineWoodCandidatesForSource(source, ingredientIcons, ingredientNames);
+                String groupName = refinedChoice.names().isEmpty()
+                        ? RecipeSummaryFormatter.ingredientName(ingredient)
+                        : refinedChoice.names().get(0);
+
+                // (1) Kept by config (任意台阶 by default): show as its own row
+                // plus the "所需" decomposition hint.
+                if (keepGroupAsLeaf(refinedChoice.icons())) {
+                    addLeaf(
+                            refinedChoice.icons().get(0),
+                            refinedChoice.icons(),
+                            refinedChoice.names(),
+                            RecipeSummaryFormatter.ingredientName(ingredient),
+                            source,
+                            scaledCount(ingredient.countTotal(), scale),
+                            prepared,
+                            materials);
+                    continue;
+                }
+
+                // (2) Refined to a single planks item: existing single-item recursion.
                 if (shouldDecomposeRefinedChoice(refinedChoice)) {
                     collectLeaves(
                             refinedChoice.icons().get(0),
                             refinedChoice.icons(),
                             refinedChoice.names(),
-                            refinedChoice.names().isEmpty() ? RecipeSummaryFormatter.ingredientName(ingredient) : refinedChoice.names().get(0),
+                            groupName,
                             source,
                             ingredient.countTotal(),
                             scale,
@@ -484,6 +504,25 @@ public final class MinimalSubMaterialListView {
                     continue;
                 }
 
+                // (3) Multi-variant and every candidate is craftable: union-decompose
+                // (任意台阶 -> 任意木板 -> 任意原木) rather than collapsing to the
+                // representative wood family.
+                if (refinedChoice.icons().size() > 1 && isChoiceGroupDecomposable(refinedChoice.icons())) {
+                    collectChoiceGroupLeaves(
+                            refinedChoice.icons(),
+                            refinedChoice.names(),
+                            groupName,
+                            ingredient.countTotal(),
+                            source,
+                            scale,
+                            prepared,
+                            depth + 1,
+                            childSeenItems,
+                            materials);
+                    continue;
+                }
+
+                // (4) Not union-decomposable (coal/charcoal, sand/red_sand, ...): keep.
                 addLeaf(
                         ingredient.icon(),
                         ingredientIcons,
@@ -509,6 +548,122 @@ public final class MinimalSubMaterialListView {
                     childSeenItems,
                     materials);
         }
+    }
+
+    // Decompose a multi-variant choice group into leaves by unioning each
+    // candidate's recipe slot-by-slot (任意台阶 -> 任意木板 -> 任意原木), mirroring
+    // MaterialTreeBuilder.buildChoiceGroupChildren but aggregating into the leaf
+    // accumulator instead of building nodes. All candidates in a wood group share
+    // the same recipe yield ratio, so the representative's per-slot counts are
+    // authoritative (same assumption as the tree engine).
+    private static void collectChoiceGroupLeaves(List<class_1799> icons, List<String> names, String name, int count, SourceOrigin source, int scale, boolean prepared, int depth, Set<String> seenItems, Map<String, Accumulator> materials) {
+        if (count <= 0 || scale <= 0 || icons.isEmpty()) {
+            return;
+        }
+
+        class_1799 representative = icons.get(0);
+        String representativeId = ItemStackTexts.id(representative);
+        if (depth >= MAX_RECIPE_DEPTH || seenItems.contains(representativeId)
+                || Configs.shouldStopRecipeDecomposition(representativeId) || keepGroupAsLeaf(icons)) {
+            addLeaf(representative, icons, names, name, source, scaledCount(count, scale), prepared, materials);
+            return;
+        }
+
+        List<RecipeSummary> representativeSummaries = RecipeResolvers.findRecipes(representative, count, count);
+        if (representativeSummaries.isEmpty() || representativeSummaries.get(0).ingredients().isEmpty()
+                || !isChoiceGroupDecomposable(icons)) {
+            addLeaf(representative, icons, names, name, source, scaledCount(count, scale), prepared, materials);
+            return;
+        }
+
+        Set<String> childSeenItems = new HashSet<>(seenItems);
+        childSeenItems.add(representativeId);
+
+        List<List<IngredientSummary>> perCandidate = new ArrayList<>();
+        for (class_1799 candidate : icons) {
+            List<RecipeSummary> summaries = RecipeResolvers.findRecipes(candidate, count, count);
+            perCandidate.add(summaries.isEmpty() ? List.of() : summaries.get(0).ingredients());
+        }
+
+        List<IngredientSummary> representativeIngredients = representativeSummaries.get(0).ingredients();
+        for (int index = 0; index < representativeIngredients.size(); index++) {
+            IngredientSummary representativeChild = representativeIngredients.get(index);
+            if (representativeChild.countTotal() <= 0 && representativeChild.countMissing() <= 0) {
+                continue;
+            }
+
+            Map<String, class_1799> unionIcons = new LinkedHashMap<>();
+            List<String> unionNames = new ArrayList<>();
+            addSlotToUnion(representativeChild, unionIcons, unionNames);
+            for (List<IngredientSummary> candidateIngredients : perCandidate) {
+                if (index < candidateIngredients.size()) {
+                    addSlotToUnion(candidateIngredients.get(index), unionIcons, unionNames);
+                }
+            }
+
+            List<class_1799> childIcons = new ArrayList<>(unionIcons.values());
+            if (childIcons.isEmpty()) {
+                childIcons = List.of(representativeChild.icon().method_7972());
+            }
+            List<String> childNames = candidateNames(childIcons, unionNames);
+            String childFallback = childNames.isEmpty()
+                    ? RecipeSummaryFormatter.ingredientName(representativeChild)
+                    : childNames.get(0);
+            boolean childIsGroup = childIcons.size() > 1 || unionNames.size() > 1;
+            String childName = childIsGroup ? groupDisplayName(childIcons, childFallback) : childFallback;
+
+            if (childIsGroup) {
+                collectChoiceGroupLeaves(childIcons, childNames, childName, representativeChild.countTotal(), source, scale, prepared, depth + 1, childSeenItems, materials);
+            } else {
+                collectLeaves(childIcons.get(0), childIcons, childNames, childName, source, representativeChild.countTotal(), scale, prepared, depth + 1, childSeenItems, materials);
+            }
+        }
+    }
+
+    private static void addSlotToUnion(IngredientSummary child, Map<String, class_1799> icons, List<String> names) {
+        List<class_1799> childIcons = child.icons().isEmpty() ? List.of(child.icon()) : child.icons();
+        for (class_1799 stack : childIcons) {
+            if (!stack.method_7960()) {
+                icons.putIfAbsent(ItemStackTexts.id(stack), stack.method_7972());
+            }
+        }
+
+        List<String> childNames = child.alternatives();
+        if (childNames.isEmpty()) {
+            String childName = ItemStackTexts.name(child.icon());
+            if (!childName.isEmpty() && !names.contains(childName)) {
+                names.add(childName);
+            }
+            return;
+        }
+
+        for (String childName : childNames) {
+            if (!names.contains(childName)) {
+                names.add(childName);
+            }
+        }
+    }
+
+    private static boolean keepGroupAsLeaf(List<class_1799> icons) {
+        if (icons.isEmpty()) {
+            return false;
+        }
+        for (class_1799 icon : icons) {
+            if (icon.method_7960() || !Configs.shouldKeepAsLeaf(ItemStackTexts.id(icon))) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static boolean isChoiceGroupDecomposable(List<class_1799> icons) {
+        for (class_1799 icon : icons) {
+            List<RecipeSummary> summaries = RecipeResolvers.findRecipes(icon, 1, 1);
+            if (summaries.isEmpty() || summaries.get(0).ingredients().isEmpty()) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private static void collectPreparedLeaves(class_1799 stack, List<class_1799> icons, List<String> names, String name, SourceOrigin source, int baseCount, int preparedCount, Map<String, Accumulator> materials) {
@@ -1244,14 +1399,12 @@ public final class MinimalSubMaterialListView {
         return path.endsWith("_planks");
     }
 
-    // Wood intermediates that are kept as their own counted leaf row (like the
-    // 任意台阶 choice group) instead of being decomposed away into planks/logs.
-    // The item stays recipe-resolvable (it's NOT added to recipeStopItems), so
-    // the row still shows the "所需 任意木板 ▶ 任意原木" decomposition hint.
-    // Sticks are a single item, so without this they would silently decompose
-    // and never appear as a row.
+    // Single items kept as their own counted leaf row (with the "所需 …"
+    // decomposition hint) instead of being decomposed away. Driven by the
+    // user-editable keepAsLeafItems list; the item stays recipe-resolvable (it's
+    // NOT in recipeStopItems), so the hint still shows.
     private static boolean keepAsLeaf(String itemId) {
-        return itemId.equals("minecraft:stick");
+        return Configs.shouldKeepAsLeaf(itemId);
     }
 
     private static boolean hasMultipleWoodFamilies(List<class_1799> icons) {

@@ -2,13 +2,24 @@
 
 这个 README 只记录 `dev-newFeature` 分支的开发过程和每个小版本做了什么。完整的项目介绍、安装说明、功能说明和截图展示放在 `main` 分支维护。
 
-当前正式版：`v1.6.73`
+当前正式版：`v1.6.74`
 
-当前构建：`1.6.73+mc1.20.6`
+当前构建：`1.6.74+mc1.20.6`
 
 适配目标：Minecraft `1.20.6` / Fabric / Litematica / MaLiLib / REI
 
 ## 版本说明
+
+### v1.6.74
+
+- **新增可配置的「保留为独立行列表」`keepAsLeafItems`，统一管理台阶/木棍这类"保留成行"的材料**：此前"哪些材料在最小子材料视图里保留成独立一行"分散在多套机制——`recipeStopItems`（当基础材料、无提示）、`shouldDecomposeRefinedChoice`（多变体选择组如任意台阶自动保留）、以及 v1.6.73 硬编码的 `keepAsLeaf("minecraft:stick")`。现在把后两者统一成一个用户可编辑列表 `keepAsLeafItems`（和 `recipeStopItems` 平级，复用同一套物品 id 列表编辑 UI），默认 `[minecraft:stick, minecraft:{wood}_slab]`，即默认把木棍和所有木台阶保留成行（带「所需 任意木板 ▶ 任意原木」提示），行为与之前一致。
+  - **可删可加**：从列表移除某项后，该材料会继续往下拆解。例如删掉 `minecraft:{wood}_slab`，台阶就会拆解为 任意木板 → 任意原木；想让别的中间产物（如碗）保留成行，加进去即可。
+  - **新 `{wood}` 通配符**：类比已有的 `{color}`，`minecraft:{wood}_slab` 展开为所有木料的台阶。该通配符现在在 `recipeStopItems` 里也可用（无默认使用，行为不变）。
+  - **扁平叶子引擎补齐选择组并集拆解**：`collectLeaves` 之前没有选择组并集拆解，若强行拆一个多变体选择组只会用代表项（塌成橡木）。本版移植了树引擎 `MaterialTreeBuilder` 的并集算法（新 `collectChoiceGroupLeaves`/`addSlotToUnion`），使被移出保留列表的台阶能正确拆成跨木料的 任意木板 → 任意原木，而非塌成单一木料。
+  - **兜底保留不变**：煤/木炭、沙子/红沙这类"有候选无合成配方"的选择组仍保留成行（并集拆解要求每个候选都可合成）。
+  - 注意：`{wood}_slab` 覆盖 `bamboo_slab`、`crimson/warped_slab`，但不含 `bamboo_mosaic_slab`（如需另加）。
+- 同步 `fabric.mod.json` 和运行时 `MOD_VERSION` 到 `1.6.74+mc1.20.6`。
+- 构建产物改为 `1.6.74+mc1.20.6`。
 
 ### v1.6.73
 
