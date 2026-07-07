@@ -28,7 +28,6 @@ public class WidgetItemIdStringListEditEntry extends WidgetConfigOptionBase<Stri
     private static final int ACTION_BUTTON_WIDTH = 60;
     private static final int TEXT_COLOR_ENABLED = 0xFFE0E0E0;
     private static final int TEXT_COLOR_DISABLED = 0xFF808080;
-    private static final int DISABLED_ICON_OVERLAY = 0xB0606060;
     private static final int ICON_BUTTON_WIDTH = 18;
     private static final int CONTROL_HEIGHT = 20;
     private static final int ACTION_GAP = 4;
@@ -248,15 +247,12 @@ public class WidgetItemIdStringListEditEntry extends WidgetConfigOptionBase<Stri
             this.editor.setHoveredText(ItemStackTexts.name(stack));
         }
         if (!stack.method_7960()) {
-            context.method_51427(stack, this.iconX + (ICON_SLOT_SIZE - ITEM_ICON_SIZE) / 2, this.iconY + (ICON_SLOT_SIZE - ITEM_ICON_SIZE) / 2);
-            if (!this.enabled) {
-                // Item rendering resets its own shader color, so a plain tint can't desaturate it;
-                // a translucent gray overlay on top is the practical way to show it as "disabled".
-                RenderUtils.drawRect(
-                        this.iconX + (ICON_SLOT_SIZE - ITEM_ICON_SIZE) / 2,
-                        this.iconY + (ICON_SLOT_SIZE - ITEM_ICON_SIZE) / 2,
-                        ITEM_ICON_SIZE, ITEM_ICON_SIZE, DISABLED_ICON_OVERLAY
-                );
+            int drawX = this.iconX + (ICON_SLOT_SIZE - ITEM_ICON_SIZE) / 2;
+            int drawY = this.iconY + (ICON_SLOT_SIZE - ITEM_ICON_SIZE) / 2;
+            if (this.enabled) {
+                context.method_51427(stack, drawX, drawY);
+            } else {
+                GrayscaleItemIcon.render(context, stack, display.id(), drawX, drawY, ITEM_ICON_SIZE);
             }
         }
         if (!dragging && handleHovered && !overIconSlot) {
