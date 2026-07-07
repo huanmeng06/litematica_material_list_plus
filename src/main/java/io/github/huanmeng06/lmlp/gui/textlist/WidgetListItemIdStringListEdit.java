@@ -128,6 +128,15 @@ public class WidgetListItemIdStringListEdit extends WidgetListConfigOptionsBase<
             }
         }
 
+        // Row text fields/labels apparently flush through a render layer that
+        // ends up composited above plain immediate-mode rects drawn earlier in
+        // the same frame (the exact issue fixed for the recipe-detail choice
+        // tooltip in v1.6.81) -- without a Z push here, the dragged-row ghost
+        // label rendered underneath whatever row it happened to hover over.
+        // +400 matches vanilla's own tooltip offset, which reliably wins.
+        context.method_51448().method_22903();
+        context.method_51448().method_46416(0.0F, 0.0F, 400.0F);
+
         if (lineY != null) {
             RenderUtils.drawRect(this.posX + 2, lineY, this.browserEntryWidth - 4, DRAG_LINE_HEIGHT, 0xFFFFCC00);
         }
@@ -137,6 +146,8 @@ public class WidgetListItemIdStringListEdit extends WidgetListConfigOptionsBase<
         int textWidth = this.getStringWidth(shown);
         RenderUtils.drawRect(mouseX + 10, mouseY - DRAG_LABEL_HEIGHT / 2, textWidth + DRAG_LABEL_PADDING * 2, DRAG_LABEL_HEIGHT, 0xCC101010);
         this.drawStringWithShadow(context, shown, mouseX + 10 + DRAG_LABEL_PADDING, mouseY - DRAG_LABEL_HEIGHT / 2 + 4, 0xFFFFCC66);
+
+        context.method_51448().method_22909();
     }
 
     List<String> getEntries() {
