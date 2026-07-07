@@ -4,6 +4,7 @@ import fi.dy.masa.malilib.config.IConfigStringList;
 import fi.dy.masa.malilib.gui.widgets.WidgetListConfigOptionsBase;
 import fi.dy.masa.malilib.render.RenderUtils;
 import fi.dy.masa.malilib.util.StringUtils;
+import io.github.huanmeng06.lmlp.material.ItemStackTexts;
 import net.minecraft.class_124;
 import net.minecraft.class_2561;
 import net.minecraft.class_310;
@@ -146,8 +147,14 @@ public class WidgetListItemIdStringListEdit extends WidgetListConfigOptionsBase<
         // item icons (every inventory item tooltip does), so route the label
         // through method_51434 and let MC own the layering/shadow/position.
         String label = entries.get(this.dragIndex);
-        String shown = label.isEmpty() ? StringUtils.translate("lmlp.gui.label.text_list.empty_entry") : label;
-        class_2561 text = class_2561.method_43470(shown).method_27692(class_124.field_1065);
+        // Prefer the item's localized display name over the raw configured id
+        // (e.g. "移动：铁锭" instead of "移动：minecraft:iron_ingot"); fall back
+        // to the raw text when the id doesn't resolve to a real item.
+        ItemIdListIconResolver.Display display = ItemIdListIconResolver.currentIcon(label);
+        String name = display.stack().method_7960() ? label : ItemStackTexts.name(display.stack());
+        String shown = name.isEmpty() ? StringUtils.translate("lmlp.gui.label.text_list.empty_entry") : name;
+        String prefixed = StringUtils.translate("lmlp.gui.label.text_list.dragging", shown);
+        class_2561 text = class_2561.method_43470(prefixed).method_27692(class_124.field_1065);
         context.method_51434(class_310.method_1551().field_1772, List.of(text), mouseX, mouseY);
     }
 

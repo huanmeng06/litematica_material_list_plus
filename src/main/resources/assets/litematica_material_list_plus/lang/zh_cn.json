@@ -162,6 +162,7 @@
   "lmlp.gui.button.hovertext.add_below": "在下方添加新条目",
   "lmlp.gui.button.hovertext.drag_reorder": "拖动以调整顺序",
   "lmlp.gui.label.text_list.empty_entry": "（空）",
+  "lmlp.gui.label.text_list.dragging": "移动：%s",
   "lmlp.gui.item_id_picker.title": "REI 物品选择",
   "lmlp.gui.item_id_picker.search": "搜索",
   "lmlp.gui.item_id_picker.search_placeholder": "物品 ID 或名称",
