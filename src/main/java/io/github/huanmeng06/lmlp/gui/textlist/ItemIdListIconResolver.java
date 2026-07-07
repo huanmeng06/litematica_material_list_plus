@@ -33,6 +33,21 @@ final class ItemIdListIconResolver {
             "red",
             "black"
     );
+    // Mirrors Configs.WOOD_NAMES / MinimalSubMaterialListView.WOOD_FAMILIES.
+    private static final List<String> WOOD_NAMES = List.of(
+            "oak",
+            "spruce",
+            "birch",
+            "jungle",
+            "acacia",
+            "dark_oak",
+            "mangrove",
+            "cherry",
+            "bamboo",
+            "crimson",
+            "warped",
+            "pale_oak"
+    );
     private static final Map<String, List<Display>> CACHE = new HashMap<>();
 
     private ItemIdListIconResolver() {
@@ -58,14 +73,21 @@ final class ItemIdListIconResolver {
     }
 
     private static List<Display> resolveDisplays(String normalized) {
-        if (!normalized.contains("{color}")) {
+        List<String> ids = List.of(normalized);
+        if (normalized.contains("{color}")) {
+            ids = expandWildcard(ids, "{color}", COLOR_NAMES);
+        }
+        if (normalized.contains("{wood}")) {
+            ids = expandWildcard(ids, "{wood}", WOOD_NAMES);
+        }
+
+        if (ids.size() == 1 && ids.get(0).equals(normalized)) {
             Display display = resolveDisplay(normalized);
             return display.stack().method_7960() ? List.of() : List.of(display);
         }
 
         Map<String, Display> displays = new LinkedHashMap<>();
-        for (String color : COLOR_NAMES) {
-            String id = normalized.replace("{color}", color);
+        for (String id : ids) {
             Display display = resolveDisplay(id);
             if (!display.stack().method_7960()) {
                 displays.putIfAbsent(id, display);
@@ -73,6 +95,16 @@ final class ItemIdListIconResolver {
         }
 
         return displays.isEmpty() ? List.of() : List.copyOf(new ArrayList<>(displays.values()));
+    }
+
+    private static List<String> expandWildcard(List<String> ids, String token, List<String> names) {
+        List<String> expanded = new ArrayList<>(ids.size() * names.size());
+        for (String id : ids) {
+            for (String name : names) {
+                expanded.add(id.replace(token, name));
+            }
+        }
+        return expanded;
     }
 
     private static Display resolveDisplay(String id) {
