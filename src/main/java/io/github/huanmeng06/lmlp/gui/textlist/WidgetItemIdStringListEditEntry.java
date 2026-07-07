@@ -249,10 +249,8 @@ public class WidgetItemIdStringListEditEntry extends WidgetConfigOptionBase<Stri
         if (!stack.method_7960()) {
             int drawX = this.iconX + (ICON_SLOT_SIZE - ITEM_ICON_SIZE) / 2;
             int drawY = this.iconY + (ICON_SLOT_SIZE - ITEM_ICON_SIZE) / 2;
-            if (this.enabled) {
+            if (this.enabled || !GrayscaleItemIcon.render(context, stack, display.id(), drawX, drawY, ITEM_ICON_SIZE)) {
                 context.method_51427(stack, drawX, drawY);
-            } else {
-                GrayscaleItemIcon.render(context, stack, display.id(), drawX, drawY, ITEM_ICON_SIZE);
             }
         }
         if (!dragging && handleHovered && !overIconSlot) {

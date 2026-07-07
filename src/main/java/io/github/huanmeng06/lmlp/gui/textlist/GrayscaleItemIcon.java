@@ -1,81 +1,110 @@
 package io.github.huanmeng06.lmlp.gui.textlist;
 
+import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.class_1011;
 import net.minecraft.class_1043;
-import net.minecraft.class_1058;
-import net.minecraft.class_1087;
 import net.minecraft.class_1799;
 import net.minecraft.class_2960;
 import net.minecraft.class_310;
 import net.minecraft.class_332;
-import net.minecraft.class_7764;
+import net.minecraft.class_6367;
+import net.minecraft.class_8251;
+import org.joml.Matrix4f;
+import org.joml.Matrix4fStack;
 
-import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.Map;
 
 /**
  * Renders a true black/white/gray copy of an item's icon for disabled list entries.
- * Vanilla item rendering resets its own shader color before drawing, so tinting or
- * overlaying a translucent rect can only darken the icon -- it can't remove hue. The
- * only way to get an actual grayscale result is to read the sprite's raw pixels and
- * replace each one with its luminance, which requires reaching into the sprite's
- * private source image via reflection (there's no public accessor for it).
+ * Vanilla item rendering resets its own shader color before drawing, so tinting can
+ * only darken the icon, and sampling the item's particle sprite loses the 3D look of
+ * block items. Instead the item is rendered once, exactly as the GUI would draw it,
+ * into an offscreen framebuffer; the pixels are read back, converted to luminance,
+ * and re-uploaded as a cached texture that gets drawn in place of the colored icon.
  */
 final class GrayscaleItemIcon {
+    // Render at 4x the on-screen icon size so the result stays crisp at higher GUI scales.
+    private static final int FB_SIZE = 64;
+    private static final int ICON_SPACE = 16;
     private static final Map<String, class_2960> CACHE = new HashMap<>();
-    private static Field spriteImageField;
 
     private GrayscaleItemIcon() {
     }
 
-    static void render(class_332 context, class_1799 stack, String cacheKey, int x, int y, int size) {
-        class_2960 textureId = CACHE.computeIfAbsent(cacheKey, key -> buildGrayscaleTexture(stack));
-        if (textureId == null) {
-            return;
+    static boolean render(class_332 context, class_1799 stack, String cacheKey, int x, int y, int size) {
+        if (!CACHE.containsKey(cacheKey)) {
+            CACHE.put(cacheKey, buildGrayscaleTexture(context, stack));
         }
 
-        context.method_25290(textureId, x, y, 0.0F, 0.0F, size, size, size, size);
+        class_2960 textureId = CACHE.get(cacheKey);
+        if (textureId == null) {
+            return false;
+        }
+
+        context.method_25293(textureId, x, y, size, size, 0.0F, 0.0F, FB_SIZE, FB_SIZE, FB_SIZE, FB_SIZE);
+        return true;
     }
 
-    private static class_2960 buildGrayscaleTexture(class_1799 stack) {
-        class_1011 sourceImage = extractSpriteImage(stack);
-        if (sourceImage == null) {
-            return null;
-        }
+    private static class_2960 buildGrayscaleTexture(class_332 outerContext, class_1799 stack) {
+        class_310 mc = class_310.method_1551();
+        // The outer GUI shares the immediate vertex consumers; flush its pending
+        // geometry before retargeting the framebuffer and matrices.
+        outerContext.method_51452();
+        class_6367 framebuffer = new class_6367(FB_SIZE, FB_SIZE, true, class_310.field_1703);
+        try {
+            framebuffer.method_1236(0.0F, 0.0F, 0.0F, 0.0F);
+            framebuffer.method_1230(class_310.field_1703);
+            framebuffer.method_1235(true);
 
-        int width = sourceImage.method_4307();
-        int height = sourceImage.method_4323();
-        class_1011 grayImage = new class_1011(width, height, false);
+            // Same projection/modelview setup vanilla uses for GUI rendering, with the
+            // ortho sized to one item slot so the 16px icon fills the whole framebuffer.
+            RenderSystem.backupProjectionMatrix();
+            Matrix4f projection = new Matrix4f().setOrtho(0.0F, ICON_SPACE, ICON_SPACE, 0.0F, 1000.0F, 21000.0F);
+            RenderSystem.setProjectionMatrix(projection, class_8251.field_43361);
+            Matrix4fStack modelView = RenderSystem.getModelViewStack();
+            modelView.pushMatrix();
+            modelView.identity();
+            modelView.translate(0.0F, 0.0F, -11000.0F);
+            RenderSystem.applyModelViewMatrix();
+
+            class_332 offscreenContext = new class_332(mc, mc.method_22940().method_23000());
+            offscreenContext.method_51427(stack, 0, 0);
+            offscreenContext.method_51452();
+
+            class_1011 image = new class_1011(FB_SIZE, FB_SIZE, false);
+            RenderSystem.bindTexture(framebuffer.method_30277());
+            image.method_4327(0, false);
+            image.method_4319();
+
+            modelView.popMatrix();
+            RenderSystem.applyModelViewMatrix();
+            RenderSystem.restoreProjectionMatrix();
+            mc.method_1522().method_1235(true);
+
+            toGrayscale(image);
+            return mc.method_1531().method_4617("lmlp_gray_icon", new class_1043(image));
+        } catch (RuntimeException exception) {
+            mc.method_1522().method_1235(true);
+            return null;
+        } finally {
+            framebuffer.method_1238();
+        }
+    }
+
+    private static void toGrayscale(class_1011 image) {
+        int width = image.method_4307();
+        int height = image.method_4323();
         for (int py = 0; py < height; py++) {
             for (int px = 0; px < width; px++) {
-                int color = sourceImage.method_4315(px, py);
+                int color = image.method_4315(px, py);
                 int r = color & 0xFF;
                 int g = (color >>> 8) & 0xFF;
                 int b = (color >>> 16) & 0xFF;
                 int a = (color >>> 24) & 0xFF;
                 int luminance = Math.round(0.299F * r + 0.587F * g + 0.114F * b);
-                grayImage.method_4305(px, py, (a << 24) | (luminance << 16) | (luminance << 8) | luminance);
+                image.method_4305(px, py, (a << 24) | (luminance << 16) | (luminance << 8) | luminance);
             }
-        }
-
-        class_1043 texture = new class_1043(grayImage);
-        return class_310.method_1551().method_1531().method_4617("lmlp_gray_icon", texture);
-    }
-
-    private static class_1011 extractSpriteImage(class_1799 stack) {
-        class_1087 model = class_310.method_1551().method_1480().method_4019(stack, null, null, 0);
-        class_1058 sprite = model.method_4711();
-        class_7764 contents = sprite.method_45851();
-        try {
-            if (spriteImageField == null) {
-                Field field = class_7764.class.getDeclaredField("field_40539");
-                field.setAccessible(true);
-                spriteImageField = field;
-            }
-            return (class_1011) spriteImageField.get(contents);
-        } catch (ReflectiveOperationException exception) {
-            return null;
         }
     }
 }
