@@ -266,17 +266,8 @@ public class GuiItemIdStringListEdit extends GuiListBase<String, WidgetItemIdStr
 
     @Override
     protected void drawTitle(class_332 context, int mouseX, int mouseY, float partialTicks) {
-        // Bigger, centered title instead of the tiny top-left corner label:
-        // scale the font up and center it (both axes) within the title band.
-        float scale = 1.6F;
-        int centerX = this.dialogLeft + this.dialogWidth / 2;
-        int centerY = this.dialogTop + PANEL_TITLE_HEIGHT / 2;
-        int textWidth = this.textRenderer.method_1727(this.title);
-        context.method_51448().method_22903();
-        context.method_51448().method_46416(centerX, centerY, 0.0F);
-        context.method_51448().method_22905(scale, scale, 1.0F);
-        context.method_51433(this.textRenderer, this.title, -textWidth / 2, -this.textRenderer.field_2000 / 2, 0xFFFFFFFF, true);
-        context.method_51448().method_22909();
+        int textY = this.dialogTop + (PANEL_TITLE_HEIGHT - this.textRenderer.field_2000) / 2;
+        this.drawStringWithShadow(context, this.title, this.dialogLeft + 10, textY, 0xFFFFFFFF);
     }
 
     private void setWidthAndHeight() {
