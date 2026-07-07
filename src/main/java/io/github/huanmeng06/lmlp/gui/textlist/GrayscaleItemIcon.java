@@ -1,5 +1,6 @@
 package io.github.huanmeng06.lmlp.gui.textlist;
 
+import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.class_1011;
 import net.minecraft.class_1043;
@@ -11,6 +12,7 @@ import net.minecraft.class_6367;
 import net.minecraft.class_8251;
 import org.joml.Matrix4f;
 import org.joml.Matrix4fStack;
+import org.lwjgl.opengl.GL11;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -51,6 +53,12 @@ final class GrayscaleItemIcon {
         // The outer GUI shares the immediate vertex consumers; flush its pending
         // geometry before retargeting the framebuffer and matrices.
         outerContext.method_51452();
+        // The surrounding list widget may have a GL scissor active; its box is in
+        // window coordinates, so it would clip the whole offscreen framebuffer away.
+        boolean scissorWasEnabled = GL11.glIsEnabled(GL11.GL_SCISSOR_TEST);
+        if (scissorWasEnabled) {
+            GlStateManager._disableScissorTest();
+        }
         class_6367 framebuffer = new class_6367(FB_SIZE, FB_SIZE, true, class_310.field_1703);
         try {
             framebuffer.method_1236(0.0F, 0.0F, 0.0F, 0.0F);
@@ -82,6 +90,14 @@ final class GrayscaleItemIcon {
             RenderSystem.restoreProjectionMatrix();
             mc.method_1522().method_1235(true);
 
+            if (isFullyTransparent(image)) {
+                // Offscreen pass produced nothing (unexpected GL state); treat as
+                // failure so the caller falls back to the colored icon instead of
+                // drawing an invisible one.
+                image.close();
+                return null;
+            }
+
             toGrayscale(image);
             return mc.method_1531().method_4617("lmlp_gray_icon", new class_1043(image));
         } catch (RuntimeException exception) {
@@ -89,7 +105,23 @@ final class GrayscaleItemIcon {
             return null;
         } finally {
             framebuffer.method_1238();
+            if (scissorWasEnabled) {
+                GlStateManager._enableScissorTest();
+            }
         }
+    }
+
+    private static boolean isFullyTransparent(class_1011 image) {
+        int width = image.method_4307();
+        int height = image.method_4323();
+        for (int py = 0; py < height; py++) {
+            for (int px = 0; px < width; px++) {
+                if ((image.method_4315(px, py) >>> 24) != 0) {
+                    return false;
+                }
+            }
+        }
+        return true;
     }
 
     private static void toGrayscale(class_1011 image) {
