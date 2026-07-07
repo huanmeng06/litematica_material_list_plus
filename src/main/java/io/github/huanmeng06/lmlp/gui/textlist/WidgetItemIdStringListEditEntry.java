@@ -23,7 +23,12 @@ public class WidgetItemIdStringListEditEntry extends WidgetConfigOptionBase<Stri
     private static final int ICON_SLOT_SIZE = 18;
     private static final int ITEM_ICON_SIZE = 16;
     // Shared by the "选择"/enable-disable toggle buttons so they always match widths.
-    private static final int ACTION_BUTTON_WIDTH = 58;
+    // Matches malilib's own ConfigButtonBoolean width (WidgetConfigOption.addBooleanAndHotkeyWidgets), so the
+    // toggle button lines up visually with the boolean config buttons on the Config Forms page.
+    private static final int ACTION_BUTTON_WIDTH = 60;
+    private static final int TEXT_COLOR_ENABLED = 0xFFE0E0E0;
+    private static final int TEXT_COLOR_DISABLED = 0xFF808080;
+    private static final int DISABLED_ICON_OVERLAY = 0xB0606060;
     private static final int ICON_BUTTON_WIDTH = 18;
     private static final int CONTROL_HEIGHT = 20;
     private static final int ACTION_GAP = 4;
@@ -109,6 +114,7 @@ public class WidgetItemIdStringListEditEntry extends WidgetConfigOptionBase<Stri
             this.addLabel(x + 2, centerY - 5, INDEX_WIDTH - 4, 12, 0xFFC0C0C0, String.format("%3d:", listIndex + 1));
             this.toggleButton = this.createToggleButton(toggleX, buttonY);
             this.addEntryTextField(textX, textY, textWidth, CONTROL_HEIGHT, cleanValue, this.toggleButton);
+            this.textField.getTextField().method_1868(this.enabled ? TEXT_COLOR_ENABLED : TEXT_COLOR_DISABLED);
             this.addSelectButton(selectX, buttonY);
             this.addToggleButton(this.toggleButton);
             this.addActionButton(actionStartX, buttonY, MaLiLibIcons.PLUS, "lmlp.gui.button.hovertext.add_below", this::insertEntryAfter);
@@ -175,7 +181,10 @@ public class WidgetItemIdStringListEditEntry extends WidgetConfigOptionBase<Stri
     }
 
     private String toggleButtonLabel() {
-        return StringUtils.translate(this.enabled ? "lmlp.gui.button.text_list.disable" : "lmlp.gui.button.text_list.enable");
+        // Mirrors malilib's ConfigButtonBoolean.updateDisplayString(): colored true/false,
+        // matching the boolean config buttons elsewhere in the mod's config menu.
+        String color = this.enabled ? GuiBase.TXT_DARK_GREEN : GuiBase.TXT_DARK_RED;
+        return color + String.valueOf(this.enabled) + GuiBase.TXT_RST;
     }
 
     private void addToggleButton(ButtonGeneric button) {
@@ -240,6 +249,15 @@ public class WidgetItemIdStringListEditEntry extends WidgetConfigOptionBase<Stri
         }
         if (!stack.method_7960()) {
             context.method_51427(stack, this.iconX + (ICON_SLOT_SIZE - ITEM_ICON_SIZE) / 2, this.iconY + (ICON_SLOT_SIZE - ITEM_ICON_SIZE) / 2);
+            if (!this.enabled) {
+                // Item rendering resets its own shader color, so a plain tint can't desaturate it;
+                // a translucent gray overlay on top is the practical way to show it as "disabled".
+                RenderUtils.drawRect(
+                        this.iconX + (ICON_SLOT_SIZE - ITEM_ICON_SIZE) / 2,
+                        this.iconY + (ICON_SLOT_SIZE - ITEM_ICON_SIZE) / 2,
+                        ITEM_ICON_SIZE, ITEM_ICON_SIZE, DISABLED_ICON_OVERLAY
+                );
+            }
         }
         if (!dragging && handleHovered && !overIconSlot) {
             this.editor.setHoveredText(StringUtils.translate("lmlp.gui.button.hovertext.drag_reorder"));

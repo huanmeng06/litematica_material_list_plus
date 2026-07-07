@@ -162,8 +162,6 @@
   "config.name.replacewaterbucketwithice": "水桶替换为冰",
   "config.comment.replacewaterbucketwithice": "开启后，材料列表中需要的水桶会替换为等量的冰进行显示和统计，默认关闭。",
   "lmlp.gui.button.text_list.select": "选择",
-  "lmlp.gui.button.text_list.enable": "启用",
-  "lmlp.gui.button.text_list.disable": "禁用",
   "lmlp.gui.button.hovertext.add_below": "在下方添加新条目",
   "lmlp.gui.button.hovertext.drag_reorder": "拖动以调整顺序",
   "lmlp.gui.label.text_list.empty_entry": "（空）",
