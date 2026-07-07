@@ -459,6 +459,59 @@ public final class MinimalSourceInlineRenderer {
         return class_1799.field_8037;
     }
 
+    /** A hovered "任意X" name in the requirement block: which requirement/upstream
+     * plus the icon currently on screen (cycling with the family clock). */
+    public record RequirementNameHit(class_1799 icon, MinimalSubMaterialListView.RequirementContribution requirement, boolean upstream) {
+    }
+
+    // Hit-test the requirement block's bold "任意X" name text (the trigger for the
+    // rich choice-group grid tooltip), reusing render()'s exact layout so the
+    // hit-box follows the same one-line/wrapped placement and the returned icon
+    // matches the inline cycling icon. Returns null when no requirement name is
+    // hovered.
+    public static RequirementNameHit hoveredRequirementName(int x, int y, int width, class_1799 targetIcon, List<MinimalSubMaterialListView.RequirementContribution> requirements, List<MinimalSubMaterialListView.SourceContribution> sources, boolean showAll, int visibleOuterHeight, int mouseX, int mouseY) {
+        if (requirements.isEmpty() || sources.isEmpty() || isSelfSource(targetIcon, sources)) {
+            return null;
+        }
+
+        int panelWidth = panelWidthFor(width);
+        int contentWidth = Math.max(1, panelWidth - PADDING * 2);
+        int visibleHeight = Math.max(0, Math.min(getHeight(targetIcon, requirements, sources, showAll, width), visibleOuterHeight));
+        int textX = x + PADDING;
+        // target header (24) + "所需" label (18): matches render()'s cursorY steps.
+        int cursorY = y + PADDING + 24 + 18;
+
+        for (MinimalSubMaterialListView.RequirementContribution requirement : requirements) {
+            String name = MinimalSubMaterialListView.requirementDisplayName(requirement);
+            if (isVisibleTextHovered(textX + 26, cursorY + 2, StringUtils.getStringWidth(name), y, visibleHeight, mouseX, mouseY)) {
+                return new RequirementNameHit(cyclingIcon(requirement.icons(), requirement.icon()), requirement, false);
+            }
+
+            MinimalSubMaterialListView.UpstreamRequirement upstream = requirement.upstream();
+            if (upstream != null) {
+                String line = countLine(name, requirement.totalCount(), requirement.missingCount(), requirement.maxStackSize());
+                int arrowX;
+                int rowY;
+                if (requirementLineCount(requirement, contentWidth) == 1) {
+                    arrowX = textX + 26 + StringUtils.getStringWidth(line) + UPSTREAM_GAP;
+                    rowY = cursorY;
+                } else {
+                    arrowX = textX + WRAP_INDENT;
+                    rowY = cursorY + ROW_HEIGHT;
+                }
+                int upstreamNameX = arrowX + UPSTREAM_ARROW_WIDTH + 8 + 26;
+                String upstreamName = MinimalSubMaterialListView.upstreamDisplayName(upstream);
+                if (isVisibleTextHovered(upstreamNameX, rowY + 2, StringUtils.getStringWidth(upstreamName), y, visibleHeight, mouseX, mouseY)) {
+                    return new RequirementNameHit(cyclingIcon(upstream.icons(), upstream.icon()), requirement, true);
+                }
+            }
+
+            cursorY += requirementLineCount(requirement, contentWidth) * ROW_HEIGHT;
+        }
+
+        return null;
+    }
+
     private static void renderNameRow(WidgetBase widget, class_332 context, int textX, int y, class_1799 icon, String name) {
         RenderUtils.drawRect(textX, y + SOURCE_ICON_BOX_Y_OFFSET, SOURCE_ICON_BOX_SIZE, SOURCE_ICON_BOX_SIZE, 0x30FFFFFF);
         context.method_51427(icon, textX + 1, y + SOURCE_ICON_BOX_Y_OFFSET + 1);

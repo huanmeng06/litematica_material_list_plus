@@ -2,13 +2,20 @@
 
 这个 README 只记录 `dev-newFeature` 分支的开发过程和每个小版本做了什么。完整的项目介绍、安装说明、功能说明和截图展示放在 `main` 分支维护。
 
-当前正式版：`v1.6.70`
+当前正式版：`v1.6.71`
 
-当前构建：`1.6.70+mc1.20.6`
+当前构建：`1.6.71+mc1.20.6`
 
 适配目标：Minecraft `1.20.6` / Fabric / Litematica / MaLiLib / REI
 
 ## 版本说明
+
+### v1.6.71
+
+- **最小子材料「所需」行悬浮浮窗标题图标改为跟随闪烁**：悬浮「任意木板 ▶ 任意原木」的加粗黄字弹出的选择组网格浮窗，标题处图标以前固定用 `requirement.icon()`/`upstream.icon()`（总是橡木木板/某个固定原木），不随前面那个按木料闪烁的图标变化。现在浮窗标题图标改用与内联行相同的 `FamilyIconCycle` 闪烁图标，标题与前面的图标始终一致（停在同一木料）。
+- **修复「任意原木」换行后无法悬浮加粗黄字弹浮窗**：分辨率缩小、上游「任意原木」换到第二行时，选择组网格浮窗的命中框（`WidgetMaterialListEntryMixin.requirementChoiceTooltipTarget`）仍按「上游在同一行」的旧坐标计算，导致鼠标悬浮换行后的黄字无反应。根因是命中判定在 mixin 里另写了一套坐标、没跟随 `render()` 的换行逻辑。现在把命中判定下沉到渲染器新方法 `MinimalSourceInlineRenderer.hoveredRequirementName`，与 `render()` 共用同一套单行/换行布局（`requirementLineCount`），命中框自动跟随换行后的第二行位置，同时顺带返回当前闪烁图标（一并修复上一条）。移除 mixin 中因此不再使用的 `sourceCountLine` 及 4 个上游布局常量。
+- 同步 `fabric.mod.json` 和运行时 `MOD_VERSION` 到 `1.6.71+mc1.20.6`。
+- 构建产物改为 `1.6.71+mc1.20.6`。
 
 ### v1.6.70
 
