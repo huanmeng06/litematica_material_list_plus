@@ -154,7 +154,7 @@
   "config.comment.openconfiggui": "Open the Litematica Material List Plus configuration screen.",
   "config.comment.clearoriginmarker": "Clear the active placement origin highlight and beam.",
   "config.comment.recipestopitems": "Items in this list are treated as base materials. Use {color} to match all 16 colored variants, for example minecraft:{color}_wool.",
-  "config.comment.keepasleafitems": "Materials in this list stay as their own row with a 'requires' decomposition hint instead of being decomposed into raw materials. Removing an entry lets it keep decomposing toward logs. Use {color}/{wood} wildcards, for example minecraft:{wood}_slab.",
+  "config.comment.keepasleafitems": "Materials in this list stay as their own row with a 'requires' decomposition hint\ninstead of being decomposed into raw materials. Removing an entry lets it keep decomposing toward logs.\nUse {color}/{wood} wildcards, for example minecraft:{wood}_slab.",
   "lmlp.config.name.replace_water_bucket_with_ice": "Replace water buckets with ice",
   "config.name.replacewaterbucketwithice": "Replace water buckets with ice",
   "config.comment.replacewaterbucketwithice": "When enabled, water buckets required by the material list are shown and counted as ice instead, one ice per bucket.",
