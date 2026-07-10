@@ -185,11 +185,115 @@ public final class RecipeInlineRenderer {
         return stack == null ? class_1799.field_8037 : stack;
     }
 
+    // When the mouse is over a choice-group row's NAME text (not its item
+    // icon), return the concrete items the "任意X" tag stands for (icon +
+    // name pairs) plus the group's own label, so it can be shown as a rich
+    // hover grid. null when not over a choice-group name.
+    public static ChoiceGroupHover hoveredChoiceGroup(List<RecipeSummary> summaries, int x, int y, int width, int visibleOuterHeight, int mouseX, int mouseY) {
+        int panelWidth = Math.max(160, width);
+        int height = Math.min(getHeight(summaries, width), Math.max(0, visibleOuterHeight));
+        if (mouseX < x || mouseX >= x + panelWidth || mouseY < y || mouseY >= y + height || summaries.isEmpty()) {
+            return null;
+        }
+
+        RecipeSummary summary = summaries.get(0);
+        int textX = x + PADDING;
+        int cursorY = y + PADDING + 24 + HEADER_ROW_HEIGHT * headerLines(summary, panelWidth - PADDING * 2).size() + 18;
+        return hoveredIngredientChoiceGroup(summary.ingredients(), textX, cursorY, 0, Integer.MAX_VALUE, mouseX, mouseY);
+    }
+
+    private static ChoiceGroupHover hoveredIngredientChoiceGroup(List<IngredientSummary> ingredients, int textX, int y, int depth, int visibleHeight, int mouseX, int mouseY) {
+        int cursorY = y;
+        int remainingHeight = visibleHeight;
+        for (IngredientSummary ingredient : ingredients) {
+            if (remainingHeight <= 0) {
+                break;
+            }
+
+            int visibleRowHeight = Math.min(INGREDIENT_HEIGHT, remainingHeight);
+            if (ingredient.isChoiceGroup() && isNameRegionHovered(textX, cursorY, depth, RecipeSummaryFormatter.ingredientName(ingredient), visibleRowHeight, mouseX, mouseY)) {
+                return new ChoiceGroupHover(AlternativeItemDisplay.icon(ingredient), RecipeSummaryFormatter.ingredientName(ingredient), ingredient.icons(), ingredient.alternatives());
+            }
+
+            cursorY += INGREDIENT_HEIGHT;
+            remainingHeight -= visibleRowHeight;
+            MaterialTreeNode root = MaterialListPlusState.getVisibleIngredientTree(ingredient);
+            if (root != null && remainingHeight > 0) {
+                int fullChildrenHeight = visibleChildrenHeight(root.children());
+                int childVisibleHeight = Math.min(fullChildrenHeight, Math.round(fullChildrenHeight * MaterialListPlusState.treeProgress(root.path())));
+                childVisibleHeight = Math.min(childVisibleHeight, remainingHeight);
+                if (childVisibleHeight > 0) {
+                    ChoiceGroupHover childHit = hoveredNodeChoiceGroup(root.children(), textX, cursorY, depth + 1, childVisibleHeight, mouseX, mouseY);
+                    if (childHit != null) {
+                        return childHit;
+                    }
+                    cursorY += childVisibleHeight;
+                    remainingHeight -= childVisibleHeight;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private static ChoiceGroupHover hoveredNodeChoiceGroup(List<MaterialTreeNode> nodes, int textX, int y, int depth, int visibleHeight, int mouseX, int mouseY) {
+        int cursorY = y;
+        int remainingHeight = visibleHeight;
+        for (MaterialTreeNode node : nodes) {
+            if (remainingHeight <= 0) {
+                break;
+            }
+
+            int visibleRowHeight = Math.min(INGREDIENT_HEIGHT, remainingHeight);
+            if (node.isChoiceGroup() && isNameRegionHovered(textX, cursorY, depth, node.name(), visibleRowHeight, mouseX, mouseY)) {
+                return new ChoiceGroupHover(AlternativeItemDisplay.icon(node), node.name(), node.icons(), node.alternatives());
+            }
+
+            cursorY += INGREDIENT_HEIGHT;
+            remainingHeight -= visibleRowHeight;
+            if (node.hasChildren() && remainingHeight > 0) {
+                int fullChildrenHeight = visibleChildrenHeight(node.children());
+                int childVisibleHeight = Math.min(fullChildrenHeight, Math.round(fullChildrenHeight * MaterialListPlusState.treeProgress(node.path())));
+                childVisibleHeight = Math.min(childVisibleHeight, remainingHeight);
+                if (childVisibleHeight > 0) {
+                    ChoiceGroupHover childHit = hoveredNodeChoiceGroup(node.children(), textX, cursorY, depth + 1, childVisibleHeight, mouseX, mouseY);
+                    if (childHit != null) {
+                        return childHit;
+                    }
+                    cursorY += childVisibleHeight;
+                    remainingHeight -= childVisibleHeight;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    // A hovered choice-group: the group's icon + label, and the concrete
+    // items (icon + name, kept parallel) it stands for.
+    public record ChoiceGroupHover(class_1799 icon, String name, List<class_1799> icons, List<String> alternatives) {
+    }
+
+    // Only the yellow underlined name text is hoverable, not the whole row.
+    // The name is rendered bold (each glyph ~1px wider), so widen the plain
+    // width by the character count to approximate the drawn extent and stop
+    // short of the trailing ": count".
+    private static boolean isNameRegionHovered(int textX, int y, int depth, String name, int visibleRowHeight, int mouseX, int mouseY) {
+        int rowX = textX + depth * TREE_INDENT_WIDTH;
+        int nameStartX = rowX + INGREDIENT_ICON_OFFSET + 26;
+        int nameWidth = StringUtils.getStringWidth(name) + (name == null ? 0 : name.length());
+        return visibleRowHeight > 0
+                && mouseX >= nameStartX
+                && mouseX < nameStartX + nameWidth
+                && mouseY >= y - 3
+                && mouseY < y - 3 + Math.min(18, visibleRowHeight);
+    }
+
     private static void renderIngredient(WidgetBase widget, class_332 context, int textX, int y, int rightEdge, IngredientSummary ingredient, int mouseX, int mouseY) {
         boolean hasTree = MaterialListPlusState.hasTree(ingredient);
         MaterialTreeNode root = MaterialListPlusState.getVisibleIngredientTree(ingredient);
         float expandProgress = root == null ? 0.0F : MaterialListPlusState.treeProgress(root.path());
-        renderRow(widget, context, textX, y, 0, hasTree, expandProgress, AlternativeItemDisplay.icon(ingredient), RecipeSummaryFormatter.ingredientName(ingredient), ingredient.countTotal(), ingredient.countMissing(), ingredient.maxStackSize(), rightEdge, mouseX, mouseY);
+        renderRow(widget, context, textX, y, 0, hasTree, expandProgress, AlternativeItemDisplay.icon(ingredient), RecipeSummaryFormatter.ingredientName(ingredient), ingredient.isChoiceGroup(), ingredient.countTotal(), ingredient.countMissing(), ingredient.maxStackSize(), rightEdge, mouseX, mouseY);
     }
 
     private static int renderChildren(WidgetBase widget, class_332 context, int textX, int y, List<MaterialTreeNode> nodes, int depth, int visibleHeight, int rightEdge, int mouseX, int mouseY) {
@@ -201,7 +305,7 @@ public final class RecipeInlineRenderer {
             }
 
             float expandProgress = node.hasChildren() ? MaterialListPlusState.treeProgress(node.path()) : 0.0F;
-            renderRow(widget, context, textX, cursorY, depth, node.hasChildren(), expandProgress, AlternativeItemDisplay.icon(node), node.name(), node.totalCount(), node.missingCount(), node.maxStackSize(), rightEdge, mouseX, mouseY);
+            renderRow(widget, context, textX, cursorY, depth, node.hasChildren(), expandProgress, AlternativeItemDisplay.icon(node), node.name(), node.isChoiceGroup(), node.totalCount(), node.missingCount(), node.maxStackSize(), rightEdge, mouseX, mouseY);
 
             int visibleRowHeight = Math.min(INGREDIENT_HEIGHT, remainingHeight);
             cursorY += INGREDIENT_HEIGHT;
@@ -300,7 +404,7 @@ public final class RecipeInlineRenderer {
                 && mouseY < y - 3 + Math.min(18, visibleRowHeight);
     }
 
-    private static void renderRow(WidgetBase widget, class_332 context, int textX, int y, int depth, boolean hasTree, float expandProgress, net.minecraft.class_1799 icon, String name, int totalCount, int missingCount, int maxStackSize, int rightEdge, int mouseX, int mouseY) {
+    private static void renderRow(WidgetBase widget, class_332 context, int textX, int y, int depth, boolean hasTree, float expandProgress, net.minecraft.class_1799 icon, String name, boolean choiceGroup, int totalCount, int missingCount, int maxStackSize, int rightEdge, int mouseX, int mouseY) {
         int rowX = textX + depth * TREE_INDENT_WIDTH;
         int iconX = rowX + INGREDIENT_ICON_OFFSET;
         int iconY = y - 2;
@@ -318,7 +422,15 @@ public final class RecipeInlineRenderer {
         // Never truncate the count itself (the number matters more than the
         // name), only shrink the plain name in front of it.
         int nameBudget = rightEdge - textStartX - StringUtils.getStringWidth(": " + count);
-        String line = truncateToWidth(name, nameBudget) + ": " + countColor + count;
+        String shownName = truncateToWidth(name, nameBudget);
+        // Choice-group ("任意X" / tag) names get a yellow bold underline so
+        // they read as "any of a category" rather than a specific item. Wrap
+        // AFTER truncating the plain text so width math and the "..." are
+        // computed on the raw name, not the format codes.
+        if (choiceGroup) {
+            shownName = GuiBase.TXT_YELLOW + GuiBase.TXT_BOLD + GuiBase.TXT_UNDERLINE + shownName + GuiBase.TXT_RST;
+        }
+        String line = shownName + ": " + countColor + count;
         widget.drawString(textStartX, y + 2, 0xFFFFFFFF, line, context);
     }
 

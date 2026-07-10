@@ -6,6 +6,7 @@ import fi.dy.masa.litematica.materials.MaterialListBase;
 import fi.dy.masa.litematica.materials.MaterialListEntry;
 import fi.dy.masa.litematica.materials.MaterialListUtils;
 import fi.dy.masa.litematica.util.BlockInfoListType;
+import fi.dy.masa.malilib.gui.GuiBase;
 import fi.dy.masa.malilib.gui.GuiListBase;
 import fi.dy.masa.malilib.gui.Message.MessageType;
 import fi.dy.masa.malilib.gui.button.ButtonBase;
@@ -15,6 +16,7 @@ import fi.dy.masa.malilib.gui.button.IButtonActionListener;
 import fi.dy.masa.malilib.gui.widgets.WidgetLabel;
 import fi.dy.masa.malilib.util.StringUtils;
 import io.github.huanmeng06.lmlp.cache.ChunkMissingMaterialListCache;
+import io.github.huanmeng06.lmlp.gui.GuiConfigs;
 import io.github.huanmeng06.lmlp.gui.KnownPlacementRows;
 import io.github.huanmeng06.lmlp.gui.KnownPlacementRows.ReadStatus;
 import io.github.huanmeng06.lmlp.export.SubMaterialExporter;
@@ -51,6 +53,14 @@ public abstract class GuiMaterialListMixin extends GuiListBase {
     // wrapped into; read by lmlp$addSchematicCacheStatus to keep the read
     // status label above it instead of overlapping.
     private int lmlp$progressLineCount = 1;
+
+    // How many 22px rows the wrapped bottom button block occupies in narrow
+    // mode (>=1), or 0 in wide mode where those buttons stay on the top row.
+    // The progress summary and read-status label are lifted above the topmost
+    // of these rows, and getBrowserHeight reserves space for the extra rows.
+    // Precomputed at initGui HEAD so it's available before super.initGui()
+    // calls getBrowserHeight and before the progress label is placed.
+    private int lmlp$buttonRowCount = 0;
 
     protected GuiMaterialListMixin(int listX, int listY) {
         super(listX, listY);
@@ -93,6 +103,12 @@ public abstract class GuiMaterialListMixin extends GuiListBase {
     private void lmlp$makeRoomForChunkMissingStatus(CallbackInfoReturnable<Integer> cir) {
         int reserve = KnownPlacementRows.readStatus(this.materialList) != null ? 12 : 0;
         reserve += PROGRESS_LINE_HEIGHT * (this.lmlp$progressLineCount - 1);
+        // Vanilla's list height already clears one wrapped button row (it drops
+        // the bottom buttons to height-22); reserve only for each additional
+        // row so a two-row-tall button block doesn't cover the list bottom.
+        if (this.lmlp$buttonRowCount > 1) {
+            reserve += WRAPPED_BUTTON_Y_OFFSET * (this.lmlp$buttonRowCount - 1);
+        }
         if (reserve > 0) {
             cir.setReturnValue(Math.max(0, cir.getReturnValue() - reserve));
         }
@@ -107,10 +123,117 @@ public abstract class GuiMaterialListMixin extends GuiListBase {
     @Inject(method = "initGui", at = @At("HEAD"))
     private void lmlp$precomputeProgressLineCount(CallbackInfo ci) {
         this.lmlp$progressLineCount = this.lmlp$computeProgressLineCount();
+        this.lmlp$buttonRowCount = this.lmlp$computeButtonRowCount();
         // Reset the count-string memo on GUI (re)open so a language switch —
         // which forces the screen to close and reopen — can't surface stale
         // localized count text from a previous language.
         CountFormatter.clearCache();
+    }
+
+    // How many 22px rows the narrow-mode wrapped bottom button block occupies.
+    // Mirrors lmlp$reflowWrappedBottomButtons' packing exactly, computed from
+    // label widths so it's available at initGui HEAD (before the buttons and
+    // the progress label exist). Returns 0 in wide mode where nothing wraps.
+    private int lmlp$computeButtonRowCount() {
+        if (this.field_22789 >= this.lmlp$fullTopRowWidth()) {
+            return 0;
+        }
+
+        // The buttons that vanilla + this mod drop onto the bottom rows in
+        // narrow mode, left to right (same order the reflow sorts them by X):
+        // clear_ignored, clear_cache, write_to_file, then our export button —
+        // followed by any top-row toggles pushed down because they'd overlap
+        // the multiplier label (hide_available before toggle_info_hud, matching
+        // the sentinel X order set in lmlp$wrapOverflowingTopButtons).
+        List<Integer> widths = new ArrayList<>();
+        widths.add(this.lmlp$genericButtonWidth(StringUtils.translate("litematica.gui.button.material_list.clear_ignored")));
+        widths.add(this.lmlp$genericButtonWidth(StringUtils.translate("litematica.gui.button.material_list.clear_cache")));
+        widths.add(this.lmlp$genericButtonWidth(StringUtils.translate("litematica.gui.button.material_list.write_to_file")));
+        widths.add(this.lmlp$genericButtonWidth(StringUtils.translate("lmlp.gui.button.material_list.write_sub_materials")));
+        int movedToggles = this.lmlp$movedTopToggleCount();
+        if (movedToggles >= 2) {
+            widths.add(this.lmlp$onOffButtonWidth("litematica.gui.button.material_list.hide_available", this.materialList.getHideAvailable()));
+        }
+        if (movedToggles >= 1) {
+            widths.add(this.lmlp$onOffButtonWidth("litematica.gui.button.material_list.toggle_info_hud", this.materialList.getHudRenderer().getShouldRenderCustom()));
+        }
+
+        int fullLimit = this.field_22789 - 12;
+        int pinnedLimit = this.lmlp$openConfigButtonX() - 4;
+        int rows = 1;
+        int x = 12;
+        int limit = pinnedLimit;
+        boolean atBottom = true;
+        for (int w : widths) {
+            boolean fits = x + w <= limit;
+            if (!fits && x > 12) {
+                rows++;
+                x = 12;
+                limit = fullLimit;
+                atBottom = false;
+                fits = x + w <= limit;
+            }
+            if (!fits && atBottom) {
+                rows++;
+                limit = fullLimit;
+                atBottom = false;
+            }
+            x += w + BUTTON_SPACING;
+        }
+
+        return rows;
+    }
+
+    // How many of the two always-top toggle buttons (隐藏可用 / 信息HUD, in
+    // right-to-left move order) must be pushed down to the wrapped bottom flow
+    // because the top row (刷新 + 显示 + these toggles) would otherwise run
+    // under the right-aligned multiplier label. Vanilla never wraps these four,
+    // so a long list-type label ("最小子材料") made 信息HUD cover "倍数".
+    // Computed from label widths so it's available at initGui HEAD and shared
+    // by lmlp$wrapOverflowingTopButtons and lmlp$computeButtonRowCount.
+    private int lmlp$movedTopToggleCount() {
+        // Left edge of vanilla's multiplier label (field_22789 - labelW - 56),
+        // minus a small gap the buttons must stay clear of.
+        int multiplierLabelWidth = this.getStringWidth(StringUtils.translate("litematica.gui.label.material_list.multiplier"));
+        int available = this.field_22789 - multiplierLabelWidth - 56 - 4;
+
+        int x = 12;
+        x += this.lmlp$genericButtonWidth(StringUtils.translate("litematica.gui.button.material_list.refresh_list")) + BUTTON_SPACING;
+        if (this.materialList.supportsRenderLayers()) {
+            x += this.lmlp$genericButtonWidth(this.lmlp$listTypeDisplayName()) + BUTTON_SPACING;
+        }
+        int hideRight = x + this.lmlp$onOffButtonWidth("litematica.gui.button.material_list.hide_available", this.materialList.getHideAvailable());
+        int infoLeft = hideRight + BUTTON_SPACING;
+        int infoRight = infoLeft + this.lmlp$onOffButtonWidth("litematica.gui.button.material_list.toggle_info_hud", this.materialList.getHudRenderer().getShouldRenderCustom());
+
+        int moved = 0;
+        if (infoRight > available) {
+            moved = 1;
+            if (hideRight > available) {
+                moved = 2;
+            }
+        }
+        return moved;
+    }
+
+    // Bottom (last) line of the progress summary. In wide mode and when the
+    // bottom buttons occupy a single row, this stays at vanilla's height-36.
+    // Once the buttons wrap to two or more rows, the topmost row climbs to
+    // height-22*rows, so the summary is lifted one line above it rather than
+    // being overlapped by the stacked buttons.
+    private int lmlp$progressBottomLineY() {
+        int vanilla = this.field_22790 - 36;
+        if (this.lmlp$buttonRowCount >= 2) {
+            int topButtonRowY = this.field_22790 - WRAPPED_BUTTON_Y_OFFSET * this.lmlp$buttonRowCount;
+            return Math.min(vanilla, topButtonRowY - PROGRESS_LINE_HEIGHT);
+        }
+
+        return vanilla;
+    }
+
+    // Top line of the (possibly multi-line) progress summary.
+    private int lmlp$progressBlockTopLineY() {
+        return this.lmlp$progressBottomLineY() - PROGRESS_LINE_HEIGHT * (this.lmlp$progressLineCount - 1);
     }
 
     private int lmlp$computeProgressLineCount() {
@@ -172,12 +295,12 @@ public abstract class GuiMaterialListMixin extends GuiListBase {
         int budget = this.field_22789 - x - 4;
         if (this.getStringWidth(full) <= budget) {
             this.lmlp$progressLineCount = 1;
-            return this.addLabel(x, y, width, height, color, full);
+            return this.addLabel(x, this.lmlp$progressBottomLineY(), width, height, color, full);
         }
 
         List<String> lines = this.lmlp$wrapBySeparator(full, budget);
         this.lmlp$progressLineCount = lines.size();
-        int topY = y - PROGRESS_LINE_HEIGHT * (lines.size() - 1);
+        int topY = this.lmlp$progressBlockTopLineY();
         // A single WidgetLabel packs its lines at a fixed 9px pitch
         // (malilib's WidgetBase.fontHeight), noticeably tighter than the
         // 12px rhythm the rest of this bottom block uses (row height, the
@@ -235,31 +358,97 @@ public abstract class GuiMaterialListMixin extends GuiListBase {
         this.addButton(button, new SubMaterialExportButtonListener((GuiMaterialList) (Object) this));
     }
 
+    // Add an "LMLP 配置" button immediately left of vanilla's bottom-right
+    // "主菜单" button so the mod's config screen is reachable from the material
+    // list directly. Always placed at height-36 next to the main-menu button —
+    // the two form a right-aligned pair. Declared before
+    // lmlp$reflowWrappedBottomButtons so it's already in the buttons list when
+    // the narrow-mode reflow runs (mixin applies TAIL injectors in declaration
+    // order); in narrow mode the reflow pulls this pair down onto the wrapped
+    // row together, keeping them right-aligned.
+    @Inject(method = "initGui", at = @At("TAIL"))
+    private void lmlp$addOpenConfigButton(CallbackInfo ci) {
+        String label = StringUtils.translate("lmlp.gui.button.material_list.open_config");
+        int width = this.getStringWidth(label) + 20;
+        ButtonGeneric button = new ButtonGeneric(this.lmlp$openConfigButtonX(), this.field_22790 - 36, width, 20, label, new String[0]);
+        button.setHoverStrings("lmlp.gui.button.hover.material_list.open_config");
+        this.addButton(button, new OpenConfigButtonListener((GuiMaterialList) (Object) this));
+    }
+
+    // Wide-mode X of the "LMLP 配置" button: immediately left of vanilla's
+    // main-menu button. Also used by lmlp$computeButtonRowCount to know where
+    // the pinned right-side pair starts before any button exists yet.
+    private int lmlp$openConfigButtonX() {
+        String label = StringUtils.translate("lmlp.gui.button.material_list.open_config");
+        int width = this.getStringWidth(label) + 20;
+        // Sit BUTTON_SPACING (1px) left of the main-menu button so the gap
+        // between the two right-side buttons matches the left buttons' spacing.
+        return this.lmlp$mainMenuButtonX() - width - BUTTON_SPACING;
+    }
+
+    // Mirrors vanilla's own placement of the bottom-right main-menu button
+    // (width = label width + 20, x = window width - width - 10).
+    private int lmlp$mainMenuButtonX() {
+        String menuLabel = StringUtils.translate("litematica.gui.button.change_menu.to_main_menu");
+        int menuWidth = this.getStringWidth(menuLabel) + 20;
+        return this.field_22789 - menuWidth - 10;
+    }
+
     @Inject(method = "initGui", at = @At("TAIL"))
     private void lmlp$addSchematicCacheStatus(CallbackInfo ci) {
         ReadStatus readStatus = KnownPlacementRows.readStatus(this.materialList);
         if (readStatus != null) {
             String status = StringUtils.translate("lmlp.gui.material_list.read_status", readStatus.label());
             int width = this.getStringWidth(status);
-            // In narrow mode the vanilla button row wraps down to height-22,
-            // right where this label normally sits; move it above the
-            // progress line (vanilla puts that at height-36) so nothing
-            // overlaps. The progress line's own top can shift further up when
-            // it wraps to extra lines, so this label needs to follow it.
+            // Wide mode: keep vanilla's spare row below the progress line
+            // (height-24). Narrow mode: the bottom is crowded by wrapped button
+            // rows and the lifted progress block, so sit one line above the top
+            // of that block instead of overlapping it.
             boolean narrow = this.field_22789 < this.lmlp$fullTopRowWidth();
             int y = narrow
-                    ? this.field_22790 - 48 - PROGRESS_LINE_HEIGHT * (this.lmlp$progressLineCount - 1)
+                    ? this.lmlp$progressBlockTopLineY() - PROGRESS_LINE_HEIGHT
                     : this.field_22790 - 24;
             this.addLabel(12, y, width, 12, readStatus.color(), status);
         }
     }
 
+    // Push the always-top toggle buttons (信息HUD, then 隐藏可用) down to the
+    // wrapped bottom flow when they'd otherwise run under the multiplier label.
+    // Declared before lmlp$reflowWrappedBottomButtons so the moved buttons are
+    // already at the wrapped row when the reflow packs it. They get large,
+    // increasing sentinel X values so the reflow (which sorts by X and re-lays
+    // from x=12) orders them last in the wrapped row — after clear/cache/write,
+    // before the pinned pair — while keeping 隐藏可用 before 信息HUD.
+    @Inject(method = "initGui", at = @At("TAIL"))
+    private void lmlp$wrapOverflowingTopButtons(CallbackInfo ci) {
+        int moved = this.lmlp$movedTopToggleCount();
+        if (moved <= 0) {
+            return;
+        }
+
+        List<ButtonBase> topRow = new ArrayList<>();
+        for (ButtonBase button : ((GuiBaseHoverAccess) (Object) this).lmlp$getButtons()) {
+            if (button.getY() == BUTTON_Y) {
+                topRow.add(button);
+            }
+        }
+        topRow.sort(Comparator.comparingInt(ButtonBase::getX));
+
+        int rowY = this.field_22790 - WRAPPED_BUTTON_Y_OFFSET;
+        int count = Math.min(moved, Math.max(0, topRow.size() - 1));
+        for (int k = 0; k < count; k++) {
+            ButtonBase button = topRow.get(topRow.size() - count + k);
+            button.setPosition(this.field_22789 + k, rowY);
+        }
+    }
+
     // When the narrow layout wraps buttons to the bottom row, that row itself
     // can overflow the window width; re-lay it left to right and continue on
-    // an additional row above when a button no longer fits. The vanilla main
-    // menu button (fixed at height-36, overlapping the progress line and
-    // misaligned with the wrapped row at height-22) is pulled down onto the
-    // wrapped row, and the row limit stops short of it.
+    // an additional row above when a button no longer fits. The right-aligned
+    // pair fixed at height-36 (vanilla's main-menu button plus the mod's "LMLP
+    // 配置" button, both misaligned with the wrapped row at height-22 and
+    // overlapping the progress line) is pulled down onto the wrapped row as a
+    // group, and the left-to-right flow stops short of the leftmost of them.
     @Inject(method = "initGui", at = @At("TAIL"))
     private void lmlp$reflowWrappedBottomButtons(CallbackInfo ci) {
         if (this.field_22789 >= this.lmlp$fullTopRowWidth()) {
@@ -268,29 +457,47 @@ public abstract class GuiMaterialListMixin extends GuiListBase {
 
         int rowY = this.field_22790 - WRAPPED_BUTTON_Y_OFFSET;
         int menuRowY = this.field_22790 - 36;
-        ButtonBase menuButton = null;
+        List<ButtonBase> pinned = new ArrayList<>();
         List<ButtonBase> row = new ArrayList<>();
         for (ButtonBase button : ((GuiBaseHoverAccess) (Object) this).lmlp$getButtons()) {
             if (button.getY() == rowY) {
                 row.add(button);
             } else if (button.getY() == menuRowY) {
-                menuButton = button;
+                pinned.add(button);
             }
         }
 
-        int limit = this.field_22789 - 12;
-        if (menuButton != null) {
-            menuButton.setPosition(menuButton.getX(), rowY);
-            limit = menuButton.getX() - 4;
+        // Pull the right-aligned pair down to the wrapped row, keeping their
+        // relative X so they stay side by side; the left flow on this bottom
+        // row must stop before the leftmost of them.
+        int fullLimit = this.field_22789 - 12;
+        int pinnedLimit = fullLimit;
+        for (ButtonBase button : pinned) {
+            button.setPosition(button.getX(), rowY);
+            pinnedLimit = Math.min(pinnedLimit, button.getX() - 4);
         }
 
+        // Bottom row shares its width with the pinned pair; rows stacked above
+        // it are unobstructed and use the full window width. When a wrapped
+        // button can't even fit as the first item beside the pinned pair, hand
+        // the pinned pair the bottom row to itself and start flowing above it,
+        // rather than dropping the button at x=12 on top of the pair (the
+        // occlusion that reappeared as the window kept shrinking).
         row.sort(Comparator.comparingInt(ButtonBase::getX));
         int x = 12;
         int y = rowY;
+        int limit = pinnedLimit;
         for (ButtonBase button : row) {
-            if (x > 12 && x + button.getWidth() > limit) {
+            boolean fits = x + button.getWidth() <= limit;
+            if (!fits && x > 12) {
                 y -= WRAPPED_BUTTON_Y_OFFSET;
                 x = 12;
+                limit = fullLimit;
+                fits = x + button.getWidth() <= limit;
+            }
+            if (!fits && y == rowY) {
+                y -= WRAPPED_BUTTON_Y_OFFSET;
+                limit = fullLimit;
             }
 
             button.setPosition(x, y);
@@ -369,6 +576,19 @@ public abstract class GuiMaterialListMixin extends GuiListBase {
             }
 
             this.parent.initGui();
+        }
+    }
+
+    private static final class OpenConfigButtonListener implements IButtonActionListener {
+        private final GuiMaterialList parent;
+
+        private OpenConfigButtonListener(GuiMaterialList parent) {
+            this.parent = parent;
+        }
+
+        @Override
+        public void actionPerformedWithButton(ButtonBase button, int mouseButton) {
+            GuiBase.openGui(new GuiConfigs().setParent(this.parent));
         }
     }
 }

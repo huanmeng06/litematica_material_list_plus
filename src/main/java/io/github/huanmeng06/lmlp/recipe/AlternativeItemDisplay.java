@@ -3,14 +3,23 @@ package io.github.huanmeng06.lmlp.recipe;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.StringJoiner;
 
 import fi.dy.masa.malilib.util.StringUtils;
+import io.github.huanmeng06.lmlp.material.FamilyIconCycle;
 import io.github.huanmeng06.lmlp.material.ItemStackTexts;
 import net.minecraft.class_1799;
 
 public final class AlternativeItemDisplay {
-    private static final long ICON_CYCLE_MILLIS = 900L;
+    // How long each wood family stays on screen before the cycle advances to
+    // the next family. A family's icons are subdivided evenly within this
+    // window, so parallel lists (任意木板 with 1 icon/family, 任意原木 with N
+    // icons/family) always sit on the SAME family at the same moment — the
+    // planks icon and the log icon stay material-matched regardless of how
+    // many log variants each family has.
+    private static final long FAMILY_CYCLE_MILLIS = FamilyIconCycle.FAMILY_WINDOW_MILLIS;
+    // Fallback period for non-wood groups (e.g. 沙子/红沙) that don't split by
+    // family: cycle the whole list one icon per this interval.
+    private static final long ICON_CYCLE_MILLIS = FamilyIconCycle.FALLBACK_STEP_MILLIS;
     private static final Map<String, String> COMMON_GROUP_KEYS = createCommonGroupKeys();
     private static final List<String> COMMON_PREFIXES = List.of(
             "light_gray_",
@@ -80,6 +89,11 @@ public final class AlternativeItemDisplay {
             return alternatives.get(0);
         }
 
+        String familyGroupName = woodFamilyGroupName(icons);
+        if (!familyGroupName.isEmpty()) {
+            return familyGroupName;
+        }
+
         String directName = directAlternativeName(icons, alternatives);
         if (!directName.isEmpty()) {
             return directName;
@@ -118,21 +132,11 @@ public final class AlternativeItemDisplay {
             return StringUtils.translate("lmlp.label.recipe.any.purpur");
         }
 
-        if (!isSandPair(icons)) {
-            return "";
+        if (isSandPair(icons)) {
+            return StringUtils.translate("lmlp.label.recipe.any.sand");
         }
 
-        StringJoiner joiner = new StringJoiner(" / ");
-        int limit = Math.min(alternatives.size(), 4);
-        for (int i = 0; i < limit; i++) {
-            joiner.add(alternatives.get(i));
-        }
-
-        if (alternatives.size() > limit) {
-            joiner.add("...");
-        }
-
-        return joiner.toString();
+        return "";
     }
 
     private static String coalCharcoalName(List<class_1799> icons, List<String> alternatives) {
@@ -257,8 +261,7 @@ public final class AlternativeItemDisplay {
             return fallback;
         }
 
-        int index = (int) ((System.currentTimeMillis() / ICON_CYCLE_MILLIS) % icons.size());
-        class_1799 icon = icons.get(index);
+        class_1799 icon = FamilyIconCycle.pick(icons, System.currentTimeMillis(), FAMILY_CYCLE_MILLIS, ICON_CYCLE_MILLIS);
         return icon.method_7960() ? fallback : icon;
     }
 
@@ -335,11 +338,66 @@ public final class AlternativeItemDisplay {
         return value;
     }
 
+    // Group a union of icons that spans several wood families into a single
+    // "任意原木"/"任意木板" label, mirroring the minimal sub-material page's
+    // family check. This must run before the per-family / common-suffix
+    // heuristics, which only fire when every icon shares one family (e.g.
+    // oak_log + oak_wood) and would otherwise fall back to a single item name
+    // like "橡木原木" for a cross-family union.
+    private static String woodFamilyGroupName(List<class_1799> icons) {
+        if (icons.size() < 2) {
+            return "";
+        }
+
+        if (allIconsMatch(icons, AlternativeItemDisplay::isLogLike) && hasMultipleWoodFamilies(icons)) {
+            return StringUtils.translate("lmlp.label.recipe.any.log");
+        }
+
+        if (allIconsMatch(icons, path -> path.endsWith("_planks")) && hasMultipleWoodFamilies(icons)) {
+            return StringUtils.translate("lmlp.label.recipe.any.planks");
+        }
+
+        return "";
+    }
+
+    private static boolean hasMultipleWoodFamilies(List<class_1799> icons) {
+        String firstFamily = "";
+        for (class_1799 icon : icons) {
+            String family = woodFamily(itemPath(icon));
+            if (family.isEmpty()) {
+                return true;
+            }
+            if (firstFamily.isEmpty()) {
+                firstFamily = family;
+            } else if (!firstFamily.equals(family)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static boolean allIconsMatch(List<class_1799> icons, java.util.function.Predicate<String> predicate) {
+        if (icons.isEmpty()) {
+            return false;
+        }
+
+        for (class_1799 icon : icons) {
+            if (icon.method_7960() || !predicate.test(itemPath(icon))) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     private static boolean isLogLike(String path) {
         return path.endsWith("_log")
                 || path.endsWith("_wood")
                 || path.endsWith("_stem")
-                || path.endsWith("_hyphae");
+                || path.endsWith("_hyphae")
+                || path.equals("bamboo_block")
+                || path.equals("stripped_bamboo_block");
     }
 
     private static String woodFamily(String path) {

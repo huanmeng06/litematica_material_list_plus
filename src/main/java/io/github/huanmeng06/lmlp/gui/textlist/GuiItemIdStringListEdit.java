@@ -12,6 +12,7 @@ import fi.dy.masa.malilib.gui.interfaces.IDialogHandler;
 import fi.dy.masa.malilib.render.RenderUtils;
 import fi.dy.masa.malilib.util.GuiUtils;
 import fi.dy.masa.malilib.util.StringUtils;
+import fi.dy.masa.litematica.gui.Icons;
 import io.github.huanmeng06.lmlp.gui.ItemTooltipRenderer;
 import io.github.huanmeng06.lmlp.material.ItemStackTexts;
 import me.shedaniel.rei.api.client.registry.entry.EntryRegistry;
@@ -34,6 +35,7 @@ public class GuiItemIdStringListEdit extends GuiListBase<String, WidgetItemIdStr
     private static final int PANEL_MARGIN_TOP = 48;
     private static final int PANEL_MARGIN_BOTTOM = 36;
     private static final int PANEL_TITLE_HEIGHT = 34;
+    private static final int TITLE_INFO_ICON_GAP = 6;
     private static final int PICKER_SLOT = 24;
     private static final int PICKER_SLOT_GAP = 2;
     private static final int PICKER_WHEEL_PIXELS = 28;
@@ -59,6 +61,7 @@ public class GuiItemIdStringListEdit extends GuiListBase<String, WidgetItemIdStr
     private GuiTextFieldGeneric pickerSearchField;
     private class_1799 hoveredStack = class_1799.field_8037;
     private String hoveredText = "";
+    private List<String> titleInfoTooltip = List.of();
     private String pickerQuery = "";
     private int pickerSearchFieldWidth;
     private int pickerSearchDragAnchor;
@@ -159,6 +162,7 @@ public class GuiItemIdStringListEdit extends GuiListBase<String, WidgetItemIdStr
     public void method_25394(class_332 context, int mouseX, int mouseY, float delta) {
         this.hoveredStack = class_1799.field_8037;
         this.hoveredText = "";
+        this.titleInfoTooltip = List.of();
 
         if (this.pickerOpen) {
             this.renderPicker(context, mouseX, mouseY, delta);
@@ -182,6 +186,8 @@ public class GuiItemIdStringListEdit extends GuiListBase<String, WidgetItemIdStr
             ItemTooltipRenderer.render(context, this.textRenderer, this.hoveredStack, mouseX, mouseY);
         } else if (!this.hoveredText.isEmpty()) {
             RenderUtils.drawHoverText(mouseX, mouseY, List.of(this.hoveredText), context);
+        } else if (!this.titleInfoTooltip.isEmpty()) {
+            RenderUtils.drawHoverText(mouseX, mouseY, this.titleInfoTooltip, context);
         }
     }
 
@@ -266,16 +272,51 @@ public class GuiItemIdStringListEdit extends GuiListBase<String, WidgetItemIdStr
 
     @Override
     protected void drawTitle(class_332 context, int mouseX, int mouseY, float partialTicks) {
-        this.drawStringWithShadow(context, this.title, this.dialogLeft + 10, this.dialogTop + 6, 0xFFFFFFFF);
+        int textY = this.dialogTop + (PANEL_TITLE_HEIGHT - this.textRenderer.field_2000) / 2;
+        this.drawStringWithShadow(context, this.title, this.dialogLeft + 10, textY, 0xFFFFFFFF);
+
+        // "More info" icon next to the title: hovering it explains the
+        // {color}/{wood} wildcards supported by this item-id list editor.
+        int iconX = this.dialogLeft + 10 + this.textRenderer.method_1727(this.title) + TITLE_INFO_ICON_GAP;
+        int iconY = this.dialogTop + (PANEL_TITLE_HEIGHT - Icons.INFO_11.getHeight()) / 2;
+        boolean hovered = GuiBase.isMouseOver(mouseX, mouseY, iconX, iconY, Icons.INFO_11.getWidth(), Icons.INFO_11.getHeight());
+        RenderUtils.color(1.0F, 1.0F, 1.0F, 1.0F);
+        RenderUtils.bindTexture(Icons.TEXTURE);
+        Icons.INFO_11.renderAt(iconX, iconY, 0.0F, hovered, false);
+        if (hovered) {
+            this.titleInfoTooltip = List.of(
+                    StringUtils.translate("lmlp.gui.tooltip.wildcards.title"),
+                    StringUtils.translate("lmlp.gui.tooltip.wildcards.color"),
+                    StringUtils.translate("lmlp.gui.tooltip.wildcards.wood")
+            );
+        }
     }
 
     private void setWidthAndHeight() {
         int screenWidth = GuiUtils.getScaledWindowWidth();
         int screenHeight = GuiUtils.getScaledWindowHeight();
-        this.dialogWidth = Math.max(520, screenWidth - PANEL_MARGIN_X * 2);
-        this.dialogHeight = Math.max(260, screenHeight - PANEL_MARGIN_TOP - PANEL_MARGIN_BOTTOM);
+        // Never let the dialog exceed the window: the old `max(520, ...)` floor
+        // forced 520px even on small windows / high GUI scale, clipping the
+        // right edge (and the back button) off screen.
+        this.dialogWidth = Math.min(screenWidth - 16, Math.max(360, screenWidth - PANEL_MARGIN_X * 2));
+
+        // The dialog is pinned at PANEL_MARGIN_TOP, so its height must be capped
+        // to the room BELOW that top, not just to a raw `screenHeight - 16`.
+        // The old cap ignored the top offset, so at small windows / high GUI
+        // scale `dialogTop + dialogHeight` ran past the screen bottom and the
+        // last rows were clipped off. Cap to the available space; if even the
+        // 220px minimum won't fit, pull the top up to reclaim room.
+        int bottomMargin = 8;
+        int top = PANEL_MARGIN_TOP;
+        int desired = Math.max(220, screenHeight - PANEL_MARGIN_TOP - PANEL_MARGIN_BOTTOM);
+        int height = Math.min(desired, screenHeight - top - bottomMargin);
+        if (height < 220) {
+            top = Math.max(8, screenHeight - bottomMargin - 220);
+            height = Math.min(220, screenHeight - top - bottomMargin);
+        }
+        this.dialogHeight = height;
         this.dialogLeft = Math.max(8, (screenWidth - this.dialogWidth) / 2);
-        this.dialogTop = PANEL_MARGIN_TOP;
+        this.dialogTop = top;
         this.updateBackButtonPosition();
     }
 

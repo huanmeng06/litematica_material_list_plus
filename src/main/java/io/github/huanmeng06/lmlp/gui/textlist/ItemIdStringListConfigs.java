@@ -23,6 +23,10 @@ public final class ItemIdStringListConfigs {
             return true;
         }
 
+        if (lower.contains("keepasleaf")) {
+            return true;
+        }
+
         boolean itemOrBlock = lower.contains("item") || lower.contains("block");
         boolean idList = lower.contains("blacklist") || lower.contains("whitelist")
                 || lower.contains("black_list") || lower.contains("white_list")
