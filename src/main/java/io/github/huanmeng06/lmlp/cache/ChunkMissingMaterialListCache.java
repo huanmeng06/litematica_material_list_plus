@@ -66,6 +66,8 @@ public final class ChunkMissingMaterialListCache {
     private static PlacementContext selectedMaterialListContext;
     private static String currentWorldId;
     private static boolean loadingWorldIndex;
+    private static boolean pendingPersist;
+    private static String pendingPersistReason;
 
     private ChunkMissingMaterialListCache() {
     }
@@ -84,7 +86,7 @@ public final class ChunkMissingMaterialListCache {
     }
 
     public static void onWorldDisconnected(String reason) {
-        persistKnownContexts(reason + ".before_clear");
+        flushKnownContexts(reason + ".before_clear");
         clearRuntimeState(reason, true);
     }
 
@@ -194,6 +196,40 @@ public final class ChunkMissingMaterialListCache {
         return refreshForPlacementState(resolution, materialList, false);
     }
 
+    // A context can point at a stale SchematicPlacement instance (Litematica
+    // rebuilds its placement list on dimension change, handing out new objects)
+    // or be a disk-restored OFFLINE_CACHE with no placement, while a live
+    // placement of the same identity is actually loaded right now. Before
+    // opening or treating a context as offline, re-link the current live
+    // in-manager placement of the same identity so it opens live instead of
+    // showing "离线缓存". No-op when the context is already backed by a live
+    // in-manager placement, and a genuine offline context (no live match) is
+    // left untouched.
+    private static PlacementContext relinkLivePlacement(PlacementContext context) {
+        if (context == null) {
+            return null;
+        }
+        if (context.placement() != null && isPlacementInCurrentManager(context.placement())) {
+            return context;
+        }
+
+        SchematicPlacementManager manager = DataManager.getSchematicPlacementManager();
+        if (manager == null) {
+            return context;
+        }
+
+        for (SchematicPlacement placement : manager.getAllSchematicsPlacements()) {
+            if (PlacementKey.of(placement).equals(context.key())) {
+                PlacementContext relinked = rememberPlacement(placement, "relink.live_by_identity");
+                LOGGER.info("[LMLP cache-index] relinked live placement by identity key={} name={} sourceState={} placementDimension={} currentDimension={}",
+                        context.key(), context.name(), relinked == null ? null : relinked.sourceState(), context.dimension(), currentDimensionId());
+                return relinked == null ? context : relinked;
+            }
+        }
+
+        return context;
+    }
+
     public static MaterialListBase getOrCreateMaterialListForOpen(MaterialListBase materialList, String caller) {
         PlacementResolution resolution = resolvePlacementForMaterialList(materialList, caller);
         if (!resolution.hasTarget()) {
@@ -201,7 +237,7 @@ public final class ChunkMissingMaterialListCache {
             return null;
         }
 
-        PlacementContext context = resolution.context();
+        PlacementContext context = relinkLivePlacement(resolution.context());
         if (context.isOfflineCache()) {
             logRoute(resolution, context, ReadMode.OFFLINE_CACHE);
             return getOrCreateOffline(context, caller);
@@ -220,6 +256,7 @@ public final class ChunkMissingMaterialListCache {
             return null;
         }
 
+        context = relinkLivePlacement(context);
         selectContext(context, caller + ".explicit_context");
         PlacementResolution resolution = PlacementResolution.direct(context, caller + ".explicit_context");
         if (context.isOfflineCache()) {
@@ -314,7 +351,7 @@ public final class ChunkMissingMaterialListCache {
         SchematicPlacementManager manager = DataManager.getSchematicPlacementManager();
         SchematicPlacement selected = manager == null ? null : manager.getSelectedSchematicPlacement();
         int placementCount = manager == null ? 0 : manager.getAllSchematicsPlacements().size();
-        LOGGER.info("[LMLP placement-list] known contexts snapshot worldId={} currentDimension={} selected={} placementCount={} knownContextCount={} selectedContext={}",
+        LOGGER.debug("[LMLP placement-list] known contexts snapshot worldId={} currentDimension={} selected={} placementCount={} knownContextCount={} selectedContext={}",
                 currentWorldId, currentDimensionId(), placementDebugName(selected), placementCount, PLACEMENT_CONTEXTS_BY_KEY.size(),
                 selectedMaterialListContext == null ? null : selectedMaterialListContext.key());
         return PLACEMENT_CONTEXTS_BY_KEY.values().stream()
@@ -353,7 +390,7 @@ public final class ChunkMissingMaterialListCache {
         PlacementContext context = rememberPlacement(placement, "can_edit");
         boolean inCurrentManager = isPlacementInCurrentManager(placement);
         boolean canEdit = canEditPlacement(context, inCurrentManager);
-        LOGGER.info("[LMLP placement-list] canModifyPlacement key={} name={} sourceState={} placementDimension={} currentDimension={} placementRef={} inCurrentManager={} chunksLoaded={} result={}",
+        LOGGER.debug("[LMLP placement-list] canModifyPlacement key={} name={} sourceState={} placementDimension={} currentDimension={} placementRef={} inCurrentManager={} chunksLoaded={} result={}",
                 context == null ? null : context.key(), placementDebugName(placement), context == null ? null : context.sourceState(),
                 context == null ? null : context.dimension(), currentDimensionId(), placement != null, inCurrentManager,
                 placement != null && arePlacementChunksLoaded(placement), canEdit);
@@ -434,7 +471,7 @@ public final class ChunkMissingMaterialListCache {
             count++;
         }
         rememberPlacement(manager.getSelectedSchematicPlacement(), reason + ".selected");
-        LOGGER.info("[LMLP cache-index] current dimension online placement scan reason={} worldId={} currentDimension={} onlinePlacements={}",
+        LOGGER.debug("[LMLP cache-index] current dimension online placement scan reason={} worldId={} currentDimension={} onlinePlacements={}",
                 reason, currentWorldId, currentDimensionId(), count);
     }
 
@@ -723,18 +760,18 @@ public final class ChunkMissingMaterialListCache {
         String dimension = inCurrentManager ? currentDimension : null;
         PlacementContext context = PLACEMENT_CONTEXTS.get(placement);
         if (context == null) {
-            PlacementKey key = PlacementKey.of(dimension, placement);
+            PlacementKey key = PlacementKey.of(placement);
             context = PLACEMENT_CONTEXTS_BY_KEY.get(key);
             if (context != null) {
                 context.upgradeOnline(placement, dimension, reason);
                 PLACEMENT_CONTEXTS.put(placement, context);
-                LOGGER.info("[LMLP cache-index] offline context upgraded to online reason={} key={} name={} dimension={} currentDimension={}",
+                LOGGER.debug("[LMLP cache-index] offline context upgraded to online reason={} key={} name={} dimension={} currentDimension={}",
                         reason, context.key(), context.name(), context.dimension(), currentDimensionId());
             } else {
                 context = new PlacementContext(placement, dimension, reason);
                 PLACEMENT_CONTEXTS.put(placement, context);
                 PLACEMENT_CONTEXTS_BY_KEY.put(context.key(), context);
-                LOGGER.info("[LMLP material-list] remember placement reason={} key={} name={} dimension={} inCurrentManager={} schematic={} signature={}",
+                LOGGER.debug("[LMLP material-list] remember placement reason={} key={} name={} dimension={} inCurrentManager={} schematic={} signature={}",
                         reason, context.key(), context.name(), context.dimension(), inCurrentManager, context.schematicPath(), context.signature());
             }
         } else {
@@ -784,7 +821,7 @@ public final class ChunkMissingMaterialListCache {
 
     private static void logRoute(PlacementResolution resolution, PlacementContext context, ReadMode readMode) {
         ResolveSnapshot snapshot = resolution.snapshot();
-        LOGGER.info("[LMLP material-list] route caller={} worldId={} currentDimension={} selectedExists={} placementCount={} knownContextCount={} selectedContext={} lastKnownExists={} lastKnownDimension={} source={} sourceState={} placement={} placementDimension={} cacheGenerated={} materialCacheEntries={} readMode={} result={}",
+        LOGGER.debug("[LMLP material-list] route caller={} worldId={} currentDimension={} selectedExists={} placementCount={} knownContextCount={} selectedContext={} lastKnownExists={} lastKnownDimension={} source={} sourceState={} placement={} placementDimension={} cacheGenerated={} materialCacheEntries={} readMode={} result={}",
                 resolution.caller(),
                 currentWorldId,
                 snapshot.currentDimension(),
@@ -1245,7 +1282,7 @@ public final class ChunkMissingMaterialListCache {
             return;
         }
 
-        persistKnownContexts(reason + ".before_world_switch");
+        flushKnownContexts(reason + ".before_world_switch");
         clearRuntimeState(reason + ".world_switch", false);
         currentWorldId = worldId;
 
@@ -1271,13 +1308,26 @@ public final class ChunkMissingMaterialListCache {
     }
 
     private static void abandonWorldSession(String reason) {
-        persistKnownContexts(reason + ".before_clear");
+        flushKnownContexts(reason + ".before_clear");
         clearRuntimeState(reason, true);
     }
 
     private static void restoreOfflineContext(PlacementRecord record) {
-        PlacementKey key = PlacementKey.fromString(record.key());
-        if (PLACEMENT_CONTEXTS_BY_KEY.containsKey(key)) {
+        PlacementKey key = PlacementKey.ofIdentity(record.schematicPath(), record.placementName(), record.placementIdentity());
+        PlacementContext existing = PLACEMENT_CONTEXTS_BY_KEY.get(key);
+        if (existing != null) {
+            // A pre-fix disk file can hold several records for the same physical
+            // placement under different dimensions; they now collapse onto one
+            // key. Keep whichever restored record carries the richer material
+            // cache so the migration doesn't drop cached entries.
+            if (record.entries().size() > existing.materialEntries().size()) {
+                PlacementContext replacement = new PlacementContext(record);
+                PLACEMENT_CONTEXTS_BY_KEY.put(replacement.key(), replacement);
+                if (replacement.selected()) {
+                    selectContextWithoutPersist(replacement);
+                }
+                lastKnownContext = latestKnownContext();
+            }
             return;
         }
 
@@ -1305,7 +1355,24 @@ public final class ChunkMissingMaterialListCache {
         LOGGER.info("[LMLP cache-index] runtime state cleared reason={} clearWorldId={}", reason, clearWorldId);
     }
 
+    // Marks the world cache dirty instead of writing immediately. The actual
+    // write is coalesced to at most once per client tick (flushPendingPersistence),
+    // because rememberCurrentPlacements calls rememberPlacement -> persist in a
+    // loop over every placement, which otherwise rewrote the whole JSON N times
+    // per GUI open. Critical persist-then-clear paths flush synchronously.
     private static void persistKnownContexts(String reason) {
+        pendingPersist = true;
+        pendingPersistReason = reason;
+    }
+
+    public static void flushPendingPersistence() {
+        if (pendingPersist) {
+            flushKnownContexts(pendingPersistReason);
+        }
+    }
+
+    private static void flushKnownContexts(String reason) {
+        pendingPersist = false;
         if (loadingWorldIndex || currentWorldId == null) {
             return;
         }
@@ -1314,7 +1381,7 @@ public final class ChunkMissingMaterialListCache {
                 .map(context -> context.toRecord(currentWorldId))
                 .toList();
         WorldMaterialCacheIndex.save(currentWorldId, records, selectedMaterialListContext == null ? null : selectedMaterialListContext.key().value());
-        LOGGER.info("[LMLP cache-index] persisted contexts reason={} worldId={} entries={}", reason, currentWorldId, records.size());
+        LOGGER.debug("[LMLP cache-index] persisted contexts reason={} worldId={} entries={}", reason, currentWorldId, records.size());
     }
 
     private static ResolveSnapshot currentResolveSnapshot(String caller) {
@@ -1438,9 +1505,23 @@ public final class ChunkMissingMaterialListCache {
     }
 
     private record PlacementKey(String value) {
-        private static PlacementKey of(String dimension, SchematicPlacement placement) {
-            String keyDimension = dimension == null ? "unknown" : dimension;
-            return new PlacementKey(keyDimension + '|' + schematicPath(placement) + '|' + placement.getName() + '|' + identitySignature(placement));
+        // The identity key is deliberately dimension-independent. Litematica
+        // placements are not dimension-scoped (getAllSchematicsPlacements()
+        // returns them all regardless of the player's dimension), and the
+        // dimension LMLP records is only the heuristic "where the player was
+        // when this placement was first remembered". Embedding it here used to
+        // let the same physical placement key differently across dimensions,
+        // orphaning its persisted record into a ghost OFFLINE_CACHE row.
+        private static PlacementKey of(SchematicPlacement placement) {
+            return ofIdentity(schematicPath(placement), placement.getName(), identitySignature(placement));
+        }
+
+        private static PlacementKey ofIdentity(String schematicPath, String name, String identitySignature) {
+            return new PlacementKey(nz(schematicPath) + '|' + nz(name) + '|' + nz(identitySignature));
+        }
+
+        private static String nz(String value) {
+            return value == null ? "" : value;
         }
 
         private static PlacementKey fromString(String value) {
@@ -1480,7 +1561,7 @@ public final class ChunkMissingMaterialListCache {
             this.schematicPath = ChunkMissingMaterialListCache.schematicPath(placement);
             this.schematicName = ChunkMissingMaterialListCache.schematicName(this.schematicPath);
             this.originPosition = ChunkMissingMaterialListCache.originPosition(placement);
-            this.key = PlacementKey.of(dimension, placement);
+            this.key = PlacementKey.of(placement);
             this.name = placement.getName();
             this.dimension = dimension;
             this.lastReason = reason;
@@ -1490,7 +1571,11 @@ public final class ChunkMissingMaterialListCache {
         private PlacementContext(PlacementRecord record) {
             this.placement = null;
             this.sourceState = SourceState.OFFLINE_CACHE;
-            this.key = PlacementKey.fromString(record.key());
+            // Recompute the key from the record's stable identity fields rather
+            // than trusting record.key(): old records carry a dimension prefix,
+            // and rebuilding here migrates them to the dimension-independent
+            // format (and collapses per-dimension duplicates on load).
+            this.key = PlacementKey.ofIdentity(record.schematicPath(), record.placementName(), record.placementIdentity());
             this.dimension = record.dimension();
             this.name = record.placementName();
             this.schematicName = record.schematicName();
@@ -1540,7 +1625,7 @@ public final class ChunkMissingMaterialListCache {
             }
 
             PlacementKey oldKey = this.key;
-            this.key = PlacementKey.of(this.dimension, placement);
+            this.key = PlacementKey.of(placement);
             rekeyContext(this, oldKey);
         }
 
@@ -1570,7 +1655,7 @@ public final class ChunkMissingMaterialListCache {
         private KnownPlacementContext view() {
             boolean inCurrentManager = this.placement != null && isPlacementInCurrentManager(this.placement);
             boolean canEdit = canEditPlacement(this, inCurrentManager);
-            LOGGER.info("[LMLP placement-list] row canModify key={} name={} sourceState={} placementDimension={} currentDimension={} placementRef={} inCurrentManager={} chunksLoaded={} result={}",
+            LOGGER.debug("[LMLP placement-list] row canModify key={} name={} sourceState={} placementDimension={} currentDimension={} placementRef={} inCurrentManager={} chunksLoaded={} result={}",
                     this.key, this.name, this.sourceState, this.dimension, currentDimensionId(), this.placement != null,
                     inCurrentManager, this.placement != null && arePlacementChunksLoaded(this.placement), canEdit);
             return new KnownPlacementContext(

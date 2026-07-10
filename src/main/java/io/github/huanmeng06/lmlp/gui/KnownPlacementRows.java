@@ -14,6 +14,9 @@ import io.github.huanmeng06.lmlp.cache.ChunkMissingMaterialListCache;
 import io.github.huanmeng06.lmlp.cache.ChunkMissingMaterialListCache.KnownPlacementContext;
 import io.github.huanmeng06.lmlp.cache.ChunkMissingMaterialListCache.ReadMode;
 import io.github.huanmeng06.lmlp.cache.MaterialListDataSource;
+import io.github.huanmeng06.lmlp.config.Configs;
+import net.minecraft.class_1297;
+import net.minecraft.class_2338;
 import net.minecraft.class_2960;
 import net.minecraft.class_310;
 import net.minecraft.class_332;
@@ -51,7 +54,6 @@ public final class KnownPlacementRows {
     private static final int MIN_PLACEMENT_WIDTH = 160;
     private static final int STATUS_COLUMN_PADDING = 24;
     private static final int ORIGIN_COLUMN_PADDING = 24;
-    private static final int ORIGIN_COLUMN_WIDTH = 220;
     private static final int BUTTON_GAP = 2;
     private static final int HEADER_RENDER_LEFT_OVERHANG = 3;
     private static final int HEADER_RENDER_RIGHT_TRIM = 6;
@@ -212,10 +214,10 @@ public final class KnownPlacementRows {
         SortableHeaderRenderer renderer = SortableHeaderRenderer.create(widget, row);
         ColumnLayout columns = computeColumns(widget, row.pageId());
         int textY = textY(widget);
-        drawHeaderLabel(widget, SortColumn.PROJECT, headerTextX(columns.placementX()), textY, drawContext);
-        drawHeaderLabel(widget, SortColumn.STATUS, headerTextX(columns.statusX()), textY, drawContext);
-        drawHeaderLabel(widget, SortColumn.FILE, headerTextX(columns.fileX()), textY, drawContext);
-        drawHeaderLabel(widget, SortColumn.ORIGIN, headerTextX(columns.originX()), textY, drawContext);
+        drawHeaderLabel(widget, SortColumn.PROJECT, headerTextX(columns.placementX()), textY, columns.placementWidth(), drawContext);
+        drawHeaderLabel(widget, SortColumn.STATUS, headerTextX(columns.statusX()), textY, columns.statusWidth(), drawContext);
+        drawHeaderLabel(widget, SortColumn.FILE, headerTextX(columns.fileX()), textY, columns.fileWidth(), drawContext);
+        drawHeaderLabel(widget, SortColumn.ORIGIN, headerTextX(columns.originX()), textY, columns.originWidth(), drawContext);
         if (hasActionColumn(row.pageId())) {
             widget.drawString(
                     headerTextX(columns.actionX()),
@@ -261,7 +263,9 @@ public final class KnownPlacementRows {
         int statusTextWidth = status == null ? 0 : widget.getStringWidth(status.text());
         ColumnLayout columns = computeColumns(widget, pageId);
         PlacementLineLayout layout = columns.placementLineLayout();
-        String nameText = truncateToWidth(widget, placementName == null ? "" : placementName, layout.nameWidth());
+        String fullName = placementName == null ? "" : placementName;
+        String nameText = truncateToWidth(widget, fullName, layout.nameWidth());
+        boolean nameTruncated = !nameText.equals(fullName);
         String fileName = schematicDisplayName(context);
         String fileText = truncateToWidth(widget, fileName, layout.fileWidth());
         boolean fileTruncated = !fileText.equals(fileName);
@@ -273,10 +277,12 @@ public final class KnownPlacementRows {
                 layout,
                 nameText,
                 widget.getStringWidth(nameText),
+                nameTruncated,
+                fullName,
                 fileText,
                 widget.getStringWidth(fileText),
                 fileTruncated,
-                schematicHoverText(context),
+                schematicHoverText(widget, context),
                 originText,
                 widget.getStringWidth(originText),
                 originTruncated,
@@ -299,7 +305,7 @@ public final class KnownPlacementRows {
             widget.drawString(line.layout().fileX(), textY, FILE_TEXT_COLOR, line.fileText(), drawContext);
         }
 
-        if (line.status() != null) {
+        if (line.status() != null && line.layout().statusWidth() > 0) {
             widget.drawString(line.layout().statusX(), textY, line.status().color(), line.status().text(), drawContext);
         }
 
@@ -326,45 +332,98 @@ public final class KnownPlacementRows {
         int rowLeft = widget.getX();
         int placementX = contentLeft(widget);
         int nameX = rowLeft + PLACEMENT_INDENT;
-        int nameOffset = Math.max(0, nameX - placementX);
         int right = contentRight(widget);
-        int operationWidth = actionColumnWidth(widget);
         boolean hasActionColumn = hasActionColumn(pageId);
+        int operationWidth = actionColumnWidth(widget);
         int actionX = hasActionColumn ? Math.max(nameX + MIN_NAME_WIDTH, right - operationWidth) : right;
-        int originWidth = originColumnWidth(widget);
         int statusWidth = statusColumnWidth(widget);
+        int originMin = originCompactWidth(widget);
 
-        int minPlacementWidth = nameOffset + MIN_NAME_WIDTH;
-        minPlacementWidth = Math.max(minPlacementWidth, MIN_PLACEMENT_WIDTH);
-        int primaryAvailable = Math.max(0, actionX - placementX - statusWidth - originWidth - (COLUMN_GAP * 4));
-        int placementWidth = primaryAvailable / 2;
-        int fileWidth = primaryAvailable - placementWidth;
+        // Space the placement/status/file/origin columns share (before the
+        // right-anchored action column, if any). Rows cannot scroll
+        // horizontally, so when this is too small we drop lower-priority
+        // columns (file, then origin, then status). Visibility is decided
+        // against each column's MINIMUM width (origin uses a compact minimum
+        // so the coordinate shows before the name column hogs all the space)
+        // rather than its preferred width.
+        int middleEnd = hasActionColumn ? actionX - COLUMN_GAP : right;
+        int middle = Math.max(0, middleEnd - placementX);
 
-        if (primaryAvailable >= minPlacementWidth + MIN_FILE_WIDTH) {
-            if (placementWidth < minPlacementWidth) {
-                placementWidth = minPlacementWidth;
-                fileWidth = primaryAvailable - placementWidth;
-            } else if (fileWidth < MIN_FILE_WIDTH) {
-                fileWidth = MIN_FILE_WIDTH;
-                placementWidth = primaryAvailable - fileWidth;
+        boolean statusVisible = false;
+        boolean fileVisible = false;
+        boolean originVisible = false;
+        int need = MIN_PLACEMENT_WIDTH;
+        if (need + COLUMN_GAP + statusWidth <= middle) {
+            statusVisible = true;
+            need += COLUMN_GAP + statusWidth;
+            if (need + COLUMN_GAP + originMin <= middle) {
+                originVisible = true;
+                need += COLUMN_GAP + originMin;
+                if (need + COLUMN_GAP + MIN_FILE_WIDTH <= middle) {
+                    fileVisible = true;
+                }
             }
         }
 
-        int statusX = placementX + placementWidth + COLUMN_GAP;
-        int fileX = statusX + statusWidth + COLUMN_GAP;
-        int originX = fileX + fileWidth + COLUMN_GAP;
+        int visibleCount = 1 + (statusVisible ? 1 : 0) + (fileVisible ? 1 : 0) + (originVisible ? 1 : 0);
+        int gaps = (visibleCount - 1) * COLUMN_GAP;
+        int afterStatus = middle - gaps - (statusVisible ? statusWidth : 0);
+
+        // Origin always renders at its compact width instead of growing to
+        // fill leftover space; any extra room goes to the name/file columns.
+        int originWidth = originVisible ? originMin : 0;
+
+        int flexSpace = Math.max(0, afterStatus - originWidth);
+        int placementWidth;
+        int fileWidth;
+        if (fileVisible) {
+            int surplus = Math.max(0, flexSpace - MIN_PLACEMENT_WIDTH - MIN_FILE_WIDTH);
+            placementWidth = MIN_PLACEMENT_WIDTH + surplus / 2;
+            fileWidth = flexSpace - placementWidth;
+        } else {
+            placementWidth = flexSpace;
+            fileWidth = 0;
+        }
+
+        int cursor = placementX + placementWidth;
+        int statusXPos = 0;
+        int fileXPos = 0;
+        int originXPos = 0;
+        if (statusVisible) {
+            cursor += COLUMN_GAP;
+            statusXPos = cursor;
+            cursor += statusWidth;
+        }
+        if (fileVisible) {
+            cursor += COLUMN_GAP;
+            fileXPos = cursor;
+            cursor += fileWidth;
+        }
+        if (originVisible) {
+            cursor += COLUMN_GAP;
+            originXPos = cursor;
+            cursor += originWidth;
+        }
+
+        // Hidden columns collapse onto the next visible column's start so the
+        // header sort-position array stays monotonic and their click/hover
+        // regions shrink to zero width.
+        int anchorAfterOrigin = hasActionColumn ? actionX : right;
+        int originXFinal = originVisible ? originXPos : anchorAfterOrigin;
+        int fileXFinal = fileVisible ? fileXPos : originXFinal;
+        int statusXFinal = statusVisible ? statusXPos : fileXFinal;
 
         return new ColumnLayout(
                 placementX,
                 placementWidth,
                 nameX,
-                Math.max(0, statusX - COLUMN_GAP - nameX),
-                statusX,
-                statusWidth,
-                fileX,
-                fileWidth,
-                originX,
-                Math.max(0, actionX - COLUMN_GAP - originX),
+                Math.max(0, statusXFinal - COLUMN_GAP - nameX),
+                statusXFinal,
+                statusVisible ? statusWidth : 0,
+                fileXFinal,
+                fileVisible ? fileWidth : 0,
+                originXFinal,
+                originVisible ? originWidth : 0,
                 actionX,
                 Math.max(0, right - actionX),
                 right);
@@ -530,10 +589,14 @@ public final class KnownPlacementRows {
         return width + STATUS_COLUMN_PADDING;
     }
 
-    private static int originColumnWidth(WidgetBase widget) {
+    // The origin column always renders at this compact width (enough for the
+    // header and a typical coordinate) rather than growing to fill leftover
+    // space; unusually long coordinates fall back to the "..." truncation
+    // already used elsewhere.
+    private static int originCompactWidth(WidgetBase widget) {
         int headerWidth = widget.getStringWidth(StringUtils.translate("lmlp.gui.known_placement.header.origin"));
-        int coordinateWidth = widget.getStringWidth("[-123456, 64, 123456]");
-        return Math.max(ORIGIN_COLUMN_WIDTH, Math.max(headerWidth, coordinateWidth) + ORIGIN_COLUMN_PADDING);
+        int coordinateWidth = widget.getStringWidth("[-1234, 64, -1234]");
+        return Math.max(headerWidth, coordinateWidth) + ORIGIN_COLUMN_PADDING;
     }
 
     private static int actionColumnWidth(WidgetBase widget) {
@@ -573,10 +636,29 @@ public final class KnownPlacementRows {
 
     public static boolean shouldShowOfflineMissingButton(KnownPlacementContext context) {
         String currentDimension = currentDimensionId();
-        return context != null
-                && context.offlineCache()
-                && currentDimension != null
-                && normalizedDimension(context.dimension()).equals(normalizedDimension(currentDimension));
+        if (context == null
+                || !context.offlineCache()
+                || currentDimension == null
+                || !normalizedDimension(context.dimension()).equals(normalizedDimension(currentDimension))) {
+            return false;
+        }
+
+        return isNearOrigin(context);
+    }
+
+    private static boolean isNearOrigin(KnownPlacementContext context) {
+        class_2338 origin = PlacementOriginMarker.parseOrigin(context.originPosition());
+        class_1297 player = class_310.method_1551().field_1724;
+        if (origin == null || player == null) {
+            return false;
+        }
+
+        // Range is configurable (see Configs.Generic.MISSING_PLACEMENT_BUTTON_RANGE):
+        // large enough that the player doesn't need to stand exactly on the
+        // recorded coordinate, small enough to filter out "same dimension, but
+        // nowhere near the site" false triggers.
+        double range = Configs.Generic.MISSING_PLACEMENT_BUTTON_RANGE.getIntegerValue();
+        return player.method_5707(origin.method_46558()) <= range * range;
     }
 
     private static int[] headerColumnPositions(WidgetBase widget, KnownPlacementRow row) {
@@ -611,14 +693,15 @@ public final class KnownPlacementRows {
         return headerRendererX(visualColumnX);
     }
 
-    private static void drawHeaderLabel(WidgetBase widget, SortColumn column, int x, int y, class_332 drawContext) {
+    private static void drawHeaderLabel(WidgetBase widget, SortColumn column, int x, int y, int maxWidth, class_332 drawContext) {
         String label = switch (column) {
             case PROJECT -> StringUtils.translate("lmlp.gui.known_placement.header.project");
             case STATUS -> StringUtils.translate("lmlp.gui.known_placement.header.status");
             case FILE -> StringUtils.translate("lmlp.gui.known_placement.header.schematic_name");
             case ORIGIN -> StringUtils.translate("lmlp.gui.known_placement.header.origin");
         };
-        widget.drawString(x, y, -1, GuiBase.TXT_BOLD + label + GuiBase.TXT_RST, drawContext);
+        String truncated = truncateToWidth(widget, label, maxWidth);
+        widget.drawString(x, y, -1, GuiBase.TXT_BOLD + truncated + GuiBase.TXT_RST, drawContext);
     }
 
     private static Comparator<KnownPlacementContext> sortComparator(String pageId) {
@@ -682,16 +765,99 @@ public final class KnownPlacementRows {
         return StringUtils.translate("litematica.gui.label.schematic_placement.in_memory");
     }
 
-    private static String schematicHoverText(KnownPlacementContext context) {
+    private static String schematicHoverText(WidgetBase widget, KnownPlacementContext context) {
         if (context == null) {
             return "";
         }
 
         if (!context.schematicPath().isEmpty()) {
-            return context.schematicPath();
+            return shortenPath(widget, context.schematicPath());
         }
 
         return schematicDisplayName(context);
+    }
+
+    private static String shortenPath(WidgetBase widget, String absolutePath) {
+        String normalized = absolutePath.replace('\\', '/');
+        String[] parts = normalized.split("/");
+        List<String> segments = new ArrayList<>();
+        for (String part : parts) {
+            if (!part.isEmpty()) {
+                segments.add(part);
+            }
+        }
+
+        int schematicsIndex = -1;
+        for (int i = segments.size() - 2; i >= 0; i--) {
+            if (segments.get(i).equalsIgnoreCase("schematics")) {
+                schematicsIndex = i;
+                break;
+            }
+        }
+
+        String firstLine;
+        List<String> remainderSegments;
+
+        if (schematicsIndex > 0) {
+            firstLine = "~/" + segments.get(schematicsIndex - 1) + "/" + segments.get(schematicsIndex);
+            remainderSegments = segments.subList(schematicsIndex + 1, segments.size());
+        } else if (segments.size() > 2) {
+            firstLine = "~/.../" + segments.get(segments.size() - 2);
+            remainderSegments = segments.subList(segments.size() - 1, segments.size());
+        } else {
+            return normalized;
+        }
+
+        StringBuilder result = new StringBuilder(firstLine);
+        int maxWidth = Math.max(widget.getStringWidth(firstLine), 120);
+        String pad = alignmentPad(widget);
+        for (String wrappedLine : wrapSegments(widget, remainderSegments, pad, maxWidth)) {
+            result.append('\n').append(wrappedLine);
+        }
+
+        return result.toString();
+    }
+
+    /**
+     * Spaces whose width best matches "~", so continuation lines' leading
+     * slash lines up under the slash in the first line's "~/".
+     */
+    private static String alignmentPad(WidgetBase widget) {
+        int target = widget.getStringWidth("~");
+        StringBuilder pad = new StringBuilder();
+        while (widget.getStringWidth(pad.toString()) < target) {
+            pad.append(' ');
+        }
+
+        return pad.toString();
+    }
+
+    /**
+     * Greedily packs "/segment" tokens into lines no wider than maxWidth,
+     * never breaking inside a folder or file name. A single oversized token
+     * gets its own line.
+     */
+    private static List<String> wrapSegments(WidgetBase widget, List<String> segments, String pad, int maxWidth) {
+        List<String> lines = new ArrayList<>();
+        StringBuilder current = new StringBuilder(pad);
+        boolean lineEmpty = true;
+        for (String segment : segments) {
+            String token = "/" + segment;
+            if (!lineEmpty && widget.getStringWidth(current + token) > maxWidth) {
+                lines.add(current.toString());
+                current = new StringBuilder(pad);
+                lineEmpty = true;
+            }
+
+            current.append(token);
+            lineEmpty = false;
+        }
+
+        if (!lineEmpty) {
+            lines.add(current.toString());
+        }
+
+        return lines;
     }
 
     private static String originPosition(KnownPlacementContext context) {
@@ -757,6 +923,8 @@ public final class KnownPlacementRows {
             PlacementLineLayout layout,
             String nameText,
             int nameTextWidth,
+            boolean nameTruncated,
+            String nameHoverText,
             String fileText,
             int fileTextWidth,
             boolean fileTruncated,
@@ -770,8 +938,12 @@ public final class KnownPlacementRows {
             return isTextHovered(widget, this.layout.nameX(), this.nameTextWidth, mouseX, mouseY);
         }
 
+        public boolean nameTooltipHovered(WidgetBase widget, int mouseX, int mouseY) {
+            return this.nameTruncated && isTextHovered(widget, this.layout.nameX(), this.nameTextWidth, mouseX, mouseY);
+        }
+
         public boolean fileHovered(WidgetBase widget, int mouseX, int mouseY) {
-            return this.fileTruncated && isTextHovered(widget, this.layout.fileX(), this.fileTextWidth, mouseX, mouseY);
+            return isTextHovered(widget, this.layout.fileX(), this.fileTextWidth, mouseX, mouseY);
         }
 
         public boolean statusHovered(WidgetBase widget, int mouseX, int mouseY) {

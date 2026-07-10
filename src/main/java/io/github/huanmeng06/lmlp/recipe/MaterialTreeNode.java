@@ -8,6 +8,7 @@ public final class MaterialTreeNode {
     private final String path;
     private final class_1799 icon;
     private final List<class_1799> icons;
+    private final List<String> alternatives;
     private final String name;
     private final int totalCount;
     private final int missingCount;
@@ -16,13 +17,18 @@ public final class MaterialTreeNode {
     private final List<MaterialTreeNode> children;
 
     public MaterialTreeNode(String path, class_1799 icon, String name, int totalCount, int missingCount, int maxStackSize, int depth, List<MaterialTreeNode> children) {
-        this(path, icon, List.of(icon), name, totalCount, missingCount, maxStackSize, depth, children);
+        this(path, icon, List.of(icon), List.of(), name, totalCount, missingCount, maxStackSize, depth, children);
     }
 
     public MaterialTreeNode(String path, class_1799 icon, List<class_1799> icons, String name, int totalCount, int missingCount, int maxStackSize, int depth, List<MaterialTreeNode> children) {
+        this(path, icon, icons, List.of(), name, totalCount, missingCount, maxStackSize, depth, children);
+    }
+
+    public MaterialTreeNode(String path, class_1799 icon, List<class_1799> icons, List<String> alternatives, String name, int totalCount, int missingCount, int maxStackSize, int depth, List<MaterialTreeNode> children) {
         this.path = path;
         this.icon = icon;
         this.icons = copyIcons(icons);
+        this.alternatives = List.copyOf(alternatives);
         this.name = name;
         this.totalCount = totalCount;
         this.missingCount = missingCount;
@@ -41,6 +47,14 @@ public final class MaterialTreeNode {
 
     public List<class_1799> icons() {
         return this.icons;
+    }
+
+    public List<String> alternatives() {
+        return this.alternatives;
+    }
+
+    public boolean isChoiceGroup() {
+        return this.icons.size() > 1 || this.alternatives.size() > 1;
     }
 
     public String name() {

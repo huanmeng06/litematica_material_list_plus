@@ -5,6 +5,7 @@ import fi.dy.masa.litematica.materials.MaterialListEntry;
 import fi.dy.masa.litematica.util.BlockInfoListType;
 import fi.dy.masa.malilib.util.StringUtils;
 import io.github.huanmeng06.lmlp.config.Configs;
+import io.github.huanmeng06.lmlp.material.FamilyIconCycle;
 import io.github.huanmeng06.lmlp.material.InventoryCounts;
 import io.github.huanmeng06.lmlp.material.ItemStackTexts;
 import io.github.huanmeng06.lmlp.material.MaterialCounts;
@@ -32,7 +33,11 @@ import java.util.function.Predicate;
 public final class MinimalSubMaterialListView {
     private static final Logger LOGGER = LoggerFactory.getLogger("LMLP MinimalSubMaterialListView");
     private static final int MAX_RECIPE_DEPTH = 16;
-    private static final long DISPLAY_CYCLE_MS = 900L;
+    // Non-wood fallback step; wood groups advance per family window instead.
+    // Kept equal to FamilyIconCycle's use in the renderers so the target row's
+    // own cycling icon stays in phase with its inline "所需" upstream icons.
+    private static final long DISPLAY_CYCLE_MS = FamilyIconCycle.FALLBACK_STEP_MILLIS;
+    private static final long FAMILY_CYCLE_MS = FamilyIconCycle.FAMILY_WINDOW_MILLIS;
     private static final long BUILD_BUDGET_NS = 2_500_000L;
     private static final long INITIAL_BUILD_BUDGET_NS = 20_000_000L;
     private static final String COMMON_HIGHLIGHT = "\u00A7e\u00A7l\u00A7n";
@@ -60,6 +65,7 @@ public final class MinimalSubMaterialListView {
     private static String expandedSourceKey = "";
     private static String visibleSourceKey = "";
     private static String fullSourceKey = "";
+    private static SourceSortMode sourceSortMode = SourceSortMode.TOTAL_COUNT;
     private static long layoutRevision;
 
     private MinimalSubMaterialListView() {
@@ -279,7 +285,29 @@ public final class MinimalSubMaterialListView {
 
     public static List<SourceContribution> sourceContributions(MaterialListEntry entry) {
         DisplayData display = displayData(entry);
-        return display == null ? List.of() : display.sources();
+        return display == null ? List.of() : sortedSources(display.sources());
+    }
+
+    public static SourceSortMode sourceSortMode() {
+        return sourceSortMode;
+    }
+
+    public static void cycleSourceSortMode() {
+        sourceSortMode = sourceSortMode.next();
+    }
+
+    private static List<SourceContribution> sortedSources(List<SourceContribution> sources) {
+        if (sourceSortMode == SourceSortMode.TOTAL_COUNT) {
+            return sources;
+        }
+
+        List<SourceContribution> sorted = new ArrayList<>(sources);
+        sorted.sort(Comparator
+                .comparingInt(SourceContribution::missingCount)
+                .reversed()
+                .thenComparing(Comparator.comparingInt(SourceContribution::totalCount).reversed())
+                .thenComparing(SourceContribution::name));
+        return List.copyOf(sorted);
     }
 
     public static List<RequirementContribution> sourceRequirements(MaterialListEntry entry, int totalCount, int missingCount) {
@@ -297,6 +325,16 @@ public final class MinimalSubMaterialListView {
 
     public static String requirementDisplayName(RequirementContribution requirement) {
         return requirement.icons().size() > 1 && isAnyGroupName(requirement.name()) ? emphasizeVariable(requirement.name()) : requirement.name();
+    }
+
+    // Style a choice-group ("任意X" / tag) title so the recipe-panel hover popup
+    // matches the minimal sub-material page: yellow, bold, underlined. The name
+    // may already carry format codes (defensive: only add ours when it doesn't).
+    public static String emphasizeChoiceGroupName(String name) {
+        if (name == null || name.isEmpty() || name.indexOf('§') >= 0) {
+            return name;
+        }
+        return emphasizeVariable(name);
     }
 
     public static String upstreamDisplayName(UpstreamRequirement upstream) {
@@ -435,7 +473,7 @@ public final class MinimalSubMaterialListView {
             return;
         }
 
-        if (depth >= MAX_RECIPE_DEPTH || seenItems.contains(itemId) || Configs.shouldStopRecipeDecomposition(itemId)) {
+        if (depth >= MAX_RECIPE_DEPTH || seenItems.contains(itemId) || Configs.shouldStopRecipeDecomposition(itemId) || keepAsLeaf(itemId)) {
             addLeaf(icon, icons, names, name, source, scaledCount(count, scale), prepared, materials);
             return;
         }
@@ -453,12 +491,32 @@ public final class MinimalSubMaterialListView {
             List<String> ingredientNames = candidateNames(ingredientIcons, ingredient.alternatives());
             if (ingredient.isChoiceGroup()) {
                 CandidateSet refinedChoice = refineWoodCandidatesForSource(source, ingredientIcons, ingredientNames);
+                String groupName = refinedChoice.names().isEmpty()
+                        ? RecipeSummaryFormatter.ingredientName(ingredient)
+                        : refinedChoice.names().get(0);
+
+                // (1) Kept by config (任意台阶 by default): show as its own row
+                // plus the "所需" decomposition hint.
+                if (keepGroupAsLeaf(refinedChoice.icons())) {
+                    addLeaf(
+                            refinedChoice.icons().get(0),
+                            refinedChoice.icons(),
+                            refinedChoice.names(),
+                            RecipeSummaryFormatter.ingredientName(ingredient),
+                            source,
+                            scaledCount(ingredient.countTotal(), scale),
+                            prepared,
+                            materials);
+                    continue;
+                }
+
+                // (2) Refined to a single planks item: existing single-item recursion.
                 if (shouldDecomposeRefinedChoice(refinedChoice)) {
                     collectLeaves(
                             refinedChoice.icons().get(0),
                             refinedChoice.icons(),
                             refinedChoice.names(),
-                            refinedChoice.names().isEmpty() ? RecipeSummaryFormatter.ingredientName(ingredient) : refinedChoice.names().get(0),
+                            groupName,
                             source,
                             ingredient.countTotal(),
                             scale,
@@ -469,6 +527,25 @@ public final class MinimalSubMaterialListView {
                     continue;
                 }
 
+                // (3) Multi-variant and every candidate is craftable: union-decompose
+                // (任意台阶 -> 任意木板 -> 任意原木) rather than collapsing to the
+                // representative wood family.
+                if (refinedChoice.icons().size() > 1 && isChoiceGroupDecomposable(refinedChoice.icons())) {
+                    collectChoiceGroupLeaves(
+                            refinedChoice.icons(),
+                            refinedChoice.names(),
+                            groupName,
+                            ingredient.countTotal(),
+                            source,
+                            scale,
+                            prepared,
+                            depth + 1,
+                            childSeenItems,
+                            materials);
+                    continue;
+                }
+
+                // (4) Not union-decomposable (coal/charcoal, sand/red_sand, ...): keep.
                 addLeaf(
                         ingredient.icon(),
                         ingredientIcons,
@@ -494,6 +571,122 @@ public final class MinimalSubMaterialListView {
                     childSeenItems,
                     materials);
         }
+    }
+
+    // Decompose a multi-variant choice group into leaves by unioning each
+    // candidate's recipe slot-by-slot (任意台阶 -> 任意木板 -> 任意原木), mirroring
+    // MaterialTreeBuilder.buildChoiceGroupChildren but aggregating into the leaf
+    // accumulator instead of building nodes. All candidates in a wood group share
+    // the same recipe yield ratio, so the representative's per-slot counts are
+    // authoritative (same assumption as the tree engine).
+    private static void collectChoiceGroupLeaves(List<class_1799> icons, List<String> names, String name, int count, SourceOrigin source, int scale, boolean prepared, int depth, Set<String> seenItems, Map<String, Accumulator> materials) {
+        if (count <= 0 || scale <= 0 || icons.isEmpty()) {
+            return;
+        }
+
+        class_1799 representative = icons.get(0);
+        String representativeId = ItemStackTexts.id(representative);
+        if (depth >= MAX_RECIPE_DEPTH || seenItems.contains(representativeId)
+                || Configs.shouldStopRecipeDecomposition(representativeId) || keepGroupAsLeaf(icons)) {
+            addLeaf(representative, icons, names, name, source, scaledCount(count, scale), prepared, materials);
+            return;
+        }
+
+        List<RecipeSummary> representativeSummaries = RecipeResolvers.findRecipes(representative, count, count);
+        if (representativeSummaries.isEmpty() || representativeSummaries.get(0).ingredients().isEmpty()
+                || !isChoiceGroupDecomposable(icons)) {
+            addLeaf(representative, icons, names, name, source, scaledCount(count, scale), prepared, materials);
+            return;
+        }
+
+        Set<String> childSeenItems = new HashSet<>(seenItems);
+        childSeenItems.add(representativeId);
+
+        List<List<IngredientSummary>> perCandidate = new ArrayList<>();
+        for (class_1799 candidate : icons) {
+            List<RecipeSummary> summaries = RecipeResolvers.findRecipes(candidate, count, count);
+            perCandidate.add(summaries.isEmpty() ? List.of() : summaries.get(0).ingredients());
+        }
+
+        List<IngredientSummary> representativeIngredients = representativeSummaries.get(0).ingredients();
+        for (int index = 0; index < representativeIngredients.size(); index++) {
+            IngredientSummary representativeChild = representativeIngredients.get(index);
+            if (representativeChild.countTotal() <= 0 && representativeChild.countMissing() <= 0) {
+                continue;
+            }
+
+            Map<String, class_1799> unionIcons = new LinkedHashMap<>();
+            List<String> unionNames = new ArrayList<>();
+            addSlotToUnion(representativeChild, unionIcons, unionNames);
+            for (List<IngredientSummary> candidateIngredients : perCandidate) {
+                if (index < candidateIngredients.size()) {
+                    addSlotToUnion(candidateIngredients.get(index), unionIcons, unionNames);
+                }
+            }
+
+            List<class_1799> childIcons = new ArrayList<>(unionIcons.values());
+            if (childIcons.isEmpty()) {
+                childIcons = List.of(representativeChild.icon().method_7972());
+            }
+            List<String> childNames = candidateNames(childIcons, unionNames);
+            String childFallback = childNames.isEmpty()
+                    ? RecipeSummaryFormatter.ingredientName(representativeChild)
+                    : childNames.get(0);
+            boolean childIsGroup = childIcons.size() > 1 || unionNames.size() > 1;
+            String childName = childIsGroup ? groupDisplayName(childIcons, childFallback) : childFallback;
+
+            if (childIsGroup) {
+                collectChoiceGroupLeaves(childIcons, childNames, childName, representativeChild.countTotal(), source, scale, prepared, depth + 1, childSeenItems, materials);
+            } else {
+                collectLeaves(childIcons.get(0), childIcons, childNames, childName, source, representativeChild.countTotal(), scale, prepared, depth + 1, childSeenItems, materials);
+            }
+        }
+    }
+
+    private static void addSlotToUnion(IngredientSummary child, Map<String, class_1799> icons, List<String> names) {
+        List<class_1799> childIcons = child.icons().isEmpty() ? List.of(child.icon()) : child.icons();
+        for (class_1799 stack : childIcons) {
+            if (!stack.method_7960()) {
+                icons.putIfAbsent(ItemStackTexts.id(stack), stack.method_7972());
+            }
+        }
+
+        List<String> childNames = child.alternatives();
+        if (childNames.isEmpty()) {
+            String childName = ItemStackTexts.name(child.icon());
+            if (!childName.isEmpty() && !names.contains(childName)) {
+                names.add(childName);
+            }
+            return;
+        }
+
+        for (String childName : childNames) {
+            if (!names.contains(childName)) {
+                names.add(childName);
+            }
+        }
+    }
+
+    private static boolean keepGroupAsLeaf(List<class_1799> icons) {
+        if (icons.isEmpty()) {
+            return false;
+        }
+        for (class_1799 icon : icons) {
+            if (icon.method_7960() || !Configs.shouldKeepAsLeaf(ItemStackTexts.id(icon))) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static boolean isChoiceGroupDecomposable(List<class_1799> icons) {
+        for (class_1799 icon : icons) {
+            List<RecipeSummary> summaries = RecipeResolvers.findRecipes(icon, 1, 1);
+            if (summaries.isEmpty() || summaries.get(0).ingredients().isEmpty()) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private static void collectPreparedLeaves(class_1799 stack, List<class_1799> icons, List<String> names, String name, SourceOrigin source, int baseCount, int preparedCount, Map<String, Accumulator> materials) {
@@ -1044,7 +1237,21 @@ public final class MinimalSubMaterialListView {
         }
 
         private boolean hasRequirementSection() {
-            return this.candidates.size() > 1 && isAnyGroupName(this.stableName());
+            if (this.candidates.size() > 1) {
+                // Logs (任意原木) are the terminal raw-gatherable resource — they
+                // never decompose further. Without this guard, a stripping-axe
+                // "recipe" (log -> stripped_log) some candidates carry gets
+                // mistaken for a real decomposition step, producing a bogus
+                // self-referential "所需 任意原木" row under 任意原木 itself.
+                if (allCandidatesMatch(this.candidates, MinimalSubMaterialListView::isLogLike)) {
+                    return false;
+                }
+                return isAnyGroupName(this.stableName());
+            }
+            // Single-item wood intermediates kept as a leaf (e.g. 木棍) also carry
+            // a "所需 任意木板 ▶ 任意原木" hint, resolved from their own recipe.
+            return this.candidates.size() == 1
+                    && keepAsLeaf(ItemStackTexts.id(this.candidates.get(0).icon()));
         }
 
         private String widestName() {
@@ -1052,8 +1259,27 @@ public final class MinimalSubMaterialListView {
         }
 
         private Candidate currentCandidate() {
-            int index = this.candidates.size() == 1 ? 0 : (int) ((System.currentTimeMillis() / DISPLAY_CYCLE_MS) % this.candidates.size());
-            return this.candidates.get(index);
+            if (this.candidates.size() == 1) {
+                return this.candidates.get(0);
+            }
+
+            // Cycle the target row/header icon on the SAME family-grouped clock
+            // as the inline "所需" upstream icons (FamilyIconCycle), so 任意台阶
+            // / 任意木板 shown here stays on the same wood family that its
+            // upstream 任意原木 is currently showing. Pick the icon via the
+            // shared helper, then map it back to its candidate by id.
+            List<class_1799> icons = new ArrayList<>(this.candidates.size());
+            for (Candidate candidate : this.candidates) {
+                icons.add(candidate.icon());
+            }
+            class_1799 picked = FamilyIconCycle.pick(icons, System.currentTimeMillis(), FAMILY_CYCLE_MS, DISPLAY_CYCLE_MS);
+            String pickedId = ItemStackTexts.id(picked);
+            for (Candidate candidate : this.candidates) {
+                if (ItemStackTexts.id(candidate.icon()).equals(pickedId)) {
+                    return candidate;
+                }
+            }
+            return this.candidates.get(0);
         }
 
         private String stableName() {
@@ -1101,6 +1327,15 @@ public final class MinimalSubMaterialListView {
     }
 
     public record SourceContribution(class_1799 icon, String name, int totalCount, int missingCount, int sourceTotalCount, int sourceMissingCount, int maxStackSize) {
+    }
+
+    public enum SourceSortMode {
+        TOTAL_COUNT, MISSING_COUNT;
+
+        public SourceSortMode next() {
+            SourceSortMode[] values = values();
+            return values[(this.ordinal() + 1) % values.length];
+        }
     }
 
     private static String itemPath(class_1799 stack) {
@@ -1202,6 +1437,14 @@ public final class MinimalSubMaterialListView {
 
     private static boolean isPlanksLike(String path) {
         return path.endsWith("_planks");
+    }
+
+    // Single items kept as their own counted leaf row (with the "所需 …"
+    // decomposition hint) instead of being decomposed away. Driven by the
+    // user-editable keepAsLeafItems list; the item stays recipe-resolvable (it's
+    // NOT in recipeStopItems), so the hint still shows.
+    private static boolean keepAsLeaf(String itemId) {
+        return Configs.shouldKeepAsLeaf(itemId);
     }
 
     private static boolean hasMultipleWoodFamilies(List<class_1799> icons) {

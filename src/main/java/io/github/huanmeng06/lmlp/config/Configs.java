@@ -14,6 +14,7 @@ import fi.dy.masa.malilib.util.FileUtils;
 import fi.dy.masa.malilib.util.JsonUtils;
 import io.github.huanmeng06.lmlp.LitematicaMaterialListPlus;
 import io.github.huanmeng06.lmlp.gui.MaterialListPlusState;
+import io.github.huanmeng06.lmlp.material.CountFormatter;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -53,6 +54,21 @@ public class Configs implements IConfigHandler {
             "black"
     );
     private static final List<String> COLOR_PATTERN_SUFFIXES = List.of("dye", "wool", "carpet", "terracotta");
+    // Wood families for the {wood} wildcard (mirrors MinimalSubMaterialListView.WOOD_FAMILIES).
+    private static final List<String> WOOD_NAMES = List.of(
+            "oak",
+            "spruce",
+            "birch",
+            "jungle",
+            "acacia",
+            "dark_oak",
+            "mangrove",
+            "cherry",
+            "bamboo",
+            "crimson",
+            "warped",
+            "pale_oak"
+    );
     private static final ImmutableList<String> DEFAULT_RECIPE_STOP_ITEMS = ImmutableList.of(
             "minecraft:iron_ingot",
             "minecraft:gold_ingot",
@@ -68,6 +84,12 @@ public class Configs implements IConfigHandler {
             "minecraft:{color}_wool",
             "minecraft:{color}_carpet",
             "minecraft:{color}_terracotta"
+    );
+    // Materials kept as their own counted row (with a 所需 decomposition hint)
+    // instead of being decomposed into raw materials.
+    private static final ImmutableList<String> DEFAULT_KEEP_AS_LEAF_ITEMS = ImmutableList.of(
+            "minecraft:{wood}_slab",
+            "minecraft:stick"
     );
 
     public static final class Generic {
@@ -103,17 +125,41 @@ public class Configs implements IConfigHandler {
                 "Text scale for the placement origin marker label. 1 is smallest, 5 is largest."
         );
 
+        public static final ConfigInteger MISSING_PLACEMENT_BUTTON_RANGE = new ConfigInteger(
+                "missingPlacementButtonRange",
+                256,
+                8,
+                1024,
+                true,
+                "How close (in blocks) the player must be to an offline-cached placement's recorded origin for the \"I can't find it\" button to appear on that row."
+        );
+
         public static final ConfigStringList RECIPE_STOP_ITEMS = new ConfigStringList(
                 "recipeStopItems",
                 DEFAULT_RECIPE_STOP_ITEMS,
                 "Items in this list are treated as base materials. Use {color} to match all 16 Minecraft colors, for example minecraft:{color}_wool."
         );
 
+        public static final ConfigStringList KEEP_AS_LEAF_ITEMS = new ConfigStringList(
+                "keepAsLeafItems",
+                DEFAULT_KEEP_AS_LEAF_ITEMS,
+                "Materials in this list are kept as their own counted row (with a 所需 decomposition hint) instead of being decomposed into raw materials. Removing an entry lets that material keep decomposing toward logs. Use {color}/{wood} wildcards, for example minecraft:{wood}_slab."
+        );
+
+        public static final ConfigBoolean REPLACE_WATER_BUCKET_WITH_ICE = new ConfigBoolean(
+                "replaceWaterBucketWithIce",
+                false,
+                "When enabled, water buckets required by the material list are shown and counted as ice instead, one ice per bucket.",
+                "lmlp.config.name.replace_water_bucket_with_ice"
+        );
+
         public static final List<IConfigBase> OPTIONS = ImmutableList.of(
                 DISABLE_LITEMATICA_HOVER_TOOLTIP,
                 COUNT_DISPLAY_STYLE,
+                REPLACE_WATER_BUCKET_WITH_ICE,
                 ORIGIN_MARKER_TIME,
-                ORIGIN_MARKER_TEXT_SCALE
+                ORIGIN_MARKER_TEXT_SCALE,
+                MISSING_PLACEMENT_BUTTON_RANGE
         );
 
         private Generic() {
@@ -122,7 +168,8 @@ public class Configs implements IConfigHandler {
 
     public static final class ConfigForms {
         public static final List<IConfigBase> OPTIONS = ImmutableList.of(
-                Generic.RECIPE_STOP_ITEMS
+                Generic.RECIPE_STOP_ITEMS,
+                Generic.KEEP_AS_LEAF_ITEMS
         );
 
         private ConfigForms() {
@@ -131,6 +178,9 @@ public class Configs implements IConfigHandler {
 
     static {
         Generic.RECIPE_STOP_ITEMS.setValueChangeCallback(config -> MaterialListPlusState.clearRecipeCaches());
+        Generic.KEEP_AS_LEAF_ITEMS.setValueChangeCallback(config -> MaterialListPlusState.clearRecipeCaches());
+        Generic.REPLACE_WATER_BUCKET_WITH_ICE.setValueChangeCallback(config -> MaterialListPlusState.clearRecipeCaches());
+        Generic.COUNT_DISPLAY_STYLE.setValueChangeCallback(config -> CountFormatter.clearCache());
     }
 
     public static void loadFromFile() {
@@ -152,6 +202,7 @@ public class Configs implements IConfigHandler {
                 migrateDisableLitematicaHoverTooltipConfig(root);
                 migrateDefaultRecipeStopItems();
                 migrateRecipeStopColorPatterns();
+                migrateDefaultKeepAsLeafItems();
             }
         }
     }
@@ -171,7 +222,7 @@ public class Configs implements IConfigHandler {
     public static boolean shouldStopRecipeDecomposition(String itemId) {
         String normalizedItemId = normalizeItemId(itemId);
         for (String configuredId : Generic.RECIPE_STOP_ITEMS.getStrings()) {
-            if (matchesRecipeStopItem(configuredId, normalizedItemId)) {
+            if (!isEntryDisabled(configuredId) && matchesPattern(configuredId, normalizedItemId)) {
                 return true;
             }
         }
@@ -179,19 +230,64 @@ public class Configs implements IConfigHandler {
         return false;
     }
 
-    private static boolean matchesRecipeStopItem(String configuredId, String normalizedItemId) {
-        String normalizedConfiguredId = normalizeItemId(configuredId);
-        if (!normalizedConfiguredId.contains("{color}")) {
-            return normalizedConfiguredId.equals(normalizedItemId);
-        }
-
-        for (String color : COLOR_NAMES) {
-            if (normalizedConfiguredId.replace("{color}", color).equals(normalizedItemId)) {
+    public static boolean shouldKeepAsLeaf(String itemId) {
+        String normalizedItemId = normalizeItemId(itemId);
+        for (String configuredId : Generic.KEEP_AS_LEAF_ITEMS.getStrings()) {
+            if (!isEntryDisabled(configuredId) && matchesPattern(configuredId, normalizedItemId)) {
                 return true;
             }
         }
 
         return false;
+    }
+
+    // Item-id list entries can be temporarily "disabled" instead of deleted:
+    // the row (and its text) stays in the list, but it's skipped for matching,
+    // as if it weren't in the list at all. Represented as a leading marker
+    // character on the stored string, stripped for editing/display.
+    private static final String DISABLED_ENTRY_PREFIX = "!";
+
+    public static boolean isEntryDisabled(String rawEntry) {
+        return rawEntry != null && rawEntry.startsWith(DISABLED_ENTRY_PREFIX);
+    }
+
+    public static String stripEntryDisabledPrefix(String rawEntry) {
+        return isEntryDisabled(rawEntry) ? rawEntry.substring(DISABLED_ENTRY_PREFIX.length()) : rawEntry;
+    }
+
+    public static String withEntryDisabledState(String cleanId, boolean disabled) {
+        return disabled ? DISABLED_ENTRY_PREFIX + cleanId : cleanId;
+    }
+
+    // Match a configured id (possibly containing {color}/{wood} wildcards) against
+    // a concrete item id. With no wildcard it's an exact match; wildcards expand
+    // over their name lists (cartesian if both are present).
+    private static boolean matchesPattern(String configuredId, String normalizedItemId) {
+        String pattern = normalizeItemId(configuredId);
+        boolean hasColor = pattern.contains("{color}");
+        boolean hasWood = pattern.contains("{wood}");
+        if (!hasColor && !hasWood) {
+            return pattern.equals(normalizedItemId);
+        }
+
+        List<String> candidates = List.of(pattern);
+        if (hasColor) {
+            candidates = expandWildcard(candidates, "{color}", COLOR_NAMES);
+        }
+        if (hasWood) {
+            candidates = expandWildcard(candidates, "{wood}", WOOD_NAMES);
+        }
+        return candidates.contains(normalizedItemId);
+    }
+
+    private static List<String> expandWildcard(List<String> patterns, String token, List<String> values) {
+        List<String> expanded = new ArrayList<>(patterns.size() * values.size());
+        for (String pattern : patterns) {
+            for (String value : values) {
+                expanded.add(pattern.replace(token, value));
+            }
+        }
+        return expanded;
     }
 
     public static String preferredRecipeId(String itemId) {
@@ -251,7 +347,7 @@ public class Configs implements IConfigHandler {
         List<String> values = new ArrayList<>(Generic.RECIPE_STOP_ITEMS.getStrings());
         Set<String> normalizedValues = new HashSet<>();
         for (String value : values) {
-            normalizedValues.add(normalizeItemId(value));
+            normalizedValues.add(normalizeItemId(stripEntryDisabledPrefix(value)));
         }
 
         boolean modified = false;
@@ -266,6 +362,28 @@ public class Configs implements IConfigHandler {
 
         if (modified) {
             Generic.RECIPE_STOP_ITEMS.setStrings(values);
+        }
+    }
+
+    private static void migrateDefaultKeepAsLeafItems() {
+        List<String> values = new ArrayList<>(Generic.KEEP_AS_LEAF_ITEMS.getStrings());
+        Set<String> normalizedValues = new HashSet<>();
+        for (String value : values) {
+            normalizedValues.add(normalizeItemId(stripEntryDisabledPrefix(value)));
+        }
+
+        boolean modified = false;
+        for (String defaultItem : DEFAULT_KEEP_AS_LEAF_ITEMS) {
+            String normalizedDefault = normalizeItemId(defaultItem);
+            if (!normalizedValues.contains(normalizedDefault)) {
+                values.add(defaultItem);
+                normalizedValues.add(normalizedDefault);
+                modified = true;
+            }
+        }
+
+        if (modified) {
+            Generic.KEEP_AS_LEAF_ITEMS.setStrings(values);
         }
     }
 

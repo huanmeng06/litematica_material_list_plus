@@ -1,11 +1,13 @@
 package io.github.huanmeng06.lmlp.mixin;
 
+import fi.dy.masa.litematica.gui.Icons;
 import fi.dy.masa.litematica.gui.widgets.WidgetListMaterialList;
 import fi.dy.masa.litematica.gui.widgets.WidgetListSchematicPlacements;
 import fi.dy.masa.litematica.gui.widgets.WidgetMaterialListEntry;
 import fi.dy.masa.litematica.materials.MaterialListEntry;
 import fi.dy.masa.litematica.schematic.placement.SchematicPlacement;
 import fi.dy.masa.malilib.gui.GuiScrollBar;
+import fi.dy.masa.malilib.gui.LeftRight;
 import fi.dy.masa.malilib.gui.widgets.WidgetBase;
 import fi.dy.masa.malilib.gui.widgets.WidgetListBase;
 import fi.dy.masa.malilib.gui.widgets.WidgetListEntryBase;
@@ -46,6 +48,7 @@ public abstract class WidgetListBaseMixin implements WidgetListBoundsAccess {
     private static final int WHEEL_SCROLL_PIXELS = 36;
     private static final int BROWSER_BOTTOM_INSET = 8;
     private static final int MINIMAL_SOURCE_PANEL_SIDE_WIDTH = 50;
+    private static final int SEARCH_ICON_RESERVE = 20;
 
     private int lmlp$lastLayoutMultiplier = Integer.MIN_VALUE;
     private int lmlp$lastLayoutEntryCount = -1;
@@ -55,6 +58,15 @@ public abstract class WidgetListBaseMixin implements WidgetListBoundsAccess {
     private long lmlp$lastLayoutMinimalSubMaterialRevision = Long.MIN_VALUE;
     private String lmlp$lastMaterialDataSignature = "";
     private double lmlp$scrollRemainder;
+    // Frame-scoped memo of per-entry scroll-target heights. An entry's target
+    // height is constant within a single frame (it depends on expansion state /
+    // panel width, which only change via input that also re-lays the list), so
+    // caching it lets the several O(N) height passes per frame (totalEntryHeight
+    // twice in drawContents, plus firstVisibleEntryIndex/entryTop/loop during a
+    // rebuild) compute each entry once instead of 2-5x. Cleared at the top of
+    // every height-loop entry point so it never carries stale values across a
+    // relayout.
+    private final java.util.Map<Object, Integer> lmlp$frameEntryHeights = new java.util.IdentityHashMap<>();
 
     @Shadow
     @Final
@@ -238,6 +250,7 @@ public abstract class WidgetListBaseMixin implements WidgetListBoundsAccess {
     public void drawContents(class_332 drawContext, int mouseX, int mouseY, float partialTicks) {
         RenderUtils.color(1.0F, 1.0F, 1.0F, 1.0F);
         this.lmlp$refreshAnimatedRecipeExpansion();
+        this.lmlp$frameEntryHeights.clear();
 
         WidgetBase hovered = null;
         int viewportHeight = this.lmlp$getListViewportHeight();
@@ -319,7 +332,7 @@ public abstract class WidgetListBaseMixin implements WidgetListBoundsAccess {
                     MinimalSubMaterialListView.sourceProgress(materialEntry));
             cir.setReturnValue(23 + visibleOuterHeight);
         } else if (MaterialListPlusState.isRecipeVisible(materialEntry)) {
-            int visibleOuterHeight = RecipeInlineRenderer.getOuterHeight(MaterialListPlusState.getCachedSummaries(materialEntry), MaterialListPlusState.recipeProgress(materialEntry));
+            int visibleOuterHeight = RecipeInlineRenderer.getOuterHeight(MaterialListPlusState.getCachedSummaries(materialEntry), this.lmlp$getRecipePanelWidthForHeight(), MaterialListPlusState.recipeProgress(materialEntry));
             cir.setReturnValue(23 + visibleOuterHeight);
         }
     }
@@ -348,9 +361,38 @@ public abstract class WidgetListBaseMixin implements WidgetListBoundsAccess {
             return;
         }
 
-        this.browserWidth = Math.max(this.totalWidth, Math.max(MaterialListColumnLayout.requiredEntryWidth() + 14, this.lmlp$getRequiredMinimalSourceBrowserWidth()));
+        // Reserve room for the search icon floating over the header row's
+        // top-right corner so a fully-fit column layout doesn't sit under it.
+        MaterialListColumnLayout.updateAvailableEntryWidth(this.totalWidth - 14 - SEARCH_ICON_RESERVE);
+        // Cap the expanded minimal-source panel's width demand at the viewport:
+        // growing browserWidth past totalWidth pushes the whole list (and the
+        // vertical scrollbar at browserWidth-9) off the window's right edge —
+        // the scrollbar got clipped at small/high-GUI-scale widths. The panel
+        // now wraps its upstream requirement to fit narrower widths, so it no
+        // longer needs the browser wider than the viewport.
+        int minimalSourceWidth = Math.min(this.totalWidth, this.lmlp$getRequiredMinimalSourceBrowserWidth());
+        this.browserWidth = Math.max(this.totalWidth, Math.max(MaterialListColumnLayout.requiredEntryWidth() + 14, minimalSourceWidth));
         this.browserEntryWidth = this.browserWidth - 14;
         this.lmlp$reCreateListEntryWidgetsByPixels();
+    }
+
+    // Litematica creates the search bar once in the WidgetListMaterialList
+    // constructor with the width at that moment; on window resize GuiListBase
+    // only calls setSize, so the search icon would stay anchored to the old
+    // right edge. Rebuild it with the new geometry, keeping text and state.
+    @Inject(method = "setSize", at = @At("TAIL"))
+    private void lmlp$repositionSearchBarOnResize(int width, int height, CallbackInfo ci) {
+        if (!((Object) this instanceof WidgetListMaterialList) || this.widgetSearchBar == null) {
+            return;
+        }
+
+        WidgetSearchBar old = this.widgetSearchBar;
+        WidgetSearchBar fresh = new WidgetSearchBar(this.posX + 2, this.posY + 8, this.totalWidth - 16, 14, 0, Icons.FILE_ICON_SEARCH, LeftRight.RIGHT);
+        fresh.setZLevel(1);
+        fresh.setSearchOpen(old.isSearchOpen());
+        String text = ((WidgetSearchBarAccessor) old).lmlp$getSearchBox().method_1882();
+        ((WidgetSearchBarAccessor) fresh).lmlp$getSearchBox().method_1852(text);
+        this.widgetSearchBar = fresh;
     }
 
     /**
@@ -411,6 +453,7 @@ public abstract class WidgetListBaseMixin implements WidgetListBoundsAccess {
     }
 
     private void lmlp$reCreateListEntryWidgetsByPixels() {
+        this.lmlp$frameEntryHeights.clear();
         this.listWidgets.clear();
         this.maxVisibleBrowserEntries = 0;
 
@@ -451,6 +494,7 @@ public abstract class WidgetListBaseMixin implements WidgetListBoundsAccess {
     }
 
     private void lmlp$scrollEntryIndexIntoView(int targetIndex, int bottomPadding) {
+        this.lmlp$frameEntryHeights.clear();
         int viewportHeight = this.lmlp$getEntryViewportHeight(bottomPadding);
         int top = this.lmlp$entryTop(targetIndex);
         int bottom = top + Math.max(1, this.lmlp$getScrollTargetEntryHeightFor(this.listContents.get(targetIndex)));
@@ -516,6 +560,17 @@ public abstract class WidgetListBaseMixin implements WidgetListBoundsAccess {
     }
 
     private int lmlp$getScrollTargetEntryHeightFor(Object entry) {
+        Integer cached = this.lmlp$frameEntryHeights.get(entry);
+        if (cached != null) {
+            return cached;
+        }
+
+        int computed = this.lmlp$computeScrollTargetEntryHeightFor(entry);
+        this.lmlp$frameEntryHeights.put(entry, computed);
+        return computed;
+    }
+
+    private int lmlp$computeScrollTargetEntryHeightFor(Object entry) {
         if (entry instanceof MaterialListEntry materialEntry) {
             boolean minimalSubMaterialView = (Object) this instanceof WidgetMaterialListAccess access && MinimalSubMaterialListView.isActive(access.lmlp$getMaterialList());
             if (minimalSubMaterialView && MinimalSubMaterialListView.isSourcesExpanded(materialEntry)) {
@@ -529,7 +584,7 @@ public abstract class WidgetListBaseMixin implements WidgetListBoundsAccess {
                         this.lmlp$getMinimalSourcePanelWidthForHeight());
             }
             if (MaterialListPlusState.isRecipeExpanded(materialEntry)) {
-                return 23 + RecipeInlineRenderer.getTargetOuterHeight(MaterialListPlusState.getCachedSummaries(materialEntry));
+                return 23 + RecipeInlineRenderer.getTargetOuterHeight(MaterialListPlusState.getCachedSummaries(materialEntry), this.lmlp$getRecipePanelWidthForHeight());
             }
         }
 
@@ -548,15 +603,25 @@ public abstract class WidgetListBaseMixin implements WidgetListBoundsAccess {
         return Math.max(180, this.browserEntryWidth - 36);
     }
 
+    private int lmlp$getRecipePanelWidthForHeight() {
+        return Math.max(180, this.browserEntryWidth - 64);
+    }
+
     private int lmlp$getRequiredMinimalSourceBrowserWidth() {
         if (!((Object) this instanceof WidgetMaterialListAccess access) || !MinimalSubMaterialListView.isActive(access.lmlp$getMaterialList())) {
             return 0;
         }
 
+        var materialList = access.lmlp$getMaterialList();
         int requiredWidth = 0;
         for (Object entry : this.listContents) {
             if (entry instanceof MaterialListEntry materialEntry && MinimalSubMaterialListView.isSourcesExpanded(materialEntry)) {
-                requiredWidth = Math.max(requiredWidth, MinimalSourceInlineRenderer.getRequiredPanelWidth(MinimalSubMaterialListView.sourceContributions(materialEntry)));
+                int total = MinimalSubMaterialListView.total(materialEntry, materialList);
+                int missing = MinimalSubMaterialListView.netMissing(materialEntry, materialList);
+                List<MinimalSubMaterialListView.RequirementContribution> requirements =
+                        MinimalSubMaterialListView.sourceRequirements(materialEntry, total, missing);
+                requiredWidth = Math.max(requiredWidth, MinimalSourceInlineRenderer.getRequiredPanelWidth(
+                        requirements, MinimalSubMaterialListView.sourceContributions(materialEntry)));
             }
         }
 
