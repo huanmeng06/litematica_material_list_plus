@@ -305,8 +305,7 @@ public final class MinimalSubMaterialListView {
         sorted.sort(Comparator
                 .comparingInt(SourceContribution::missingCount)
                 .reversed()
-                .thenComparingInt(SourceContribution::totalCount)
-                .reversed()
+                .thenComparing(Comparator.comparingInt(SourceContribution::totalCount).reversed())
                 .thenComparing(SourceContribution::name));
         return List.copyOf(sorted);
     }
