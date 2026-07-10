@@ -15,6 +15,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.util.Collection;
+import java.util.Comparator;
 
 @Mixin(value = WidgetListMaterialList.class, remap = false)
 public abstract class WidgetListMaterialListMixin implements WidgetMaterialListAccess {
@@ -51,5 +52,33 @@ public abstract class WidgetListMaterialListMixin implements WidgetMaterialListA
         if (filtered != entries) {
             cir.setReturnValue(filtered);
         }
+    }
+
+    // Vanilla's MaterialListSorter compares raw entry.getCountMissing(), a
+    // value frozen when the list was built. The "缺少" column actually shown
+    // to the player is netMissing (total*multiplier - available), which
+    // keeps shrinking as items are collected. Sorting by the stale raw value
+    // while displaying the live net value makes rows appear out of order
+    // once any progress has been made, so mirror vanilla's COUNT_MISSING
+    // comparator logic but drive it off the same net value that is rendered.
+    @Inject(method = "getComparator", at = @At("HEAD"), cancellable = true)
+    private void lmlp$fixNetMissingSortComparator(CallbackInfoReturnable<Comparator<MaterialListEntry>> cir) {
+        MaterialListBase materialList = this.gui.getMaterialList();
+        if (materialList.getSortCriteria() != MaterialListBase.SortCriteria.COUNT_MISSING) {
+            return;
+        }
+
+        boolean reverse = materialList.getSortInReverse();
+        cir.setReturnValue((a, b) -> {
+            int missingA = MinimalSubMaterialListView.netMissing(a, materialList);
+            int missingB = MinimalSubMaterialListView.netMissing(b, materialList);
+            int nameCmp = a.getStack().method_7964().getString().compareTo(b.getStack().method_7964().getString());
+            if (missingA == missingB) {
+                return nameCmp;
+            }
+
+            boolean aGreater = missingA > missingB;
+            return aGreater == reverse ? 1 : -1;
+        });
     }
 }

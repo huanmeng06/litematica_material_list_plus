@@ -21,6 +21,17 @@ public final class MaterialListColumnLayout {
     private static boolean animating;
     private static boolean animateShrinkForNextUpdate = true;
 
+    // Rows can't scroll horizontally, so when the window is narrower than the
+    // full 4-column layout needs, lower-priority columns are dropped entirely
+    // instead of compressing every column down to nothing: available drops
+    // first, then total; missing (and name) always stay.
+    private static final int MIN_NAME_WIDTH = 60;
+    private static int availableEntryWidth = Integer.MAX_VALUE;
+    private static boolean totalVisible = true;
+    private static boolean missingVisible = true;
+    private static boolean availableVisible = true;
+    private static int nameClamp;
+
     private MaterialListColumnLayout() {
     }
 
@@ -78,13 +89,99 @@ public final class MaterialListColumnLayout {
         animating = true;
     }
 
+    public static void updateAvailableEntryWidth(int available) {
+        availableEntryWidth = available <= 0 ? Integer.MAX_VALUE : available;
+    }
+
+    public static boolean isTotalVisible() {
+        advanceAnimation();
+        recomputeVisibility();
+        return totalVisible;
+    }
+
+    public static boolean isMissingVisible() {
+        advanceAnimation();
+        recomputeVisibility();
+        return missingVisible;
+    }
+
+    public static boolean isAvailableVisible() {
+        advanceAnimation();
+        recomputeVisibility();
+        return availableVisible;
+    }
+
     public static int requiredEntryWidth() {
-        return 4 + nameWidth() + NAME_TO_TOTAL_GAP + totalWidth() + COUNT_COLUMN_GAP + missingWidth() + COUNT_COLUMN_GAP + availableWidth() + COUNT_COLUMN_GAP;
+        advanceAnimation();
+        recomputeVisibility();
+        return rowWidth(effectiveNameWidth());
+    }
+
+    private static int rowWidth(int nameColumnWidth) {
+        int width = 4 + nameColumnWidth;
+        boolean any = totalVisible || missingVisible || availableVisible;
+        if (totalVisible) {
+            width += NAME_TO_TOTAL_GAP + totalWidth;
+        }
+        if (missingVisible) {
+            width += (totalVisible ? COUNT_COLUMN_GAP : NAME_TO_TOTAL_GAP) + missingWidth;
+        }
+        if (availableVisible) {
+            width += ((totalVisible || missingVisible) ? COUNT_COLUMN_GAP : NAME_TO_TOTAL_GAP) + availableWidth;
+        }
+        if (any) {
+            width += COUNT_COLUMN_GAP;
+        }
+        return width;
+    }
+
+    // Decides which of the total/missing/available columns fit in the
+    // available width, dropping available first, then total; missing is
+    // never dropped. Recomputed lazily whenever a getter is read, using
+    // whatever the (possibly still-animating) content widths currently are.
+    // Whatever overflow remains after hiding becomes the name-column clamp:
+    // the name column (the only column with no other shrink mechanism) gives
+    // up that much width, down to MIN_NAME_WIDTH, so rows fit the window and
+    // the right-anchored ignore button stays visible.
+    private static void recomputeVisibility() {
+        if (availableEntryWidth == Integer.MAX_VALUE) {
+            totalVisible = true;
+            missingVisible = true;
+            availableVisible = true;
+            nameClamp = 0;
+            return;
+        }
+
+        // Decide with the exact same formula rowWidth() uses (including its
+        // trailing gap); anything else lets a state pass the check here while
+        // rowWidth() still exceeds the budget, pushing rows past the window
+        // and clipping the right-anchored ignore button.
+        missingVisible = true;
+        totalVisible = true;
+        availableVisible = true;
+        if (rowWidth(nameWidth) <= availableEntryWidth) {
+            nameClamp = 0;
+            return;
+        }
+
+        availableVisible = false;
+        if (rowWidth(nameWidth) <= availableEntryWidth) {
+            nameClamp = 0;
+            return;
+        }
+
+        totalVisible = false;
+        nameClamp = Math.max(0, rowWidth(nameWidth) - availableEntryWidth);
+    }
+
+    private static int effectiveNameWidth() {
+        return nameClamp <= 0 ? nameWidth : Math.max(MIN_NAME_WIDTH, nameWidth - nameClamp);
     }
 
     public static int nameWidth() {
         advanceAnimation();
-        return nameWidth;
+        recomputeVisibility();
+        return effectiveNameWidth();
     }
 
     public static int totalWidth() {
