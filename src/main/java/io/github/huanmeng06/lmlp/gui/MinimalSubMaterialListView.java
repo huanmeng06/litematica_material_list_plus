@@ -65,6 +65,7 @@ public final class MinimalSubMaterialListView {
     private static String expandedSourceKey = "";
     private static String visibleSourceKey = "";
     private static String fullSourceKey = "";
+    private static SourceSortMode sourceSortMode = SourceSortMode.TOTAL_COUNT;
     private static long layoutRevision;
 
     private MinimalSubMaterialListView() {
@@ -284,7 +285,30 @@ public final class MinimalSubMaterialListView {
 
     public static List<SourceContribution> sourceContributions(MaterialListEntry entry) {
         DisplayData display = displayData(entry);
-        return display == null ? List.of() : display.sources();
+        return display == null ? List.of() : sortedSources(display.sources());
+    }
+
+    public static SourceSortMode sourceSortMode() {
+        return sourceSortMode;
+    }
+
+    public static void cycleSourceSortMode() {
+        sourceSortMode = sourceSortMode.next();
+    }
+
+    private static List<SourceContribution> sortedSources(List<SourceContribution> sources) {
+        if (sourceSortMode == SourceSortMode.TOTAL_COUNT) {
+            return sources;
+        }
+
+        List<SourceContribution> sorted = new ArrayList<>(sources);
+        sorted.sort(Comparator
+                .comparingInt(SourceContribution::missingCount)
+                .reversed()
+                .thenComparingInt(SourceContribution::totalCount)
+                .reversed()
+                .thenComparing(SourceContribution::name));
+        return List.copyOf(sorted);
     }
 
     public static List<RequirementContribution> sourceRequirements(MaterialListEntry entry, int totalCount, int missingCount) {
@@ -1304,6 +1328,15 @@ public final class MinimalSubMaterialListView {
     }
 
     public record SourceContribution(class_1799 icon, String name, int totalCount, int missingCount, int sourceTotalCount, int sourceMissingCount, int maxStackSize) {
+    }
+
+    public enum SourceSortMode {
+        TOTAL_COUNT, MISSING_COUNT;
+
+        public SourceSortMode next() {
+            SourceSortMode[] values = values();
+            return values[(this.ordinal() + 1) % values.length];
+        }
     }
 
     private static String itemPath(class_1799 stack) {

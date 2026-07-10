@@ -52,6 +52,8 @@
   "lmlp.label.minimal_sources.header_named": "%s requirement sources",
   "lmlp.label.minimal_sources.self_material": "%s is the main material",
   "lmlp.label.minimal_sources.detail_title": "All source materials",
+  "lmlp.label.minimal_sources.sort_total": "Sort: Total",
+  "lmlp.label.minimal_sources.sort_missing": "Sort: Missing",
   "lmlp.gui.title.configs": "Litematica Material List Plus Config - %s",
   "lmlp.gui.minimal_sources.title": "Source Material Details",
   "lmlp.gui.title.recipe_detail_header": "Litematica Material List Plus - %s",

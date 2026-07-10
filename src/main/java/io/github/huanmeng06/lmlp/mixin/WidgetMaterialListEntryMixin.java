@@ -241,6 +241,11 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
                     return true;
                 }
 
+                if (this.toggleMinimalSourceSort(mouseX, mouseY)) {
+                    this.listWidget.refreshEntries();
+                    return true;
+                }
+
                 if (this.openMinimalSourceRecipe(mouseX, mouseY)) {
                     return true;
                 }
@@ -996,6 +1001,29 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
 
         List<RecipeSummary> summaries = RecipeResolvers.findRecipes(source.icon(), source.sourceTotalCount(), source.sourceMissingCount());
         this.mc.method_1507(new RecipeDetailScreen(GuiUtils.getCurrentScreen(), source.icon(), source.sourceTotalCount(), source.sourceMissingCount(), summaries));
+        return true;
+    }
+
+    private boolean toggleMinimalSourceSort(int mouseX, int mouseY) {
+        if (!MinimalSubMaterialListView.isSourcesVisible(this.entry)) {
+            return false;
+        }
+
+        class_1799 stack = MinimalSubMaterialListView.displayStack(this.entry);
+        int total = MinimalSubMaterialListView.total(this.entry, this.materialList);
+        int missing = MinimalSubMaterialListView.netMissing(this.entry, this.materialList);
+        List<MinimalSubMaterialListView.RequirementContribution> requirements = MinimalSubMaterialListView.sourceRequirements(this.entry, total, missing);
+        List<MinimalSubMaterialListView.SourceContribution> sources = MinimalSubMaterialListView.sourceContributions(this.entry);
+        boolean showAllSources = MinimalSubMaterialListView.isSourcesFull(this.entry);
+        int panelX = this.x + 28;
+        int panelY = this.y + 23;
+        int panelWidth = this.minimalSourcePanelWidth();
+        int visibleOuterHeight = MinimalSourceInlineRenderer.getOuterHeight(stack, requirements, sources, showAllSources, panelWidth, MinimalSubMaterialListView.sourceProgress(this.entry));
+        if (!MinimalSourceInlineRenderer.isSortButtonHovered(panelX, panelY, panelWidth, stack, requirements, sources, visibleOuterHeight, mouseX, mouseY)) {
+            return false;
+        }
+
+        MinimalSubMaterialListView.cycleSourceSortMode();
         return true;
     }
 

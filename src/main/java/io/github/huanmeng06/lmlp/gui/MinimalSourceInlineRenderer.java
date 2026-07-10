@@ -21,6 +21,8 @@ public final class MinimalSourceInlineRenderer {
     private static final int SOURCE_ICON_BOX_SIZE = 18;
     private static final int SOURCE_ICON_BOX_Y_OFFSET = -3;
     private static final int SECTION_GAP = 6;
+    private static final int SORT_BUTTON_HEIGHT = 14;
+    private static final int SORT_BUTTON_PADDING_X = 4;
     private static final int TEXT_HOVER_HEIGHT = 12;
     private static final int UPSTREAM_GAP = 18;
     private static final int UPSTREAM_ARROW_WIDTH = 18;
@@ -247,6 +249,15 @@ public final class MinimalSourceInlineRenderer {
         }
 
         widget.drawString(textX, cursorY, 0xFFFFFFFF, StringUtils.translate("lmlp.label.minimal_sources.header_named", boldTargetName), context);
+        String sortLabel = sortButtonLabel();
+        int sortButtonWidth = StringUtils.getStringWidth(sortLabel) + SORT_BUTTON_PADDING_X * 2;
+        int sortButtonX = x + panelWidth - PADDING - sortButtonWidth;
+        boolean sortHovered = isVisibleBoxHovered(sortButtonX, cursorY - 2, sortButtonWidth, SORT_BUTTON_HEIGHT, y, visibleHeight, mouseX, mouseY);
+        RenderUtils.drawRect(sortButtonX, cursorY - 2, sortButtonWidth, SORT_BUTTON_HEIGHT, sortHovered ? 0x50FFFFFF : 0x30FFFFFF);
+        widget.drawString(sortButtonX + SORT_BUTTON_PADDING_X, cursorY, sortHovered ? 0xFFFFFF55 : 0xFFCCCCCC, sortLabel, context);
+        if (sortHovered) {
+            ClickableCursor.requestHand();
+        }
         cursorY += 18;
 
         int boxY = cursorY;
@@ -274,6 +285,36 @@ public final class MinimalSourceInlineRenderer {
 
         context.method_44380();
         drawOutline(x, y, panelWidth, visibleHeight, 0xFF777777);
+    }
+
+    private static int headerRowY(int y, List<MinimalSubMaterialListView.RequirementContribution> requirements, int contentWidth) {
+        int cursorY = y + PADDING + 24;
+        if (!requirements.isEmpty()) {
+            cursorY += 18 + requirementsBlockRowsHeight(requirements, contentWidth) + SECTION_GAP;
+        }
+        return cursorY;
+    }
+
+    private static String sortButtonLabel() {
+        String key = MinimalSubMaterialListView.sourceSortMode() == MinimalSubMaterialListView.SourceSortMode.TOTAL_COUNT
+                ? "lmlp.label.minimal_sources.sort_total"
+                : "lmlp.label.minimal_sources.sort_missing";
+        return StringUtils.translate(key);
+    }
+
+    public static boolean isSortButtonHovered(int x, int y, int width, class_1799 targetIcon, List<MinimalSubMaterialListView.RequirementContribution> requirements, List<MinimalSubMaterialListView.SourceContribution> sources, int visibleOuterHeight, int mouseX, int mouseY) {
+        if (sources.isEmpty() || isSelfSource(targetIcon, sources)) {
+            return false;
+        }
+
+        int panelWidth = panelWidthFor(width);
+        int contentWidth = Math.max(1, panelWidth - PADDING * 2);
+        int visibleHeight = Math.max(0, visibleOuterHeight - ENTRY_BOTTOM_GAP);
+        int cursorY = headerRowY(y, requirements, contentWidth);
+        String label = sortButtonLabel();
+        int buttonWidth = StringUtils.getStringWidth(label) + SORT_BUTTON_PADDING_X * 2;
+        int buttonX = x + panelWidth - PADDING - buttonWidth;
+        return isVisibleBoxHovered(buttonX, cursorY - 2, buttonWidth, SORT_BUTTON_HEIGHT, y, visibleHeight, mouseX, mouseY);
     }
 
     private static int visibleSourceCount(List<MinimalSubMaterialListView.SourceContribution> sources) {

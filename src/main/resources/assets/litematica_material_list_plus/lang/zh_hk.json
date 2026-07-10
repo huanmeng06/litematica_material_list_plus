@@ -52,6 +52,8 @@
   "lmlp.label.minimal_sources.header_named": "%s需求來源",
   "lmlp.label.minimal_sources.self_material": "%s即為主材料",
   "lmlp.label.minimal_sources.detail_title": "所有來源主材料",
+  "lmlp.label.minimal_sources.sort_total": "排序：總需求數量",
+  "lmlp.label.minimal_sources.sort_missing": "排序：缺少數量",
   "lmlp.gui.title.configs": "Litematica Material List Plus 設定 - %s",
   "lmlp.gui.minimal_sources.title": "來源主材料詳情",
   "lmlp.gui.title.recipe_detail_header": "Litematica Material List Plus - %s",
