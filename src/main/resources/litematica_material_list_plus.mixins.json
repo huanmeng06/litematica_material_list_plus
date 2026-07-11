@@ -21,6 +21,7 @@
     "MaterialListBaseMixin",
     "MaterialListHudRendererMixin",
     "MaterialListPlacementMixin",
+    "MinecraftClientFramebufferMixin",
     "SchematicPlacementManagerMixin",
     "SchematicPlacementMixin",
     "WidgetListBaseMixin",

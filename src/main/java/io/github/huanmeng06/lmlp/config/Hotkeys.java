@@ -11,7 +11,8 @@ public final class Hotkeys {
             "openConfigGui",
             "L,C",
             KeybindSettings.EXCLUSIVE,
-            "Open the Litematica Material List Plus config screen.",
+            "lmlp.config.comment.open_config_gui",
+            "lmlp.config.name.open_config_gui",
             "lmlp.config.name.open_config_gui"
     );
 
@@ -19,7 +20,8 @@ public final class Hotkeys {
             "clearOriginMarker",
             "",
             KeybindSettings.PRESS_ALLOWEXTRA_EMPTY,
-            "Clear the active placement origin highlight and beam.",
+            "lmlp.config.comment.clear_origin_marker",
+            "lmlp.config.name.clear_origin_marker",
             "lmlp.config.name.clear_origin_marker"
     );
 
