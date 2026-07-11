@@ -2,7 +2,7 @@
 
 这份记录只覆盖 LMLP 当前源码会触碰到的 Minecraft / Litematica / MaLiLib / REI 接口。它不是完整的 Minecraft API 索引，目的是在以后做多版本编译或回移功能时，先查这里，再决定要改哪一层。
 
-最后更新：2026-06-10，分支：`dev-newFeature`。
+最后更新：2026-07-12，分支：`mc1.21.5`。
 
 ## 验证范围
 
@@ -27,7 +27,8 @@
 3. `MaLiLib WidgetListBase.onMouseScrolled` 在 `1.20.1` 是 `(int mouseX, int mouseY, double amount)`，从本地 `1.20.6` 起是 `(int mouseX, int mouseY, double horizontalAmount, double verticalAmount)`。这会直接影响 `WidgetListBaseMixin` 的注入描述符。
 4. `Identifier` (`net.minecraft.class_2960`) 在 `1.21.1+` 构造器变成 private。`new class_2960(namespace, path)` 只能用于 `1.20.x`，`1.21.x` 要改用静态工厂。
 5. `DrawContext.drawTexture` (`class_332.method_25290`) 在 `1.21.4+` 增加了 `Function<class_2960, class_1921>` render layer 参数。1.20.x / 1.21.1 的旧签名不能直接搬过去。
-6. Litematica 0.22.x 开始有部分路径 API 从 `java.io.File` 转向 `java.nio.file.Path`，例如 `SchematicPlacement.getSchematicFile()` 和 `DataManager.getSchematicsBaseDirectory()`。当前 LMLP 主逻辑尽量不要依赖这些返回类型。
+6. `1.21.5` 的 GUI 物品渲染已经进入新的 GPU framebuffer/readback 路径。禁用条目的灰度 3D 图标不能再靠旧版 `Framebuffer.beginWrite + glReadPixels`，需要用临时 framebuffer override + `copyTextureToBuffer` 异步回读。
+7. Litematica 0.22.x 开始有部分路径 API 从 `java.io.File` 转向 `java.nio.file.Path`，例如 `SchematicPlacement.getSchematicFile()` 和 `DataManager.getSchematicsBaseDirectory()`。当前 LMLP 主逻辑尽量不要依赖这些返回类型。
 
 ## LMLP 当前源码直接引用的 MC intermediary 类
 
@@ -94,6 +95,62 @@
 | `method_25290` | `(Identifier,int,int,float,float,int,int,int,int)` | `(Function<Identifier,RenderLayer>,Identifier,int,int,float,float,int,int,int,int)` | `ToggleArrowRenderer` 贴图绘制 |
 
 适配 `1.21.4+` 时，凡是旧版 `context.method_25290(texture, ...)` 都要加 render layer factory。可优先查目标 Yarn 名称中的 `DrawContext.drawTexture` 变体，再回到 intermediary 名。
+
+### 1.21.5 GUI 物品图标灰度渲染
+
+这个坑来自 v1.7.0 的禁用条目灰度图标：业务要求是保留原版 `DrawContext.drawItem` 的 3D 方块效果，只把最终像素转成灰度，不能用 particle sprite 重画，也不能用 shader color/tint 近似。
+
+#### ≤1.21.4 的旧方案
+
+旧版可行路径是：
+
+1. 创建 64×64 offscreen framebuffer。
+2. 绑定这个 framebuffer 为当前 render target。
+3. 调用 `DrawContext.method_51427(ItemStack, x, y)` 画原版 3D 图标。
+4. 同步读回像素，转灰度，上传为动态贴图并缓存。
+
+这个方案在 `1.21.5` 不再能直接搬：
+
+| 旧依赖 | 1.21.5 变化 |
+| --- | --- |
+| `class_276.method_1235(boolean)` / beginWrite | `class_276` 不再提供公开的 framebuffer bind/beginWrite 路径。 |
+| 绑定纹理后同步读像素 | 新 GPU 路径使用 `CommandEncoder.copyTextureToBuffer(...)` 异步回调读回。 |
+| 依赖全局 GL scissor / render target 状态 | scissor / target 更集中在 RenderPass / RenderLayer 输出阶段。 |
+
+#### 1.21.5 当前稳定方案
+
+当前 `mc1.21.5` 分支采用的是“让原版 GUI 绘制仍然执行，但临时劫持 MinecraftClient 的主 framebuffer getter”：
+
+- 新增 `GrayscaleRenderTargetOverride` 保存一个当前线程内的临时 `class_276`。
+- 新增 `MinecraftClientFramebufferMixin` 注入 `class_310.method_1522()`；当 override 存在时返回灰度图标专用 framebuffer。
+- 构建灰度图标时：
+  1. 创建 `class_6367("lmlp grayscale item icon", 64, 64, true)`。
+  2. 用 `CommandEncoder.clearColorTexture` / `clearColorAndDepthTextures` 清成透明背景。
+  3. `GrayscaleRenderTargetOverride.set(framebuffer)`。
+  4. 设置 0..16 的正交投影，创建新的 `DrawContext`，调用 `method_51427(stack, 0, 0)`，再 `method_51452()` flush。
+  5. `finally` 中清除 override，恢复 projection、model-view 和 scissor。
+  6. 用 `copyTextureToBuffer` 异步回读 framebuffer color texture。
+  7. 回调中按 vanilla ScreenshotRecorder 的方式读取 tight-packed buffer，Y 轴翻转，生成 `NativeImage`。
+  8. 使用 ARGB 通道计算 luminance，保留 alpha，上传为 `NativeImageBackedTexture`。
+
+关键点：
+
+- 必须先 flush 外层 `DrawContext`，避免正在进行的 GUI immediate buffer 和 offscreen 绘制互相污染。
+- override 必须放在 `try/finally`，任何异常都要恢复；否则后续 GUI/世界渲染可能被错误地画进 64×64 framebuffer。
+- 清屏颜色必须是 `0x00000000`，否则禁用图标背景会从透明变成黑底。
+- `copyTextureToBuffer` 是异步的，所以 `prewarm()` 只启动构建；`render()` 在缓存未 ready 时返回 `false`，由调用方先画彩色 fallback，下一帧缓存 ready 后再替换为灰度。
+- 1.21.5 当前像素读取用 `NativeImage.method_61940/method_61941` 的 ARGB 语义：`AARRGGBB`。如果未来版本出现红蓝偏色，优先检查这里的通道顺序。
+
+#### 后续版本移植检查
+
+移植到 `1.21.6+` 或更高版本时，优先确认：
+
+- `class_310.method_1522()` 是否仍是 RenderLayer 输出阶段取主 framebuffer 的路径；如果不再走这里，`MinecraftClientFramebufferMixin` 会失效。
+- `class_6367` 构造器和 `class_276.method_30277()/method_30278()` 是否仍能拿到 color/depth `GpuTexture`。
+- `CommandEncoder.copyTextureToBuffer(...)` 的参数顺序和 callback 线程语义是否变化。
+- `DrawContext.method_51427` 是否仍在 `method_51452()` 后通过 `MinecraftClient.method_1522()` 决定输出目标。
+- scissor capture/restore API 是否变化；构建 offscreen icon 时必须禁用 scissor，否则图标可能被当前列表裁剪掉。
+- 实机验证必须包含：方块物品保持 3D 灰度、普通物品无红蓝偏色、背景透明、通配符行预热后会灰度轮换、GUI 其他控件没有被 scissor/projection 污染。
 
 ### `class_1799` / ItemStack
 
@@ -214,6 +271,9 @@
 | 文件 | 关注点 |
 | --- | --- |
 | `src/main/java/io/github/huanmeng06/lmlp/gui/ToggleArrowRenderer.java` | `new class_2960(...)` 和 `DrawContext.method_25290(...)`，1.21.x/1.21.4+ 必改 |
+| `src/main/java/io/github/huanmeng06/lmlp/gui/textlist/GrayscaleItemIcon.java` | 1.21.5+ 的 GUI item offscreen render/readback，重点查 framebuffer override、异步 `copyTextureToBuffer`、ARGB 通道顺序 |
+| `src/main/java/io/github/huanmeng06/lmlp/gui/textlist/GrayscaleRenderTargetOverride.java` | 1.21.5+ 临时 render target override，必须确保 set/clear 成对且异常安全 |
+| `src/main/java/io/github/huanmeng06/lmlp/mixin/MinecraftClientFramebufferMixin.java` | 1.21.5+ 劫持 `MinecraftClient.method_1522()` 的关键点；升级后要确认 RenderLayer 输出仍走这个 getter |
 | `src/main/java/io/github/huanmeng06/lmlp/mixin/WidgetListBaseMixin.java` | `onMouseScrolled` 注入签名必须跟 MaLiLib 版本一致 |
 | `src/main/java/io/github/huanmeng06/lmlp/mixin/HandledScreenMixin.java` | `HandledScreen` key/close 注入使用 intermediary 方法名，按目标 jar 确认 |
 | `src/main/java/io/github/huanmeng06/lmlp/cache/ChunkMissingMaterialListCache.java` | `ClientWorld.method_8393`、维度判断、Litematica placement manager |
@@ -245,3 +305,5 @@
    - Litematica 材料列表刷新按钮。
    - 区块内实时扫描 / 远距离 cache / 跨维度 cache。
    - REI tooltip、配方详情页、native display 滚轮和点击。
+   - 配置页在简体中文下不出现 camelCase 配置名，例如 `disableLitematicaHoverTooltip`。
+   - 1.21.5+ 禁用条目的物品图标是真灰度、背景透明、方块仍保留原版 3D 角度。
