@@ -96,14 +96,16 @@ public class Configs implements IConfigHandler {
         public static final ConfigBoolean DISABLE_LITEMATICA_HOVER_TOOLTIP = new ConfigBoolean(
                 "disableLitematicaHoverTooltip",
                 true,
-                "Disable Litematica's original material hover tooltip. Turn this off to show Litematica's original tooltip.",
+                "lmlp.config.comment.disable_litematica_hover_tooltip",
+                "lmlp.config.name.disable_litematica_hover_tooltip",
                 "lmlp.config.name.disable_litematica_hover_tooltip"
         );
 
         public static final ConfigOptionList COUNT_DISPLAY_STYLE = new ConfigOptionList(
                 "countDisplayStyle",
                 CountDisplayStyle.STYLE_1,
-                "Style 1: boxes + stacks + items\nStyle 2: total = boxes + stacks + items\nStyle 3: A × SB + B × 64 (16) + C\nStyle 4: total (Litematica)",
+                "lmlp.config.comment.count_display_style",
+                "lmlp.config.name.count_display_style",
                 "lmlp.config.name.count_display_style"
         );
 
@@ -113,7 +115,9 @@ public class Configs implements IConfigHandler {
                 1,
                 600,
                 true,
-                "How many seconds a clicked placement origin highlight and beam stay visible."
+                "lmlp.config.comment.origin_marker_time",
+                "lmlp.config.name.origin_marker_time",
+                "lmlp.config.name.origin_marker_time"
         );
 
         public static final ConfigInteger ORIGIN_MARKER_TEXT_SCALE = new ConfigInteger(
@@ -122,7 +126,9 @@ public class Configs implements IConfigHandler {
                 1,
                 5,
                 true,
-                "Text scale for the placement origin marker label. 1 is smallest, 5 is largest."
+                "lmlp.config.comment.origin_marker_text_scale",
+                "lmlp.config.name.origin_marker_text_scale",
+                "lmlp.config.name.origin_marker_text_scale"
         );
 
         public static final ConfigInteger MISSING_PLACEMENT_BUTTON_RANGE = new ConfigInteger(
@@ -131,25 +137,32 @@ public class Configs implements IConfigHandler {
                 8,
                 1024,
                 true,
-                "How close (in blocks) the player must be to an offline-cached placement's recorded origin for the \"I can't find it\" button to appear on that row."
+                "lmlp.config.comment.missing_placement_button_range",
+                "lmlp.config.name.missing_placement_button_range",
+                "lmlp.config.name.missing_placement_button_range"
         );
 
         public static final ConfigStringList RECIPE_STOP_ITEMS = new ConfigStringList(
                 "recipeStopItems",
                 DEFAULT_RECIPE_STOP_ITEMS,
-                "Items in this list are treated as base materials. Use {color} to match all 16 Minecraft colors, for example minecraft:{color}_wool."
+                "lmlp.config.comment.recipe_stop_items",
+                "lmlp.config.name.recipe_stop_items",
+                "lmlp.config.name.recipe_stop_items"
         );
 
         public static final ConfigStringList KEEP_AS_LEAF_ITEMS = new ConfigStringList(
                 "keepAsLeafItems",
                 DEFAULT_KEEP_AS_LEAF_ITEMS,
-                "Materials in this list are kept as their own counted row (with a 所需 decomposition hint) instead of being decomposed into raw materials. Removing an entry lets that material keep decomposing toward logs. Use {color}/{wood} wildcards, for example minecraft:{wood}_slab."
+                "lmlp.config.comment.keep_as_leaf_items",
+                "lmlp.config.name.keep_as_leaf_items",
+                "lmlp.config.name.keep_as_leaf_items"
         );
 
         public static final ConfigBoolean REPLACE_WATER_BUCKET_WITH_ICE = new ConfigBoolean(
                 "replaceWaterBucketWithIce",
                 false,
-                "When enabled, water buckets required by the material list are shown and counted as ice instead, one ice per bucket.",
+                "lmlp.config.comment.replace_water_bucket_with_ice",
+                "lmlp.config.name.replace_water_bucket_with_ice",
                 "lmlp.config.name.replace_water_bucket_with_ice"
         );
 
