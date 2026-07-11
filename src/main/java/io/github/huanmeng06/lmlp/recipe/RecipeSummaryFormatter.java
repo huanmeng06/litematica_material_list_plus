@@ -12,12 +12,23 @@ public final class RecipeSummaryFormatter {
     }
 
     public static String header(RecipeSummary summary, int index) {
-        String base = StringUtils.translate("lmlp.label.recipe.header", index, summary.outputCount(), summary.craftsTotal());
+        return headerBase(summary, index) + " / " + headerMissing(summary);
+    }
+
+    // The " / missing" suffix carries color codes as a single unit; callers
+    // that need to fit this header into a narrow width should fall back to
+    // just the plain base text (or wrap the two onto separate lines) rather
+    // than truncating mid-color-code.
+    public static String headerBase(RecipeSummary summary, int index) {
+        return StringUtils.translate("lmlp.label.recipe.header", index, summary.outputCount(), summary.craftsTotal());
+    }
+
+    public static String headerMissing(RecipeSummary summary) {
         String missing = StringUtils.translate("lmlp.label.recipe.header.missing", summary.craftsMissing());
         if (summary.craftsMissing() == 0) {
             missing = GuiBase.TXT_GREEN + missing + GuiBase.TXT_RST;
         }
-        return base + " / " + missing;
+        return missing;
     }
 
     public static String ingredientName(IngredientSummary ingredient) {

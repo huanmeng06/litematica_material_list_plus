@@ -14,10 +14,10 @@ import fi.dy.masa.malilib.util.StringUtils;
 import io.github.huanmeng06.lmlp.access.MinimalChoiceTooltipAccess;
 import io.github.huanmeng06.lmlp.access.WidgetListBoundsAccess;
 import io.github.huanmeng06.lmlp.config.Configs;
-import io.github.huanmeng06.lmlp.config.Hotkeys;
 import io.github.huanmeng06.lmlp.gui.MaterialListColumnLayout;
 import io.github.huanmeng06.lmlp.gui.MaterialListPlusState;
 import io.github.huanmeng06.lmlp.gui.ItemTooltipRenderer;
+import io.github.huanmeng06.lmlp.material.ItemStackTexts;
 import io.github.huanmeng06.lmlp.gui.MinimalSubMaterialListView;
 import io.github.huanmeng06.lmlp.gui.MinimalSourceInlineRenderer;
 import io.github.huanmeng06.lmlp.gui.RecipeDetailScreen;
@@ -50,10 +50,6 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
     private static final int CHOICE_TOOLTIP_COLUMN_GAP = 14;
     private static final int CHOICE_TOOLTIP_ROW_HEIGHT = 18;
     private static final int CHOICE_TOOLTIP_TWO_COLUMN_THRESHOLD = 7;
-    private static final int REQUIREMENT_UPSTREAM_GAP = 18;
-    private static final int REQUIREMENT_UPSTREAM_ARROW_WIDTH = 18;
-    private static final int REQUIREMENT_UPSTREAM_AFTER_ARROW_GAP = 8;
-    private static final int REQUIREMENT_ICON_TEXT_GAP = 26;
     private static final int VANILLA_TOOLTIP_HEIGHT = 68;
     private static final int VANILLA_TOOLTIP_MARGIN = 10;
     private static final int VANILLA_TOOLTIP_LABEL_VALUE_GAP = 20;
@@ -154,17 +150,61 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
      */
     @Overwrite
     protected int getColumnPosX(int column) {
+        boolean totalVisible = MaterialListColumnLayout.isTotalVisible();
+        boolean missingVisible = MaterialListColumnLayout.isMissingVisible();
+        boolean availableVisible = MaterialListColumnLayout.isAvailableVisible();
+
         int xItem = this.x + 4;
-        int xTotal = xItem + MaterialListColumnLayout.nameWidth() + MaterialListColumnLayout.nameToTotalGap();
-        int xMissing = xTotal + MaterialListColumnLayout.totalWidth() + MaterialListColumnLayout.countColumnGap();
-        int xAvailable = xMissing + MaterialListColumnLayout.missingWidth() + MaterialListColumnLayout.countColumnGap();
+        int cursor = xItem + MaterialListColumnLayout.nameWidth();
+
+        int xTotal = cursor;
+        if (totalVisible) {
+            cursor += MaterialListColumnLayout.nameToTotalGap();
+            xTotal = cursor;
+            cursor += MaterialListColumnLayout.totalWidth();
+        }
+
+        int xMissing = cursor;
+        if (missingVisible) {
+            cursor += totalVisible ? MaterialListColumnLayout.countColumnGap() : MaterialListColumnLayout.nameToTotalGap();
+            xMissing = cursor;
+            cursor += MaterialListColumnLayout.missingWidth();
+        }
+
+        int xAvailable = cursor;
+        if (availableVisible) {
+            cursor += (totalVisible || missingVisible) ? MaterialListColumnLayout.countColumnGap() : MaterialListColumnLayout.nameToTotalGap();
+            xAvailable = cursor;
+            cursor += MaterialListColumnLayout.availableWidth();
+        }
+
+        // The trailing gap only applies while the available column is shown;
+        // once it is hidden the row's sortable content ends at the last
+        // visible column, so the ignore-button boundary starts right there.
+        int xEnd = availableVisible
+                ? cursor + MaterialListColumnLayout.countColumnGap()
+                : cursor;
+
+        // Collapse hidden columns rightward onto the next visible position so
+        // malilib's renderColumnHeader (which draws a box from getColumnPosX(i)
+        // to getColumnPosX(i+1) for every column index) draws zero-width boxes
+        // for them instead of leftover empty frames spanning the gaps.
+        if (!availableVisible) {
+            xAvailable = xEnd;
+        }
+        if (!missingVisible) {
+            xMissing = xAvailable;
+        }
+        if (!totalVisible) {
+            xTotal = xMissing;
+        }
 
         return switch (column) {
             case 0 -> xItem;
             case 1 -> xTotal;
             case 2 -> xMissing;
             case 3 -> xAvailable;
-            case 4 -> xAvailable + MaterialListColumnLayout.availableWidth() + MaterialListColumnLayout.countColumnGap();
+            case 4 -> xEnd;
             default -> xItem;
         };
     }
@@ -197,7 +237,8 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
 
         if (MinimalSubMaterialListView.isActive(this.materialList)) {
             if (mouseButton == 0 && this.isMouseOver(mouseX, mouseY)) {
-                if (this.handleMinimalIgnoreClick(mouseX, mouseY)) {
+                if (this.toggleMinimalSourceSort(mouseX, mouseY)) {
+                    this.listWidget.refreshEntries();
                     return true;
                 }
 
@@ -249,25 +290,6 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         return false;
     }
 
-    private boolean handleMinimalIgnoreClick(int mouseX, int mouseY) {
-        if (!this.isMinimalIgnoreButtonHovered(mouseX, mouseY)) {
-            return false;
-        }
-
-        MinimalSubMaterialListView.ignoreEntry(this.materialList, this.entry, "entry-hitbox", true);
-        MaterialListPlusState.clear();
-        this.listWidget.refreshEntries();
-        return true;
-    }
-
-    private boolean isMinimalIgnoreButtonHovered(int mouseX, int mouseY) {
-        int xButton = this.getColumnPosX(4);
-        return mouseX >= xButton
-                && mouseX < this.x + this.width
-                && mouseY >= this.y + 1
-                && mouseY < this.y + Math.min(this.height, 22);
-    }
-
     /**
      * @author Huan_meeng
      * @reason Preserve original non-selectable rows.
@@ -300,9 +322,15 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         if (this.header1 != null) {
             if (!this.listWidget.getSearchBarWidget().isSearchOpen()) {
                 this.drawString(xItem, yText, -1, this.header1, drawContext);
-                this.drawString(xTotal, yText, -1, this.header2, drawContext);
-                this.drawString(xMissing, yText, -1, this.header3, drawContext);
-                this.drawString(xAvailable, yText, -1, this.header4, drawContext);
+                if (MaterialListColumnLayout.isTotalVisible()) {
+                    this.drawString(xTotal, yText, -1, this.header2, drawContext);
+                }
+                if (MaterialListColumnLayout.isMissingVisible()) {
+                    this.drawString(xMissing, yText, -1, this.header3, drawContext);
+                }
+                if (MaterialListColumnLayout.isAvailableVisible()) {
+                    this.drawString(xAvailable, yText, -1, this.header4, drawContext);
+                }
                 this.renderColumnHeader(mouseX, mouseY, Icons.ARROW_DOWN, Icons.ARROW_UP, drawContext);
             }
 
@@ -322,10 +350,16 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         boolean minimalSubMaterialView = MinimalSubMaterialListView.isActive(this.materialList);
 
         int iconX = xItem;
-        this.drawString(xItem + 20, yText, -1, name, drawContext);
-        this.drawString(xTotal, yText, -1, CountFormatter.formatAligned(stack, total, lmlpMaxTotalDigits), drawContext);
-        this.drawString(xMissing, yText, -1, netMissingColor(missing) + CountFormatter.formatAligned(stack, missing, lmlpMaxMissingDigits), drawContext);
-        this.drawString(xAvailable, yText, -1, availableColor(available, rawMissing) + CountFormatter.formatAligned(stack, available, lmlpMaxAvailableDigits), drawContext);
+        this.drawString(xItem + 20, yText, -1, this.truncateToWidth(name, this.lmlp$nameTextLimit()), drawContext);
+        if (MaterialListColumnLayout.isTotalVisible()) {
+            this.drawString(xTotal, yText, -1, CountFormatter.formatAligned(stack, total, lmlpMaxTotalDigits), drawContext);
+        }
+        if (MaterialListColumnLayout.isMissingVisible()) {
+            this.drawString(xMissing, yText, -1, netMissingColor(missing) + CountFormatter.formatAligned(stack, missing, lmlpMaxMissingDigits), drawContext);
+        }
+        if (MaterialListColumnLayout.isAvailableVisible()) {
+            this.drawString(xAvailable, yText, -1, availableColor(available, rawMissing) + CountFormatter.formatAligned(stack, available, lmlpMaxAvailableDigits), drawContext);
+        }
 
         drawContext.method_51448().method_22903();
         RenderUtils.enableDiffuseLightingGui3D();
@@ -342,8 +376,9 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
                 summaries = MaterialListPlusState.getCachedSummaries(this.entry);
             }
             int panelY = this.y + 23;
-            int visibleOuterHeight = RecipeInlineRenderer.getOuterHeight(summaries, MaterialListPlusState.recipeProgress(this.entry));
-            RecipeInlineRenderer.render(this, drawContext, this.x + 28, panelY, Math.max(180, this.width - 64), summaries, visibleOuterHeight, mouseX, mouseY);
+            int panelWidth = Math.max(180, this.width - 64);
+            int visibleOuterHeight = RecipeInlineRenderer.getOuterHeight(summaries, panelWidth, MaterialListPlusState.recipeProgress(this.entry));
+            RecipeInlineRenderer.render(this, drawContext, this.x + 28, panelY, panelWidth, summaries, visibleOuterHeight, mouseX, mouseY);
         }
 
         if (minimalSubMaterialView && MinimalSubMaterialListView.isSourcesVisible(this.entry)) {
@@ -377,6 +412,14 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
             return;
         }
 
+        if (this.lmlp$renderTruncatedNameTooltip(drawContext, mouseX, mouseY)) {
+            return;
+        }
+
+        if (this.lmlp$renderRecipeChoiceGroupTooltip(drawContext, mouseX, mouseY)) {
+            return;
+        }
+
         if (this.lmlp$renderPanelItemTooltip(drawContext, mouseX, mouseY)) {
             return;
         }
@@ -386,6 +429,92 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         }
 
         this.renderVanillaMaterialHoverTooltip(drawContext, mouseX, mouseY);
+    }
+
+    // The narrow-window name clamp truncates the name column text; show the
+    // full name as a tooltip when hovering a truncated name.
+    private int lmlp$nameTextLimit() {
+        // The name text starts 20px into the name column (after the item
+        // icon); the raw column width never truncates because it was measured
+        // from the widest name, so this only bites once the clamp kicks in.
+        return MaterialListColumnLayout.nameWidth() + 20;
+    }
+
+    private boolean lmlp$renderTruncatedNameTooltip(class_332 drawContext, int mouseX, int mouseY) {
+        if (this.entry == null || this.header1 != null) {
+            return false;
+        }
+
+        String fullName = MinimalSubMaterialListView.displayName(this.entry);
+        String shownName = this.truncateToWidth(fullName, this.lmlp$nameTextLimit());
+        if (shownName.equals(fullName)) {
+            return false;
+        }
+
+        int nameX = this.getColumnPosX(0) + 20;
+        if (mouseX < nameX
+                || mouseX >= nameX + this.getStringWidth(shownName)
+                || mouseY < this.y + 1
+                || mouseY >= this.y + Math.min(this.height, 22)) {
+            return false;
+        }
+
+        RenderUtils.drawHoverText(mouseX, mouseY, List.of(fullName), drawContext);
+        return true;
+    }
+
+    // Hovering a choice-group ("任意X") name in the recipe panel shows the
+    // concrete items it stands for, distinct from hovering its item icon
+    // (which still shows the vanilla item tooltip via lmlp$renderPanelItemTooltip).
+    private boolean lmlp$renderRecipeChoiceGroupTooltip(class_332 drawContext, int mouseX, int mouseY) {
+        if (this.entry == null || !MaterialListPlusState.isRecipeVisible(this.entry)) {
+            return false;
+        }
+
+        List<RecipeSummary> summaries = MaterialListPlusState.getSummaries(this.entry, this.materialList);
+        if (summaries.isEmpty()) {
+            summaries = MaterialListPlusState.getCachedSummaries(this.entry);
+        }
+        int panelX = this.x + 28;
+        int panelY = this.y + 23;
+        int panelWidth = Math.max(180, this.width - 64);
+        int visibleOuterHeight = RecipeInlineRenderer.getOuterHeight(summaries, panelWidth, MaterialListPlusState.recipeProgress(this.entry));
+        RecipeInlineRenderer.ChoiceGroupHover hover = RecipeInlineRenderer.hoveredChoiceGroup(summaries, panelX, panelY, panelWidth, visibleOuterHeight, mouseX, mouseY);
+        if (hover == null) {
+            return false;
+        }
+
+        List<MinimalSubMaterialListView.TooltipCandidate> candidates = lmlp$choiceGroupCandidates(hover);
+        if (candidates.isEmpty()) {
+            return false;
+        }
+
+        return this.lmlp$renderChoiceGrid(drawContext, mouseX, mouseY, hover.icon(), MinimalSubMaterialListView.emphasizeChoiceGroupName(hover.name()), candidates);
+    }
+
+    // Build the grid candidates for a hovered choice group. The names list can
+    // drift out of parallel with the icons (unioned children dedupe icons by id
+    // separately from names), so only trust names when it lines up 1:1;
+    // otherwise derive each row's label from its own icon to guarantee the
+    // icon and name always match.
+    private static List<MinimalSubMaterialListView.TooltipCandidate> lmlp$choiceGroupCandidates(RecipeInlineRenderer.ChoiceGroupHover hover) {
+        List<class_1799> icons = hover.icons();
+        List<String> names = hover.alternatives();
+        if (icons.isEmpty()) {
+            return List.of();
+        }
+
+        boolean namesParallel = names.size() == icons.size();
+        List<MinimalSubMaterialListView.TooltipCandidate> candidates = new java.util.ArrayList<>(icons.size());
+        for (int index = 0; index < icons.size(); index++) {
+            class_1799 icon = icons.get(index);
+            if (icon.method_7960()) {
+                continue;
+            }
+            String name = namesParallel ? names.get(index) : ItemStackTexts.name(icon);
+            candidates.add(new MinimalSubMaterialListView.TooltipCandidate(icon.method_7972(), name));
+        }
+        return candidates;
     }
 
     @Override
@@ -403,6 +532,12 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
             return false;
         }
 
+        return this.lmlp$renderChoiceGrid(drawContext, mouseX, mouseY, target.icon(), target.name(), candidates);
+    }
+
+    // Shared rich choice-group grid (icon + name, one/two columns) used by both
+    // the minimal sub-material page and the recipe panel's "任意X" hover.
+    private boolean lmlp$renderChoiceGrid(class_332 drawContext, int mouseX, int mouseY, class_1799 headerStack, String headerName, List<MinimalSubMaterialListView.TooltipCandidate> candidates) {
         int maxPanelWidth = Math.max(120, this.mc.method_22683().method_4486() - HOVER_TOOLTIP_MARGIN * 2);
         int maxContentWidth = Math.max(80, maxPanelWidth - HOVER_TOOLTIP_PADDING * 2);
         int maxCandidateNameWidth = 0;
@@ -422,9 +557,8 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         int rowsPerColumn = (candidates.size() + columns - 1) / columns;
         int candidateContentWidth = columns * columnWidth + columnGap;
 
-        class_1799 headerStack = target.icon();
         String headerText = this.truncateToWidth(
-                target.name(),
+                headerName,
                 Math.max(20, maxContentWidth - HOVER_TOOLTIP_ICON_SIZE - HOVER_TOOLTIP_ICON_GAP));
         int headerWidth = HOVER_TOOLTIP_ICON_SIZE + HOVER_TOOLTIP_ICON_GAP + this.getStringWidth(headerText);
         int contentWidth = Math.min(maxContentWidth, Math.max(headerWidth, candidateContentWidth));
@@ -487,6 +621,10 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
     }
 
     private ChoiceTooltipTarget minimalChoiceTooltipTarget(int mouseX, int mouseY) {
+        if (!this.panelHoveredStack(mouseX, mouseY).method_7960()) {
+            return null;
+        }
+
         List<MinimalSubMaterialListView.TooltipCandidate> candidates = MinimalSubMaterialListView.tooltipCandidates(this.entry);
         if (!candidates.isEmpty() && this.isMinimalChoiceTextHovered(mouseX, mouseY)) {
             return new ChoiceTooltipTarget(
@@ -517,42 +655,30 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         int panelY = this.y + 23;
         int panelWidth = this.minimalSourcePanelWidth();
         int visibleOuterHeight = MinimalSourceInlineRenderer.getOuterHeight(stack, requirements, sources, showAllSources, panelWidth, MinimalSubMaterialListView.sourceProgress(this.entry));
-        int visibleHeight = Math.max(0, visibleOuterHeight - 4);
-        int textX = panelX + 8 + 26;
-        int rowY = panelY + 8 + 24 + 18;
 
-        for (MinimalSubMaterialListView.RequirementContribution requirement : requirements) {
-            List<MinimalSubMaterialListView.TooltipCandidate> candidates = MinimalSubMaterialListView.requirementTooltipCandidates(requirement);
-            String name = MinimalSubMaterialListView.requirementDisplayName(requirement);
-            int textY = rowY + 2;
-            if (!candidates.isEmpty()
-                    && isTextHovered(textX, textY, this.getStringWidth(name), mouseX, mouseY)
-                    && mouseY >= panelY
-                    && mouseY < panelY + visibleHeight) {
-                return new ChoiceTooltipTarget(requirement.icon(), name, candidates);
-            }
-
-            MinimalSubMaterialListView.UpstreamRequirement upstream = requirement.upstream();
-            List<MinimalSubMaterialListView.TooltipCandidate> upstreamCandidates = MinimalSubMaterialListView.upstreamTooltipCandidates(upstream);
-            if (upstream != null && !upstreamCandidates.isEmpty()) {
-                String primaryLine = name + ": " + GuiBase.TXT_GOLD + CountFormatter.format(requirement.totalCount(), requirement.maxStackSize());
-                String upstreamName = MinimalSubMaterialListView.upstreamDisplayName(upstream);
-                int upstreamTextX = textX
-                        + StringUtils.getStringWidth(primaryLine)
-                        + REQUIREMENT_UPSTREAM_GAP
-                        + REQUIREMENT_UPSTREAM_ARROW_WIDTH
-                        + REQUIREMENT_UPSTREAM_AFTER_ARROW_GAP
-                        + REQUIREMENT_ICON_TEXT_GAP;
-                if (isTextHovered(upstreamTextX, textY, this.getStringWidth(upstreamName), mouseX, mouseY)
-                        && mouseY >= panelY
-                        && mouseY < panelY + visibleHeight) {
-                    return new ChoiceTooltipTarget(upstream.icon(), upstreamName, upstreamCandidates);
-                }
-            }
-            rowY += 22;
+        // Delegate the hit-test to the renderer so the hoverable region tracks
+        // render()'s exact layout (incl. the wrapped upstream second line) and
+        // the tooltip's title icon is the one currently cycling on screen.
+        MinimalSourceInlineRenderer.RequirementNameHit hit = MinimalSourceInlineRenderer.hoveredRequirementName(
+                panelX, panelY, panelWidth, stack, requirements, sources, showAllSources, visibleOuterHeight, mouseX, mouseY);
+        if (hit == null) {
+            return null;
         }
 
-        return null;
+        if (hit.upstream()) {
+            MinimalSubMaterialListView.UpstreamRequirement upstream = hit.requirement().upstream();
+            List<MinimalSubMaterialListView.TooltipCandidate> candidates = MinimalSubMaterialListView.upstreamTooltipCandidates(upstream);
+            if (candidates.isEmpty()) {
+                return null;
+            }
+            return new ChoiceTooltipTarget(hit.icon(), MinimalSubMaterialListView.upstreamDisplayName(upstream), candidates);
+        }
+
+        List<MinimalSubMaterialListView.TooltipCandidate> candidates = MinimalSubMaterialListView.requirementTooltipCandidates(hit.requirement());
+        if (candidates.isEmpty()) {
+            return null;
+        }
+        return new ChoiceTooltipTarget(hit.icon(), MinimalSubMaterialListView.requirementDisplayName(hit.requirement()), candidates);
     }
 
     private boolean isMinimalChoiceTextHovered(int mouseX, int mouseY) {
@@ -575,7 +701,7 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         int panelWidth = this.minimalSourcePanelWidth();
         int panelY = this.y + 23;
         int visibleOuterHeight = MinimalSourceInlineRenderer.getOuterHeight(stack, requirements, sources, showAllSources, panelWidth, MinimalSubMaterialListView.sourceProgress(this.entry));
-        return MinimalSourceInlineRenderer.isTargetNameHovered(this.x + 28, panelY, stack, nameWidth, requirements, sources, visibleOuterHeight, mouseX, mouseY);
+        return MinimalSourceInlineRenderer.isTargetNameHovered(this.x + 28, panelY, panelWidth, stack, nameWidth, requirements, sources, visibleOuterHeight, mouseX, mouseY);
     }
 
     private static boolean isTextHovered(int textX, int textY, int textWidth, int mouseX, int mouseY) {
@@ -599,7 +725,7 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
             int panelX = this.x + 28;
             int panelY = this.y + 23;
             int panelWidth = Math.max(180, this.width - 64);
-            int visibleOuterHeight = RecipeInlineRenderer.getOuterHeight(summaries, MaterialListPlusState.recipeProgress(this.entry));
+            int visibleOuterHeight = RecipeInlineRenderer.getOuterHeight(summaries, panelWidth, MaterialListPlusState.recipeProgress(this.entry));
             return RecipeInlineRenderer.hoveredStackAt(summaries, panelX, panelY, panelWidth, visibleOuterHeight, mouseX, mouseY);
         }
 
@@ -630,76 +756,6 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
                 && mouseX < x + width
                 && mouseY >= y
                 && mouseY < y + height;
-    }
-
-    private void renderMaterialHoverTooltip(class_332 drawContext, int mouseX, int mouseY, boolean detailed) {
-        class_1799 stack = MinimalSubMaterialListView.displayStack(this.entry);
-        String totalLabel = StringUtils.translate(detailed ? "litematica.gui.label.material_list.title.total" : "lmlp.label.recipe.total_short");
-        String missingLabel = StringUtils.translate(detailed ? "litematica.gui.label.material_list.title.missing" : "lmlp.label.recipe.missing_short");
-        String availableLabel = StringUtils.translate("litematica.gui.label.material_list.title.available");
-        String itemText = MinimalSubMaterialListView.displayName(this.entry);
-        int total = MinimalSubMaterialListView.total(this.entry, this.materialList);
-        int missing = MinimalSubMaterialListView.missing(this.entry, this.materialList);
-        int available = this.entry.getCountAvailable();
-        int maxPanelWidth = Math.max(80, this.mc.method_22683().method_4486() - HOVER_TOOLTIP_MARGIN * 2);
-        int maxTextWidth = Math.max(40, maxPanelWidth - HOVER_TOOLTIP_PADDING * 2);
-        int maxHeaderTextWidth = Math.max(20, maxTextWidth - HOVER_TOOLTIP_ICON_SIZE - HOVER_TOOLTIP_ICON_GAP);
-        String headerText = this.truncateToWidth(itemText, maxHeaderTextWidth);
-        String totalText = detailed ? CountFormatter.format(stack, total) : Integer.toString(total);
-        String missingText = detailed ? CountFormatter.format(stack, missing) : Integer.toString(missing);
-        String availableText = detailed ? CountFormatter.format(stack, available) : Integer.toString(available);
-        String countLine = missingLabel + ": " + missingText + " / " + availableLabel + ": " + availableText;
-        String availableLine = availableLabel + ": " + availableText;
-        String hintLine = detailed ? "" : GuiBase.TXT_YELLOW + GuiBase.TXT_ITALIC + StringUtils.translate("lmlp.label.hover.detail_hint", this.detailHoverKeyDisplayName()) + GuiBase.TXT_RST;
-
-        if (detailed) {
-            countLine = totalLabel + ": " + totalText;
-        }
-
-        countLine = this.truncateToWidth(countLine, maxTextWidth);
-        availableLine = this.truncateToWidth(availableLine, maxTextWidth);
-        hintLine = this.truncateToWidth(hintLine, maxTextWidth);
-        String missingLine = this.truncateToWidth(missingLabel + ": " + missingText, maxTextWidth);
-        int headerWidth = HOVER_TOOLTIP_ICON_SIZE + HOVER_TOOLTIP_ICON_GAP + this.getStringWidth(headerText);
-        int countWidth = this.getStringWidth(countLine);
-        int missingWidth = detailed ? this.getStringWidth(missingLine) : 0;
-        int availableWidth = detailed ? this.getStringWidth(availableLine) : 0;
-        int hintWidth = detailed ? 0 : this.getStringWidth(hintLine);
-        int panelWidth = Math.min(maxPanelWidth, Math.max(headerWidth, Math.max(countWidth, Math.max(missingWidth, Math.max(availableWidth, hintWidth)))) + HOVER_TOOLTIP_PADDING * 2);
-        int lineCount = detailed ? 4 : 3;
-        int panelHeight = HOVER_TOOLTIP_PADDING * 2 + Math.max(HOVER_TOOLTIP_ICON_SIZE, HOVER_TOOLTIP_LINE_HEIGHT) + HOVER_TOOLTIP_HEADER_GAP + (lineCount - 1) * HOVER_TOOLTIP_LINE_HEIGHT;
-
-        PanelBounds bounds = this.hoverTooltipBounds(mouseX, mouseY, panelWidth, panelHeight);
-        int panelX = bounds.x();
-        int panelY = bounds.y();
-        int lineX = panelX + HOVER_TOOLTIP_PADDING;
-        int lineY = panelY + HOVER_TOOLTIP_PADDING + 4;
-
-        drawContext.method_51448().method_22903();
-        drawContext.method_51448().method_46416(0.0F, 0.0F, 200.0F);
-        RenderUtils.drawOutlinedBox(panelX, panelY, panelWidth, panelHeight, 0xF0000000, 0xFF999999);
-
-        RenderUtils.drawRect(lineX, lineY - 4, HOVER_TOOLTIP_ICON_SIZE, HOVER_TOOLTIP_ICON_SIZE, 0x20FFFFFF);
-        RenderUtils.enableDiffuseLightingGui3D();
-        drawContext.method_51427(stack, lineX, lineY - 4);
-        RenderUtils.disableDiffuseLighting();
-        this.drawString(lineX + HOVER_TOOLTIP_ICON_SIZE + HOVER_TOOLTIP_ICON_GAP, lineY, 0xFFFFFFFF, headerText, drawContext);
-
-        lineY += HOVER_TOOLTIP_LINE_HEIGHT + HOVER_TOOLTIP_HEADER_GAP;
-        this.drawString(lineX, lineY, detailed ? 0xFFFFFFFF : missingColorInt(missing, available), countLine, drawContext);
-
-        if (detailed) {
-            lineY += HOVER_TOOLTIP_LINE_HEIGHT;
-            this.drawString(lineX, lineY, missingColorInt(missing, available), missingLine, drawContext);
-
-            lineY += HOVER_TOOLTIP_LINE_HEIGHT;
-            this.drawString(lineX, lineY, availableColorInt(available, missing), availableLine, drawContext);
-        } else {
-            lineY += HOVER_TOOLTIP_LINE_HEIGHT;
-            this.drawString(lineX, lineY, 0xFFFFFFFF, hintLine, drawContext);
-        }
-
-        drawContext.method_51448().method_22909();
     }
 
     private void renderVanillaMaterialHoverTooltip(class_332 drawContext, int mouseX, int mouseY) {
@@ -748,15 +804,6 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         drawContext.method_51427(stack, valueX, iconY);
         RenderUtils.disableDiffuseLighting();
         drawContext.method_51448().method_22909();
-    }
-
-    private boolean isDetailHoverKeyDown() {
-        return Hotkeys.SHOW_HOVER_DETAILS.getKeybind().isKeybindHeld();
-    }
-
-    private String detailHoverKeyDisplayName() {
-        String keyName = Hotkeys.SHOW_HOVER_DETAILS.getKeybind().getKeysDisplayString();
-        return keyName.isEmpty() ? StringUtils.translate("lmlp.label.hover.detail_key_unbound") : keyName;
     }
 
     private String formatVanillaCount(int count, int maxStackSize) {
@@ -892,7 +939,7 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         int panelX = this.x + 28;
         int panelY = this.y + 23;
         int panelWidth = Math.max(180, this.width - 64);
-        int visibleOuterHeight = RecipeInlineRenderer.getOuterHeight(summaries, MaterialListPlusState.recipeProgress(this.entry));
+        int visibleOuterHeight = RecipeInlineRenderer.getOuterHeight(summaries, panelWidth, MaterialListPlusState.recipeProgress(this.entry));
         RecipeInlineRenderer.ToggleTarget target = RecipeInlineRenderer.toggleAt(summaries, panelX, panelY, panelWidth, visibleOuterHeight, mouseX, mouseY);
         if (target.isNone()) {
             return false;
@@ -931,6 +978,29 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
 
         List<RecipeSummary> summaries = RecipeResolvers.findRecipes(source.icon(), source.sourceTotalCount(), source.sourceMissingCount());
         this.mc.method_1507(new RecipeDetailScreen(GuiUtils.getCurrentScreen(), source.icon(), source.sourceTotalCount(), source.sourceMissingCount(), summaries));
+        return true;
+    }
+
+    private boolean toggleMinimalSourceSort(int mouseX, int mouseY) {
+        if (!MinimalSubMaterialListView.isSourcesVisible(this.entry)) {
+            return false;
+        }
+
+        class_1799 stack = MinimalSubMaterialListView.displayStack(this.entry);
+        int total = MinimalSubMaterialListView.total(this.entry, this.materialList);
+        int missing = MinimalSubMaterialListView.netMissing(this.entry, this.materialList);
+        List<MinimalSubMaterialListView.RequirementContribution> requirements = MinimalSubMaterialListView.sourceRequirements(this.entry, total, missing);
+        List<MinimalSubMaterialListView.SourceContribution> sources = MinimalSubMaterialListView.sourceContributions(this.entry);
+        boolean showAllSources = MinimalSubMaterialListView.isSourcesFull(this.entry);
+        int panelX = this.x + 28;
+        int panelY = this.y + 23;
+        int panelWidth = this.minimalSourcePanelWidth();
+        int visibleOuterHeight = MinimalSourceInlineRenderer.getOuterHeight(stack, requirements, sources, showAllSources, panelWidth, MinimalSubMaterialListView.sourceProgress(this.entry));
+        if (!MinimalSourceInlineRenderer.isSortButtonHovered(panelX, panelY, panelWidth, stack, requirements, sources, visibleOuterHeight, mouseX, mouseY)) {
+            return false;
+        }
+
+        MinimalSubMaterialListView.cycleSourceSortMode();
         return true;
     }
 

@@ -4,10 +4,13 @@ import fi.dy.masa.litematica.materials.MaterialListEntry;
 import io.github.huanmeng06.lmlp.access.MaterialListSourceAccess;
 import io.github.huanmeng06.lmlp.cache.ChunkMissingMaterialListCache;
 import io.github.huanmeng06.lmlp.cache.MaterialListDataSource;
+import io.github.huanmeng06.lmlp.material.MaterialListHudState;
+import io.github.huanmeng06.lmlp.material.WaterBucketIceSubstitution;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.util.List;
@@ -27,6 +30,11 @@ public abstract class MaterialListBaseMixin implements MaterialListSourceAccess 
         this.lmlp$dataSource = dataSource;
     }
 
+    @ModifyVariable(method = "setMaterialListEntries", at = @At("HEAD"), argsOnly = true)
+    private List<MaterialListEntry> lmlp$applyMaterialSubstitutions(List<MaterialListEntry> entries) {
+        return WaterBucketIceSubstitution.apply(entries);
+    }
+
     @Inject(method = "setMaterialListEntries", at = @At("TAIL"))
     private void lmlp$rememberPlacementDemandCache(List<MaterialListEntry> entries, CallbackInfo ci) {
         if (ChunkMissingMaterialListCache.isApplyingSchematicCache()) {
@@ -37,5 +45,6 @@ public abstract class MaterialListBaseMixin implements MaterialListSourceAccess 
         this.lmlp$setDataSource(MaterialListDataSource.WORLD_SCAN);
         ChunkMissingMaterialListCache.rememberIfPlacementList((fi.dy.masa.litematica.materials.MaterialListBase) (Object) this);
         ChunkMissingMaterialListCache.markLiveScanCompleted((fi.dy.masa.litematica.materials.MaterialListBase) (Object) this);
+        MaterialListHudState.resyncAfterScan((fi.dy.masa.litematica.materials.MaterialListBase) (Object) this);
     }
 }

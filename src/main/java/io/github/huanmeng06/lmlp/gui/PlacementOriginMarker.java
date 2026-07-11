@@ -414,7 +414,7 @@ public final class PlacementOriginMarker {
         return context != null && parseOrigin(context.originPosition()) != null;
     }
 
-    private static class_2338 parseOrigin(String origin) {
+    static class_2338 parseOrigin(String origin) {
         if (origin == null || origin.isEmpty()) {
             return null;
         }

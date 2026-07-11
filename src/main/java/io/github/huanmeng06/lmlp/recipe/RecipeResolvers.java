@@ -32,21 +32,8 @@ public final class RecipeResolvers {
             return summaries;
         }
 
-        String itemId = ItemStackTexts.id(summaries.get(0).outputIcon());
-        String preferredRecipeId = Configs.preferredRecipeId(itemId);
-        if (preferredRecipeId.isEmpty() || preferredRecipeId.equals(summaries.get(0).recipeId())) {
-            return summaries;
-        }
-
-        int preferredIndex = -1;
-        for (int index = 1; index < summaries.size(); index++) {
-            if (preferredRecipeId.equals(summaries.get(index).recipeId())) {
-                preferredIndex = index;
-                break;
-            }
-        }
-
-        if (preferredIndex < 0) {
+        int preferredIndex = preferredIndex(summaries);
+        if (preferredIndex <= 0) {
             return summaries;
         }
 
@@ -58,6 +45,56 @@ public final class RecipeResolvers {
             }
         }
         return List.copyOf(sorted);
+    }
+
+    // Which recipe to decompose first. A user-pinned preference always wins; when
+    // none is pinned, fall back to a built-in default so ambiguous items resolve
+    // deterministically. Returns 0 when the current head is already preferred and
+    // -1 when there's nothing to prefer.
+    private static int preferredIndex(List<RecipeSummary> summaries) {
+        String itemId = ItemStackTexts.id(summaries.get(0).outputIcon());
+        String userPin = Configs.preferredRecipeId(itemId);
+        if (!userPin.isEmpty()) {
+            for (int index = 0; index < summaries.size(); index++) {
+                if (userPin.equals(summaries.get(index).recipeId())) {
+                    return index;
+                }
+            }
+            return -1;
+        }
+
+        // Default: prefer a recipe whose every ingredient is planks. This keeps
+        // wooden intermediates like sticks (craftable from planks OR bamboo)
+        // decomposing along the planks -> logs chain, matching how slabs behave,
+        // instead of depending on REI's non-deterministic enumeration order.
+        for (int index = 0; index < summaries.size(); index++) {
+            if (isAllPlanksRecipe(summaries.get(index))) {
+                return index;
+            }
+        }
+        return -1;
+    }
+
+    private static boolean isAllPlanksRecipe(RecipeSummary summary) {
+        if (summary.ingredients().isEmpty()) {
+            return false;
+        }
+        for (IngredientSummary ingredient : summary.ingredients()) {
+            if (ingredient.icons().isEmpty()) {
+                return false;
+            }
+            for (class_1799 icon : ingredient.icons()) {
+                if (!itemPath(ItemStackTexts.id(icon)).endsWith("_planks")) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    private static String itemPath(String id) {
+        int separator = id.indexOf(':');
+        return separator >= 0 ? id.substring(separator + 1) : id;
     }
 
     private static RecipeResolver getResolver() throws ReflectiveOperationException {
