@@ -5,10 +5,40 @@ import io.github.huanmeng06.lmlp.config.Configs;
 import io.github.huanmeng06.lmlp.config.CountDisplayStyle;
 import net.minecraft.class_1799;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 public final class CountFormatter {
     private static final int STACKS_PER_SHULKER_BOX = 27;
+    private static final int CACHE_LIMIT = 512;
+
+    // Counts don't change every frame but the material list reformats them every
+    // frame, so the same (count, stackSize, digits) pair produces the same
+    // string repeatedly. Memoize the pure formatting to cut per-frame string /
+    // StringBuilder / translate garbage. Style and language are NOT part of the
+    // key; instead the cache is cleared when the display-style config changes
+    // (Configs static block) and when the material list GUI (re)opens
+    // (GuiMaterialListMixin#initGui) — a language switch forces a GUI reopen —
+    // so a hit is always byte-identical to recomputing. Client-thread only.
+    private static final Map<FormatKey, String> FORMAT_CACHE = new LinkedHashMap<>(64, 0.75F, true) {
+        @Override
+        protected boolean removeEldestEntry(Map.Entry<FormatKey, String> eldest) {
+            return size() > CACHE_LIMIT;
+        }
+    };
+    private static final Map<CompactKey, String> COMPACT_CACHE = new LinkedHashMap<>(64, 0.75F, true) {
+        @Override
+        protected boolean removeEldestEntry(Map.Entry<CompactKey, String> eldest) {
+            return size() > CACHE_LIMIT;
+        }
+    };
 
     private CountFormatter() {
+    }
+
+    public static void clearCache() {
+        FORMAT_CACHE.clear();
+        COMPACT_CACHE.clear();
     }
 
     public static String format(class_1799 stack, int count) {
@@ -36,6 +66,18 @@ public final class CountFormatter {
     }
 
     public static String format(long count, int maxStackSize, int rawDigits) {
+        FormatKey key = new FormatKey(count, maxStackSize, rawDigits);
+        String cached = FORMAT_CACHE.get(key);
+        if (cached != null) {
+            return cached;
+        }
+
+        String result = computeFormat(count, maxStackSize, rawDigits);
+        FORMAT_CACHE.put(key, result);
+        return result;
+    }
+
+    private static String computeFormat(long count, int maxStackSize, int rawDigits) {
         CountDisplayStyle style = (CountDisplayStyle) Configs.Generic.COUNT_DISPLAY_STYLE.getOptionListValue();
         String raw = rawDigits > 0 ? String.format("%" + rawDigits + "d", count) : Long.toString(count);
         if (style == CountDisplayStyle.STYLE_4) {
@@ -67,6 +109,18 @@ public final class CountFormatter {
     }
 
     public static String compact(long count, int maxStackSize) {
+        CompactKey key = new CompactKey(count, maxStackSize);
+        String cached = COMPACT_CACHE.get(key);
+        if (cached != null) {
+            return cached;
+        }
+
+        String result = computeCompact(count, maxStackSize);
+        COMPACT_CACHE.put(key, result);
+        return result;
+    }
+
+    private static String computeCompact(long count, int maxStackSize) {
         CountDisplayStyle style = (CountDisplayStyle) Configs.Generic.COUNT_DISPLAY_STYLE.getOptionListValue();
         if (count == 0 && style != CountDisplayStyle.STYLE_4) {
             return countPart("lmlp.label.count.items", 0);
@@ -85,6 +139,12 @@ public final class CountFormatter {
 
     private static String countPart(String key, long count) {
         return StringUtils.translate(key, count);
+    }
+
+    private record FormatKey(long count, int maxStackSize, int rawDigits) {
+    }
+
+    private record CompactKey(long count, int maxStackSize) {
     }
 
     private record CountParts(long count, int maxStackSize, long boxes, long remainingGroups, long remainder) {

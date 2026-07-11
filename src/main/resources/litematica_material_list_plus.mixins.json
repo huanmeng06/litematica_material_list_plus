@@ -4,9 +4,12 @@
   "package": "io.github.huanmeng06.lmlp.mixin",
   "compatibilityLevel": "JAVA_17",
   "client": [
+    "DataManagerMixin",
+    "GuiBaseTitleMixin",
     "GuiMaterialListButtonListenerMixin",
     "GuiMaterialListMixin",
     "GuiBaseHoverAccess",
+    "ConfigButtonStringListMixin",
     "GuiListBaseMixin",
     "GuiSchematicLoadedListMixin",
     "GuiSchematicPlacementsListMixin",
@@ -14,15 +17,20 @@
     "GuiPlacementConfigurationButtonListenerMixin",
     "InfoHudMixin",
     "KeyCallbackHotkeysMixin",
+    "SliderCallbackIntegerAccess",
     "MaterialListBaseMixin",
+    "MaterialListHudRendererMixin",
     "MaterialListPlacementMixin",
     "SchematicPlacementManagerMixin",
     "SchematicPlacementMixin",
     "WidgetListBaseMixin",
+    "WidgetListEntrySortableMixin",
     "WidgetListMaterialListMixin",
     "WidgetListSchematicPlacementsMixin",
     "WidgetMaterialListEntryButtonListenerMixin",
-    "WidgetMaterialListEntryMixin"
+    "WidgetMaterialListEntryMixin",
+    "WidgetSearchBarAccessor",
+    "WidgetSliderMixin"
   ],
   "injectors": {
     "defaultRequire": 1

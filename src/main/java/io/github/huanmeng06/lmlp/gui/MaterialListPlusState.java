@@ -221,12 +221,14 @@ public final class MaterialListPlusState {
             treeCache.remove(key);
         }
 
-        return treeCache.computeIfAbsent(key, ignored -> MaterialTreeBuilder.build(
-                ingredient.icon(),
-                RecipeSummaryFormatter.ingredientName(ingredient),
-                ingredient.countTotal(),
-                ingredient.countMissing(),
-                "ingredient:" + key));
+        return treeCache.computeIfAbsent(key, ignored -> ingredient.isChoiceGroup()
+                ? MaterialTreeBuilder.buildChoiceGroup(ingredient, "ingredient:" + key)
+                : MaterialTreeBuilder.build(
+                        ingredient.icon(),
+                        RecipeSummaryFormatter.ingredientName(ingredient),
+                        ingredient.countTotal(),
+                        ingredient.countMissing(),
+                        "ingredient:" + key));
     }
 
     private static void collapseTreeNode(String path) {
