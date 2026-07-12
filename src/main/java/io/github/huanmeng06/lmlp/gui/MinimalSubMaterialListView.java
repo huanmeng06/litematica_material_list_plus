@@ -65,7 +65,8 @@ public final class MinimalSubMaterialListView {
     private static String expandedSourceKey = "";
     private static String visibleSourceKey = "";
     private static String fullSourceKey = "";
-    private static SourceSortMode sourceSortMode = SourceSortMode.TOTAL_COUNT;
+    private static SourceSortMode sourceSortMode = SourceSortMode.MISSING_COUNT;
+    private static boolean sourceSortDescending = true;
     private static long layoutRevision;
 
     private MinimalSubMaterialListView() {
@@ -296,17 +297,24 @@ public final class MinimalSubMaterialListView {
         sourceSortMode = sourceSortMode.next();
     }
 
-    private static List<SourceContribution> sortedSources(List<SourceContribution> sources) {
-        if (sourceSortMode == SourceSortMode.TOTAL_COUNT) {
-            return sources;
-        }
+    public static boolean sourceSortDescending() {
+        return sourceSortDescending;
+    }
 
+    public static void toggleSourceSortDirection() {
+        sourceSortDescending = !sourceSortDescending;
+    }
+
+    private static List<SourceContribution> sortedSources(List<SourceContribution> sources) {
         List<SourceContribution> sorted = new ArrayList<>(sources);
-        sorted.sort(Comparator
-                .comparingInt(SourceContribution::missingCount)
-                .reversed()
-                .thenComparing(Comparator.comparingInt(SourceContribution::totalCount).reversed())
-                .thenComparing(SourceContribution::name));
+        Comparator<SourceContribution> counts = sourceSortMode == SourceSortMode.TOTAL_COUNT
+                ? Comparator.comparingInt(SourceContribution::totalCount)
+                : Comparator.comparingInt(SourceContribution::missingCount)
+                        .thenComparingInt(SourceContribution::totalCount);
+        if (sourceSortDescending) {
+            counts = counts.reversed();
+        }
+        sorted.sort(counts.thenComparing(SourceContribution::name));
         return List.copyOf(sorted);
     }
 
