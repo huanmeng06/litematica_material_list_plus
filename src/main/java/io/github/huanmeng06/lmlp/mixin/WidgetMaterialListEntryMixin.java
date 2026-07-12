@@ -994,11 +994,17 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         int panelY = this.y + 23;
         int panelWidth = this.minimalSourcePanelWidth();
         int visibleOuterHeight = MinimalSourceInlineRenderer.getOuterHeight(stack, requirements, sources, showAllSources, panelWidth, MinimalSubMaterialListView.sourceProgress(this.entry));
-        if (!MinimalSourceInlineRenderer.isSortButtonHovered(panelX, panelY, panelWidth, stack, requirements, sources, visibleOuterHeight, mouseX, mouseY)) {
+        MinimalSourceInlineRenderer.SortButtonTarget target = MinimalSourceInlineRenderer.sortButtonTargetAt(
+                panelX, panelY, panelWidth, stack, requirements, sources, visibleOuterHeight, mouseX, mouseY);
+        if (target == MinimalSourceInlineRenderer.SortButtonTarget.NONE) {
             return false;
         }
 
-        MinimalSubMaterialListView.cycleSourceSortMode();
+        if (target == MinimalSourceInlineRenderer.SortButtonTarget.DIRECTION) {
+            MinimalSubMaterialListView.toggleSourceSortDirection();
+        } else {
+            MinimalSubMaterialListView.cycleSourceSortMode();
+        }
         return true;
     }
 
