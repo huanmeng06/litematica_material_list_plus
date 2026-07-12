@@ -21,8 +21,10 @@ public final class MinimalSourceInlineRenderer {
     private static final int SOURCE_ICON_BOX_SIZE = 18;
     private static final int SOURCE_ICON_BOX_Y_OFFSET = -3;
     private static final int SECTION_GAP = 6;
-    private static final int SORT_BUTTON_HEIGHT = 14;
+    private static final int SORT_BUTTON_HEIGHT = 16;
     private static final int SORT_BUTTON_PADDING_X = 4;
+    private static final int SORT_BUTTON_GAP = 2;
+    private static final int SORT_DIRECTION_BUTTON_SIZE = 16;
     private static final int TEXT_HOVER_HEIGHT = 12;
     private static final int UPSTREAM_GAP = 18;
     private static final int UPSTREAM_ARROW_WIDTH = 18;
@@ -250,12 +252,24 @@ public final class MinimalSourceInlineRenderer {
 
         widget.drawString(textX, cursorY, 0xFFFFFFFF, StringUtils.translate("lmlp.label.minimal_sources.header_named", boldTargetName), context);
         String sortLabel = sortButtonLabel();
-        int sortButtonWidth = StringUtils.getStringWidth(sortLabel) + SORT_BUTTON_PADDING_X * 2;
-        int sortButtonX = x + panelWidth - PADDING - sortButtonWidth;
-        boolean sortHovered = isVisibleBoxHovered(sortButtonX, cursorY - 2, sortButtonWidth, SORT_BUTTON_HEIGHT, y, visibleHeight, mouseX, mouseY);
-        RenderUtils.drawRect(sortButtonX, cursorY - 2, sortButtonWidth, SORT_BUTTON_HEIGHT, sortHovered ? 0x50FFFFFF : 0x30FFFFFF);
-        widget.drawString(sortButtonX + SORT_BUTTON_PADDING_X, cursorY, sortHovered ? 0xFFFFFF55 : 0xFFCCCCCC, sortLabel, context);
-        if (sortHovered) {
+        SortButtonBounds sortButton = sortButtonBounds(x, panelWidth, cursorY, sortLabel);
+        SortButtonTarget sortTarget = sortButtonTarget(sortButton, y, visibleHeight, mouseX, mouseY);
+        RenderUtils.drawRect(sortButton.modeX(), sortButton.y(), sortButton.modeWidth(), sortButton.height(), 0x30FFFFFF);
+        RenderUtils.drawRect(sortButton.directionX(), sortButton.y(), sortButton.directionSize(), sortButton.directionSize(), 0x30FFFFFF);
+        widget.drawString(sortButton.modeX() + SORT_BUTTON_PADDING_X, cursorY, 0xFFFFFFFF, sortLabel, context);
+        String directionLabel = MinimalSubMaterialListView.sourceSortDescending() ? "↓" : "↑";
+        int directionLabelWidth = StringUtils.getStringWidth(directionLabel);
+        widget.drawString(
+                sortButton.directionX() + (sortButton.directionSize() - directionLabelWidth) / 2,
+                cursorY,
+                0xFFFFFFFF,
+                directionLabel,
+                context);
+        if (sortTarget == SortButtonTarget.MODE) {
+            drawOutline(sortButton.modeX(), sortButton.y(), sortButton.modeWidth(), sortButton.height(), 0xFFFFFFFF);
+            ClickableCursor.requestHand();
+        } else if (sortTarget == SortButtonTarget.DIRECTION) {
+            drawOutline(sortButton.directionX(), sortButton.y(), sortButton.directionSize(), sortButton.directionSize(), 0xFFFFFFFF);
             ClickableCursor.requestHand();
         }
         cursorY += 18;
@@ -302,9 +316,9 @@ public final class MinimalSourceInlineRenderer {
         return StringUtils.translate(key);
     }
 
-    public static boolean isSortButtonHovered(int x, int y, int width, class_1799 targetIcon, List<MinimalSubMaterialListView.RequirementContribution> requirements, List<MinimalSubMaterialListView.SourceContribution> sources, int visibleOuterHeight, int mouseX, int mouseY) {
+    public static SortButtonTarget sortButtonTargetAt(int x, int y, int width, class_1799 targetIcon, List<MinimalSubMaterialListView.RequirementContribution> requirements, List<MinimalSubMaterialListView.SourceContribution> sources, int visibleOuterHeight, int mouseX, int mouseY) {
         if (sources.isEmpty() || isSelfSource(targetIcon, sources)) {
-            return false;
+            return SortButtonTarget.NONE;
         }
 
         int panelWidth = panelWidthFor(width);
@@ -312,9 +326,26 @@ public final class MinimalSourceInlineRenderer {
         int visibleHeight = Math.max(0, visibleOuterHeight - ENTRY_BOTTOM_GAP);
         int cursorY = headerRowY(y, requirements, contentWidth);
         String label = sortButtonLabel();
-        int buttonWidth = StringUtils.getStringWidth(label) + SORT_BUTTON_PADDING_X * 2;
-        int buttonX = x + panelWidth - PADDING - buttonWidth;
-        return isVisibleBoxHovered(buttonX, cursorY - 2, buttonWidth, SORT_BUTTON_HEIGHT, y, visibleHeight, mouseX, mouseY);
+        return sortButtonTarget(sortButtonBounds(x, panelWidth, cursorY, label), y, visibleHeight, mouseX, mouseY);
+    }
+
+    private static SortButtonBounds sortButtonBounds(int panelX, int panelWidth, int cursorY, String label) {
+        int labelWidth = StringUtils.getStringWidth(label);
+        int modeWidth = labelWidth + SORT_BUTTON_PADDING_X * 2;
+        int directionX = panelX + panelWidth - PADDING - SORT_DIRECTION_BUTTON_SIZE;
+        int modeX = directionX - SORT_BUTTON_GAP - modeWidth;
+        int y = cursorY - (SORT_BUTTON_HEIGHT - 10) / 2;
+        return new SortButtonBounds(modeX, y, modeWidth, SORT_BUTTON_HEIGHT, directionX, SORT_DIRECTION_BUTTON_SIZE);
+    }
+
+    private static SortButtonTarget sortButtonTarget(SortButtonBounds bounds, int panelY, int visibleHeight, int mouseX, int mouseY) {
+        if (isVisibleBoxHovered(bounds.directionX(), bounds.y(), bounds.directionSize(), bounds.directionSize(), panelY, visibleHeight, mouseX, mouseY)) {
+            return SortButtonTarget.DIRECTION;
+        }
+
+        return isVisibleBoxHovered(bounds.modeX(), bounds.y(), bounds.modeWidth(), bounds.height(), panelY, visibleHeight, mouseX, mouseY)
+                ? SortButtonTarget.MODE
+                : SortButtonTarget.NONE;
     }
 
     private static int visibleSourceCount(List<MinimalSubMaterialListView.SourceContribution> sources) {
@@ -700,6 +731,13 @@ public final class MinimalSourceInlineRenderer {
         RenderUtils.drawRect(x, y + height - 1, width, 1, color);
         RenderUtils.drawRect(x, y, 1, height, color);
         RenderUtils.drawRect(x + width - 1, y, 1, height, color);
+    }
+
+    public enum SortButtonTarget {
+        NONE, MODE, DIRECTION
+    }
+
+    private record SortButtonBounds(int modeX, int y, int modeWidth, int height, int directionX, int directionSize) {
     }
 
     private record SourceColumnLayout(int[] columnX, int[] columnWidths, int rowCount, int columns, int totalWidth) {
