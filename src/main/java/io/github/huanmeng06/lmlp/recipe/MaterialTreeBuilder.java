@@ -23,7 +23,9 @@ public final class MaterialTreeBuilder {
         }
 
         List<RecipeSummary> summaries = RecipeResolvers.findRecipes(stack, totalCount, missingCount);
-        return !summaries.isEmpty() && !summaries.get(0).ingredients().isEmpty();
+        return !summaries.isEmpty()
+                && !summaries.get(0).ingredients().isEmpty()
+                && !RecipeResolvers.leadsBackTo(ItemStackTexts.id(stack), summaries.get(0), MAX_DEPTH);
     }
 
     public static MaterialTreeNode build(class_1799 stack, int totalCount, int missingCount) {
@@ -61,7 +63,8 @@ public final class MaterialTreeBuilder {
             childSeenItems.add(itemId);
 
             List<RecipeSummary> summaries = RecipeResolvers.findRecipes(icon, totalCount, missingCount);
-            if (!summaries.isEmpty()) {
+            if (!summaries.isEmpty()
+                    && !RecipeResolvers.leadsBackTo(itemId, summaries.get(0), MAX_DEPTH - depth)) {
                 children = buildChoiceGroupChildren(icons, summaries.get(0), totalCount, missingCount, path, depth + 1, childSeenItems);
             }
         }
@@ -173,7 +176,8 @@ public final class MaterialTreeBuilder {
             childSeenItems.add(itemId);
 
             List<RecipeSummary> summaries = RecipeResolvers.findRecipes(icon, totalCount, missingCount);
-            if (!summaries.isEmpty()) {
+            if (!summaries.isEmpty()
+                    && !RecipeResolvers.leadsBackTo(itemId, summaries.get(0), MAX_DEPTH - depth)) {
                 children = buildChildren(summaries.get(0), path, depth + 1, childSeenItems);
             }
         }
