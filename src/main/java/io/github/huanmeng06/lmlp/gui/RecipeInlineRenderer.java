@@ -37,9 +37,6 @@ public final class RecipeInlineRenderer {
         RecipeSummary summary = summaries.get(0);
         int lineBudget = Math.max(160, width) - PADDING * 2;
         int height = 64 + headerExtraHeight(summary, lineBudget) + visibleIngredientHeight(summary) + INNER_BOTTOM_PADDING;
-        if (summaries.size() > 1) {
-            height += 22;
-        }
         return height;
     }
 
@@ -88,9 +85,27 @@ public final class RecipeInlineRenderer {
 
         RecipeSummary summary = summaries.get(0);
         int cursorY = y + PADDING;
-        String itemName = truncateToWidth(ItemStackTexts.name(summary.outputIcon()), lineBudget - 24);
+        String multipleLabel = summaries.size() > 1
+                ? StringUtils.translate("lmlp.label.recipe.multiple")
+                : "";
+        int multipleWidth = multipleLabel.isEmpty() ? 0 : StringUtils.getStringWidth(multipleLabel) + 4;
+        String itemName = truncateToWidth(ItemStackTexts.name(summary.outputIcon()), lineBudget - 24 - multipleWidth);
         context.method_51427(summary.outputIcon(), textX, cursorY);
-        widget.drawString(textX + 24, cursorY + 4, 0xFFFFFFFF, GuiBase.TXT_BOLD + itemName, context);
+        int itemNameX = textX + 24;
+        boolean titleHovered = isInside(mouseX, mouseY, itemNameX, cursorY + 2,
+                StringUtils.getStringWidth(itemName), 14);
+        String renderedItemName = titleHovered
+                ? GuiBase.TXT_BOLD + GuiBase.TXT_UNDERLINE + itemName + GuiBase.TXT_RST
+                : itemName;
+        widget.drawString(itemNameX, cursorY + 4, 0xFFFFFFFF, renderedItemName, context);
+        if (!multipleLabel.isEmpty()) {
+            widget.drawString(
+                    itemNameX + StringUtils.getStringWidth(renderedItemName) + 4,
+                    cursorY + 4,
+                    0xFFFFAA00,
+                    multipleLabel,
+                    context);
+        }
         cursorY += 24;
 
         for (String headerLine : headerLines(summary, lineBudget)) {
@@ -120,11 +135,6 @@ public final class RecipeInlineRenderer {
                     cursorY += childVisibleHeight;
                 }
             }
-        }
-
-        if (summaries.size() > 1) {
-            String moreHint = truncateToWidth(StringUtils.translate("lmlp.label.recipe.more_hint"), lineBudget);
-            widget.drawString(textX, y + height - 16, 0xFFFFFFFF, GuiBase.TXT_GOLD + moreHint, context);
         }
 
         context.method_44380();
@@ -164,6 +174,59 @@ public final class RecipeInlineRenderer {
         }
 
         return ToggleTarget.NONE;
+    }
+
+    /** Clickable names in the inline summary: the output title opens the detail
+     * screen normally, while a top-level ingredient name opens it focused on
+     * that ingredient. Toggle arrows remain a separate hit region. */
+    public static NavigationTarget navigationTargetAt(List<RecipeSummary> summaries, int x, int y, int width,
+            int visibleOuterHeight, int mouseX, int mouseY) {
+        int panelWidth = Math.max(160, width);
+        int height = Math.min(getHeight(summaries, width), Math.max(0, visibleOuterHeight));
+        if (mouseX < x || mouseX >= x + panelWidth || mouseY < y || mouseY >= y + height || summaries.isEmpty()) {
+            return NavigationTarget.NONE;
+        }
+
+        RecipeSummary summary = summaries.get(0);
+        int lineBudget = panelWidth - PADDING * 2;
+        int textX = x + PADDING;
+        int cursorY = y + PADDING;
+        String multipleLabel = summaries.size() > 1
+                ? StringUtils.translate("lmlp.label.recipe.multiple")
+                : "";
+        int multipleWidth = multipleLabel.isEmpty() ? 0 : StringUtils.getStringWidth(multipleLabel) + 4;
+        String title = truncateToWidth(ItemStackTexts.name(summary.outputIcon()), lineBudget - 24 - multipleWidth);
+        int titleX = textX + 24;
+        if (isInside(mouseX, mouseY, titleX, cursorY + 2, StringUtils.getStringWidth(title), 14)) {
+            return NavigationTarget.title(summary.recipeId());
+        }
+
+        cursorY += 24 + HEADER_ROW_HEIGHT * headerLines(summary, lineBudget).size() + 18;
+        int rightEdge = x + panelWidth - PADDING;
+        for (IngredientSummary ingredient : summary.ingredients()) {
+            int visibleRowHeight = Math.min(INGREDIENT_HEIGHT, y + height - cursorY);
+            if (visibleRowHeight <= 0) {
+                break;
+            }
+
+            String count = CountFormatter.format(ingredient.countMissing(), ingredient.maxStackSize());
+            int nameX = textX + INGREDIENT_ICON_OFFSET + 26;
+            int nameBudget = rightEdge - nameX - StringUtils.getStringWidth(": " + count);
+            String name = truncateToWidth(RecipeSummaryFormatter.ingredientName(ingredient), nameBudget);
+            if (isInside(mouseX, mouseY, nameX, cursorY - 1, StringUtils.getStringWidth(name),
+                    Math.min(18, visibleRowHeight))) {
+                return NavigationTarget.ingredient(summary.recipeId(), ItemStackTexts.id(ingredient.icon()));
+            }
+
+            cursorY += INGREDIENT_HEIGHT;
+            MaterialTreeNode root = MaterialListPlusState.getVisibleIngredientTree(ingredient);
+            if (root != null) {
+                cursorY += Math.round(visibleChildrenHeight(root.children())
+                        * MaterialListPlusState.treeProgress(root.path()));
+            }
+        }
+
+        return NavigationTarget.NONE;
     }
 
     public static class_1799 hoveredStackAt(List<RecipeSummary> summaries, int x, int y, int width, int visibleOuterHeight, int mouseX, int mouseY) {
@@ -274,14 +337,12 @@ public final class RecipeInlineRenderer {
     public record ChoiceGroupHover(class_1799 icon, String name, List<class_1799> icons, List<String> alternatives) {
     }
 
-    // Only the yellow underlined name text is hoverable, not the whole row.
-    // The name is rendered bold (each glyph ~1px wider), so widen the plain
-    // width by the character count to approximate the drawn extent and stop
-    // short of the trailing ": count".
+    // Only the yellow name text is hoverable, not the whole row. Stop the hit
+    // region before the trailing ": count".
     private static boolean isNameRegionHovered(int textX, int y, int depth, String name, int visibleRowHeight, int mouseX, int mouseY) {
         int rowX = textX + depth * TREE_INDENT_WIDTH;
         int nameStartX = rowX + INGREDIENT_ICON_OFFSET + 26;
-        int nameWidth = StringUtils.getStringWidth(name) + (name == null ? 0 : name.length());
+        int nameWidth = StringUtils.getStringWidth(name);
         return visibleRowHeight > 0
                 && mouseX >= nameStartX
                 && mouseX < nameStartX + nameWidth
@@ -293,7 +354,7 @@ public final class RecipeInlineRenderer {
         boolean hasTree = MaterialListPlusState.hasTree(ingredient);
         MaterialTreeNode root = MaterialListPlusState.getVisibleIngredientTree(ingredient);
         float expandProgress = root == null ? 0.0F : MaterialListPlusState.treeProgress(root.path());
-        renderRow(widget, context, textX, y, 0, hasTree, expandProgress, AlternativeItemDisplay.icon(ingredient), RecipeSummaryFormatter.ingredientName(ingredient), ingredient.isChoiceGroup(), ingredient.countTotal(), ingredient.countMissing(), ingredient.maxStackSize(), rightEdge, mouseX, mouseY);
+        renderRow(widget, context, textX, y, 0, hasTree, expandProgress, AlternativeItemDisplay.icon(ingredient), RecipeSummaryFormatter.ingredientName(ingredient), ingredient.isChoiceGroup(), ingredient.countTotal(), ingredient.countMissing(), ingredient.maxStackSize(), rightEdge, true, mouseX, mouseY);
     }
 
     private static int renderChildren(WidgetBase widget, class_332 context, int textX, int y, List<MaterialTreeNode> nodes, int depth, int visibleHeight, int rightEdge, int mouseX, int mouseY) {
@@ -305,7 +366,7 @@ public final class RecipeInlineRenderer {
             }
 
             float expandProgress = node.hasChildren() ? MaterialListPlusState.treeProgress(node.path()) : 0.0F;
-            renderRow(widget, context, textX, cursorY, depth, node.hasChildren(), expandProgress, AlternativeItemDisplay.icon(node), node.name(), node.isChoiceGroup(), node.totalCount(), node.missingCount(), node.maxStackSize(), rightEdge, mouseX, mouseY);
+            renderRow(widget, context, textX, cursorY, depth, node.hasChildren(), expandProgress, AlternativeItemDisplay.icon(node), node.name(), node.isChoiceGroup(), node.totalCount(), node.missingCount(), node.maxStackSize(), rightEdge, false, mouseX, mouseY);
 
             int visibleRowHeight = Math.min(INGREDIENT_HEIGHT, remainingHeight);
             cursorY += INGREDIENT_HEIGHT;
@@ -404,7 +465,7 @@ public final class RecipeInlineRenderer {
                 && mouseY < y - 3 + Math.min(18, visibleRowHeight);
     }
 
-    private static void renderRow(WidgetBase widget, class_332 context, int textX, int y, int depth, boolean hasTree, float expandProgress, net.minecraft.class_1799 icon, String name, boolean choiceGroup, int totalCount, int missingCount, int maxStackSize, int rightEdge, int mouseX, int mouseY) {
+    private static void renderRow(WidgetBase widget, class_332 context, int textX, int y, int depth, boolean hasTree, float expandProgress, net.minecraft.class_1799 icon, String name, boolean choiceGroup, int totalCount, int missingCount, int maxStackSize, int rightEdge, boolean clickableName, int mouseX, int mouseY) {
         int rowX = textX + depth * TREE_INDENT_WIDTH;
         int iconX = rowX + INGREDIENT_ICON_OFFSET;
         int iconY = y - 2;
@@ -423,12 +484,17 @@ public final class RecipeInlineRenderer {
         // name), only shrink the plain name in front of it.
         int nameBudget = rightEdge - textStartX - StringUtils.getStringWidth(": " + count);
         String shownName = truncateToWidth(name, nameBudget);
-        // Choice-group ("任意X" / tag) names get a yellow bold underline so
+        boolean nameHovered = clickableName && isInside(mouseX, mouseY, textStartX, y - 1,
+                StringUtils.getStringWidth(shownName), 18);
+        // Choice-group ("任意X" / tag) names are yellow so
         // they read as "any of a category" rather than a specific item. Wrap
         // AFTER truncating the plain text so width math and the "..." are
         // computed on the raw name, not the format codes.
-        if (choiceGroup) {
-            shownName = GuiBase.TXT_YELLOW + GuiBase.TXT_BOLD + GuiBase.TXT_UNDERLINE + shownName + GuiBase.TXT_RST;
+        if (choiceGroup || nameHovered) {
+            shownName = (choiceGroup ? GuiBase.TXT_YELLOW : "")
+                    + (nameHovered ? GuiBase.TXT_BOLD + GuiBase.TXT_UNDERLINE : "")
+                    + shownName
+                    + GuiBase.TXT_RST;
         }
         String line = shownName + ": " + countColor + count;
         widget.drawString(textStartX, y + 2, 0xFFFFFFFF, line, context);
@@ -455,9 +521,6 @@ public final class RecipeInlineRenderer {
         RecipeSummary summary = summaries.get(0);
         int lineBudget = Math.max(160, width) - PADDING * 2;
         int height = 64 + headerExtraHeight(summary, lineBudget) + targetIngredientHeight(summary) + INNER_BOTTOM_PADDING;
-        if (summaries.size() > 1) {
-            height += 22;
-        }
         return height;
     }
 
@@ -607,6 +670,22 @@ public final class RecipeInlineRenderer {
 
         public boolean isNone() {
             return this.ingredient == null && this.nodePath == null;
+        }
+    }
+
+    public record NavigationTarget(boolean title, String recipeId, String itemId) {
+        public static final NavigationTarget NONE = new NavigationTarget(false, "", "");
+
+        public static NavigationTarget title(String recipeId) {
+            return new NavigationTarget(true, recipeId, "");
+        }
+
+        public static NavigationTarget ingredient(String recipeId, String itemId) {
+            return new NavigationTarget(false, recipeId, itemId);
+        }
+
+        public boolean isNone() {
+            return this.recipeId.isEmpty();
         }
     }
 

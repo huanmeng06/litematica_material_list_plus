@@ -40,7 +40,7 @@ public final class MinimalSubMaterialListView {
     private static final long FAMILY_CYCLE_MS = FamilyIconCycle.FAMILY_WINDOW_MILLIS;
     private static final long BUILD_BUDGET_NS = 2_500_000L;
     private static final long INITIAL_BUILD_BUDGET_NS = 20_000_000L;
-    private static final String COMMON_HIGHLIGHT = "\u00A7e\u00A7l\u00A7n";
+    private static final String COMMON_HIGHLIGHT = "\u00A7e";
     private static final String RESET = "\u00A7r";
     private static final List<String> WOOD_FAMILIES = List.of(
             "dark_oak",
@@ -78,10 +78,12 @@ public final class MinimalSubMaterialListView {
 
     public static void setActive(MaterialListBase materialList, boolean active) {
         if (active) {
+            MaterialListPlusState.suspendForMinimalView(materialList);
             ACTIVE_LISTS.put(materialList, true);
             prepare(materialList);
         } else {
             ACTIVE_LISTS.remove(materialList);
+            MaterialListPlusState.restoreAfterMinimalView(materialList);
         }
     }
 
@@ -336,7 +338,7 @@ public final class MinimalSubMaterialListView {
     }
 
     // Style a choice-group ("任意X" / tag) title so the recipe-panel hover popup
-    // matches the minimal sub-material page: yellow, bold, underlined. The name
+    // matches the minimal sub-material page: yellow, regular, without underline. The name
     // may already carry format codes (defensive: only add ours when it doesn't).
     public static String emphasizeChoiceGroupName(String name) {
         if (name == null || name.isEmpty() || name.indexOf('§') >= 0) {
@@ -490,6 +492,14 @@ public final class MinimalSubMaterialListView {
         childSeenItems.add(itemId);
         List<RecipeSummary> summaries = RecipeResolvers.findRecipes(icon, count, count);
         if (summaries.isEmpty() || summaries.get(0).ingredients().isEmpty()) {
+            addLeaf(icon, icons, names, name, source, scaledCount(count, scale), prepared, materials);
+            return;
+        }
+
+        // Stop before a conversion chain loops back to this same material.
+        // Waiting until the recursive seenItems guard would preserve the
+        // rounded overproduction instead of the original demand.
+        if (RecipeResolvers.leadsBackTo(itemId, summaries.get(0), MAX_RECIPE_DEPTH - depth)) {
             addLeaf(icon, icons, names, name, source, scaledCount(count, scale), prepared, materials);
             return;
         }

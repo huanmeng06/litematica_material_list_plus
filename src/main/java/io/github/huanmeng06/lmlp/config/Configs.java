@@ -142,6 +142,15 @@ public class Configs implements IConfigHandler {
                 "lmlp.config.name.missing_placement_button_range"
         );
 
+        public static final ConfigInteger HOVER_PANEL_MAX_ROWS = new ConfigInteger(
+                "hoverPanelMaxRows",
+                10,
+                1,
+                40,
+                true,
+                "Maximum number of item rows in each column of a choice-group hover panel. Extra items flow into additional columns as screen width allows."
+        );
+
         public static final ConfigStringList RECIPE_STOP_ITEMS = new ConfigStringList(
                 "recipeStopItems",
                 DEFAULT_RECIPE_STOP_ITEMS,
@@ -172,7 +181,8 @@ public class Configs implements IConfigHandler {
                 REPLACE_WATER_BUCKET_WITH_ICE,
                 ORIGIN_MARKER_TIME,
                 ORIGIN_MARKER_TEXT_SCALE,
-                MISSING_PLACEMENT_BUTTON_RANGE
+                MISSING_PLACEMENT_BUTTON_RANGE,
+                HOVER_PANEL_MAX_ROWS
         );
 
         private Generic() {

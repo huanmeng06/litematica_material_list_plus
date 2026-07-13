@@ -15,8 +15,7 @@ import fi.dy.masa.malilib.util.StringUtils;
 import fi.dy.masa.litematica.gui.Icons;
 import io.github.huanmeng06.lmlp.gui.ItemTooltipRenderer;
 import io.github.huanmeng06.lmlp.material.ItemStackTexts;
-import me.shedaniel.rei.api.client.registry.entry.EntryRegistry;
-import me.shedaniel.rei.api.common.entry.EntryStack;
+import io.github.huanmeng06.lmlp.recipe.jei.JeiRuntimeBridge;
 import net.minecraft.class_1799;
 import net.minecraft.class_332;
 import net.minecraft.class_437;
@@ -358,8 +357,10 @@ public class GuiItemIdStringListEdit extends GuiListBase<String, WidgetItemIdStr
         Map<String, Integer> creativeOrder = CreativeItemOrderResolver.createOrder();
         Map<String, Candidate> byId = new LinkedHashMap<>();
         int originalIndex = 0;
-        for (EntryStack<?> entry : EntryRegistry.getInstance().getPreFilteredList()) {
-            class_1799 stack = asItemStack(entry);
+        List<class_1799> jeiItems = JeiRuntimeBridge.runtime()
+                .map(runtime -> List.copyOf(runtime.getIngredientManager().getAllItemStacks()))
+                .orElseGet(List::of);
+        for (class_1799 stack : jeiItems) {
             if (stack.method_7960()) {
                 continue;
             }
@@ -654,15 +655,6 @@ public class GuiItemIdStringListEdit extends GuiListBase<String, WidgetItemIdStr
         pickerSortMode = pickerSortMode.next();
         this.updatePickerSortButton();
         this.updateFilteredCandidates();
-    }
-
-    private static class_1799 asItemStack(EntryStack<?> stack) {
-        try {
-            class_1799 itemStack = stack.cheatsAs().getValue();
-            return itemStack == null ? class_1799.field_8037 : itemStack;
-        } catch (Throwable throwable) {
-            return class_1799.field_8037;
-        }
     }
 
     private enum SortMode {
