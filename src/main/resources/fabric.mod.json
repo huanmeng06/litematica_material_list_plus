@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "id": "litematica_material_list_plus",
-  "version": "1.7.0+mc1.20.6",
+  "version": "1.7.1+mc1.20.6",
   "name": "Litematica Material List Plus",
-  "description": "Enhances Litematica's material list with grouped counts and REI recipe summaries.",
+  "description": "Enhances Litematica's material list with grouped counts and JEI recipe summaries.",
   "icon": "assets/litematica_material_list_plus/icon.png",
   "authors": [
     "Huan_meeng"
@@ -16,6 +16,9 @@
     ],
     "modmenu": [
       "io.github.huanmeng06.lmlp.compat.modmenu.ModMenuImpl"
+    ],
+    "jei_mod_plugin": [
+      "io.github.huanmeng06.lmlp.recipe.jei.JeiRuntimeBridge"
     ]
   },
   "mixins": [
@@ -27,6 +30,6 @@
     "fabric-api": "*",
     "litematica": ">=0.18.3",
     "malilib": ">=0.19.2",
-    "roughlyenoughitems": "*"
+    "jei": ">=18.0.0"
   }
 }

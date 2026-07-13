@@ -1,7 +1,10 @@
 package io.github.huanmeng06.lmlp.gui;
 
 import io.github.huanmeng06.lmlp.recipe.RecipeSummary;
+import java.util.List;
 import net.minecraft.class_327;
+import net.minecraft.class_1799;
+import net.minecraft.class_2561;
 import net.minecraft.class_332;
 
 public interface RecipeNativeDisplayBridge {
@@ -23,7 +26,23 @@ public interface RecipeNativeDisplayBridge {
     default void render(RecipeSummary summary, class_332 context, int x, int y, int width, int height, int mouseX, int mouseY, float delta) {
     }
 
-    default boolean renderTooltip(RecipeSummary summary, class_332 context, class_327 textRenderer, int mouseX, int mouseY) {
+    default boolean renderTooltip(RecipeSummary summary, class_332 context, class_327 textRenderer, int x, int y, int width, int height, int mouseX, int mouseY) {
+        return false;
+    }
+
+    default boolean renderCategoryTab(RecipeSummary summary, class_332 context, int x, int y, boolean hovered) {
+        return false;
+    }
+
+    default List<class_2561> getCategoryTooltip(RecipeSummary summary) {
+        return List.of();
+    }
+
+    default class_1799 getCategoryIngredient(RecipeSummary summary) {
+        return class_1799.field_8037;
+    }
+
+    default boolean openCategory(RecipeSummary summary) {
         return false;
     }
 

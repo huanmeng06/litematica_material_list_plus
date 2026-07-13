@@ -26,6 +26,11 @@ public final class MaterialListPlusState {
     private static MaterialListEntry visibleRecipeEntry;
     private static String visibleRecipeKey = "";
     private static List<RecipeSummary> visibleRecipeSummaries = Collections.emptyList();
+    private static MaterialListBase suspendedMaterialList;
+    private static MaterialListEntry suspendedRecipeEntry;
+    private static String suspendedRecipeKey = "";
+    private static List<RecipeSummary> suspendedRecipeSummaries = Collections.emptyList();
+    private static final Set<String> suspendedTreeNodes = new HashSet<>();
     private static final Set<String> expandedTreeNodes = new HashSet<>();
     private static final Map<String, Boolean> treeSupportCache = new HashMap<>();
     private static final Map<String, MaterialTreeNode> treeCache = new HashMap<>();
@@ -72,6 +77,47 @@ public final class MaterialListPlusState {
     public static void clear() {
         clearRecipe();
         clearIngredientTrees();
+    }
+
+    public static void suspendForMinimalView(MaterialListBase materialList) {
+        if (suspendedMaterialList == materialList) {
+            return;
+        }
+
+        clearSuspendedState();
+        suspendedMaterialList = materialList;
+        suspendedRecipeEntry = expandedEntry;
+        suspendedRecipeKey = expandedKey;
+        suspendedRecipeSummaries = expandedSummaries;
+        suspendedTreeNodes.addAll(expandedTreeNodes);
+
+        expandedEntry = null;
+        expandedKey = "";
+        expandedSummaries = Collections.emptyList();
+        visibleRecipeEntry = null;
+        visibleRecipeKey = "";
+        visibleRecipeSummaries = Collections.emptyList();
+        expandedTreeNodes.clear();
+        recipeAnimations.clear();
+        treeAnimations.clear();
+    }
+
+    public static void restoreAfterMinimalView(MaterialListBase materialList) {
+        if (suspendedMaterialList != materialList) {
+            return;
+        }
+
+        expandedEntry = suspendedRecipeEntry;
+        expandedKey = suspendedRecipeKey;
+        expandedSummaries = suspendedRecipeSummaries;
+        visibleRecipeEntry = suspendedRecipeEntry;
+        visibleRecipeKey = suspendedRecipeKey;
+        visibleRecipeSummaries = suspendedRecipeSummaries;
+        expandedTreeNodes.clear();
+        expandedTreeNodes.addAll(suspendedTreeNodes);
+        recipeAnimations.clear();
+        treeAnimations.clear();
+        clearSuspendedState();
     }
 
     public static boolean hasTree(IngredientSummary ingredient) {
@@ -199,6 +245,14 @@ public final class MaterialListPlusState {
     private static void clearIngredientTrees() {
         expandedTreeNodes.clear();
         treeAnimations.clear();
+    }
+
+    private static void clearSuspendedState() {
+        suspendedMaterialList = null;
+        suspendedRecipeEntry = null;
+        suspendedRecipeKey = "";
+        suspendedRecipeSummaries = Collections.emptyList();
+        suspendedTreeNodes.clear();
     }
 
     public static void clearRecipeCaches() {
