@@ -536,7 +536,7 @@ public final class MinimalSourceInlineRenderer {
     public record RequirementNameHit(class_1799 icon, MinimalSubMaterialListView.RequirementContribution requirement, boolean upstream) {
     }
 
-    // Hit-test the requirement block's bold "任意X" name text (the trigger for the
+    // Hit-test the requirement block's yellow "任意X" name text (the trigger for the
     // rich choice-group grid tooltip), reusing render()'s exact layout so the
     // hit-box follows the same one-line/wrapped placement and the returned icon
     // matches the inline cycling icon. Returns null when no requirement name is
