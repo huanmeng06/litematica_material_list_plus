@@ -16,6 +16,7 @@ import io.github.huanmeng06.lmlp.access.WidgetListBoundsAccess;
 import io.github.huanmeng06.lmlp.config.Configs;
 import io.github.huanmeng06.lmlp.gui.MaterialListColumnLayout;
 import io.github.huanmeng06.lmlp.gui.MaterialListPlusState;
+import io.github.huanmeng06.lmlp.gui.ClickableCursor;
 import io.github.huanmeng06.lmlp.gui.ItemTooltipRenderer;
 import io.github.huanmeng06.lmlp.material.ItemStackTexts;
 import io.github.huanmeng06.lmlp.gui.MinimalSubMaterialListView;
@@ -27,6 +28,7 @@ import io.github.huanmeng06.lmlp.material.MaterialCounts;
 import io.github.huanmeng06.lmlp.recipe.RecipeResolvers;
 import io.github.huanmeng06.lmlp.recipe.RecipeSummary;
 import net.minecraft.class_1799;
+import net.minecraft.class_437;
 import net.minecraft.class_332;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -49,7 +51,6 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
     private static final int TOOLTIP_STACK_GAP = 8;
     private static final int CHOICE_TOOLTIP_COLUMN_GAP = 14;
     private static final int CHOICE_TOOLTIP_ROW_HEIGHT = 18;
-    private static final int CHOICE_TOOLTIP_TWO_COLUMN_THRESHOLD = 7;
     private static final int VANILLA_TOOLTIP_HEIGHT = 68;
     private static final int VANILLA_TOOLTIP_MARGIN = 10;
     private static final int VANILLA_TOOLTIP_LABEL_VALUE_GAP = 20;
@@ -211,7 +212,7 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
 
     /**
      * @author Huan_meeng
-     * @reason Use row clicks for inline recipe expansion and shift-click for the detail screen.
+     * @reason Use row clicks for inline expansion and direct name clicks for details.
      */
     @Overwrite
     protected boolean onMouseClickedImpl(int mouseX, int mouseY, int mouseButton) {
@@ -262,27 +263,35 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         }
 
         if (mouseButton == 0 && this.isMouseOver(mouseX, mouseY)) {
-            if (!GuiBase.isShiftDown()) {
-                if (this.handleRecipePanelClick(mouseX, mouseY)) {
-                    return true;
-                }
+            if (this.lmlp$isMaterialNameHovered(mouseX, mouseY)) {
+                List<RecipeSummary> summaries = MaterialListPlusState.resolveFor(this.entry, this.materialList);
+                this.mc.method_1507(new RecipeDetailScreen(
+                        GuiUtils.getCurrentScreen(),
+                        this.entry.getStack(),
+                        MaterialCounts.total(this.entry, this.materialList),
+                        MaterialCounts.netMissing(this.entry, this.materialList),
+                        summaries));
+                return true;
             }
 
-            if (GuiBase.isShiftDown()) {
-                List<RecipeSummary> summaries = MaterialListPlusState.resolveFor(this.entry, this.materialList);
-                this.mc.method_1507(new RecipeDetailScreen(GuiUtils.getCurrentScreen(), this.entry.getStack(), MaterialCounts.total(this.entry, this.materialList), MaterialCounts.netMissing(this.entry, this.materialList), summaries));
-            } else {
-                boolean wasExpanded = MaterialListPlusState.isRecipeExpanded(this.entry);
-                if (wasExpanded) {
-                    MaterialListPlusState.clear();
-                } else {
-                    MaterialListPlusState.open(this.entry, this.materialList);
-                }
+            if (this.openRecipePanelNavigation(mouseX, mouseY)) {
+                return true;
+            }
 
-                this.listWidget.refreshEntries();
-                if (!wasExpanded) {
-                    this.scrollExpandedEntryIntoView();
-                }
+            if (this.handleRecipePanelClick(mouseX, mouseY)) {
+                return true;
+            }
+
+            boolean wasExpanded = MaterialListPlusState.isRecipeExpanded(this.entry);
+            if (wasExpanded) {
+                MaterialListPlusState.clear();
+            } else {
+                MaterialListPlusState.open(this.entry, this.materialList);
+            }
+
+            this.listWidget.refreshEntries();
+            if (!wasExpanded) {
+                this.scrollExpandedEntryIntoView();
             }
             return true;
         }
@@ -350,7 +359,12 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         boolean minimalSubMaterialView = MinimalSubMaterialListView.isActive(this.materialList);
 
         int iconX = xItem;
-        this.drawString(xItem + 20, yText, -1, this.truncateToWidth(name, this.lmlp$nameTextLimit()), drawContext);
+        String renderedName = this.truncateToWidth(name, this.lmlp$nameTextLimit());
+        if (!minimalSubMaterialView && this.lmlp$isMaterialNameHovered(mouseX, mouseY)) {
+            ClickableCursor.requestHand();
+            renderedName = GuiBase.TXT_BOLD + GuiBase.TXT_UNDERLINE + renderedName + GuiBase.TXT_RST;
+        }
+        this.drawString(xItem + 20, yText, -1, renderedName, drawContext);
         if (MaterialListColumnLayout.isTotalVisible()) {
             this.drawString(xTotal, yText, -1, CountFormatter.formatAligned(stack, total, lmlpMaxTotalDigits), drawContext);
         }
@@ -379,6 +393,10 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
             int panelWidth = Math.max(180, this.width - 64);
             int visibleOuterHeight = RecipeInlineRenderer.getOuterHeight(summaries, panelWidth, MaterialListPlusState.recipeProgress(this.entry));
             RecipeInlineRenderer.render(this, drawContext, this.x + 28, panelY, panelWidth, summaries, visibleOuterHeight, mouseX, mouseY);
+            if (!RecipeInlineRenderer.navigationTargetAt(summaries, this.x + 28, panelY, panelWidth,
+                    visibleOuterHeight, mouseX, mouseY).isNone()) {
+                ClickableCursor.requestHand();
+            }
         }
 
         if (minimalSubMaterialView && MinimalSubMaterialListView.isSourcesVisible(this.entry)) {
@@ -396,6 +414,17 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         } else {
             super.render(mouseX, mouseY, selected, drawContext);
         }
+    }
+
+    private boolean lmlp$isMaterialNameHovered(int mouseX, int mouseY) {
+        if (this.entry == null || MinimalSubMaterialListView.isActive(this.materialList)) {
+            return false;
+        }
+        int nameX = this.getColumnPosX(0) + 20;
+        int nameY = this.y + 7;
+        String name = this.truncateToWidth(MinimalSubMaterialListView.displayName(this.entry), this.lmlp$nameTextLimit());
+        int nameWidth = StringUtils.getStringWidth(name);
+        return mouseX >= nameX && mouseX < nameX + nameWidth && mouseY >= nameY && mouseY < nameY + 10;
     }
 
     /**
@@ -535,7 +564,7 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         return this.lmlp$renderChoiceGrid(drawContext, mouseX, mouseY, target.icon(), target.name(), candidates);
     }
 
-    // Shared rich choice-group grid (icon + name, one/two columns) used by both
+    // Shared rich choice-group grid (icon + name, up to four columns) used by both
     // the minimal sub-material page and the recipe panel's "任意X" hover.
     private boolean lmlp$renderChoiceGrid(class_332 drawContext, int mouseX, int mouseY, class_1799 headerStack, String headerName, List<MinimalSubMaterialListView.TooltipCandidate> candidates) {
         int maxPanelWidth = Math.max(120, this.mc.method_22683().method_4486() - HOVER_TOOLTIP_MARGIN * 2);
@@ -546,16 +575,27 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         }
 
         int naturalColumnWidth = HOVER_TOOLTIP_ICON_SIZE + HOVER_TOOLTIP_ICON_GAP + maxCandidateNameWidth;
-        int minTwoColumnWidth = HOVER_TOOLTIP_ICON_SIZE + HOVER_TOOLTIP_ICON_GAP + 60;
-        boolean twoColumns = candidates.size() >= CHOICE_TOOLTIP_TWO_COLUMN_THRESHOLD
-                && maxContentWidth >= minTwoColumnWidth * 2 + CHOICE_TOOLTIP_COLUMN_GAP;
-        int columns = twoColumns ? 2 : 1;
-        int columnGap = twoColumns ? CHOICE_TOOLTIP_COLUMN_GAP : 0;
-        int columnWidth = twoColumns
-                ? Math.min(naturalColumnWidth, Math.max(minTwoColumnWidth, (maxContentWidth - columnGap) / 2))
+        int minColumnWidth = HOVER_TOOLTIP_ICON_SIZE + HOVER_TOOLTIP_ICON_GAP + 60;
+        int maxRows = Configs.Generic.HOVER_PANEL_MAX_ROWS.getIntegerValue();
+        int requestedColumns = Math.max(1, (candidates.size() + maxRows - 1) / maxRows);
+        int columns = requestedColumns;
+        while (columns > 1
+                && maxContentWidth < minColumnWidth * columns + CHOICE_TOOLTIP_COLUMN_GAP * (columns - 1)) {
+            columns--;
+        }
+        int columnGap = columns > 1 ? CHOICE_TOOLTIP_COLUMN_GAP : 0;
+        int columnWidth = columns > 1
+                ? Math.min(naturalColumnWidth, Math.max(minColumnWidth,
+                        (maxContentWidth - columnGap * (columns - 1)) / columns))
                 : Math.min(naturalColumnWidth, maxContentWidth);
-        int rowsPerColumn = (candidates.size() + columns - 1) / columns;
-        int candidateContentWidth = columns * columnWidth + columnGap;
+        // Fill each column to the configured row limit before starting the
+        // next one. The separate title/header never consumes one of these rows.
+        // If the screen is too narrow for the requested number of columns,
+        // balance the rows across the reduced column count instead.
+        int rowsPerColumn = columns == requestedColumns
+                ? Math.min(maxRows, candidates.size())
+                : (candidates.size() + columns - 1) / columns;
+        int candidateContentWidth = columns * columnWidth + columnGap * (columns - 1);
 
         String headerText = this.truncateToWidth(
                 headerName,
@@ -575,11 +615,19 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         int headerY = panelY + HOVER_TOOLTIP_PADDING + 4;
         int rowsY = headerY + Math.max(HOVER_TOOLTIP_ICON_SIZE, HOVER_TOOLTIP_LINE_HEIGHT) + HOVER_TOOLTIP_HEADER_GAP;
 
+        // Submit JEI's and item renderer's queued batches before painting the
+        // tooltip. Otherwise those older vertices flush afterwards and appear
+        // through the panel regardless of its Z translation.
+        drawContext.method_51452();
         drawContext.method_51448().method_22903();
-        drawContext.method_51448().method_46416(0.0F, 0.0F, 200.0F);
-        RenderUtils.drawOutlinedBox(panelX, panelY, panelWidth, panelHeight, 0xF0000000, 0xFF999999);
+        // Match vanilla tooltip headroom and the full recipe-detail tooltip.
+        // JEI's native display items can render above +200 and otherwise bleed
+        // through this panel (for example the crafting-table catalyst icon).
+        drawContext.method_51448().method_46416(0.0F, 0.0F, 400.0F);
+        lmlp$drawTooltipBox(drawContext, panelX, panelY, panelWidth, panelHeight, 0xF0000000, 0xFF999999);
 
-        RenderUtils.drawRect(contentX, headerY - 4, HOVER_TOOLTIP_ICON_SIZE, HOVER_TOOLTIP_ICON_SIZE, 0x20FFFFFF);
+        drawContext.method_25294(contentX, headerY - 4, contentX + HOVER_TOOLTIP_ICON_SIZE,
+                headerY - 4 + HOVER_TOOLTIP_ICON_SIZE, 0x20FFFFFF);
         RenderUtils.enableDiffuseLightingGui3D();
         drawContext.method_51427(headerStack, contentX, headerY - 4);
         RenderUtils.disableDiffuseLighting();
@@ -595,7 +643,8 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
             int maxNameWidth = Math.max(20, columnWidth - HOVER_TOOLTIP_ICON_SIZE - HOVER_TOOLTIP_ICON_GAP);
             String itemName = this.truncateToWidth(candidate.name(), maxNameWidth);
 
-            RenderUtils.drawRect(rowX, rowTop + 1, HOVER_TOOLTIP_ICON_SIZE, HOVER_TOOLTIP_ICON_SIZE, 0x20FFFFFF);
+            drawContext.method_25294(rowX, rowTop + 1, rowX + HOVER_TOOLTIP_ICON_SIZE,
+                    rowTop + 1 + HOVER_TOOLTIP_ICON_SIZE, 0x20FFFFFF);
             RenderUtils.enableDiffuseLightingGui3D();
             drawContext.method_51427(candidate.icon(), rowX, rowTop + 1);
             RenderUtils.disableDiffuseLighting();
@@ -783,9 +832,11 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         int lineY = panelY + 6;
         int iconY = lineY;
 
+        drawContext.method_51452();
         drawContext.method_51448().method_22903();
-        drawContext.method_51448().method_46416(0.0F, 0.0F, 200.0F);
-        RenderUtils.drawOutlinedBox(panelX, panelY, panelWidth, VANILLA_TOOLTIP_HEIGHT, 0xFF000000, 0xFF999999);
+        drawContext.method_51448().method_46416(0.0F, 0.0F, 400.0F);
+        lmlp$drawTooltipBox(drawContext, panelX, panelY, panelWidth, VANILLA_TOOLTIP_HEIGHT, 0xFF000000,
+                0xFF999999);
 
         lineY += 4;
         this.drawString(labelX, lineY, 0xFFFFFFFF, itemLabel, drawContext);
@@ -804,6 +855,15 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         drawContext.method_51427(stack, valueX, iconY);
         RenderUtils.disableDiffuseLighting();
         drawContext.method_51448().method_22909();
+    }
+
+    private static void lmlp$drawTooltipBox(class_332 context, int x, int y, int width, int height,
+            int background, int border) {
+        context.method_25294(x, y, x + width, y + height, background);
+        context.method_25294(x, y, x + width, y + 1, border);
+        context.method_25294(x, y + height - 1, x + width, y + height, border);
+        context.method_25294(x, y, x + 1, y + height, border);
+        context.method_25294(x + width - 1, y, x + width, y + height, border);
     }
 
     private String formatVanillaCount(int count, int maxStackSize) {
@@ -953,6 +1013,35 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
 
         this.listWidget.refreshEntries();
         this.scrollExpandedEntryIntoView();
+        return true;
+    }
+
+    private boolean openRecipePanelNavigation(int mouseX, int mouseY) {
+        if (!MaterialListPlusState.isRecipeExpanded(this.entry)) {
+            return false;
+        }
+
+        List<RecipeSummary> summaries = MaterialListPlusState.getSummaries(this.entry, this.materialList);
+        int panelX = this.x + 28;
+        int panelY = this.y + 23;
+        int panelWidth = Math.max(180, this.width - 64);
+        int visibleOuterHeight = RecipeInlineRenderer.getOuterHeight(summaries, panelWidth,
+                MaterialListPlusState.recipeProgress(this.entry));
+        RecipeInlineRenderer.NavigationTarget target = RecipeInlineRenderer.navigationTargetAt(
+                summaries, panelX, panelY, panelWidth, visibleOuterHeight, mouseX, mouseY);
+        if (target.isNone()) {
+            return false;
+        }
+
+        int total = MaterialCounts.total(this.entry, this.materialList);
+        int missing = MaterialCounts.netMissing(this.entry, this.materialList);
+        class_437 parent = GuiUtils.getCurrentScreen();
+        if (target.title()) {
+            this.mc.method_1507(new RecipeDetailScreen(parent, this.entry.getStack(), total, missing, summaries));
+        } else {
+            this.mc.method_1507(new RecipeDetailScreen(parent, this.entry.getStack(), total, missing, summaries,
+                    target.recipeId(), target.itemId()));
+        }
         return true;
     }
 
