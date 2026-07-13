@@ -595,10 +595,6 @@ public class RecipeDetailScreen extends class_437 {
         List<RecipeSlotSummary> slots = summary.inputSlots();
         int gridX = x + 34;
         int gridY = y + 24;
-<<<<<<< HEAD
-        context.method_25290(class_1921::method_62277, REI_DISPLAY_TEXTURE, gridX, gridY, 0.0F, 0.0F, 54, 54, 256, 256);
-=======
->>>>>>> f182658 (feat: complete JEI migration for 1.7.1)
         for (int row = 0; row < 3; row++) {
             for (int column = 0; column < 3; column++) {
                 int slotIndex = row * 3 + column;
@@ -611,11 +607,7 @@ public class RecipeDetailScreen extends class_437 {
             }
         }
 
-<<<<<<< HEAD
-        context.method_25290(class_1921::method_62277, REI_DISPLAY_TEXTURE, x + 122, y + 44, 60.0F, 18.0F, 24, 15, 256, 256);
-=======
         drawCraftingArrow(context, x + 122, y + 44);
->>>>>>> f182658 (feat: complete JEI migration for 1.7.1)
 
         int outputX = x + 166;
         int outputY = y + 35;
@@ -745,12 +737,8 @@ public class RecipeDetailScreen extends class_437 {
         int starY = buttonY + (PREFERRED_BUTTON_SIZE - PREFERRED_ICON_SIZE) / 2;
         int textureU = hovered ? PREFERRED_ICON_SIZE : 0;
         int textureV = preferred ? 0 : PREFERRED_ICON_SIZE;
-<<<<<<< HEAD
-        context.method_25290(class_1921::method_62277, PREFERRED_WIDGETS_TEXTURE, starX, starY, (float) textureU, (float) textureV, PREFERRED_ICON_SIZE, PREFERRED_ICON_SIZE, PREFERRED_WIDGET_TEXTURE_SIZE, PREFERRED_WIDGET_TEXTURE_SIZE);
-=======
-        context.method_25290(PREFERRED_WIDGETS_TEXTURE, starX, starY, (float) textureU, (float) textureV,
+        context.method_25290(net.minecraft.class_10799.field_56883, PREFERRED_WIDGETS_TEXTURE, starX, starY, (float) textureU, (float) textureV,
                 PREFERRED_ICON_SIZE, PREFERRED_ICON_SIZE, PREFERRED_WIDGET_TEXTURE_SIZE, PREFERRED_WIDGET_TEXTURE_SIZE);
->>>>>>> f182658 (feat: complete JEI migration for 1.7.1)
         if (hovered) {
             this.drawPreferredRecipeHoverBorder(context, buttonX, buttonY);
             this.hoveredPreferredRecipeTooltip = List.of(class_2561.method_43470(label));
@@ -827,11 +815,11 @@ public class RecipeDetailScreen extends class_437 {
         int width = bounds.width();
         int height = bounds.height();
         float textureV = textureId * 80.0F;
-        context.method_25291(TRANSFER_BUTTON_TEXTURE, x, y, 0, 0.0F, textureV, 8, 8, 256, 512);
-        context.method_25291(TRANSFER_BUTTON_TEXTURE, x + width - 8, y, 0, 248.0F, textureV, 8, 8, 256, 512);
-        context.method_25291(TRANSFER_BUTTON_TEXTURE, x, y + height - 8, 0, 0.0F, textureV + 72.0F, 8, 8, 256, 512);
-        context.method_25291(TRANSFER_BUTTON_TEXTURE, x + width - 8, y + height - 8, 0, 248.0F, textureV + 72.0F, 8, 8,
-                256, 512);
+        context.method_25291(net.minecraft.class_10799.field_56883, TRANSFER_BUTTON_TEXTURE, x, y, 0.0F, textureV, 8, 8, 256, 512, 0);
+        context.method_25291(net.minecraft.class_10799.field_56883, TRANSFER_BUTTON_TEXTURE, x + width - 8, y, 248.0F, textureV, 8, 8, 256, 512, 0);
+        context.method_25291(net.minecraft.class_10799.field_56883, TRANSFER_BUTTON_TEXTURE, x, y + height - 8, 0.0F, textureV + 72.0F, 8, 8, 256, 512, 0);
+        context.method_25291(net.minecraft.class_10799.field_56883, TRANSFER_BUTTON_TEXTURE, x + width - 8, y + height - 8, 248.0F, textureV + 72.0F, 8, 8,
+                256, 512, 0);
     }
 
     private boolean renderTransferTooltip(class_332 context, int mouseX, int mouseY) {

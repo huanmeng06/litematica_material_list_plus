@@ -551,7 +551,7 @@ public final class KnownPlacementRows {
     }
 
     private static void drawIcon(String dimension, int x, int y, class_332 drawContext) {
-        drawContext.method_25290(class_1921::method_62277, icon(dimension), x, y, 0.0F, 0.0F, ICON_SIZE, ICON_SIZE, ICON_SIZE, ICON_SIZE);
+        drawContext.method_25290(net.minecraft.class_10799.field_56883, icon(dimension), x, y, 0.0F, 0.0F, ICON_SIZE, ICON_SIZE, ICON_SIZE, ICON_SIZE);
     }
 
     private static class_2960 icon(String dimension) {

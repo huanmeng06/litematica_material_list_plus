@@ -13,7 +13,7 @@ public final class JeiRuntimeBridge implements IModPlugin {
 
     @Override
     public class_2960 getPluginUid() {
-        return new class_2960("litematica_material_list_plus", "jei_bridge");
+        return class_2960.method_60655("litematica_material_list_plus", "jei_bridge");
     }
 
     @Override
