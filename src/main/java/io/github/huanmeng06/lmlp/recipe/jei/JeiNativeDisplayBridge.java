@@ -18,7 +18,7 @@ import net.minecraft.class_327;
 import net.minecraft.class_332;
 
 public final class JeiNativeDisplayBridge implements RecipeNativeDisplayBridge {
-    private static final class_2960 CATALYST_TAB = new class_2960("litematica_material_list_plus", "textures/gui/catalyst_tab.png");
+    private static final class_2960 CATALYST_TAB = class_2960.method_60655("litematica_material_list_plus", "textures/gui/catalyst_tab.png");
 
     @Override
     public boolean canRender(RecipeSummary summary) {
