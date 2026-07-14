@@ -29,14 +29,17 @@ public class GuiConfigs extends GuiConfigsBase {
 
     @Override
     public void initGui() {
-        super.initGui();
+        // Clear listeners from a previous screen before MaLiLib creates the new list.
         this.clearOptions();
+        super.initGui();
 
         int x = 10;
         int y = 26;
         for (ConfigGuiTab tab : ConfigGuiTab.values()) {
             x += this.createButton(x, y, -1, tab);
         }
+        // MaLiLib updates reset buttons when key focus changes; refresh once on open too.
+        this.updateKeybindButtons();
     }
 
     @Override

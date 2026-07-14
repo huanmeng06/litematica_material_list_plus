@@ -18,7 +18,6 @@ public final class Hotkeys {
     public static final ConfigHotkey CLEAR_ORIGIN_MARKER = new ConfigHotkey(
             "clearOriginMarker",
             "",
-            KeybindSettings.PRESS_ALLOWEXTRA_EMPTY,
             "Clear the active placement origin highlight and beam.",
             "lmlp.config.name.clear_origin_marker"
     );
