@@ -29,10 +29,9 @@ public class GuiConfigs extends GuiConfigsBase {
 
     @Override
     public void initGui() {
-        super.initGui();
+        // Clear listeners from a previous screen before MaLiLib creates the new list.
         this.clearOptions();
-        // clearOptions() removes MaLiLib's listeners; rebuild the list to register them again.
-        this.reCreateListWidget();
+        super.initGui();
 
         int x = 10;
         int y = 26;
