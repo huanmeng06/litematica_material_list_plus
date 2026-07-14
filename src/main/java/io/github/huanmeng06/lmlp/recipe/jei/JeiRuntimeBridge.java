@@ -2,6 +2,7 @@ package io.github.huanmeng06.lmlp.recipe.jei;
 
 import java.util.Optional;
 
+import io.github.huanmeng06.lmlp.recipe.RecipeResolvers;
 import mezz.jei.api.IModPlugin;
 import mezz.jei.api.JeiPlugin;
 import mezz.jei.api.runtime.IJeiRuntime;
@@ -19,11 +20,13 @@ public final class JeiRuntimeBridge implements IModPlugin {
     @Override
     public void onRuntimeAvailable(IJeiRuntime jeiRuntime) {
         runtime = jeiRuntime;
+        RecipeResolvers.clearCache();
     }
 
     @Override
     public void onRuntimeUnavailable() {
         runtime = null;
+        RecipeResolvers.clearCache();
     }
 
     public static Optional<IJeiRuntime> runtime() {
