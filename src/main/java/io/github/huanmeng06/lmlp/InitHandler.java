@@ -8,7 +8,6 @@ import fi.dy.masa.malilib.interfaces.IInitializationHandler;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
-import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderEvents;
 import io.github.huanmeng06.lmlp.cache.ChunkMissingMaterialListCache;
 import io.github.huanmeng06.lmlp.config.Configs;
 import io.github.huanmeng06.lmlp.config.Hotkeys;
@@ -53,7 +52,6 @@ public class InitHandler implements IInitializationHandler {
             InventoryCounts.clear();
             ChunkMissingMaterialListCache.onWorldDisconnected("client.lifecycle.stopping");
         });
-        WorldRenderEvents.END_MAIN.register(PlacementOriginMarker::render);
     }
     private static void handleHotkeyFallback(net.minecraft.class_310 client) {
         // The raw key polling below ignores malilib's keybind contexts, so it

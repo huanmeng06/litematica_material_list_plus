@@ -5,7 +5,6 @@ import fi.dy.masa.malilib.gui.widgets.WidgetBase;
 import fi.dy.masa.malilib.util.InfoUtils;
 import io.github.huanmeng06.lmlp.cache.ChunkMissingMaterialListCache.KnownPlacementContext;
 import io.github.huanmeng06.lmlp.config.Configs;
-import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderContext;
 import net.minecraft.class_238;
 import net.minecraft.class_2338;
 import net.minecraft.class_243;
@@ -95,15 +94,10 @@ public final class PlacementOriginMarker {
         return hasActiveMarker(context);
     }
 
-    public static void render(WorldRenderContext context) {
+    public static void render(net.minecraft.class_4184 camera) {
         Marker current = activeMarker();
         class_310 client = class_310.method_1551();
-        if (current == null || context == null || client.field_1687 == null || context.gameRenderer() == null) {
-            return;
-        }
-
-        net.minecraft.class_4184 camera = context.gameRenderer().method_19418();
-        if (camera == null) {
+        if (current == null || camera == null || client.field_1687 == null) {
             return;
         }
 
