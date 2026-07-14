@@ -25,6 +25,7 @@ import net.minecraft.class_822;
 import net.minecraft.class_4587;
 import net.minecraft.class_4597;
 import net.minecraft.class_4588;
+import net.minecraft.class_4608;
 import net.minecraft.class_1921;
 import net.minecraft.class_7833;
 import net.minecraft.class_3532;
@@ -258,7 +259,7 @@ public final class PlacementOriginMarker {
                 .method_22915((color >> 16 & 255) / 255.0F, (color >> 8 & 255) / 255.0F,
                         (color & 255) / 255.0F, (color >>> 24) / 255.0F)
                 .method_22913(u, v)
-                .method_22922(0)
+                .method_22922(class_4608.field_21444)
                 .method_22916(15728880)
                 .method_23763(matrices.method_23760().method_23762(), 0.0F, 1.0F, 0.0F)
                 .method_1344();
