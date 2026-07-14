@@ -22,6 +22,7 @@ import net.minecraft.class_2960;
 import net.minecraft.class_310;
 import net.minecraft.class_327;
 import net.minecraft.class_638;
+import net.minecraft.class_822;
 import net.minecraft.class_4587;
 import net.minecraft.class_4597;
 import net.minecraft.class_9799;
@@ -174,30 +175,22 @@ public final class PlacementOriginMarker {
         beginOverlayState();
         RenderSystem.setShader(class_757::method_34540);
 
-        double centerX = pos.method_10263() + 0.5D - cameraPos.field_1352;
-        double centerY = pos.method_10264() + 0.5D - cameraPos.field_1351;
-        double centerZ = pos.method_10260() + 0.5D - cameraPos.field_1350;
-        float minX = (float) -BEAM_RADIUS;
-        float maxX = (float) BEAM_RADIUS;
-        float minZ = (float) -BEAM_RADIUS;
-        float maxZ = (float) BEAM_RADIUS;
-        float minY = -BEAM_HALF_HEIGHT;
-        float maxY = BEAM_HALF_HEIGHT;
-
         matrices.method_22903();
-        matrices.method_22904(centerX, centerY, centerZ);
-        Matrix4f matrix = matrices.method_23760().method_23761();
+        matrices.method_22904(
+                pos.method_10263() + 0.5D - cameraPos.field_1352,
+                pos.method_10264() + 0.5D - cameraPos.field_1351,
+                pos.method_10260() + 0.5D - cameraPos.field_1350);
+        matrices.method_22904(-0.5D, -0.5D, -0.5D);
 
-        class_289 tessellator = class_289.method_1348();
-        class_287 buffer = tessellator.method_60827(class_293.class_5596.field_27382, class_290.field_1576);
-        drawBoxQuads(buffer, matrix, minX, minY, minZ, maxX, maxY, maxZ, BEAM_FILL);
-        class_286.method_43433(buffer.method_60794());
-
-        RenderSystem.lineWidth(1.6F);
-        buffer = tessellator.method_60827(class_293.class_5596.field_29345, class_290.field_1576);
-        drawBoxLines(buffer, matrix, minX, minY, minZ, maxX, maxY, maxZ, BEAM_OUTLINE);
-        class_286.method_43433(buffer.method_60794());
-        RenderSystem.lineWidth(1.0F);
+        class_310 client = class_310.method_1551();
+        float tickDelta = client.method_60646().method_60637(true);
+        float animationTime = (float) Math.floorMod(client.field_1687.method_8510(), 40L) + tickDelta;
+        class_4597.class_4598 consumers = class_4597.method_22991(LABEL_TEXT_ALLOCATOR);
+        class_822.method_3545(
+                matrices, consumers, class_822.field_4338, 1.0F, animationTime,
+                client.field_1687.method_8510(), -pos.method_10264() - 64, 2048,
+                0xFF0000, 0.2F, 0.25F);
+        consumers.method_22993();
         matrices.method_22909();
     }
 
