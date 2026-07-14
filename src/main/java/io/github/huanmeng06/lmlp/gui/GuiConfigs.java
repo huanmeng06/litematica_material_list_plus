@@ -37,6 +37,8 @@ public class GuiConfigs extends GuiConfigsBase {
         for (ConfigGuiTab tab : ConfigGuiTab.values()) {
             x += this.createButton(x, y, -1, tab);
         }
+        // MaLiLib updates reset buttons when key focus changes; refresh once on open too.
+        this.updateKeybindButtons();
     }
 
     @Override
