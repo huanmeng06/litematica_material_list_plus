@@ -1,6 +1,5 @@
 package io.github.huanmeng06.lmlp.mixin;
 
-import com.mojang.blaze3d.systems.RenderSystem;
 import fi.dy.masa.litematica.gui.Icons;
 import fi.dy.masa.litematica.gui.widgets.WidgetListMaterialList;
 import fi.dy.masa.litematica.gui.widgets.WidgetMaterialListEntry;
@@ -29,7 +28,7 @@ import io.github.huanmeng06.lmlp.recipe.RecipeResolvers;
 import io.github.huanmeng06.lmlp.recipe.RecipeSummary;
 import net.minecraft.class_1799;
 import net.minecraft.class_437;
-import net.minecraft.class_332;
+import fi.dy.masa.malilib.render.GuiContext;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Overwrite;
@@ -215,7 +214,10 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
      * @reason Use row clicks for inline expansion and direct name clicks for details.
      */
     @Overwrite
-    protected boolean onMouseClickedImpl(int mouseX, int mouseY, int mouseButton) {
+    protected boolean onMouseClickedImpl(net.minecraft.class_11909 event, boolean doubleClick) {
+        int mouseX = (int) event.comp_4798();
+        int mouseY = (int) event.comp_4799();
+        int mouseButton = event.comp_4800().comp_4801();
         if (this.entry == null) {
             if (this.header1 != null && this.listWidget.getSearchBarWidget().isSearchOpen()) {
                 return false;
@@ -258,7 +260,7 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
             return false;
         }
 
-        if (super.onMouseClickedImpl(mouseX, mouseY, mouseButton)) {
+        if (super.onMouseClickedImpl(event, doubleClick)) {
             return true;
         }
 
@@ -304,7 +306,7 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
      * @reason Preserve original non-selectable rows.
      */
     @Overwrite
-    public boolean canSelectAt(int mouseX, int mouseY, int mouseButton) {
+    public boolean canSelectAt(net.minecraft.class_11909 event) {
         return false;
     }
 
@@ -313,13 +315,13 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
      * @reason Draw grouped counts and optional inline recipe summaries.
      */
     @Overwrite
-    public void render(int mouseX, int mouseY, boolean selected, class_332 drawContext) {
+    public void render(GuiContext drawContext, int mouseX, int mouseY, boolean selected) {
         if (this.header1 == null && (selected || this.isMouseOver(mouseX, mouseY))) {
-            RenderUtils.drawRect(this.x, this.y, this.width, this.height, 0xA0707070);
+            RenderUtils.drawRect(drawContext, this.x, this.y, this.width, this.height, 0xA0707070);
         } else if (this.isOdd) {
-            RenderUtils.drawRect(this.x, this.y, this.width, this.height, 0xA0101010);
+            RenderUtils.drawRect(drawContext, this.x, this.y, this.width, this.height, 0xA0101010);
         } else {
-            RenderUtils.drawRect(this.x, this.y, this.width, this.height, 0xA0303030);
+            RenderUtils.drawRect(drawContext, this.x, this.y, this.width, this.height, 0xA0303030);
         }
 
         int xItem = this.getColumnPosX(0);
@@ -330,17 +332,24 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
 
         if (this.header1 != null) {
             if (!this.listWidget.getSearchBarWidget().isSearchOpen()) {
-                this.drawString(xItem, yText, -1, this.header1, drawContext);
+                this.drawString(drawContext, xItem, yText, -1, this.header1);
                 if (MaterialListColumnLayout.isTotalVisible()) {
-                    this.drawString(xTotal, yText, -1, this.header2, drawContext);
+                    this.drawString(drawContext, xTotal, yText, -1, this.header2);
                 }
                 if (MaterialListColumnLayout.isMissingVisible()) {
-                    this.drawString(xMissing, yText, -1, this.header3, drawContext);
+                    this.drawString(drawContext, xMissing, yText, -1, this.header3);
                 }
                 if (MaterialListColumnLayout.isAvailableVisible()) {
-                    this.drawString(xAvailable, yText, -1, this.header4, drawContext);
+                    this.drawString(drawContext, xAvailable, yText, -1, this.header4);
                 }
-                this.renderColumnHeader(mouseX, mouseY, Icons.ARROW_DOWN, Icons.ARROW_UP);
+                // CACHE_ORDER is Litematica's non-column placement-cache order
+                // (ordinal 4). MaLiLib's sortable header assumes every sort
+                // ordinal maps to a visible column; passing CACHE_ORDER makes
+                // it ask for column 5 and draw the arrow at the fallback X near
+                // the screen's top-left corner.
+                if (this.materialList.getSortCriteria() != MaterialListBase.SortCriteria.CACHE_ORDER) {
+                    this.renderColumnHeader(drawContext, mouseX, mouseY, Icons.ARROW_DOWN, Icons.ARROW_UP);
+                }
             }
 
             return;
@@ -364,25 +373,22 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
             ClickableCursor.requestHand();
             renderedName = GuiBase.TXT_BOLD + GuiBase.TXT_UNDERLINE + renderedName + GuiBase.TXT_RST;
         }
-        this.drawString(xItem + 20, yText, -1, renderedName, drawContext);
+        this.drawString(drawContext, xItem + 20, yText, -1, renderedName);
         if (MaterialListColumnLayout.isTotalVisible()) {
-            this.drawString(xTotal, yText, -1, CountFormatter.formatAligned(stack, total, lmlpMaxTotalDigits), drawContext);
+            this.drawString(drawContext, xTotal, yText, -1, CountFormatter.formatAligned(stack, total, lmlpMaxTotalDigits));
         }
         if (MaterialListColumnLayout.isMissingVisible()) {
-            this.drawString(xMissing, yText, -1, netMissingColor(missing) + CountFormatter.formatAligned(stack, missing, lmlpMaxMissingDigits), drawContext);
+            this.drawString(drawContext, xMissing, yText, -1, netMissingColor(missing) + CountFormatter.formatAligned(stack, missing, lmlpMaxMissingDigits));
         }
         if (MaterialListColumnLayout.isAvailableVisible()) {
-            this.drawString(xAvailable, yText, -1, availableColor(available, rawMissing) + CountFormatter.formatAligned(stack, available, lmlpMaxAvailableDigits), drawContext);
+            this.drawString(drawContext, xAvailable, yText, -1, availableColor(available, rawMissing) + CountFormatter.formatAligned(stack, available, lmlpMaxAvailableDigits));
         }
 
-        drawContext.method_51448().method_22903();
-        RenderUtils.enableDiffuseLightingGui3D();
+        drawContext.method_51448().pushMatrix();
         int iconY = this.y + 3;
-        RenderUtils.drawRect(iconX, iconY, 16, 16, 0x20FFFFFF);
+        RenderUtils.drawRect(drawContext, iconX, iconY, 16, 16, 0x20FFFFFF);
         drawContext.method_51427(stack, iconX, iconY);
-        RenderSystem.disableBlend();
-        RenderUtils.disableDiffuseLighting();
-        drawContext.method_51448().method_22909();
+        drawContext.method_51448().popMatrix();
 
         if (MaterialListPlusState.isRecipeVisible(this.entry)) {
             List<RecipeSummary> summaries = MaterialListPlusState.getSummaries(this.entry, this.materialList);
@@ -410,9 +416,9 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         }
 
         if (minimalSubMaterialView) {
-            this.drawSubWidgets(mouseX, mouseY, drawContext);
+            this.drawSubWidgets(drawContext, mouseX, mouseY);
         } else {
-            super.render(mouseX, mouseY, selected, drawContext);
+            super.render(drawContext, mouseX, mouseY, selected);
         }
     }
 
@@ -432,7 +438,7 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
      * @reason Optionally suppress Litematica's original material hover tooltip.
      */
     @Overwrite
-    public void postRenderHovered(int mouseX, int mouseY, boolean selected, class_332 drawContext) {
+    public void postRenderHovered(GuiContext drawContext, int mouseX, int mouseY, boolean selected) {
         if (this.entry == null) {
             return;
         }
@@ -469,7 +475,7 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         return MaterialListColumnLayout.nameWidth() + 20;
     }
 
-    private boolean lmlp$renderTruncatedNameTooltip(class_332 drawContext, int mouseX, int mouseY) {
+    private boolean lmlp$renderTruncatedNameTooltip(GuiContext drawContext, int mouseX, int mouseY) {
         if (this.entry == null || this.header1 != null) {
             return false;
         }
@@ -488,14 +494,14 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
             return false;
         }
 
-        RenderUtils.drawHoverText(mouseX, mouseY, List.of(fullName), drawContext);
+        RenderUtils.drawHoverText(drawContext, mouseX, mouseY, List.of(fullName));
         return true;
     }
 
     // Hovering a choice-group ("任意X") name in the recipe panel shows the
     // concrete items it stands for, distinct from hovering its item icon
     // (which still shows the vanilla item tooltip via lmlp$renderPanelItemTooltip).
-    private boolean lmlp$renderRecipeChoiceGroupTooltip(class_332 drawContext, int mouseX, int mouseY) {
+    private boolean lmlp$renderRecipeChoiceGroupTooltip(GuiContext drawContext, int mouseX, int mouseY) {
         if (this.entry == null || !MaterialListPlusState.isRecipeVisible(this.entry)) {
             return false;
         }
@@ -547,7 +553,7 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
     }
 
     @Override
-    public boolean lmlp$renderMinimalChoiceTooltip(class_332 drawContext, int mouseX, int mouseY) {
+    public boolean lmlp$renderMinimalChoiceTooltip(GuiContext drawContext, int mouseX, int mouseY) {
         if (this.entry == null || !MinimalSubMaterialListView.isActive(this.materialList)) {
             return false;
         }
@@ -566,7 +572,7 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
 
     // Shared rich choice-group grid (icon + name, up to four columns) used by both
     // the minimal sub-material page and the recipe panel's "任意X" hover.
-    private boolean lmlp$renderChoiceGrid(class_332 drawContext, int mouseX, int mouseY, class_1799 headerStack, String headerName, List<MinimalSubMaterialListView.TooltipCandidate> candidates) {
+    private boolean lmlp$renderChoiceGrid(GuiContext drawContext, int mouseX, int mouseY, class_1799 headerStack, String headerName, List<MinimalSubMaterialListView.TooltipCandidate> candidates) {
         int maxPanelWidth = Math.max(120, this.mc.method_22683().method_4486() - HOVER_TOOLTIP_MARGIN * 2);
         int maxContentWidth = Math.max(80, maxPanelWidth - HOVER_TOOLTIP_PADDING * 2);
         int maxCandidateNameWidth = 0;
@@ -618,20 +624,16 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         // Submit JEI's and item renderer's queued batches before painting the
         // tooltip. Otherwise those older vertices flush afterwards and appear
         // through the panel regardless of its Z translation.
-        drawContext.method_51452();
-        drawContext.method_51448().method_22903();
+        drawContext.method_51448().pushMatrix();
         // Match vanilla tooltip headroom and the full recipe-detail tooltip.
         // JEI's native display items can render above +200 and otherwise bleed
         // through this panel (for example the crafting-table catalyst icon).
-        drawContext.method_51448().method_46416(0.0F, 0.0F, 400.0F);
         lmlp$drawTooltipBox(drawContext, panelX, panelY, panelWidth, panelHeight, 0xF0000000, 0xFF999999);
 
         drawContext.method_25294(contentX, headerY - 4, contentX + HOVER_TOOLTIP_ICON_SIZE,
                 headerY - 4 + HOVER_TOOLTIP_ICON_SIZE, 0x20FFFFFF);
-        RenderUtils.enableDiffuseLightingGui3D();
         drawContext.method_51427(headerStack, contentX, headerY - 4);
-        RenderUtils.disableDiffuseLighting();
-        this.drawString(contentX + HOVER_TOOLTIP_ICON_SIZE + HOVER_TOOLTIP_ICON_GAP, headerY, 0xFFFFFFFF, headerText, drawContext);
+        this.drawString(drawContext, contentX + HOVER_TOOLTIP_ICON_SIZE + HOVER_TOOLTIP_ICON_GAP, headerY, 0xFFFFFFFF, headerText);
 
         for (int index = 0; index < candidates.size(); index++) {
             MinimalSubMaterialListView.TooltipCandidate candidate = candidates.get(index);
@@ -645,18 +647,16 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
 
             drawContext.method_25294(rowX, rowTop + 1, rowX + HOVER_TOOLTIP_ICON_SIZE,
                     rowTop + 1 + HOVER_TOOLTIP_ICON_SIZE, 0x20FFFFFF);
-            RenderUtils.enableDiffuseLightingGui3D();
             drawContext.method_51427(candidate.icon(), rowX, rowTop + 1);
-            RenderUtils.disableDiffuseLighting();
-            this.drawString(textX, rowTop + 5, 0xFFFFFFFF, itemName, drawContext);
+            this.drawString(drawContext, textX, rowTop + 5, 0xFFFFFFFF, itemName);
         }
 
-        drawContext.method_51448().method_22909();
+        drawContext.method_51448().popMatrix();
         return true;
     }
 
     @Override
-    public boolean lmlp$renderPanelItemTooltip(class_332 drawContext, int mouseX, int mouseY) {
+    public boolean lmlp$renderPanelItemTooltip(GuiContext drawContext, int mouseX, int mouseY) {
         if (this.entry == null) {
             return false;
         }
@@ -807,7 +807,7 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
                 && mouseY < y + height;
     }
 
-    private void renderVanillaMaterialHoverTooltip(class_332 drawContext, int mouseX, int mouseY) {
+    private void renderVanillaMaterialHoverTooltip(GuiContext drawContext, int mouseX, int mouseY) {
         class_1799 stack = MinimalSubMaterialListView.displayStack(this.entry);
         String itemLabel = GuiBase.TXT_BOLD + StringUtils.translate("litematica.gui.label.material_list.title.item");
         String totalLabel = GuiBase.TXT_BOLD + StringUtils.translate("litematica.gui.label.material_list.title.total");
@@ -832,32 +832,28 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         int lineY = panelY + 6;
         int iconY = lineY;
 
-        drawContext.method_51452();
-        drawContext.method_51448().method_22903();
-        drawContext.method_51448().method_46416(0.0F, 0.0F, 400.0F);
+        drawContext.method_51448().pushMatrix();
         lmlp$drawTooltipBox(drawContext, panelX, panelY, panelWidth, VANILLA_TOOLTIP_HEIGHT, 0xFF000000,
                 0xFF999999);
 
         lineY += 4;
-        this.drawString(labelX, lineY, 0xFFFFFFFF, itemLabel, drawContext);
-        this.drawString(valueX + 20, lineY, 0xFFFFFFFF, itemText, drawContext);
+        this.drawString(drawContext, labelX, lineY, 0xFFFFFFFF, itemLabel);
+        this.drawString(drawContext, valueX + 20, lineY, 0xFFFFFFFF, itemText);
 
         lineY += VANILLA_TOOLTIP_LINE_HEIGHT + VANILLA_TOOLTIP_HEADER_GAP;
-        this.drawString(labelX, lineY, 0xFFFFFFFF, totalLabel, drawContext);
-        this.drawString(valueX, lineY, 0xFFFFFFFF, totalText, drawContext);
+        this.drawString(drawContext, labelX, lineY, 0xFFFFFFFF, totalLabel);
+        this.drawString(drawContext, valueX, lineY, 0xFFFFFFFF, totalText);
 
         lineY += VANILLA_TOOLTIP_LINE_HEIGHT;
-        this.drawString(labelX, lineY, 0xFFFFFFFF, missingLabel, drawContext);
-        this.drawString(valueX, lineY, 0xFFFFFFFF, missingText, drawContext);
+        this.drawString(drawContext, labelX, lineY, 0xFFFFFFFF, missingLabel);
+        this.drawString(drawContext, valueX, lineY, 0xFFFFFFFF, missingText);
 
-        RenderUtils.drawRect(valueX, iconY, 16, 16, 0x20FFFFFF);
-        RenderUtils.enableDiffuseLightingGui3D();
+        RenderUtils.drawRect(drawContext, valueX, iconY, 16, 16, 0x20FFFFFF);
         drawContext.method_51427(stack, valueX, iconY);
-        RenderUtils.disableDiffuseLighting();
-        drawContext.method_51448().method_22909();
+        drawContext.method_51448().popMatrix();
     }
 
-    private static void lmlp$drawTooltipBox(class_332 context, int x, int y, int width, int height,
+    private static void lmlp$drawTooltipBox(GuiContext context, int x, int y, int width, int height,
             int background, int border) {
         context.method_25294(x, y, x + width, y + height, background);
         context.method_25294(x, y, x + width, y + 1, border);

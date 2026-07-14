@@ -2,9 +2,10 @@ package io.github.huanmeng06.lmlp.recipe;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashSet;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Set;
+import java.util.Map;
 
 import io.github.huanmeng06.lmlp.config.Configs;
 import io.github.huanmeng06.lmlp.material.ItemStackTexts;
@@ -12,6 +13,21 @@ import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.class_1799;
 
 public final class RecipeResolvers {
+    private static final int MAX_QUERY_CACHE_SIZE = 8192;
+    private static final int MAX_CYCLE_CACHE_SIZE = 8192;
+    private static final Map<QueryKey, List<RecipeSummary>> QUERY_CACHE = new LinkedHashMap<>(256, 0.75F, true) {
+        @Override
+        protected boolean removeEldestEntry(Map.Entry<QueryKey, List<RecipeSummary>> eldest) {
+            return size() > MAX_QUERY_CACHE_SIZE;
+        }
+    };
+    private static final Map<CycleKey, Boolean> CYCLE_CACHE = new LinkedHashMap<>(256, 0.75F, true) {
+        @Override
+        protected boolean removeEldestEntry(Map.Entry<CycleKey, Boolean> eldest) {
+            return size() > MAX_CYCLE_CACHE_SIZE;
+        }
+    };
+    private static final ThreadLocal<Long> COMPUTATION_DEADLINE = new ThreadLocal<>();
     private static RecipeResolver resolver;
 
     private RecipeResolvers() {
@@ -22,10 +38,52 @@ public final class RecipeResolvers {
             return Collections.emptyList();
         }
 
+        QueryKey key = new QueryKey(stackFingerprint(target));
+        List<RecipeSummary> baseSummaries;
+        synchronized (QUERY_CACHE) {
+            if (QUERY_CACHE.containsKey(key)) {
+                baseSummaries = QUERY_CACHE.get(key);
+                return applyPreferredOrder(scaleSummaries(baseSummaries, totalCount, missingCount));
+            }
+        }
+
+        checkpoint();
         try {
-            return applyPreferredOrder(getResolver().findRecipes(target, totalCount, missingCount));
+            // Query JEI once per distinct item stack. Recipe discovery, category
+            // lookup and native layout construction do not depend on the requested
+            // material count; only the derived craft/ingredient totals do.
+            baseSummaries = List.copyOf(getResolver().findRecipes(target, 1, 1));
+        } catch (BudgetExceededException exception) {
+            throw exception;
         } catch (Throwable throwable) {
-            return Collections.emptyList();
+            baseSummaries = Collections.emptyList();
+        }
+
+        synchronized (QUERY_CACHE) {
+            QUERY_CACHE.put(key, baseSummaries);
+        }
+        return applyPreferredOrder(scaleSummaries(baseSummaries, totalCount, missingCount));
+    }
+
+    public static void clearCache() {
+        synchronized (QUERY_CACHE) {
+            QUERY_CACHE.clear();
+        }
+        synchronized (CYCLE_CACHE) {
+            CYCLE_CACHE.clear();
+        }
+    }
+
+    public static ComputationScope withComputationDeadline(long deadlineNs) {
+        Long previousDeadline = COMPUTATION_DEADLINE.get();
+        COMPUTATION_DEADLINE.set(deadlineNs);
+        return new ComputationScope(previousDeadline);
+    }
+
+    public static void checkpoint() {
+        Long deadline = COMPUTATION_DEADLINE.get();
+        if (deadline != null && System.nanoTime() >= deadline) {
+            throw BudgetExceededException.INSTANCE;
         }
     }
 
@@ -58,11 +116,22 @@ public final class RecipeResolvers {
         if (targetItemId == null || targetItemId.isEmpty() || summary == null || maxDepth < 0) {
             return false;
         }
-        return leadsBackTo(targetItemId, summary, maxDepth, new HashSet<>());
+        CycleKey key = new CycleKey(targetItemId, summary.category(), summary.recipeId(), maxDepth);
+        synchronized (CYCLE_CACHE) {
+            if (CYCLE_CACHE.containsKey(key)) {
+                return CYCLE_CACHE.get(key);
+            }
+        }
+
+        boolean cycles = leadsBackTo(targetItemId, summary, maxDepth, new HashMap<>());
+        synchronized (CYCLE_CACHE) {
+            CYCLE_CACHE.put(key, cycles);
+        }
+        return cycles;
     }
 
     private static boolean leadsBackTo(String targetItemId, RecipeSummary summary, int remainingDepth,
-            Set<String> visiting) {
+            Map<String, Integer> visitedDepths) {
         for (IngredientSummary ingredient : summary.ingredients()) {
             List<class_1799> icons = ingredient.icons().isEmpty()
                     ? List.of(ingredient.icon())
@@ -75,14 +144,18 @@ public final class RecipeResolvers {
                 if (targetItemId.equals(itemId)) {
                     return true;
                 }
-                if (remainingDepth <= 0 || !visiting.add(itemId)) {
+                if (remainingDepth <= 0) {
                     continue;
                 }
+                Integer previousDepth = visitedDepths.get(itemId);
+                if (previousDepth != null && previousDepth >= remainingDepth) {
+                    continue;
+                }
+                visitedDepths.put(itemId, remainingDepth);
 
                 List<RecipeSummary> nested = findRecipes(icon, 1, 1);
                 boolean cycles = !nested.isEmpty()
-                        && leadsBackTo(targetItemId, nested.get(0), remainingDepth - 1, visiting);
-                visiting.remove(itemId);
+                        && leadsBackTo(targetItemId, nested.get(0), remainingDepth - 1, visitedDepths);
                 if (cycles) {
                     return true;
                 }
@@ -105,6 +178,19 @@ public final class RecipeResolvers {
                 }
             }
             return -1;
+        }
+
+        // Colored beds also have a dye conversion recipe whose input is the
+        // "any bed" tag. That candidate set includes the output bed itself,
+        // so choosing it first makes cycle protection stop decomposition at
+        // the bed. Prefer the normal same-id recipe (wool + planks); explicit
+        // user recipe pins above still take precedence.
+        if (itemPath(itemId).endsWith("_bed")) {
+            for (int index = 0; index < summaries.size(); index++) {
+                if (itemId.equals(summaries.get(index).recipeId())) {
+                    return index;
+                }
+            }
         }
 
         // Default: prefer a recipe whose every ingredient is planks. This keeps
@@ -141,6 +227,62 @@ public final class RecipeResolvers {
         return separator >= 0 ? id.substring(separator + 1) : id;
     }
 
+    private static String stackFingerprint(class_1799 stack) {
+        class_1799 normalized = stack.method_7972();
+        normalized.method_7939(1);
+        return ItemStackTexts.id(normalized) + '|' + normalized;
+    }
+
+    private static List<RecipeSummary> scaleSummaries(List<RecipeSummary> summaries, int totalCount, int missingCount) {
+        if (summaries.isEmpty()) {
+            return summaries;
+        }
+
+        List<RecipeSummary> scaled = new ArrayList<>(summaries.size());
+        for (RecipeSummary summary : summaries) {
+            int craftsTotal = divideRoundUp(totalCount, summary.outputCount());
+            int craftsMissing = divideRoundUp(missingCount, summary.outputCount());
+            List<IngredientSummary> ingredients = new ArrayList<>(summary.ingredients().size());
+            for (IngredientSummary ingredient : summary.ingredients()) {
+                ingredients.add(new IngredientSummary(
+                        ingredient.icon(),
+                        ingredient.icons(),
+                        ingredient.alternatives(),
+                        ingredient.countPerCraft(),
+                        scaledIngredientCount(ingredient.countPerCraft(), craftsTotal),
+                        scaledIngredientCount(ingredient.countPerCraft(), craftsMissing),
+                        ingredient.maxStackSize()));
+            }
+            Object nativeDisplay = summary.nativeDisplay();
+            if (nativeDisplay instanceof RecipeNativeDisplayHandle handle) {
+                nativeDisplay = handle.fork();
+            }
+            scaled.add(new RecipeSummary(
+                    summary.category(),
+                    summary.recipeId(),
+                    summary.outputIcon(),
+                    summary.outputCount(),
+                    craftsTotal,
+                    craftsMissing,
+                    ingredients,
+                    summary.inputSlots(),
+                    summary.gridWidth(),
+                    summary.gridHeight(),
+                    summary.shapeless(),
+                    nativeDisplay));
+        }
+        return List.copyOf(scaled);
+    }
+
+    private static int divideRoundUp(int value, int divisor) {
+        return value <= 0 ? 0 : (int) Math.min(Integer.MAX_VALUE,
+                ((long) value + divisor - 1L) / divisor);
+    }
+
+    private static int scaledIngredientCount(int countPerCraft, int crafts) {
+        return (int) Math.min(Integer.MAX_VALUE, (long) countPerCraft * crafts);
+    }
+
     private static RecipeResolver getResolver() throws ReflectiveOperationException {
         if (resolver != null) {
             return resolver;
@@ -154,5 +296,41 @@ public final class RecipeResolvers {
         }
 
         return resolver;
+    }
+
+    public static final class ComputationScope implements AutoCloseable {
+        private final Long previousDeadline;
+        private boolean closed;
+
+        private ComputationScope(Long previousDeadline) {
+            this.previousDeadline = previousDeadline;
+        }
+
+        @Override
+        public void close() {
+            if (this.closed) {
+                return;
+            }
+            this.closed = true;
+            if (this.previousDeadline == null) {
+                COMPUTATION_DEADLINE.remove();
+            } else {
+                COMPUTATION_DEADLINE.set(this.previousDeadline);
+            }
+        }
+    }
+
+    public static final class BudgetExceededException extends RuntimeException {
+        private static final BudgetExceededException INSTANCE = new BudgetExceededException();
+
+        private BudgetExceededException() {
+            super(null, null, false, false);
+        }
+    }
+
+    private record QueryKey(String stackFingerprint) {
+    }
+
+    private record CycleKey(String targetItemId, String category, String recipeId, int maxDepth) {
     }
 }

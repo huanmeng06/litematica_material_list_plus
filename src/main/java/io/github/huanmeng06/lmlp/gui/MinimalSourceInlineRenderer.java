@@ -10,7 +10,7 @@ import io.github.huanmeng06.lmlp.material.CountFormatter;
 import io.github.huanmeng06.lmlp.material.FamilyIconCycle;
 import io.github.huanmeng06.lmlp.material.ItemStackTexts;
 import net.minecraft.class_1799;
-import net.minecraft.class_332;
+import fi.dy.masa.malilib.render.GuiContext;
 
 public final class MinimalSourceInlineRenderer {
     private static final String UNDERLINE = "\u00A7n";
@@ -196,7 +196,7 @@ public final class MinimalSourceInlineRenderer {
         return class_1799.field_8037;
     }
 
-    public static void render(WidgetBase widget, class_332 context, int x, int y, int width, class_1799 targetIcon, String targetName, List<MinimalSubMaterialListView.RequirementContribution> requirements, List<MinimalSubMaterialListView.SourceContribution> sources, boolean showAll, int visibleOuterHeight, int mouseX, int mouseY) {
+    public static void render(WidgetBase widget, GuiContext context, int x, int y, int width, class_1799 targetIcon, String targetName, List<MinimalSubMaterialListView.RequirementContribution> requirements, List<MinimalSubMaterialListView.SourceContribution> sources, boolean showAll, int visibleOuterHeight, int mouseX, int mouseY) {
         int height = getHeight(targetIcon, requirements, sources, showAll, width);
         int panelWidth = panelWidthFor(width);
         int contentWidth = panelWidth - PADDING * 2;
@@ -205,42 +205,43 @@ public final class MinimalSourceInlineRenderer {
             return;
         }
 
-        RenderUtils.drawRect(x, y, panelWidth, visibleHeight, 0xDD000000);
+        RenderUtils.drawRect(context, x, y, panelWidth, visibleHeight, 0xDD000000);
         int textX = x + PADDING;
         if (visibleHeight <= 2) {
-            drawOutline(x, y, panelWidth, visibleHeight, 0xFF777777);
+            drawOutline(context, x, y, panelWidth, visibleHeight, 0xFF777777);
             return;
         }
 
         context.method_44379(x + 1, y + 1, x + panelWidth - 1, y + visibleHeight - 1);
 
         if (sources.isEmpty()) {
-            widget.drawString(textX, y + 16, 0xFFFFCC66, StringUtils.translate("lmlp.label.minimal_sources.none"), context);
+            widget.drawString(context, textX, y + 16, 0xFFFFCC66, StringUtils.translate("lmlp.label.minimal_sources.none"));
             context.method_44380();
-            drawOutline(x, y, panelWidth, visibleHeight, 0xFF777777);
+            drawOutline(context, x, y, panelWidth, visibleHeight, 0xFF777777);
             return;
         }
 
         int cursorY = y + PADDING;
         context.method_51427(targetIcon, textX, cursorY);
-        widget.drawString(textX + 24, cursorY + 4, 0xFFFFFFFF, GuiBase.TXT_BOLD + targetName, context);
+        widget.drawString(context, textX + 24, cursorY + 4, 0xFFFFFFFF, GuiBase.TXT_BOLD + targetName);
         cursorY += 24;
 
         String boldTargetName = GuiBase.TXT_BOLD + targetName + GuiBase.TXT_RST;
         if (isSelfSource(targetIcon, sources)) {
-            widget.drawString(textX, cursorY + 2, 0xFFFFFFFF, StringUtils.translate("lmlp.label.minimal_sources.self_material", boldTargetName), context);
+            widget.drawString(context, textX, cursorY + 2, 0xFFFFFFFF, StringUtils.translate("lmlp.label.minimal_sources.self_material", boldTargetName));
             context.method_44380();
-            drawOutline(x, y, panelWidth, visibleHeight, 0xFF777777);
+            drawOutline(context, x, y, panelWidth, visibleHeight, 0xFF777777);
             return;
         }
 
         if (!requirements.isEmpty()) {
-            widget.drawString(textX, cursorY, 0xFFFFFFFF, StringUtils.translate("lmlp.label.minimal_sources.requires_named", boldTargetName), context);
+            widget.drawString(context, textX, cursorY, 0xFFFFFFFF, StringUtils.translate("lmlp.label.minimal_sources.requires_named", boldTargetName));
             cursorY += 18;
 
             int requirementBoxY = cursorY;
             int requirementBoxHeight = requirementsBlockRowsHeight(requirements, contentWidth);
-            RenderUtils.drawRect(textX - 2, requirementBoxY - 2, panelWidth - PADDING * 2 + 4, requirementBoxHeight, 0x66000000);
+            RenderUtils.drawRect(context, textX - 2, requirementBoxY - 2, panelWidth - PADDING * 2 + 4,
+                    requirementBoxHeight, 0x66000000);
             int rowTop = cursorY;
             for (int index = 0; index < requirements.size(); index++) {
                 MinimalSubMaterialListView.RequirementContribution requirement = requirements.get(index);
@@ -250,26 +251,30 @@ public final class MinimalSourceInlineRenderer {
             cursorY += requirementBoxHeight + SECTION_GAP;
         }
 
-        widget.drawString(textX, cursorY, 0xFFFFFFFF, StringUtils.translate("lmlp.label.minimal_sources.header_named", boldTargetName), context);
+        widget.drawString(context, textX, cursorY, 0xFFFFFFFF, StringUtils.translate("lmlp.label.minimal_sources.header_named", boldTargetName));
         String sortLabel = sortButtonLabel();
         SortButtonBounds sortButton = sortButtonBounds(x, panelWidth, cursorY, sortLabel);
         SortButtonTarget sortTarget = sortButtonTarget(sortButton, y, visibleHeight, mouseX, mouseY);
-        RenderUtils.drawRect(sortButton.modeX(), sortButton.y(), sortButton.modeWidth(), sortButton.height(), 0x30FFFFFF);
-        RenderUtils.drawRect(sortButton.directionX(), sortButton.y(), sortButton.directionSize(), sortButton.directionSize(), 0x30FFFFFF);
-        widget.drawString(sortButton.modeX() + SORT_BUTTON_PADDING_X, cursorY, 0xFFFFFFFF, sortLabel, context);
+        RenderUtils.drawRect(context, sortButton.modeX(), sortButton.y(), sortButton.modeWidth(), sortButton.height(),
+                0x30FFFFFF);
+        RenderUtils.drawRect(context, sortButton.directionX(), sortButton.y(), sortButton.directionSize(),
+                sortButton.directionSize(), 0x30FFFFFF);
+        widget.drawString(context, sortButton.modeX() + SORT_BUTTON_PADDING_X, cursorY, 0xFFFFFFFF, sortLabel);
         String directionLabel = MinimalSubMaterialListView.sourceSortDescending() ? "↓" : "↑";
         int directionLabelWidth = StringUtils.getStringWidth(directionLabel);
         widget.drawString(
+                context,
                 sortButton.directionX() + (sortButton.directionSize() - directionLabelWidth) / 2,
                 cursorY,
                 0xFFFFFFFF,
-                directionLabel,
-                context);
+                directionLabel);
         if (sortTarget == SortButtonTarget.MODE) {
-            drawOutline(sortButton.modeX(), sortButton.y(), sortButton.modeWidth(), sortButton.height(), 0xFFFFFFFF);
+            drawOutline(context, sortButton.modeX(), sortButton.y(), sortButton.modeWidth(), sortButton.height(),
+                    0xFFFFFFFF);
             ClickableCursor.requestHand();
         } else if (sortTarget == SortButtonTarget.DIRECTION) {
-            drawOutline(sortButton.directionX(), sortButton.y(), sortButton.directionSize(), sortButton.directionSize(), 0xFFFFFFFF);
+            drawOutline(context, sortButton.directionX(), sortButton.y(), sortButton.directionSize(),
+                    sortButton.directionSize(), 0xFFFFFFFF);
             ClickableCursor.requestHand();
         }
         cursorY += 18;
@@ -278,14 +283,14 @@ public final class MinimalSourceInlineRenderer {
         SourceColumnLayout layout = sourceColumnLayout(Math.max(1, contentWidth), sources);
         int visibleCount = visibleSourceCount(sources);
         int boxHeight = layout.rowCount() * ROW_HEIGHT;
-        RenderUtils.drawRect(textX - 2, boxY - 2, panelWidth - PADDING * 2 + 4, boxHeight, 0x66000000);
+        RenderUtils.drawRect(context, textX - 2, boxY - 2, panelWidth - PADDING * 2 + 4, boxHeight, 0x66000000);
 
         MinimalSubMaterialListView.SourceContribution hoveredSource = sourceAt(x, y, width, targetIcon, requirements, sources, showAll, visibleOuterHeight, mouseX, mouseY);
         if (hoveredSource != null) {
             ClickableCursor.requestHand();
         }
         if (layout.columns() > 1) {
-            drawColumnSeparators(textX, boxY, layout);
+            drawColumnSeparators(context, textX, boxY, layout);
         }
 
         for (int index = 0; index < visibleCount; index++) {
@@ -298,7 +303,7 @@ public final class MinimalSourceInlineRenderer {
         }
 
         context.method_44380();
-        drawOutline(x, y, panelWidth, visibleHeight, 0xFF777777);
+        drawOutline(context, x, y, panelWidth, visibleHeight, 0xFF777777);
     }
 
     private static int headerRowY(int y, List<MinimalSubMaterialListView.RequirementContribution> requirements, int contentWidth) {
@@ -461,11 +466,11 @@ public final class MinimalSourceInlineRenderer {
         return sources.size() == 1 && ItemStackTexts.id(targetIcon).equals(ItemStackTexts.id(sources.get(0).icon()));
     }
 
-    private static void renderSourceRow(WidgetBase widget, class_332 context, int textX, int y, MinimalSubMaterialListView.SourceContribution source, boolean underlined) {
+    private static void renderSourceRow(WidgetBase widget, GuiContext context, int textX, int y, MinimalSubMaterialListView.SourceContribution source, boolean underlined) {
         renderCountRow(widget, context, textX, y, source.icon(), source.name(), source.totalCount(), source.missingCount(), source.maxStackSize(), underlined);
     }
 
-    private static void renderRequirementRow(WidgetBase widget, class_332 context, int textX, int y, MinimalSubMaterialListView.RequirementContribution requirement, int contentWidth) {
+    private static void renderRequirementRow(WidgetBase widget, GuiContext context, int textX, int y, MinimalSubMaterialListView.RequirementContribution requirement, int contentWidth) {
         String line = renderCountRow(widget, context, textX, y, cyclingIcon(requirement.icons(), requirement.icon()), MinimalSubMaterialListView.requirementDisplayName(requirement), requirement.totalCount(), requirement.missingCount(), requirement.maxStackSize());
         MinimalSubMaterialListView.UpstreamRequirement upstream = requirement.upstream();
         if (upstream == null) {
@@ -584,19 +589,21 @@ public final class MinimalSourceInlineRenderer {
         return null;
     }
 
-    private static void renderNameRow(WidgetBase widget, class_332 context, int textX, int y, class_1799 icon, String name) {
-        RenderUtils.drawRect(textX, y + SOURCE_ICON_BOX_Y_OFFSET, SOURCE_ICON_BOX_SIZE, SOURCE_ICON_BOX_SIZE, 0x30FFFFFF);
+    private static void renderNameRow(WidgetBase widget, GuiContext context, int textX, int y, class_1799 icon, String name) {
+        RenderUtils.drawRect(context, textX, y + SOURCE_ICON_BOX_Y_OFFSET, SOURCE_ICON_BOX_SIZE,
+                SOURCE_ICON_BOX_SIZE, 0x30FFFFFF);
         context.method_51427(icon, textX + 1, y + SOURCE_ICON_BOX_Y_OFFSET + 1);
 
-        widget.drawString(textX + 26, y + 2, 0xFFFFFFFF, name, context);
+        widget.drawString(context, textX + 26, y + 2, 0xFFFFFFFF, name);
     }
 
-    private static String renderCountRow(WidgetBase widget, class_332 context, int textX, int y, class_1799 icon, String name, int totalCount, int missingCount, int maxStackSize) {
+    private static String renderCountRow(WidgetBase widget, GuiContext context, int textX, int y, class_1799 icon, String name, int totalCount, int missingCount, int maxStackSize) {
         return renderCountRow(widget, context, textX, y, icon, name, totalCount, missingCount, maxStackSize, false);
     }
 
-    private static String renderCountRow(WidgetBase widget, class_332 context, int textX, int y, class_1799 icon, String name, int totalCount, int missingCount, int maxStackSize, boolean underlined) {
-        RenderUtils.drawRect(textX, y + SOURCE_ICON_BOX_Y_OFFSET, SOURCE_ICON_BOX_SIZE, SOURCE_ICON_BOX_SIZE, 0x30FFFFFF);
+    private static String renderCountRow(WidgetBase widget, GuiContext context, int textX, int y, class_1799 icon, String name, int totalCount, int missingCount, int maxStackSize, boolean underlined) {
+        RenderUtils.drawRect(context, textX, y + SOURCE_ICON_BOX_Y_OFFSET, SOURCE_ICON_BOX_SIZE,
+                SOURCE_ICON_BOX_SIZE, 0x30FFFFFF);
         context.method_51427(icon, textX + 1, y + SOURCE_ICON_BOX_Y_OFFSET + 1);
 
         String total = CountFormatter.format(totalCount, maxStackSize);
@@ -614,7 +621,7 @@ public final class MinimalSourceInlineRenderer {
                         + GuiBase.TXT_RST + " / "
                         + missingColor + missing
                         + GuiBase.TXT_RST;
-        widget.drawString(textX + 26, y + 2, 0xFFFFFFFF, renderedLine, context);
+        widget.drawString(context, textX + 26, y + 2, 0xFFFFFFFF, renderedLine);
         return line;
     }
 
@@ -647,12 +654,12 @@ public final class MinimalSourceInlineRenderer {
         return icon.method_7960() ? fallback : icon;
     }
 
-    private static void drawColumnSeparators(int contentX, int boxY, SourceColumnLayout layout) {
+    private static void drawColumnSeparators(GuiContext context, int contentX, int boxY, SourceColumnLayout layout) {
         int separatorY = boxY + SOURCE_ICON_BOX_Y_OFFSET;
         int separatorHeight = Math.max(0, (layout.rowCount() - 1) * ROW_HEIGHT + SOURCE_ICON_BOX_SIZE);
         for (int column = 0; column < layout.columns() - 1; column++) {
             int x = contentX + layout.columnX(column) + layout.columnWidth(column) + COLUMN_GAP / 2;
-            RenderUtils.drawRect(x, separatorY, 1, separatorHeight, COLUMN_SEPARATOR_COLOR);
+            RenderUtils.drawRect(context, x, separatorY, 1, separatorHeight, COLUMN_SEPARATOR_COLOR);
         }
     }
 
@@ -722,15 +729,15 @@ public final class MinimalSourceInlineRenderer {
         return 26 + StringUtils.getStringWidth(countLine(source.name(), source.totalCount(), source.missingCount(), source.maxStackSize()));
     }
 
-    private static void drawOutline(int x, int y, int width, int height, int color) {
+    private static void drawOutline(GuiContext context, int x, int y, int width, int height, int color) {
         if (height <= 0) {
             return;
         }
 
-        RenderUtils.drawRect(x, y, width, 1, color);
-        RenderUtils.drawRect(x, y + height - 1, width, 1, color);
-        RenderUtils.drawRect(x, y, 1, height, color);
-        RenderUtils.drawRect(x + width - 1, y, 1, height, color);
+        RenderUtils.drawRect(context, x, y, width, 1, color);
+        RenderUtils.drawRect(context, x, y + height - 1, width, 1, color);
+        RenderUtils.drawRect(context, x, y, 1, height, color);
+        RenderUtils.drawRect(context, x + width - 1, y, 1, height, color);
     }
 
     public enum SortButtonTarget {

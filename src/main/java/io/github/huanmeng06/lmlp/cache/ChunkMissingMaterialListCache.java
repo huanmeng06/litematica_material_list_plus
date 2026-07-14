@@ -44,6 +44,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
@@ -1135,7 +1136,7 @@ public final class ChunkMissingMaterialListCache {
             return schematic;
         }
 
-        File file = placement.getSchematicFile();
+        Path file = placement.getSchematicFile();
         if (file != null) {
             return SchematicHolder.getInstance().getOrLoad(file);
         }
@@ -1208,8 +1209,8 @@ public final class ChunkMissingMaterialListCache {
     }
 
     private static String schematicPath(SchematicPlacement placement) {
-        File file = placement.getSchematicFile();
-        return file == null ? "" : file.getAbsolutePath();
+        Path file = placement.getSchematicFile();
+        return file == null ? "" : file.toAbsolutePath().toString();
     }
 
     private static String schematicName(String path) {

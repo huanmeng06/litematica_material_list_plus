@@ -9,7 +9,7 @@ import io.github.huanmeng06.lmlp.material.ItemStackTexts;
 import net.minecraft.class_124;
 import net.minecraft.class_2561;
 import net.minecraft.class_310;
-import net.minecraft.class_332;
+import fi.dy.masa.malilib.render.GuiContext;
 
 import java.util.Collection;
 import java.util.List;
@@ -53,7 +53,9 @@ public class WidgetListItemIdStringListEdit extends WidgetListConfigOptionsBase<
     }
 
     @Override
-    public boolean onMouseReleased(int mouseX, int mouseY, int mouseButton) {
+    public boolean onMouseReleased(net.minecraft.class_11909 event) {
+        int mouseY = (int) event.comp_4799();
+        int mouseButton = event.comp_4800().comp_4801();
         if (mouseButton == 0 && this.dragIndex >= 0) {
             int dragged = this.dragIndex;
             this.dragIndex = -1;
@@ -73,14 +75,27 @@ public class WidgetListItemIdStringListEdit extends WidgetListConfigOptionsBase<
             this.refreshEntries();
             return true;
         }
-        return super.onMouseReleased(mouseX, mouseY, mouseButton);
+        return super.onMouseReleased(event);
     }
 
     @Override
-    public void drawContents(class_332 context, int mouseX, int mouseY, float delta) {
-        super.drawContents(context, mouseX, mouseY, delta);
-        if (this.dragIndex >= 0) {
-            this.renderDragFeedback(context, mouseX, mouseY);
+    public void drawContents(GuiContext context, int mouseX, int mouseY, float delta) {
+        // MaLiLib intentionally creates one partially visible row at the edge
+        // of a scrolling list. In 1.21.11 text fields are no longer clipped by
+        // the surrounding dialog automatically, so that row can paint over
+        // the panel below it. Clip this custom list to its actual browser box.
+        context.getGuiGraphics().method_44379(
+                this.posX,
+                this.posY,
+                this.posX + this.browserWidth,
+                this.posY + this.browserHeight);
+        try {
+            super.drawContents(context, mouseX, mouseY, delta);
+            if (this.dragIndex >= 0) {
+                this.renderDragFeedback(context, mouseX, mouseY);
+            }
+        } finally {
+            context.getGuiGraphics().method_44380();
         }
     }
 
@@ -110,7 +125,7 @@ public class WidgetListItemIdStringListEdit extends WidgetListConfigOptionsBase<
         return size;
     }
 
-    private void renderDragFeedback(class_332 context, int mouseX, int mouseY) {
+    private void renderDragFeedback(GuiContext context, int mouseX, int mouseY) {
         List<String> entries = this.getEntries();
         if (this.dragIndex >= entries.size()) {
             return;
@@ -144,10 +159,9 @@ public class WidgetListItemIdStringListEdit extends WidgetListConfigOptionsBase<
         // itself, instead of the list's browserEntryWidth which can be a
         // couple pixels narrower.
         if (lineY != null) {
-            context.method_51448().method_22903();
-            context.method_51448().method_46416(0.0F, 0.0F, 400.0F);
-            RenderUtils.drawRect(lineX, lineY, lineWidth, DRAG_LINE_HEIGHT, 0xFFFFCC00);
-            context.method_51448().method_22909();
+            context.method_51448().pushMatrix();
+            RenderUtils.drawRect(context, lineX, lineY, lineWidth, DRAG_LINE_HEIGHT, 0xFFFFCC00);
+            context.method_51448().popMatrix();
         }
 
         // The dragged-row ghost label is drawn as a REAL vanilla tooltip. Item

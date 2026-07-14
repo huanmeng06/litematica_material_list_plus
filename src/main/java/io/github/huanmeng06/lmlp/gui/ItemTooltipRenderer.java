@@ -1,5 +1,6 @@
 package io.github.huanmeng06.lmlp.gui;
 
+import fi.dy.masa.malilib.render.GuiContext;
 import net.minecraft.class_1799;
 import net.minecraft.class_327;
 import net.minecraft.class_332;
@@ -13,7 +14,8 @@ public final class ItemTooltipRenderer {
             return false;
         }
 
-        context.method_51446(textRenderer, stack, mouseX, mouseY);
+        class_332 target = context instanceof GuiContext guiContext ? guiContext.getGuiGraphics() : context;
+        target.method_51446(textRenderer, stack, mouseX, mouseY);
         return true;
     }
 }

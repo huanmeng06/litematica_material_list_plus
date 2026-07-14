@@ -122,12 +122,12 @@ final class ItemIdListIconResolver {
         }
 
         try {
-            class_2960 identifier = new class_2960(id);
+            class_2960 identifier = class_2960.method_60654(id);
             if (!class_7923.field_41178.method_10250(identifier)) {
                 return class_1799.field_8037;
             }
 
-            class_1792 item = class_7923.field_41178.method_10223(identifier);
+            class_1792 item = class_7923.field_41178.method_17966(identifier).orElse(null);
             if (item == null) {
                 return class_1799.field_8037;
             }

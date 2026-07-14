@@ -13,10 +13,29 @@ import java.util.List;
 import java.util.Set;
 
 public final class InventoryCounts {
+    private static Snapshot cachedSnapshot;
+
     private InventoryCounts() {
     }
 
     public static Snapshot current() {
+        Snapshot snapshot = cachedSnapshot;
+        if (snapshot == null) {
+            snapshot = capture();
+            cachedSnapshot = snapshot;
+        }
+        return snapshot;
+    }
+
+    public static void refresh() {
+        cachedSnapshot = capture();
+    }
+
+    public static void clear() {
+        cachedSnapshot = null;
+    }
+
+    private static Snapshot capture() {
         try {
             class_310 client = class_310.method_1551();
             if (client == null || client.field_1724 == null) {
@@ -29,8 +48,12 @@ public final class InventoryCounts {
         }
     }
 
-    public record Snapshot(Object2IntOpenHashMap<ItemType> counts) {
+    public record Snapshot(Object2IntOpenHashMap<ItemType> counts, String signature) {
         private static final Snapshot EMPTY = new Snapshot(new Object2IntOpenHashMap<>());
+
+        private Snapshot(Object2IntOpenHashMap<ItemType> counts) {
+            this(counts, buildSignature(counts));
+        }
 
         public int count(class_1799 stack) {
             if (stack.method_7960()) {
@@ -51,14 +74,14 @@ public final class InventoryCounts {
             return total;
         }
 
-        public String signature() {
-            if (this.counts.isEmpty()) {
+        private static String buildSignature(Object2IntOpenHashMap<ItemType> counts) {
+            if (counts.isEmpty()) {
                 return "";
             }
 
             List<String> parts = new ArrayList<>();
-            for (ItemType type : this.counts.keySet()) {
-                int count = this.counts.getInt(type);
+            for (ItemType type : counts.keySet()) {
+                int count = counts.getInt(type);
                 if (count > 0) {
                     parts.add(type.toString() + '=' + count);
                 }

@@ -41,7 +41,7 @@ public final class SubMaterialExporter {
     }
 
     public static File export(MaterialListBase materialList) {
-        File dir = new File(FileUtils.getConfigDirectory(), "litematica");
+        File dir = new File(FileUtils.getConfigDirectoryAsPath().toFile(), "litematica");
         if ((!dir.exists() && !dir.mkdirs()) || !dir.isDirectory()) {
             return null;
         }

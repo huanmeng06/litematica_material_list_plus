@@ -73,7 +73,7 @@ public final class WaterBucketIceSubstitution {
     }
 
     private static class_1799 iceStack() {
-        class_1792 item = class_7923.field_41178.method_10223(new class_2960(ICE_ID));
+        class_1792 item = class_7923.field_41178.method_17966(class_2960.method_60654(ICE_ID)).orElse(null);
         return item == null ? null : new class_1799(item, 1);
     }
 }

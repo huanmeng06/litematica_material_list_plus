@@ -3,6 +3,7 @@ package io.github.huanmeng06.lmlp.mixin;
 import fi.dy.masa.litematica.gui.GuiMaterialList;
 import fi.dy.masa.malilib.gui.GuiBase;
 import fi.dy.masa.malilib.render.RenderUtils;
+import fi.dy.masa.malilib.render.GuiContext;
 import net.minecraft.class_332;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -44,8 +45,8 @@ public abstract class GuiBaseTitleMixin {
             method = "drawTitle",
             at = @At(
                     value = "INVOKE",
-                    target = "Lfi/dy/masa/malilib/gui/GuiBase;drawString(Lnet/minecraft/class_332;Ljava/lang/String;III)V"))
-    private void lmlp$truncateLongMaterialListTitle(GuiBase self, class_332 context, String text, int x, int y, int color) {
+                    target = "Lfi/dy/masa/malilib/gui/GuiBase;drawString(Lfi/dy/masa/malilib/render/GuiContext;Ljava/lang/String;III)V"))
+    private void lmlp$truncateLongMaterialListTitle(GuiBase self, GuiContext context, String text, int x, int y, int color) {
         if (!(((Object) self) instanceof GuiMaterialList)) {
             self.drawString(context, text, x, y, color);
             return;
@@ -64,7 +65,7 @@ public abstract class GuiBaseTitleMixin {
     // Always available on hover (not just when the title was actually
     // truncated) so the full name is a hover away no matter the window width.
     @Inject(method = "method_25394", at = @At("TAIL"))
-    private void lmlp$renderTitleHoverTooltip(class_332 context, int mouseX, int mouseY, float partialTicks, CallbackInfo ci) {
+    private void lmlp$renderTitleHoverTooltip(class_332 drawContext, int mouseX, int mouseY, float partialTicks, CallbackInfo ci) {
         if (this.lmlp$titleFullText == null || !(((Object) this) instanceof GuiBase self)) {
             return;
         }
@@ -75,7 +76,8 @@ public abstract class GuiBaseTitleMixin {
         }
 
         String name = lmlp$extractQuotedName(this.lmlp$titleFullText);
-        RenderUtils.drawHoverText(mouseX, mouseY, lmlp$wrapTooltipText(self, name), context);
+        GuiContext context = GuiContext.fromGuiGraphics(drawContext);
+        RenderUtils.drawHoverText(context, mouseX, mouseY, lmlp$wrapTooltipText(self, name));
     }
 
     // Litematica's title templates all wrap the meaningful name in single

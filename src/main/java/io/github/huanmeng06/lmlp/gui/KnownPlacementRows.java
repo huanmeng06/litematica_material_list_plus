@@ -17,9 +17,10 @@ import io.github.huanmeng06.lmlp.cache.MaterialListDataSource;
 import io.github.huanmeng06.lmlp.config.Configs;
 import net.minecraft.class_1297;
 import net.minecraft.class_2338;
+import net.minecraft.class_1921;
 import net.minecraft.class_2960;
 import net.minecraft.class_310;
-import net.minecraft.class_332;
+import fi.dy.masa.malilib.render.GuiContext;
 import net.minecraft.class_638;
 
 import java.io.File;
@@ -61,10 +62,10 @@ public final class KnownPlacementRows {
     private static final int ORIGIN_TEXT_COLOR = 0xFFB8B8B8;
     private static final int ORIGINAL_HEADER_BACKGROUND = 0xA0101010;
 
-    private static final class_2960 OVERWORLD_ICON = new class_2960(LitematicaMaterialListPlus.MOD_ID, "textures/gui/dimensions/overworld.png");
-    private static final class_2960 NETHER_ICON = new class_2960(LitematicaMaterialListPlus.MOD_ID, "textures/gui/dimensions/nether.png");
-    private static final class_2960 END_ICON = new class_2960(LitematicaMaterialListPlus.MOD_ID, "textures/gui/dimensions/end.png");
-    private static final class_2960 DIM_ICON = new class_2960(LitematicaMaterialListPlus.MOD_ID, "textures/gui/dimensions/dim.png");
+    private static final class_2960 OVERWORLD_ICON = class_2960.method_60655(LitematicaMaterialListPlus.MOD_ID, "textures/gui/dimensions/overworld.png");
+    private static final class_2960 NETHER_ICON = class_2960.method_60655(LitematicaMaterialListPlus.MOD_ID, "textures/gui/dimensions/nether.png");
+    private static final class_2960 END_ICON = class_2960.method_60655(LitematicaMaterialListPlus.MOD_ID, "textures/gui/dimensions/end.png");
+    private static final class_2960 DIM_ICON = class_2960.method_60655(LitematicaMaterialListPlus.MOD_ID, "textures/gui/dimensions/dim.png");
     private static final Map<String, Boolean> COLLAPSED_GROUPS = new LinkedHashMap<>();
     private static final Map<String, SortState> SORT_STATES = new LinkedHashMap<>();
     private static final ExpandAnimationTracker GROUP_ANIMATIONS = new ExpandAnimationTracker();
@@ -184,15 +185,16 @@ public final class KnownPlacementRows {
         return strings;
     }
 
-    public static void renderHeader(WidgetBase widget, KnownPlacementRow row, int mouseX, int mouseY, class_332 drawContext) {
+    public static void renderHeader(WidgetBase widget, KnownPlacementRow row, int mouseX, int mouseY, GuiContext drawContext) {
         boolean hovered = widget.isMouseOver(mouseX, mouseY);
         int background = hovered ? 0xA0707070 : 0xA0303030;
-        RenderUtils.drawRect(widget.getX(), widget.getY(), widget.getWidth(), widget.getHeight(), background);
+        RenderUtils.drawRect(drawContext, widget.getX(), widget.getY(), widget.getWidth(), widget.getHeight(),
+                background);
 
         int centerY = widget.getY() + widget.getHeight() / 2;
         ToggleArrowRenderer.render(drawContext, widget.getX() + ARROW_SLOT_X, ARROW_SLOT_WIDTH, centerY, arrowProgress(row), hovered);
         drawIcon(row.dimension(), widget.getX() + ICON_X, widget.getY() + (widget.getHeight() - ICON_SIZE) / 2, drawContext);
-        widget.drawString(widget.getX() + HEADER_TEXT_X, textY(widget), 0xFFE0E0E0, GuiBase.TXT_BOLD + row.displayName() + GuiBase.TXT_RST, drawContext);
+        widget.drawString(drawContext, widget.getX() + HEADER_TEXT_X, textY(widget), 0xFFE0E0E0, GuiBase.TXT_BOLD + row.displayName() + GuiBase.TXT_RST);
         GROUP_ANIMATIONS.prune();
     }
 
@@ -209,8 +211,9 @@ public final class KnownPlacementRows {
         return Math.max(1, Math.round(ROW_HEIGHT * progress));
     }
 
-    public static void renderTableHeader(WidgetBase widget, KnownPlacementRow row, int mouseX, int mouseY, class_332 drawContext) {
-        RenderUtils.drawRect(widget.getX(), widget.getY(), widget.getWidth(), widget.getHeight(), ORIGINAL_HEADER_BACKGROUND);
+    public static void renderTableHeader(WidgetBase widget, KnownPlacementRow row, int mouseX, int mouseY, GuiContext drawContext) {
+        RenderUtils.drawRect(drawContext, widget.getX(), widget.getY(), widget.getWidth(), widget.getHeight(),
+                ORIGINAL_HEADER_BACKGROUND);
         SortableHeaderRenderer renderer = SortableHeaderRenderer.create(widget, row);
         ColumnLayout columns = computeColumns(widget, row.pageId());
         int textY = textY(widget);
@@ -220,13 +223,13 @@ public final class KnownPlacementRows {
         drawHeaderLabel(widget, SortColumn.ORIGIN, headerTextX(columns.originX()), textY, columns.originWidth(), drawContext);
         if (hasActionColumn(row.pageId())) {
             widget.drawString(
+                    drawContext,
                     headerTextX(columns.actionX()),
                     textY,
                     -1,
-                    GuiBase.TXT_BOLD + StringUtils.translate("lmlp.gui.known_placement.header.actions") + GuiBase.TXT_RST,
-                    drawContext);
+                    GuiBase.TXT_BOLD + StringUtils.translate("lmlp.gui.known_placement.header.actions") + GuiBase.TXT_RST);
         }
-        renderer.renderOriginalColumnHeader(mouseX, mouseY);
+        renderer.renderOriginalColumnHeader(mouseX, mouseY, drawContext);
     }
 
     public static boolean clickTableHeader(WidgetBase widget, KnownPlacementRow row, int mouseX, int mouseY) {
@@ -243,14 +246,13 @@ public final class KnownPlacementRows {
         return true;
     }
 
-    public static void renderSelectedOutline(WidgetBase widget) {
-        RenderUtils.drawOutline(contentLeft(widget), widget.getY() + 1, widget.getWidth() - 2, Math.max(0, Math.min(ROW_HEIGHT, widget.getHeight()) - 2), 0xFFFFFFFF);
+    public static void renderSelectedOutline(WidgetBase widget, GuiContext drawContext) {
+        RenderUtils.drawOutline(drawContext, contentLeft(widget), widget.getY() + 1, widget.getWidth() - 2, Math.max(0, Math.min(ROW_HEIGHT, widget.getHeight()) - 2), 0xFFFFFFFF);
     }
 
-    public static void renderPlacementIcon(WidgetBase widget, float zLevel, class_332 drawContext) {
-        RenderUtils.color(1.0F, 1.0F, 1.0F, 1.0F);
-        widget.bindTexture(Icons.TEXTURE);
+    public static void renderPlacementIcon(WidgetBase widget, float zLevel, GuiContext drawContext) {
         Icons.SCHEMATIC_TYPE_FILE.renderAt(
+                drawContext,
                 widget.getX() + PLACEMENT_ICON_X,
                 widget.getY() + (ROW_HEIGHT - Icons.SCHEMATIC_TYPE_FILE.getHeight()) / 2,
                 zLevel,
@@ -290,23 +292,23 @@ public final class KnownPlacementRows {
                 statusTextWidth);
     }
 
-    public static void renderPlacementLine(WidgetBase widget, float zLevel, class_332 drawContext, PlacementLine line, String nameColor, boolean nameHovered) {
+    public static void renderPlacementLine(WidgetBase widget, float zLevel, GuiContext drawContext, PlacementLine line, String nameColor, boolean nameHovered) {
         renderPlacementLine(widget, zLevel, drawContext, line, nameColor, nameHovered, null, false);
     }
 
-    public static void renderPlacementLine(WidgetBase widget, float zLevel, class_332 drawContext, PlacementLine line, String nameColor, boolean nameHovered, KnownPlacementContext context, boolean originHovered) {
+    public static void renderPlacementLine(WidgetBase widget, float zLevel, GuiContext drawContext, PlacementLine line, String nameColor, boolean nameHovered, KnownPlacementContext context, boolean originHovered) {
         renderPlacementIcon(widget, zLevel, drawContext);
 
         int textY = textY(widget);
         String formattedName = nameColor + (nameHovered ? UNDERLINE : "") + line.nameText() + GuiBase.TXT_RST;
-        widget.drawString(line.layout().nameX(), textY, 0xFFFFFFFF, formattedName, drawContext);
+        widget.drawString(drawContext, line.layout().nameX(), textY, 0xFFFFFFFF, formattedName);
 
         if (!line.fileText().isEmpty()) {
-            widget.drawString(line.layout().fileX(), textY, FILE_TEXT_COLOR, line.fileText(), drawContext);
+            widget.drawString(drawContext, line.layout().fileX(), textY, FILE_TEXT_COLOR, line.fileText());
         }
 
         if (line.status() != null && line.layout().statusWidth() > 0) {
-            widget.drawString(line.layout().statusX(), textY, line.status().color(), line.status().text(), drawContext);
+            widget.drawString(drawContext, line.layout().statusX(), textY, line.status().color(), line.status().text());
         }
 
         if (!line.originText().isEmpty()) {
@@ -316,7 +318,7 @@ public final class KnownPlacementRows {
                     + line.originText()
                     + GuiBase.TXT_RST;
             int color = PlacementOriginMarker.canHighlightOrigin(context) ? PlacementOriginMarker.ORIGIN_TEXT_COLOR : ORIGIN_TEXT_COLOR;
-            widget.drawString(line.layout().originX(), textY, color, formattedOrigin, drawContext);
+            widget.drawString(drawContext, line.layout().originX(), textY, color, formattedOrigin);
         }
     }
 
@@ -548,8 +550,8 @@ public final class KnownPlacementRows {
         strings.add(status.name().toLowerCase(Locale.ROOT));
     }
 
-    private static void drawIcon(String dimension, int x, int y, class_332 drawContext) {
-        drawContext.method_25290(icon(dimension), x, y, 0.0F, 0.0F, ICON_SIZE, ICON_SIZE, ICON_SIZE, ICON_SIZE);
+    private static void drawIcon(String dimension, int x, int y, GuiContext drawContext) {
+        drawContext.method_25290(net.minecraft.class_10799.field_56883, icon(dimension), x, y, 0.0F, 0.0F, ICON_SIZE, ICON_SIZE, ICON_SIZE, ICON_SIZE);
     }
 
     private static class_2960 icon(String dimension) {
@@ -693,7 +695,7 @@ public final class KnownPlacementRows {
         return headerRendererX(visualColumnX);
     }
 
-    private static void drawHeaderLabel(WidgetBase widget, SortColumn column, int x, int y, int maxWidth, class_332 drawContext) {
+    private static void drawHeaderLabel(WidgetBase widget, SortColumn column, int x, int y, int maxWidth, GuiContext drawContext) {
         String label = switch (column) {
             case PROJECT -> StringUtils.translate("lmlp.gui.known_placement.header.project");
             case STATUS -> StringUtils.translate("lmlp.gui.known_placement.header.status");
@@ -701,7 +703,7 @@ public final class KnownPlacementRows {
             case ORIGIN -> StringUtils.translate("lmlp.gui.known_placement.header.origin");
         };
         String truncated = truncateToWidth(widget, label, maxWidth);
-        widget.drawString(x, y, -1, GuiBase.TXT_BOLD + truncated + GuiBase.TXT_RST, drawContext);
+        widget.drawString(drawContext, x, y, -1, GuiBase.TXT_BOLD + truncated + GuiBase.TXT_RST);
     }
 
     private static Comparator<KnownPlacementContext> sortComparator(String pageId) {
@@ -1127,8 +1129,8 @@ public final class KnownPlacementRows {
             return new SortableHeaderRenderer(source, row, headerColumnPositions(source, row));
         }
 
-        private void renderOriginalColumnHeader(int mouseX, int mouseY) {
-            this.renderColumnHeader(mouseX, mouseY, Icons.ARROW_DOWN, Icons.ARROW_UP);
+        private void renderOriginalColumnHeader(int mouseX, int mouseY, GuiContext drawContext) {
+            this.renderColumnHeader(drawContext, mouseX, mouseY, Icons.ARROW_DOWN, Icons.ARROW_UP);
         }
 
         private int mouseOverColumn(int mouseX, int mouseY) {

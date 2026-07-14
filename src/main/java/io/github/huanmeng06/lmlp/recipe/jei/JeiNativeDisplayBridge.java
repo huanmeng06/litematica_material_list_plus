@@ -7,6 +7,7 @@ import io.github.huanmeng06.lmlp.recipe.RecipeSummary;
 import mezz.jei.api.gui.drawable.IDrawable;
 import mezz.jei.api.gui.IRecipeLayoutDrawable;
 import mezz.jei.api.gui.ingredient.IRecipeSlotDrawable;
+import mezz.jei.api.gui.inputs.RecipeSlotUnderMouse;
 import mezz.jei.api.ingredients.ITypedIngredient;
 import mezz.jei.api.recipe.IFocus;
 import mezz.jei.api.recipe.RecipeIngredientRole;
@@ -18,7 +19,7 @@ import net.minecraft.class_327;
 import net.minecraft.class_332;
 
 public final class JeiNativeDisplayBridge implements RecipeNativeDisplayBridge {
-    private static final class_2960 CATALYST_TAB = new class_2960("litematica_material_list_plus", "textures/gui/catalyst_tab.png");
+    private static final class_2960 CATALYST_TAB = class_2960.method_60655("litematica_material_list_plus", "textures/gui/catalyst_tab.png");
 
     @Override
     public boolean canRender(RecipeSummary summary) {
@@ -63,7 +64,7 @@ public final class JeiNativeDisplayBridge implements RecipeNativeDisplayBridge {
             return false;
         }
 
-        context.method_25290(CATALYST_TAB, x, y, 0.0F, 0.0F, 28, 28, 28, 28);
+        context.method_25290(net.minecraft.class_10799.field_56883, CATALYST_TAB, x, y, 0.0F, 0.0F, 28, 28, 28, 28);
         IJeiRuntime runtime = JeiRuntimeBridge.runtime().orElse(null);
         if (runtime != null) {
             runtime.getJeiHelpers().getGuiHelper().getSlotDrawable().draw(context, x + 5, y + 5);
@@ -144,7 +145,8 @@ public final class JeiNativeDisplayBridge implements RecipeNativeDisplayBridge {
         }
 
         return nativeRecipe.layout()
-                .getRecipeSlotUnderMouse(mouseX, mouseY)
+                .getSlotUnderMouse(mouseX, mouseY)
+                .map(RecipeSlotUnderMouse::slot)
                 .flatMap(IRecipeSlotDrawable::getDisplayedIngredient)
                 .map(ingredient -> openIngredient(runtime, ingredient, button == 0
                         ? RecipeIngredientRole.OUTPUT

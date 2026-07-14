@@ -51,7 +51,8 @@ public class InputHandler implements IKeybindProvider, IKeyboardInputHandler {
      * advancements screen is opened then, preserving the vanilla shortcut.
      */
     @Override
-    public boolean onKeyInput(int keyCode, int scanCode, int modifiers, boolean state) {
+    public boolean onKeyInput(net.minecraft.class_11908 event, boolean state) {
+        int keyCode = event.comp_4795();
         class_310 mc = class_310.method_1551();
         List<Integer> comboKeys = Hotkeys.OPEN_CONFIG_GUI.getKeybind().getKeys();
         if (comboKeys.size() < 2 || mc.field_1690 == null) {

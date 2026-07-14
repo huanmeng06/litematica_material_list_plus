@@ -330,7 +330,7 @@ public final class WorldMaterialCacheIndex {
 
         public MaterialListEntry toEntry() {
             try {
-                class_1792 item = class_7923.field_41178.method_10223(new class_2960(this.itemId));
+                class_1792 item = class_7923.field_41178.method_17966(class_2960.method_60654(this.itemId)).orElse(null);
                 if (item == null) {
                     LOGGER.warn("[LMLP cache-index] material entry skipped reason=unknown_item itemId={}", this.itemId);
                     return null;

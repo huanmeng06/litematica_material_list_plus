@@ -14,6 +14,7 @@ import io.github.huanmeng06.lmlp.recipe.RecipeResolvers;
 import io.github.huanmeng06.lmlp.recipe.RecipeSummary;
 import io.github.huanmeng06.lmlp.recipe.RecipeSummaryFormatter;
 import net.minecraft.class_1799;
+import net.minecraft.class_7923;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,6 +24,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -39,10 +41,10 @@ public final class MinimalSubMaterialListView {
     private static final long DISPLAY_CYCLE_MS = FamilyIconCycle.FALLBACK_STEP_MILLIS;
     private static final long FAMILY_CYCLE_MS = FamilyIconCycle.FAMILY_WINDOW_MILLIS;
     private static final long BUILD_BUDGET_NS = 2_500_000L;
-    private static final long INITIAL_BUILD_BUDGET_NS = 20_000_000L;
+    private static final long BACKGROUND_BUILD_BUDGET_NS = 1_000_000L;
     private static final String COMMON_HIGHLIGHT = "\u00A7e";
     private static final String RESET = "\u00A7r";
-    private static final List<String> WOOD_FAMILIES = List.of(
+    private static final List<String> FALLBACK_WOOD_FAMILIES = List.of(
             "dark_oak",
             "pale_oak",
             "oak",
@@ -55,6 +57,7 @@ public final class MinimalSubMaterialListView {
             "bamboo",
             "crimson",
             "warped");
+    private static List<String> discoveredWoodFamilies;
     private static final Map<MaterialListBase, Boolean> ACTIVE_LISTS = new WeakHashMap<>();
     private static final Map<MaterialListBase, Cache> ENTRY_CACHES = new WeakHashMap<>();
     private static final Map<MaterialListBase, BuildState> BUILD_STATES = new WeakHashMap<>();
@@ -132,9 +135,9 @@ public final class MinimalSubMaterialListView {
             return filterIgnored(materialList, cache.entries());
         }
 
-        BuildState state = buildState(materialList, signature, sourceEntries, inventory, false);
+        BuildState state = buildState(materialList, signature, sourceEntries, inventory);
 
-        state.process(materialList, BUILD_BUDGET_NS);
+        state.process(materialList, BUILD_BUDGET_NS, true);
         if (state.isComplete()) {
             storeCache(materialList, signature, state.entries());
             BUILD_STATES.remove(materialList);
@@ -156,7 +159,7 @@ public final class MinimalSubMaterialListView {
             return;
         }
 
-        BuildState state = buildState(materialList, signature, sourceEntries, inventory, true);
+        BuildState state = buildState(materialList, signature, sourceEntries, inventory);
         if (state.isComplete()) {
             storeCache(materialList, signature, state.entries());
             BUILD_STATES.remove(materialList);
@@ -224,6 +227,7 @@ public final class MinimalSubMaterialListView {
 
     public static boolean tick(MaterialListBase materialList) {
         if (!isActive(materialList)) {
+            prewarm(materialList);
             return false;
         }
 
@@ -232,13 +236,40 @@ public final class MinimalSubMaterialListView {
             return false;
         }
 
-        state.process(materialList, BUILD_BUDGET_NS);
+        boolean changed = state.process(materialList, BUILD_BUDGET_NS, true);
         boolean complete = state.isComplete();
         if (complete) {
             storeCache(materialList, state.signature(), state.entries());
             BUILD_STATES.remove(materialList);
         }
-        return complete;
+        return changed || complete;
+    }
+
+    private static boolean prewarm(MaterialListBase materialList) {
+        BuildState state = BUILD_STATES.get(materialList);
+        if (state == null) {
+            // A completed cache remains valid while cycling through the normal
+            // list modes. setActive() performs the definitive signature check.
+            if (ENTRY_CACHES.containsKey(materialList)) {
+                return true;
+            }
+            if (materialList.getMaterialListType() != BlockInfoListType.ALL) {
+                return false;
+            }
+
+            List<MaterialListEntry> sourceEntries = new ArrayList<>(materialList.getMaterialsFiltered(true));
+            InventoryCounts.Snapshot inventory = InventoryCounts.current();
+            state = buildState(materialList, signature(materialList, sourceEntries, inventory), sourceEntries, inventory);
+        }
+
+        state.process(materialList, BACKGROUND_BUILD_BUDGET_NS, false);
+        if (!state.isComplete()) {
+            return false;
+        }
+
+        storeCache(materialList, state.signature(), state.entries());
+        BUILD_STATES.remove(materialList);
+        return true;
     }
 
     public static String displayName(MaterialListEntry entry) {
@@ -508,7 +539,8 @@ public final class MinimalSubMaterialListView {
             List<class_1799> ingredientIcons = ingredient.icons().isEmpty() ? List.of(ingredient.icon()) : ingredient.icons();
             List<String> ingredientNames = candidateNames(ingredientIcons, ingredient.alternatives());
             if (ingredient.isChoiceGroup()) {
-                CandidateSet refinedChoice = refineWoodCandidatesForSource(source, ingredientIcons, ingredientNames);
+                CandidateSet refinedChoice = expandRegisteredLogCandidates(
+                        refineWoodCandidatesForSource(source, ingredientIcons, ingredientNames));
                 String groupName = refinedChoice.names().isEmpty()
                         ? RecipeSummaryFormatter.ingredientName(ingredient)
                         : refinedChoice.names().get(0);
@@ -548,7 +580,9 @@ public final class MinimalSubMaterialListView {
                 // (3) Multi-variant and every candidate is craftable: union-decompose
                 // (任意台阶 -> 任意木板 -> 任意原木) rather than collapsing to the
                 // representative wood family.
-                if (refinedChoice.icons().size() > 1 && isChoiceGroupDecomposable(refinedChoice.icons())) {
+                if (refinedChoice.icons().size() > 1
+                        && isWoodChoiceGroup(refinedChoice.icons())
+                        && isChoiceGroupDecomposable(refinedChoice.icons())) {
                     collectChoiceGroupLeaves(
                             refinedChoice.icons(),
                             refinedChoice.names(),
@@ -707,6 +741,10 @@ public final class MinimalSubMaterialListView {
         return true;
     }
 
+    private static boolean isWoodChoiceGroup(List<class_1799> icons) {
+        return allIconsMatch(icons, path -> !woodFamily(path).isEmpty());
+    }
+
     private static void collectPreparedLeaves(class_1799 stack, List<class_1799> icons, List<String> names, String name, SourceOrigin source, int baseCount, int preparedCount, Map<String, Accumulator> materials) {
         if (preparedCount <= 0) {
             return;
@@ -728,7 +766,8 @@ public final class MinimalSubMaterialListView {
     }
 
     private static void addLeaf(class_1799 stack, List<class_1799> icons, List<String> names, String name, SourceOrigin source, int count, boolean prepared, Map<String, Accumulator> materials) {
-        CandidateSet candidates = refineWoodCandidatesForSource(source, icons.isEmpty() ? List.of(stack) : icons, names);
+        CandidateSet candidates = expandRegisteredLogCandidates(
+                refineWoodCandidatesForSource(source, icons.isEmpty() ? List.of(stack) : icons, names));
         String displayNameFallback = candidates.names().size() == 1 ? candidates.names().get(0) : name;
         class_1799 displayStack = candidates.icons().isEmpty() ? stack : candidates.icons().get(0);
         String key = groupKey(displayStack, candidates.icons(), displayNameFallback);
@@ -762,6 +801,40 @@ public final class MinimalSubMaterialListView {
         }
 
         return refinedIcons.isEmpty() ? new CandidateSet(icons, names) : new CandidateSet(List.copyOf(refinedIcons), List.copyOf(refinedNames));
+    }
+
+    private static CandidateSet expandRegisteredLogCandidates(CandidateSet candidates) {
+        if (candidates.icons().size() < 2
+                || !allIconsMatch(candidates.icons(), MinimalSubMaterialListView::isLogLike)
+                || !hasMultipleWoodFamilies(candidates.icons())) {
+            return candidates;
+        }
+
+        Map<String, class_1799> iconsById = new LinkedHashMap<>();
+        for (class_1799 icon : candidates.icons()) {
+            iconsById.putIfAbsent(ItemStackTexts.id(icon), icon.method_7972());
+        }
+
+        // JEI may keep a recipe's alternative list from an older tag snapshot.
+        // Merge every currently registered log-like item so new vanilla and
+        // modded wood families still appear in the "Any log" hover panel.
+        try {
+            for (var identifier : class_7923.field_41178.method_10235()) {
+                if (!isLogLike(identifier.method_12832())) {
+                    continue;
+                }
+                var item = class_7923.field_41178.method_17966(identifier).orElse(null);
+                if (item != null) {
+                    class_1799 icon = new class_1799(item, 1);
+                    iconsById.putIfAbsent(ItemStackTexts.id(icon), icon);
+                }
+            }
+        } catch (Throwable ignored) {
+            return candidates;
+        }
+
+        List<class_1799> icons = List.copyOf(iconsById.values());
+        return new CandidateSet(icons, candidateNames(icons, List.of()));
     }
 
     private static String groupKey(class_1799 stack, List<class_1799> icons, String name) {
@@ -973,7 +1046,10 @@ public final class MinimalSubMaterialListView {
             return null;
         }
 
-        List<String> candidateNames = candidateNames(upstreamIcons, names);
+        CandidateSet expanded = expandRegisteredLogCandidates(
+                new CandidateSet(upstreamIcons, candidateNames(upstreamIcons, names)));
+        upstreamIcons = expanded.icons();
+        List<String> candidateNames = expanded.names();
         String name = StringUtils.translate("lmlp.label.recipe.any.log");
         return new UpstreamRequirement(
                 upstreamIcons.get(0).method_7972(),
@@ -1007,15 +1083,12 @@ public final class MinimalSubMaterialListView {
         return groupDisplayName(icons, fallbackName);
     }
 
-    private static BuildState buildState(MaterialListBase materialList, String signature, List<MaterialListEntry> sourceEntries, InventoryCounts.Snapshot inventory, boolean useInitialBudget) {
+    private static BuildState buildState(MaterialListBase materialList, String signature, List<MaterialListEntry> sourceEntries, InventoryCounts.Snapshot inventory) {
         BuildState state = BUILD_STATES.get(materialList);
         if (state == null || !state.signature().equals(signature)) {
             removeBuildDisplayData(materialList);
             state = new BuildState(signature, sourceEntries, materialList.getMultiplier(), inventory);
             BUILD_STATES.put(materialList, state);
-            if (useInitialBudget) {
-                state.process(materialList, INITIAL_BUILD_BUDGET_NS);
-            }
         }
         return state;
     }
@@ -1106,6 +1179,15 @@ public final class MinimalSubMaterialListView {
                     .add(count, prepared);
         }
 
+        private void mergeFrom(Accumulator other) {
+            this.totalCount += other.totalCount;
+            this.preparedCount += other.preparedCount;
+            other.candidates.forEach(this.candidates::putIfAbsent);
+            other.sources.forEach((key, source) -> this.sources
+                    .computeIfAbsent(key, ignored -> new SourceAccumulator(source.origin))
+                    .mergeFrom(source));
+        }
+
         private List<Candidate> candidates() {
             return List.copyOf(this.candidates.values());
         }
@@ -1147,6 +1229,11 @@ public final class MinimalSubMaterialListView {
             } else {
                 this.totalCount += count;
             }
+        }
+
+        private void mergeFrom(SourceAccumulator other) {
+            this.totalCount += other.totalCount;
+            this.preparedCount += other.preparedCount;
         }
 
         private SourceContribution toContribution(int maxStackSize) {
@@ -1191,38 +1278,51 @@ public final class MinimalSubMaterialListView {
             return this.complete;
         }
 
-        private boolean process(MaterialListBase materialList, long budgetNs) {
+        private boolean process(MaterialListBase materialList, long budgetNs, boolean publishPartial) {
             if (this.complete) {
                 return false;
             }
 
             long deadline = System.nanoTime() + budgetNs;
             boolean changed = false;
-            do {
-                if (this.nextSourceIndex >= this.sourceEntries.size()) {
-                    this.complete = true;
-                    break;
+            try (RecipeResolvers.ComputationScope ignored = RecipeResolvers.withComputationDeadline(deadline)) {
+                while (this.nextSourceIndex < this.sourceEntries.size()) {
+                    Map<String, Accumulator> delta = new LinkedHashMap<>();
+                    try {
+                        RecipeResolvers.checkpoint();
+                        MaterialListEntry entry = this.sourceEntries.get(this.nextSourceIndex);
+                        class_1799 stack = entry.getStack();
+                        int baseTotal = entry.getCountTotal();
+                        int total = scaledCount(baseTotal, this.multiplier);
+                        int missing = MaterialCounts.netMissing(entry, this.multiplier);
+                        int prepared = Math.max(0, total - Math.min(total, missing));
+                        SourceOrigin source = new SourceOrigin(ItemStackTexts.id(stack), stack.method_7972(), ItemStackTexts.name(stack), total, missing);
+                        collectLeaves(stack, List.of(stack), List.of(ItemStackTexts.name(stack)), ItemStackTexts.name(stack), source, baseTotal, this.multiplier, false, 0, new HashSet<>(), delta);
+                        collectPreparedLeaves(stack, List.of(stack), List.of(ItemStackTexts.name(stack)), ItemStackTexts.name(stack), source, baseTotal, prepared, delta);
+                    } catch (RecipeResolvers.BudgetExceededException exception) {
+                        break;
+                    }
+
+                    mergeMaterials(this.materials, delta);
+                    this.nextSourceIndex++;
+                    changed = true;
                 }
+                this.complete = this.nextSourceIndex >= this.sourceEntries.size();
+            }
 
-                MaterialListEntry entry = this.sourceEntries.get(this.nextSourceIndex++);
-                class_1799 stack = entry.getStack();
-                int baseTotal = entry.getCountTotal();
-                int total = scaledCount(baseTotal, this.multiplier);
-                int missing = MaterialCounts.netMissing(entry, this.multiplier);
-                int prepared = Math.max(0, total - Math.min(total, missing));
-                SourceOrigin source = new SourceOrigin(ItemStackTexts.id(stack), stack.method_7972(), ItemStackTexts.name(stack), total, missing);
-                collectLeaves(stack, List.of(stack), List.of(ItemStackTexts.name(stack)), ItemStackTexts.name(stack), source, baseTotal, this.multiplier, false, 0, new HashSet<>(), this.materials);
-                collectPreparedLeaves(stack, List.of(stack), List.of(ItemStackTexts.name(stack)), ItemStackTexts.name(stack), source, baseTotal, prepared, this.materials);
-                changed = true;
-            } while (System.nanoTime() < deadline);
-
-            if (this.complete) {
-                this.publish(materialList);
+            if (this.complete || (publishPartial && changed && ENTRY_CACHES.get(materialList) == null)) {
+                this.publish(materialList, this.complete);
             }
             return changed;
         }
 
-        private void publish(MaterialListBase materialList) {
+        private static void mergeMaterials(Map<String, Accumulator> target, Map<String, Accumulator> delta) {
+            delta.forEach((key, material) -> target
+                    .computeIfAbsent(key, ignored -> new Accumulator(material.stack, material.name))
+                    .mergeFrom(material));
+        }
+
+        private void publish(MaterialListBase materialList, boolean logCompletion) {
             removeDisplayData(materialList);
             removeBuildDisplayData(materialList);
             String placementKey = IgnoredMaterialRegistry.placementKey(materialList);
@@ -1240,8 +1340,10 @@ public final class MinimalSubMaterialListView {
 
             this.entries = entries;
             ENTRY_DISPLAYS.putAll(displays);
-            LOGGER.info("[minimal rebuild] placementKey={} entryCount={}",
-                    placementKey, entries.size());
+            if (logCompletion) {
+                LOGGER.info("[minimal rebuild] placementKey={} entryCount={}",
+                        placementKey, entries.size());
+            }
         }
     }
 
@@ -1445,16 +1547,17 @@ public final class MinimalSubMaterialListView {
     }
 
     private static boolean isLogLike(String path) {
-        return path.endsWith("_log")
+        return !woodFamily(path).isEmpty()
+                && (path.endsWith("_log")
                 || path.endsWith("_wood")
                 || path.endsWith("_stem")
                 || path.endsWith("_hyphae")
                 || path.equals("bamboo_block")
-                || path.equals("stripped_bamboo_block");
+                || path.equals("stripped_bamboo_block"));
     }
 
     private static boolean isPlanksLike(String path) {
-        return path.endsWith("_planks");
+        return path.endsWith("_planks") && !woodFamily(path).isEmpty();
     }
 
     // Single items kept as their own counted leaf row (with the "所需 …"
@@ -1487,13 +1590,36 @@ public final class MinimalSubMaterialListView {
             path = path.substring("stripped_".length());
         }
 
-        for (String family : WOOD_FAMILIES) {
+        for (String family : woodFamilies()) {
             if (path.equals(family) || path.startsWith(family + "_")) {
                 return family;
             }
         }
 
         return "";
+    }
+
+    private static List<String> woodFamilies() {
+        if (discoveredWoodFamilies != null) {
+            return discoveredWoodFamilies;
+        }
+
+        Set<String> families = new LinkedHashSet<>(FALLBACK_WOOD_FAMILIES);
+        try {
+            for (var identifier : class_7923.field_41178.method_10235()) {
+                String path = identifier.method_12832();
+                if (path.endsWith("_planks") && path.length() > "_planks".length()) {
+                    families.add(path.substring(0, path.length() - "_planks".length()));
+                }
+            }
+        } catch (Throwable ignored) {
+            // The fallback list keeps vanilla behavior if a registry is not yet ready.
+        }
+
+        List<String> sorted = new ArrayList<>(families);
+        sorted.sort(Comparator.comparingInt(String::length).reversed().thenComparing(String::compareTo));
+        discoveredWoodFamilies = List.copyOf(sorted);
+        return discoveredWoodFamilies;
     }
 
     private static boolean isCobblestoneLike(String path) {
