@@ -31,6 +31,8 @@ public class GuiConfigs extends GuiConfigsBase {
     public void initGui() {
         super.initGui();
         this.clearOptions();
+        // clearOptions() removes MaLiLib's listeners; rebuild the list to register them again.
+        this.reCreateListWidget();
 
         int x = 10;
         int y = 26;
