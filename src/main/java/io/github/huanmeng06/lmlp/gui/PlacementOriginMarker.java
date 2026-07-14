@@ -24,6 +24,11 @@ import net.minecraft.class_638;
 import net.minecraft.class_822;
 import net.minecraft.class_4587;
 import net.minecraft.class_4597;
+import net.minecraft.class_4588;
+import net.minecraft.class_4608;
+import net.minecraft.class_1921;
+import net.minecraft.class_7833;
+import net.minecraft.class_3532;
 import net.minecraft.class_757;
 import org.joml.Matrix4f;
 
@@ -54,6 +59,24 @@ public final class PlacementOriginMarker {
     private static final float TARGET_ICON_LAYER_Z = 0.01F;
     private static final float LABEL_BACKGROUND_LAYER_Z = 0.02F;
     private static final float LABEL_TEXT_LAYER_Z = 0.03F;
+    private static final class_1921 BEAM_OVERLAY_LAYER = new class_1921(
+            "lmlp_origin_beam_overlay", class_290.field_1580, class_293.class_5596.field_27382,
+            256, false, false,
+            () -> {
+                RenderSystem.enableBlend();
+                RenderSystem.defaultBlendFunc();
+                RenderSystem.disableDepthTest();
+                RenderSystem.depthMask(false);
+                RenderSystem.disableCull();
+                RenderSystem.setShader(class_757::method_34540);
+                RenderSystem.setShaderTexture(0, class_822.field_4338);
+            },
+            () -> {
+                RenderSystem.enableCull();
+                RenderSystem.depthMask(true);
+                RenderSystem.enableDepthTest();
+                RenderSystem.disableBlend();
+            }) {};
 
     private static Marker marker;
 
@@ -183,13 +206,64 @@ public final class PlacementOriginMarker {
         float tickDelta = client.method_1488();
         float animationTime = (float) Math.floorMod(client.field_1687.method_8510(), 40L) + tickDelta;
         class_4597.class_4598 consumers = class_4597.method_22991(class_289.method_1348().method_1349());
-        class_822.method_3545(
-                matrices, consumers, class_822.field_4338, 1.0F, animationTime,
-                client.field_1687.method_8510(), -pos.method_10264() - 64, 2048,
-                new float[]{1.0F, 0.0F, 0.0F}, 0.2F, 0.25F);
+        drawOverlayBeam(matrices, consumers, animationTime, -pos.method_10264() - 64, 2048);
         consumers.method_22993();
-       matrices.method_22909();
-   }
+        matrices.method_22909();
+    }
+
+    private static void drawOverlayBeam(class_4587 matrices, class_4597.class_4598 consumers,
+                                         float animationTime, int yOffset, int height) {
+        int maxY = yOffset + height;
+        float direction = height < 0 ? animationTime : -animationTime;
+        float scroll = class_3532.method_22450(direction * 0.2F - class_3532.method_15375(direction * 0.1F));
+        matrices.method_22903();
+        matrices.method_22904(0.5D, 0.0D, 0.5D);
+        matrices.method_22903();
+        matrices.method_22907(class_7833.field_40716.rotationDegrees(animationTime * 2.25F - 45.0F));
+        float innerV1 = -1.0F + scroll;
+        float innerV2 = height * 2.5F + innerV1;
+        drawBeamFaces(matrices, consumers.getBuffer(BEAM_OVERLAY_LAYER), 0xFFFF0000,
+                yOffset, maxY, 0.0F, 0.2F, 0.2F, 0.0F, -0.2F, 0.0F, 0.0F, -0.2F,
+                0.0F, 1.0F, innerV2, innerV1);
+        matrices.method_22909();
+        float outerV1 = -1.0F + scroll;
+        float outerV2 = height + outerV1;
+        drawBeamFaces(matrices, consumers.getBuffer(BEAM_OVERLAY_LAYER), 0x20FF0000,
+                yOffset, maxY, -0.25F, -0.25F, 0.25F, -0.25F, -0.25F, 0.25F, 0.25F, 0.25F,
+                0.0F, 1.0F, outerV2, outerV1);
+        matrices.method_22909();
+    }
+
+    private static void drawBeamFaces(class_4587 matrices, class_4588 buffer, int color,
+                                      int minY, int maxY, float x1, float z1, float x2, float z2,
+                                      float x3, float z3, float x4, float z4,
+                                      float minU, float maxU, float maxV, float minV) {
+        drawBeamFace(matrices, buffer, color, minY, maxY, x1, z1, x2, z2, minU, maxU, maxV, minV);
+        drawBeamFace(matrices, buffer, color, minY, maxY, x4, z4, x3, z3, minU, maxU, maxV, minV);
+        drawBeamFace(matrices, buffer, color, minY, maxY, x2, z2, x4, z4, minU, maxU, maxV, minV);
+        drawBeamFace(matrices, buffer, color, minY, maxY, x3, z3, x1, z1, minU, maxU, maxV, minV);
+    }
+
+    private static void drawBeamFace(class_4587 matrices, class_4588 buffer, int color,
+                                     int minY, int maxY, float x1, float z1, float x2, float z2,
+                                     float minU, float maxU, float maxV, float minV) {
+        beamVertex(matrices, buffer, color, maxY, x1, z1, maxU, maxV);
+        beamVertex(matrices, buffer, color, minY, x1, z1, maxU, minV);
+        beamVertex(matrices, buffer, color, minY, x2, z2, minU, minV);
+        beamVertex(matrices, buffer, color, maxY, x2, z2, minU, maxV);
+    }
+
+    private static void beamVertex(class_4587 matrices, class_4588 buffer, int color,
+                                    int y, float x, float z, float u, float v) {
+        buffer.method_22918(matrices.method_23760().method_23761(), x, y, z)
+                .method_22915((color >> 16 & 255) / 255.0F, (color >> 8 & 255) / 255.0F,
+                        (color & 255) / 255.0F, (color >>> 24) / 255.0F)
+                .method_22913(u, v)
+                .method_22922(class_4608.field_21444)
+                .method_22916(15728880)
+                .method_23763(matrices.method_23760().method_23762(), 0.0F, 1.0F, 0.0F)
+                .method_1344();
+    }
 
     private static void drawBoxQuads(class_287 buffer, Matrix4f matrix, float minX, float minY, float minZ, float maxX, float maxY, float maxZ, Color4f color) {
         quad(buffer, matrix, minX, minY, minZ, maxX, minY, minZ, maxX, maxY, minZ, minX, maxY, minZ, color);
