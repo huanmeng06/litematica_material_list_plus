@@ -269,7 +269,7 @@ def read_jar_metadata(path: Path) -> dict:
 
 
 def verify_jar(mc_version: str, entry: dict, jar: Path, *, deployed: Path | None = None,
-               expected_release: str | None = None) -> dict:
+               expected_release: str | None = None, expected_commit: str | None = None) -> dict:
     metadata = read_jar_metadata(jar)
     fabric = metadata["fabric"]
     errors: list[str] = []
@@ -288,6 +288,8 @@ def verify_jar(mc_version: str, entry: dict, jar: Path, *, deployed: Path | None
         errors.append(f"构建信息 Minecraft 版本错误：{build['minecraft']}")
     if expected_release and not build.get("version", "").startswith(expected_release + "+mc"):
         errors.append(f"模组版本不是 {expected_release}：{build.get('version')}")
+    if expected_commit and build.get("gitCommit") != expected_commit:
+        errors.append(f"JAR 来自旧提交：应为 {expected_commit}，实际为 {build.get('gitCommit')}")
     release = int(entry.get("bytecode", entry["java"]))
     expected_major = release + 44
     if metadata["bytecode"] != expected_major:
@@ -347,7 +349,8 @@ def deploy_one(mc_version: str, entry: dict, *, build_first: bool = True) -> tup
             shutil.move(str(path), backup / path.name)
     target = mods / jar.name
     shutil.copy2(jar, target)
-    verify_jar(mc_version, entry, jar, deployed=target)
+    commit = git(["rev-parse", "--short=12", "HEAD"], worktree).stdout.strip()
+    verify_jar(mc_version, entry, jar, deployed=target, expected_commit=commit)
     print(f"已部署：{target}")
     print(f"SHA-256：{sha256(target)}")
     return jar, target
@@ -383,7 +386,8 @@ def command_status(config: dict, args: argparse.Namespace) -> None:
 def command_build(config: dict, args: argparse.Namespace) -> None:
     mc, entry = version_entry(config, args.version)
     jar = build_one(mc, entry, args.release_version)
-    result = verify_jar(mc, entry, jar, expected_release=args.release_version)
+    commit = git(["rev-parse", "--short=12", "HEAD"], ensure_worktree(entry)).stdout.strip()
+    result = verify_jar(mc, entry, jar, expected_release=args.release_version, expected_commit=commit)
     print(json.dumps(result, ensure_ascii=False, indent=2))
 
 
@@ -391,7 +395,10 @@ def command_build_all(config: dict, args: argparse.Namespace) -> None:
     results = []
     for mc, entry in selected_versions(config):
         jar = build_one(mc, entry, args.release_version)
-        results.append(verify_jar(mc, entry, jar, expected_release=args.release_version))
+        commit = git(["rev-parse", "--short=12", "HEAD"], ensure_worktree(entry)).stdout.strip()
+        results.append(verify_jar(mc, entry, jar,
+                                  expected_release=args.release_version,
+                                  expected_commit=commit))
     print(json.dumps(results, ensure_ascii=False, indent=2))
 
 
@@ -406,7 +413,8 @@ def command_verify(config: dict, args: argparse.Namespace) -> None:
     jar = artifact_for(worktree)
     deployed_jars = active_lmlp_jars(Path(entry["instance"]).expanduser() / "mods")
     deployed = deployed_jars[0] if len(deployed_jars) == 1 else None
-    result = verify_jar(mc, entry, jar, deployed=deployed)
+    commit = git(["rev-parse", "--short=12", "HEAD"], worktree).stdout.strip()
+    result = verify_jar(mc, entry, jar, deployed=deployed, expected_commit=commit)
     print(json.dumps(result, ensure_ascii=False, indent=2))
 
 
@@ -520,7 +528,10 @@ def command_release_prepare(config: dict, args: argparse.Namespace) -> None:
     results = []
     for mc, entry in selected_versions(config):
         jar = build_one(mc, entry, args.release_version)
-        checked = verify_jar(mc, entry, jar, expected_release=args.release_version)
+        commit = git(["rev-parse", "--short=12", "HEAD"], ensure_worktree(entry)).stdout.strip()
+        checked = verify_jar(mc, entry, jar,
+                             expected_release=args.release_version,
+                             expected_commit=commit)
         target = destination / jar.name
         shutil.copy2(jar, target)
         checked["asset"] = target.name
@@ -575,7 +586,8 @@ def command_ci_verify(config: dict, args: argparse.Namespace) -> None:
     if failures:
         raise LmlpError("回归保护检查失败：\n- " + "\n- ".join(failures))
     jar = artifact_for(source)
-    result = verify_jar(mc, entry, jar)
+    commit = git(["rev-parse", "--short=12", "HEAD"], source).stdout.strip()
+    result = verify_jar(mc, entry, jar, expected_commit=commit)
     print(json.dumps(result, ensure_ascii=False, indent=2))
 
 
