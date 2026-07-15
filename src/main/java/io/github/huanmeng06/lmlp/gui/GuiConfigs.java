@@ -9,6 +9,8 @@ import fi.dy.masa.malilib.util.StringUtils;
 import io.github.huanmeng06.lmlp.LitematicaMaterialListPlus;
 import io.github.huanmeng06.lmlp.config.Configs;
 import io.github.huanmeng06.lmlp.config.Hotkeys;
+import net.minecraft.class_11908;
+import net.minecraft.class_11909;
 
 import java.util.Collection;
 import java.util.List;
@@ -29,14 +31,29 @@ public class GuiConfigs extends GuiConfigsBase {
 
     @Override
     public void initGui() {
-        super.initGui();
         this.clearOptions();
+        super.initGui();
 
         int x = 10;
         int y = 26;
         for (ConfigGuiTab tab : ConfigGuiTab.values()) {
             x += this.createButton(x, y, -1, tab);
         }
+        this.updateKeybindButtons();
+    }
+
+    @Override
+    public boolean onKeyTyped(class_11908 keyInput) {
+        boolean handled = super.onKeyTyped(keyInput);
+        this.updateKeybindButtons();
+        return handled;
+    }
+
+    @Override
+    public boolean onMouseClicked(class_11909 mouseClick, boolean doubleClick) {
+        boolean handled = super.onMouseClicked(mouseClick, doubleClick);
+        this.updateKeybindButtons();
+        return handled;
     }
 
     @Override
