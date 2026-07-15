@@ -30,8 +30,7 @@
     "WidgetMaterialListEntryButtonListenerMixin",
     "WidgetMaterialListEntryMixin",
     "WidgetSearchBarAccessor",
-    "WidgetSliderMixin",
-    "WorldRendererLateOriginMarkerMixin"
+    "WidgetSliderMixin"
   ],
   "injectors": {
     "defaultRequire": 1

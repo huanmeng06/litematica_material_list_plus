@@ -61,8 +61,24 @@ public final class PlacementOriginMarker {
     private static final float LABEL_BACKGROUND_LAYER_Z = 0.02F;
     private static final float LABEL_TEXT_LAYER_Z = 0.03F;
     private static final class_9799 LABEL_TEXT_ALLOCATOR = new class_9799(786432);
-    private static final class_1921 BEAM_OPAQUE_LAYER = createBeamOverlayLayer("lmlp_origin_beam_opaque", false);
-    private static final class_1921 BEAM_TRANSLUCENT_LAYER = createBeamOverlayLayer("lmlp_origin_beam_translucent", true);
+    private static final class_1921 BEAM_OVERLAY_LAYER = new class_1921(
+            "lmlp_origin_beam_overlay", class_290.field_1580, class_293.class_5596.field_27382,
+            256, false, false,
+            () -> {
+                RenderSystem.enableBlend();
+                RenderSystem.defaultBlendFunc();
+                RenderSystem.disableDepthTest();
+                RenderSystem.depthMask(false);
+                RenderSystem.disableCull();
+                RenderSystem.setShader(class_757::method_34540);
+                RenderSystem.setShaderTexture(0, class_822.field_4338);
+            },
+            () -> {
+                RenderSystem.enableCull();
+                RenderSystem.depthMask(true);
+                RenderSystem.enableDepthTest();
+                RenderSystem.disableBlend();
+            }) {};
 
     private static Marker marker;
 
@@ -209,13 +225,13 @@ public final class PlacementOriginMarker {
         matrices.method_22907(class_7833.field_40716.rotationDegrees(animationTime * 2.25F - 45.0F));
         float innerV1 = -1.0F + scroll;
         float innerV2 = height * 2.5F + innerV1;
-        drawBeamFaces(matrices, consumers.getBuffer(BEAM_OPAQUE_LAYER), 0xFFFF0000,
+        drawBeamFaces(matrices, consumers.getBuffer(BEAM_OVERLAY_LAYER), 0xFFFF0000,
                 yOffset, maxY, 0.0F, 0.2F, 0.2F, 0.0F, -0.2F, 0.0F, 0.0F, -0.2F,
                 0.0F, 1.0F, innerV2, innerV1);
         matrices.method_22909();
         float outerV1 = -1.0F + scroll;
         float outerV2 = height + outerV1;
-        drawBeamFaces(matrices, consumers.getBuffer(BEAM_TRANSLUCENT_LAYER), 0x20FF0000,
+        drawBeamFaces(matrices, consumers.getBuffer(BEAM_OVERLAY_LAYER), 0x20FF0000,
                 yOffset, maxY, -0.25F, -0.25F, 0.25F, -0.25F, -0.25F, 0.25F, 0.25F, 0.25F,
                 0.0F, 1.0F, outerV2, outerV1);
         matrices.method_22909();
@@ -248,27 +264,6 @@ public final class PlacementOriginMarker {
                 .method_22922(class_4608.field_21444)
                 .method_60803(LABEL_LIGHT)
                 .method_60831(matrices.method_23760(), 0.0F, 1.0F, 0.0F);
-    }
-
-    private static class_1921 createBeamOverlayLayer(String name, boolean translucent) {
-        class_1921 vanilla = class_1921.method_23592(class_822.field_4338, translucent);
-        return new class_1921(
-                name,
-                vanilla.method_23031(),
-                vanilla.method_23033(),
-                vanilla.method_22722(),
-                vanilla.method_24295(),
-                vanilla.method_23037(),
-                () -> {
-                    vanilla.method_23516();
-                    RenderSystem.disableDepthTest();
-                    RenderSystem.depthMask(false);
-                },
-                () -> {
-                    vanilla.method_23518();
-                    RenderSystem.depthMask(true);
-                    RenderSystem.enableDepthTest();
-                }) {};
     }
 
     private static void drawBoxQuads(class_287 buffer, Matrix4f matrix, float minX, float minY, float minZ, float maxX, float maxY, float maxZ, Color4f color) {
