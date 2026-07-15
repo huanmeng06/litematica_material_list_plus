@@ -1,0 +1,127 @@
+import java.time.Instant
+import java.util.Properties
+
+plugins {
+    id 'fabric-loom' version "${loom_version}"
+    id 'maven-publish'
+}
+
+version = project.mod_version
+group = project.maven_group
+
+def gitText = { List<String> arguments ->
+    try {
+        List<String> command = ['git']
+        command.addAll(arguments)
+        Process process = new ProcessBuilder(command)
+                .directory(projectDir)
+                .redirectErrorStream(true)
+                .start()
+        String output = process.inputStream.getText('UTF-8').trim()
+        return process.waitFor() == 0 ? output : 'unknown'
+    } catch (Exception ignored) {
+        return 'unknown'
+    }
+}
+
+def gitCommit = gitText(['rev-parse', '--short=12', 'HEAD'])
+def gitDirty = !gitText(['status', '--porcelain']).isEmpty()
+def sourceDateEpoch = System.getenv('SOURCE_DATE_EPOCH')
+def buildTime = sourceDateEpoch
+        ? Instant.ofEpochSecond(Long.parseLong(sourceDateEpoch)).toString()
+        : Instant.now().toString()
+def buildInfoFile = layout.buildDirectory.file('generated/lmlpBuildInfo/lmlp-build.properties')
+
+tasks.register('generateLmlpBuildInfo') {
+    inputs.property 'version', project.version
+    inputs.property 'minecraft', project.minecraft_version
+    inputs.property 'gitCommit', gitCommit
+    inputs.property 'gitDirty', gitDirty
+    inputs.property 'buildTime', buildTime
+    outputs.file buildInfoFile
+
+    doLast {
+        File output = buildInfoFile.get().asFile
+        output.parentFile.mkdirs()
+        Properties properties = new Properties()
+        properties.setProperty('version', project.version.toString())
+        properties.setProperty('minecraft', project.minecraft_version.toString())
+        properties.setProperty('gitCommit', gitCommit)
+        properties.setProperty('gitDirty', Boolean.toString(gitDirty))
+        properties.setProperty('buildTime', buildTime)
+        output.withOutputStream { stream -> properties.store(stream, null) }
+    }
+}
+
+base {
+    archivesName = project.archives_base_name
+}
+
+repositories {
+    // Modrinth's Maven proxy, used for mods that don't publish to their own public maven
+    // for this Minecraft version (Litematica, MaLiLib, Mod Menu).
+    exclusiveContent {
+        forRepository {
+            maven {
+                name = 'Modrinth'
+                url = 'https://api.modrinth.com/maven'
+            }
+        }
+        filter {
+            includeGroup 'maven.modrinth'
+        }
+    }
+}
+
+dependencies {
+    minecraft "com.mojang:minecraft:${project.minecraft_version}"
+    // The mod source targets Fabric intermediary names directly (class_/method_/field_),
+    // so intermediary is used as the "named" mapping namespace instead of Yarn.
+    mappings "net.fabricmc:intermediary:${project.minecraft_version}:v2"
+    modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+    modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+
+    modImplementation "maven.modrinth:litematica:${project.litematica_version}"
+    modImplementation "maven.modrinth:malilib:${project.malilib_version}"
+    modCompileOnly "maven.modrinth:jei:${project.jei_version}"
+
+    modCompileOnly "maven.modrinth:modmenu:${project.modmenu_version}"
+}
+
+processResources {
+    dependsOn tasks.named('generateLmlpBuildInfo')
+    inputs.property 'version', project.version
+    from buildInfoFile
+
+    filesMatching('fabric.mod.json') {
+        expand 'version': project.version
+    }
+}
+
+def javaRelease = (project.findProperty('java_release') ?: '21') as Integer
+
+tasks.withType(JavaCompile).configureEach {
+    it.options.release = javaRelease
+}
+
+java {
+    withSourcesJar()
+    sourceCompatibility = JavaVersion.toVersion(javaRelease)
+    targetCompatibility = JavaVersion.toVersion(javaRelease)
+}
+
+jar {
+    from('LICENSE') {
+        rename { "${it}_${project.base.archivesName.get()}" }
+    }
+    from('THIRD_PARTY_NOTICES.md')
+    manifest {
+        attributes(
+                'Implementation-Title': project.base.archivesName.get(),
+                'Implementation-Version': project.version,
+                'LMLP-Minecraft-Version': project.minecraft_version,
+                'LMLP-Git-Commit': gitCommit,
+                'LMLP-Git-Dirty': gitDirty,
+                'LMLP-Build-Time': buildTime)
+    }
+}
