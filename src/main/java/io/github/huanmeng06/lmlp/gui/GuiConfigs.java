@@ -43,6 +43,20 @@ public class GuiConfigs extends GuiConfigsBase {
     }
 
     @Override
+    public boolean onKeyTyped(int keyCode, int scanCode, int modifiers) {
+        boolean handled = super.onKeyTyped(keyCode, scanCode, modifiers);
+        this.updateKeybindButtons();
+        return handled;
+    }
+
+    @Override
+    public boolean onMouseClicked(int mouseX, int mouseY, int mouseButton) {
+        boolean handled = super.onMouseClicked(mouseX, mouseY, mouseButton);
+        this.updateKeybindButtons();
+        return handled;
+    }
+
+    @Override
     protected boolean useKeybindSearch() {
         return true;
     }
