@@ -29,14 +29,15 @@ public class GuiConfigs extends GuiConfigsBase {
 
     @Override
     public void initGui() {
-        super.initGui();
         this.clearOptions();
+        super.initGui();
 
         int x = 10;
         int y = 26;
         for (ConfigGuiTab tab : ConfigGuiTab.values()) {
             x += this.createButton(x, y, -1, tab);
         }
+        this.updateKeybindButtons();
     }
 
     @Override

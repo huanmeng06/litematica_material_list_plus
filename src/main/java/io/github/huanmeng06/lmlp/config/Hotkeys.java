@@ -19,7 +19,6 @@ public final class Hotkeys {
     public static final ConfigHotkey CLEAR_ORIGIN_MARKER = new ConfigHotkey(
             "clearOriginMarker",
             "",
-            KeybindSettings.PRESS_ALLOWEXTRA_EMPTY,
             "lmlp.config.comment.clear_origin_marker",
             "lmlp.config.name.clear_origin_marker",
             "lmlp.config.name.clear_origin_marker"
