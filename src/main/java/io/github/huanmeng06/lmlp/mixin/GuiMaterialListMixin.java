@@ -349,12 +349,36 @@ public abstract class GuiMaterialListMixin extends GuiListBase {
 
     @Inject(method = "initGui", at = @At("TAIL"))
     private void lmlp$addSubMaterialExportButton(CallbackInfo ci) {
+        this.lmlp$removeVanillaRecipeExportButtons();
         int x = this.lmlp$subMaterialExportButtonX();
         int y = this.width < this.lmlp$fullTopRowWidth() ? this.height - WRAPPED_BUTTON_Y_OFFSET : BUTTON_Y;
         String label = StringUtils.translate("lmlp.gui.button.material_list.write_sub_materials");
         ButtonGeneric button = new ButtonGeneric(x, y, -1, 20, label, new String[0]);
         button.setHoverStrings("lmlp.gui.button.hover.material_list.write_sub_materials");
         this.addButton(button, new SubMaterialExportButtonListener((GuiMaterialList) (Object) this));
+    }
+
+    private void lmlp$removeVanillaRecipeExportButtons() {
+        List<ButtonBase> buttons = ((GuiBaseHoverAccess) (Object) this).lmlp$getButtons();
+        buttons.removeIf(button ->
+                this.lmlp$hasHoverKey(button, "litematica.gui.button.hover.material_list.json_hold_shift_for_missing_only")
+                        || this.lmlp$hasHoverKey(button, "litematica.gui.button.hover.material_list.export_custom_json"));
+    }
+
+    private boolean lmlp$hasHoverKey(ButtonBase button, String translationKey) {
+        List<String> hoverStrings = button.getHoverStrings();
+        if (hoverStrings.isEmpty()) {
+            return false;
+        }
+
+        return this.lmlp$firstHoverLine(hoverStrings.get(0))
+                .equals(this.lmlp$firstHoverLine(StringUtils.translate(translationKey)));
+    }
+
+    private String lmlp$firstHoverLine(String text) {
+        String normalized = text == null ? "" : text.replace("\\n", "\n");
+        int newline = normalized.indexOf('\n');
+        return newline >= 0 ? normalized.substring(0, newline) : normalized;
     }
 
     // Add an "LMLP 配置" button immediately left of vanilla's bottom-right
