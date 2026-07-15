@@ -31,6 +31,7 @@ public final class MaterialListHudState {
 
     public static void toggle(MaterialListBase materialList) {
         enabled = !enabled;
+        syncCurrentList(materialList);
         LOGGER.info("[lmlp hud] toggled enabled={} listClass={}",
                 enabled, materialList == null ? "null" : materialList.getClass().getSimpleName());
     }
