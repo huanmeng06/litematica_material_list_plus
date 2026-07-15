@@ -38,7 +38,7 @@
 - `1.21.11`
 - `26.1.2`
 
-> **Minecraft 1.21.4 和 1.21.5 从 v1.8.0 起不再支持，也不会提供对应版本的 JAR。**
+> **LMLP v1.8.0 已全面迁移到 JEI，不再使用旧版 REI 集成。由于 JEI 对 Minecraft 1.21.4 和 1.21.5 的适配情况无法满足本版本的依赖要求，因此这两个 Minecraft 版本从 v1.8.0 起不再支持，也不会提供对应版本的 JAR。**
 >
 > 这两个 Minecraft 版本的最后可用版本为 LMLP `v1.7.0`，请勿将其他 Minecraft 版本的 `v1.8.0` JAR 混用到 1.21.4 或 1.21.5。
 
@@ -47,7 +47,6 @@
 1. 下载 Assets 中与您 Minecraft 版本完全对应的 `litematica-material-list-plus`。
 2. 删除 `mods` 文件夹中的旧版 LMLP，确保只保留一个 LMLP JAR。
 3. 安装对应版本的 Fabric API、Litematica、MaLiLib 和 JEI。
-4. LMLP v1.8.0 使用 JEI 集成，不再使用旧版 REI 集成。
 
 ---
 
