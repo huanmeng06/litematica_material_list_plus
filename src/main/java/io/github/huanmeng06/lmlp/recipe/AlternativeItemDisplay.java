@@ -79,6 +79,10 @@ public final class AlternativeItemDisplay {
         return cyclingIcon(node.icons(), node.icon());
     }
 
+    public static ItemStack icon(List<ItemStack> icons, ItemStack fallback) {
+        return cyclingIcon(icons, fallback);
+    }
+
     public static String name(List<ItemStack> icons, List<String> alternatives) {
         if (alternatives.isEmpty()) {
             return "";

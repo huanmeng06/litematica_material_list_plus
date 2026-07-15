@@ -23,6 +23,9 @@ public interface RecipeNativeDisplayBridge {
         return fallbackHeight;
     }
 
+    default void tick(RecipeSummary summary) {
+    }
+
     default void render(RecipeSummary summary, GuiGraphicsExtractor context, int x, int y, int width, int height, int mouseX, int mouseY, float delta) {
     }
 

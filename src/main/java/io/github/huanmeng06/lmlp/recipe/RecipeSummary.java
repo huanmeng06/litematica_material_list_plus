@@ -7,6 +7,7 @@ public final class RecipeSummary {
     private final String category;
     private final String recipeId;
     private final ItemStack outputIcon;
+    private final List<ItemStack> outputIcons;
     private final int outputCount;
     private final int craftsTotal;
     private final int craftsMissing;
@@ -22,9 +23,20 @@ public final class RecipeSummary {
     }
 
     public RecipeSummary(String category, String recipeId, ItemStack outputIcon, int outputCount, int craftsTotal, int craftsMissing, List<IngredientSummary> ingredients, List<RecipeSlotSummary> inputSlots, int gridWidth, int gridHeight, boolean shapeless, Object nativeDisplay) {
+        this(category, recipeId, outputIcon, List.of(outputIcon), outputCount, craftsTotal, craftsMissing, ingredients,
+                inputSlots, gridWidth, gridHeight, shapeless, nativeDisplay);
+    }
+
+    public RecipeSummary(String category, String recipeId, ItemStack outputIcon, List<ItemStack> outputIcons,
+            int outputCount, int craftsTotal, int craftsMissing, List<IngredientSummary> ingredients,
+            List<RecipeSlotSummary> inputSlots, int gridWidth, int gridHeight, boolean shapeless, Object nativeDisplay) {
         this.category = category;
         this.recipeId = recipeId;
         this.outputIcon = outputIcon;
+        this.outputIcons = outputIcons.stream()
+                .filter(icon -> !icon.isEmpty())
+                .map(ItemStack::copy)
+                .toList();
         this.outputCount = outputCount;
         this.craftsTotal = craftsTotal;
         this.craftsMissing = craftsMissing;
@@ -46,6 +58,10 @@ public final class RecipeSummary {
 
     public ItemStack outputIcon() {
         return this.outputIcon;
+    }
+
+    public List<ItemStack> outputIcons() {
+        return this.outputIcons;
     }
 
     public int outputCount() {

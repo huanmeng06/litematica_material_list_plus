@@ -1,5 +1,7 @@
 package io.github.huanmeng06.lmlp.recipe.jei;
 
+import java.lang.reflect.Field;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -42,7 +44,7 @@ public final class JeiRecipeTransferBridge implements RecipeTransferBridge {
             TransferContext context = new TransferContext(lookup.handler().get(), lookup.menu(), lookup.nativeRecipe());
             IRecipeTransferError error = context.check(false, false);
             if (error == null) {
-                return new TransferState(true, true, false, 0, "+", tooltip(summary, "text.auto_craft.move_items"), null);
+                return new TransferState(true, true, false, 0, "+", transferTooltip(), null);
             }
 
             if (error.getType() == IRecipeTransferError.Type.INTERNAL) {
@@ -57,14 +59,13 @@ public final class JeiRecipeTransferBridge implements RecipeTransferBridge {
             }
 
             boolean enabled = error.getType().allowsTransfer;
-            String tooltipKey = enabled ? "text.auto_craft.move_items" : "error.rei.not.enough.materials";
             return new TransferState(
                     true,
                     enabled,
                     !enabled,
                     enabled ? 0 : REI_FAILED_TRANSFER_TINT,
                     "+",
-                    tooltip(summary, tooltipKey),
+                    enabled ? transferTooltip() : errorTooltip(error),
                     error);
         } catch (Throwable throwable) {
             return TransferState.UNSUPPORTED;
@@ -81,13 +82,16 @@ public final class JeiRecipeTransferBridge implements RecipeTransferBridge {
     @Override
     public boolean transfer(RecipeSummary summary, AbstractContainerScreen<?> containerScreen, boolean maxTransfer) {
         try {
+            if (!maxTransfer && summary.craftsMissing() <= 0) {
+                return false;
+            }
             TransferLookup lookup = transferLookup(summary, containerScreen);
             if (lookup == null || lookup.handler().isEmpty()) {
                 return false;
             }
 
             TransferContext context = new TransferContext(lookup.handler().get(), lookup.menu(), lookup.nativeRecipe());
-            IRecipeTransferError error = context.check(maxTransfer, true);
+            IRecipeTransferError error = context.transfer(summary.craftsMissing(), maxTransfer);
             return error == null || error.getType().allowsTransfer;
         } catch (Throwable throwable) {
             return false;
@@ -140,6 +144,41 @@ public final class JeiRecipeTransferBridge implements RecipeTransferBridge {
         return List.copyOf(lines);
     }
 
+    private static List<Component> transferTooltip() {
+        return List.of(
+                Component.translatable("lmlp.tooltip.recipe.transfer_missing"),
+                Component.translatable("lmlp.tooltip.recipe.transfer_all"));
+    }
+
+    private static List<Component> errorTooltip(IRecipeTransferError error) {
+        Class<?> type = error.getClass();
+        while (type != null) {
+            try {
+                Field messageField = type.getDeclaredField("message");
+                messageField.setAccessible(true);
+                if (messageField.get(error) instanceof List<?> rawLines) {
+                    List<Component> lines = new ArrayList<>();
+                    for (Object rawLine : rawLines) {
+                        if (rawLine instanceof Component line) {
+                            lines.add(line);
+                        }
+                    }
+                    if (!lines.isEmpty()) {
+                        return List.copyOf(lines);
+                    }
+                }
+            } catch (ReflectiveOperationException ignored) {
+                // Older and newer JEI versions expose this message differently.
+            }
+            type = type.getSuperclass();
+        }
+
+        return List.of(
+                Component.translatable("jei.tooltip.transfer"),
+                Component.translatable("jei.tooltip.error.recipe.transfer.missing")
+                        .withStyle(ChatFormatting.RED));
+    }
+
     private static JeiRecipeResolver.JeiNativeRecipe<?> nativeRecipe(RecipeSummary summary) {
         return summary.nativeDisplay() instanceof JeiRecipeResolver.JeiNativeRecipe<?> nativeRecipe ? nativeRecipe : null;
     }
@@ -158,6 +197,47 @@ public final class JeiRecipeTransferBridge implements RecipeTransferBridge {
                     Minecraft.getInstance().player,
                     maxTransfer,
                     doTransfer);
+        }
+
+        private IRecipeTransferError transfer(int craftsMissing, boolean maxTransfer) {
+            if (maxTransfer || craftsMissing <= 1) {
+                return this.check(maxTransfer, true);
+            }
+            int low = 1;
+            int high = craftsMissing;
+            int best = 0;
+            IRecipeTransferError lastError = null;
+            while (low <= high) {
+                int candidate = low + (high - low) / 2;
+                IRecipeTransferError error = this.checkScaled(candidate, false);
+                if (error == null || error.getType().allowsTransfer) {
+                    best = candidate;
+                    low = candidate + 1;
+                } else {
+                    lastError = error;
+                    high = candidate - 1;
+                }
+            }
+            return best > 0 ? this.checkScaled(best, true) : lastError;
+        }
+
+        private IRecipeTransferError checkScaled(int crafts, boolean doTransfer) {
+            java.util.Map<net.minecraft.world.item.ItemStack, Integer> originalCounts = new java.util.IdentityHashMap<>();
+            this.nativeRecipe.layout().getRecipeSlotsView()
+                    .getSlotViews(mezz.jei.api.recipe.RecipeIngredientRole.INPUT)
+                    .forEach(slot -> slot.getAllIngredients().forEach(ingredient -> {
+                        if (ingredient.getIngredient() instanceof net.minecraft.world.item.ItemStack stack
+                                && !stack.isEmpty()) {
+                            originalCounts.putIfAbsent(stack, stack.getCount());
+                            long scaled = (long) originalCounts.get(stack) * crafts;
+                            stack.setCount((int) Math.min(stack.getMaxStackSize(), scaled));
+                        }
+                    }));
+            try {
+                return this.check(false, doTransfer);
+            } finally {
+                originalCounts.forEach(net.minecraft.world.item.ItemStack::setCount);
+            }
         }
     }
 }

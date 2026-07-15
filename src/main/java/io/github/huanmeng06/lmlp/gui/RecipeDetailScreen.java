@@ -3,6 +3,7 @@ package io.github.huanmeng06.lmlp.gui;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -180,6 +181,18 @@ public class RecipeDetailScreen extends Screen {
     @Override
     public boolean isPauseScreen() {
         return false;
+    }
+
+    @Override
+    public void tick() {
+        super.tick();
+        Set<Object> tickedDisplays = java.util.Collections.newSetFromMap(new IdentityHashMap<>());
+        for (NativeDisplayArea area : this.nativeDisplayAreas) {
+            Object nativeDisplay = area.summary().nativeDisplay();
+            if (nativeDisplay != null && tickedDisplays.add(nativeDisplay)) {
+                this.nativeDisplayBridge.tick(area.summary());
+            }
+        }
     }
 
     @Override
@@ -450,8 +463,9 @@ public class RecipeDetailScreen extends Screen {
     private void renderRecipeBoxContents(GuiContext context, RecipeSummary summary, int index, String path,
             String listPath, int depth, int left, int y, int width, int boxHeight, int mouseX, int mouseY,
             float delta) {
-        context.renderItem(summary.outputIcon(), left + 10, y + 10);
-        this.captureHoveredStack(summary.outputIcon(), mouseX, mouseY, left + 10, y + 10, 16, 16);
+        ItemStack displayOutput = displayOutputIcon(summary);
+        context.renderItem(displayOutput, left + 10, y + 10);
+        this.captureHoveredStack(displayOutput, mouseX, mouseY, left + 10, y + 10, 16, 16);
         context.drawString(this.font, RecipeSummaryFormatter.header(summary, index), left + 34, y + 12,
                 0xFFFFFFFF, false);
         this.renderPreferredRecipeButton(context, summary, listPath, left, y, width, mouseX, mouseY);
@@ -622,9 +636,10 @@ public class RecipeDetailScreen extends Screen {
         int outputX = x + 166;
         int outputY = y + 35;
         drawOutputSlot(context, outputX, outputY);
+        ItemStack displayOutput = displayOutputIcon(summary);
         drawSlotItem(
-                context, outputX + 5, outputY + 5, new RecipeSlotSummary(summary.outputIcon(),
-                        List.of(ItemStackTexts.name(summary.outputIcon())), summary.outputCount()),
+                context, outputX + 5, outputY + 5, new RecipeSlotSummary(displayOutput,
+                        List.of(ItemStackTexts.name(displayOutput)), summary.outputCount()),
                 mouseX, mouseY, 16, 16);
     }
 
@@ -810,8 +825,12 @@ public class RecipeDetailScreen extends Screen {
         if (hovered) {
             this.hoveredTransferTooltip = state.tooltip();
         }
+        int errorClipLeft = panelX;
+        int errorClipTop = Math.max(panelY, this.activeClipTop);
+        int errorClipRight = panelX + panelWidth;
+        int errorClipBottom = Math.min(panelY + panelHeight, this.activeClipBottom);
         TransferButtonEntry entry = new TransferButtonEntry(summary, state, bounds.x(), visibleTop, bounds.width(),
-                visibleHeight);
+                visibleHeight, errorClipLeft, errorClipTop, errorClipRight, errorClipBottom);
         this.transferButtons.add(entry);
         if (hovered) {
             this.hoveredTransferEntry = entry;
@@ -840,8 +859,26 @@ public class RecipeDetailScreen extends Screen {
             return false;
         }
 
+        GuiGraphicsExtractor drawContext = context.getGuiGraphics();
+        if (this.hoveredTransferEntry.hasVisibleErrorArea()) {
+            drawContext.enableScissor(
+                    this.hoveredTransferEntry.errorClipLeft(),
+                    this.hoveredTransferEntry.errorClipTop(),
+                    this.hoveredTransferEntry.errorClipRight(),
+                    this.hoveredTransferEntry.errorClipBottom());
+            try {
+                this.transferBridge.renderError(
+                        this.hoveredTransferEntry.summary(),
+                        this.hoveredTransferEntry.state(),
+                        drawContext,
+                        mouseX,
+                        mouseY);
+            } finally {
+                drawContext.disableScissor();
+            }
+        }
         if (!this.hoveredTransferTooltip.isEmpty()) {
-            context.getGuiGraphics().setComponentTooltipForNextFrame(this.font, this.hoveredTransferTooltip, mouseX, mouseY);
+            drawContext.setComponentTooltipForNextFrame(this.font, this.hoveredTransferTooltip, mouseX, mouseY);
         }
         return true;
     }
@@ -1026,18 +1063,14 @@ public class RecipeDetailScreen extends Screen {
                     repChild.maxStackSize()));
         }
 
-        // Keep the representative's own native recipe handle so the crafting-grid
-        // box still renders through the active recipe viewer's native layout (what
-        // pressing R on that single item would show) instead of falling back
-        // to our hand-drawn grid, which only happened here because a bare
-        // synthetic RecipeSummary carries no nativeDisplay. Only the
-        // "总计子材料" total below needs the unioned ("任意原木") ingredient
-        // list; the grid itself showing one representative species (e.g. oak)
-        // is how a recipe browser behaves for a single recipe.
+        // Keep the representative's native layout for geometry and interaction,
+        // while carrying every alternative output and input slot so the bridge
+        // can display one synchronized wood family across the whole recipe tree.
         return List.of(new RecipeSummary(
                 representative.category(),
                 representative.recipeId(),
                 representative.outputIcon(),
+                perAlternative.stream().map(RecipeSummary::outputIcon).toList(),
                 representative.outputCount(),
                 representative.craftsTotal(),
                 representative.craftsMissing(),
@@ -1047,6 +1080,10 @@ public class RecipeDetailScreen extends Screen {
                 representative.gridHeight(),
                 representative.shapeless(),
                 representative.nativeDisplay()));
+    }
+
+    private static ItemStack displayOutputIcon(RecipeSummary summary) {
+        return AlternativeItemDisplay.icon(summary.outputIcons(), summary.outputIcon());
     }
 
     private static List<RecipeSlotSummary> unionSlots(List<RecipeSummary> perAlternative,
@@ -1188,7 +1225,7 @@ public class RecipeDetailScreen extends Screen {
             int visibleBottom = Math.min(y + height, this.activeClipBottom);
             if (visibleBottom > visibleTop) {
                 this.nativeDisplayAreas
-                        .add(new NativeDisplayArea(summary, x, visibleTop, width, visibleBottom - visibleTop));
+                        .add(new NativeDisplayArea(summary, x, y, width, height, visibleTop, visibleBottom));
             }
             return true;
         } catch (Throwable throwable) {
@@ -1625,18 +1662,23 @@ public class RecipeDetailScreen extends Screen {
     private record PanelBounds(int x, int y) {
     }
 
-    private record NativeDisplayArea(RecipeSummary summary, int x, int y, int width, int height) {
+    private record NativeDisplayArea(RecipeSummary summary, int x, int y, int width, int height, int visibleTop,
+            int visibleBottom) {
         private boolean contains(double mouseX, double mouseY) {
-            return mouseX >= this.x && mouseX < this.x + this.width && mouseY >= this.y
-                    && mouseY < this.y + this.height;
+            return mouseX >= this.x && mouseX < this.x + this.width && mouseY >= this.visibleTop
+                    && mouseY < this.visibleBottom;
         }
     }
 
     private record TransferButtonEntry(RecipeSummary summary, RecipeTransferBridge.TransferState state, int x, int y,
-            int width, int height) {
+            int width, int height, int errorClipLeft, int errorClipTop, int errorClipRight, int errorClipBottom) {
         private boolean contains(double mouseX, double mouseY) {
             return mouseX >= this.x && mouseX < this.x + this.width && mouseY >= this.y
                     && mouseY < this.y + this.height;
+        }
+
+        private boolean hasVisibleErrorArea() {
+            return this.errorClipRight > this.errorClipLeft && this.errorClipBottom > this.errorClipTop;
         }
     }
 
