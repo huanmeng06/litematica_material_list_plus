@@ -21,7 +21,6 @@ import net.minecraft.class_2561;
 import net.minecraft.class_2960;
 import net.minecraft.class_327;
 import net.minecraft.class_332;
-import net.minecraft.class_768;
 
 public final class JeiNativeDisplayBridge implements RecipeNativeDisplayBridge {
     private static final class_2960 CATALYST_TAB = class_2960.method_60655("litematica_material_list_plus", "textures/gui/catalyst_tab.png");
@@ -125,11 +124,9 @@ public final class JeiNativeDisplayBridge implements RecipeNativeDisplayBridge {
                 continue;
             }
 
-            class_768 area = slot.getAreaIncludingBackground();
-            int left = layoutX + area.method_3321();
-            int top = layoutY + area.method_3322();
-            boolean hovered = mouseX >= left && mouseX < left + area.method_3319()
-                    && mouseY >= top && mouseY < top + area.method_3320();
+            // JEI's slot background includes the one-pixel frame. Only the
+            // actual 16x16 ingredient area should produce an item tooltip.
+            boolean hovered = slot.isMouseOver(mouseX, mouseY);
             if (hovered) {
                 if (slotView.getRole() == RecipeIngredientRole.INPUT && inputIndex < summary.inputSlots().size()) {
                     RecipeSlotSummary summarySlot = summary.inputSlots().get(inputIndex);

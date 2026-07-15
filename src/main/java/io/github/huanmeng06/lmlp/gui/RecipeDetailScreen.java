@@ -692,9 +692,8 @@ public class RecipeDetailScreen extends class_437 {
         for (int i = this.transferButtons.size() - 1; i >= 0; i--) {
             TransferButtonEntry entry = this.transferButtons.get(i);
             if (entry.contains(mouseX, mouseY) && entry.state().enabled()) {
-                // Material-list transfers should fill the crafting grid with as many
-                // craftable batches as the player's inventory can supply.
-                if (this.transferBridge.transfer(entry.summary(), this.transferContainerScreen, true)) {
+                if (this.transferBridge.transfer(entry.summary(), this.transferContainerScreen,
+                        GuiBase.isShiftDown())) {
                     this.field_22787.method_1507(this.transferContainerScreen);
                 }
                 return true;
@@ -828,8 +827,12 @@ public class RecipeDetailScreen extends class_437 {
         if (hovered) {
             this.hoveredTransferTooltip = state.tooltip();
         }
+        int errorClipLeft = panelX;
+        int errorClipTop = Math.max(panelY, this.activeClipTop);
+        int errorClipRight = panelX + panelWidth;
+        int errorClipBottom = Math.min(panelY + panelHeight, this.activeClipBottom);
         TransferButtonEntry entry = new TransferButtonEntry(summary, state, bounds.x(), visibleTop, bounds.width(),
-                visibleHeight);
+                visibleHeight, errorClipLeft, errorClipTop, errorClipRight, errorClipBottom);
         this.transferButtons.add(entry);
         if (hovered) {
             this.hoveredTransferEntry = entry;
@@ -860,14 +863,26 @@ public class RecipeDetailScreen extends class_437 {
 
         class_332 drawContext = context.getGuiGraphics();
         // 1.21.11 batches GUI elements by stratum. Put JEI's missing-slot
-        // highlights above the already queued recipe background and item icons.
+        // highlights above the already queued recipe background and item icons,
+        // but keep them inside the currently visible part of this recipe panel.
         drawContext.method_71048();
-        this.transferBridge.renderError(
-                this.hoveredTransferEntry.summary(),
-                this.hoveredTransferEntry.state(),
-                drawContext,
-                mouseX,
-                mouseY);
+        if (this.hoveredTransferEntry.hasVisibleErrorArea()) {
+            drawContext.method_44379(
+                    this.hoveredTransferEntry.errorClipLeft(),
+                    this.hoveredTransferEntry.errorClipTop(),
+                    this.hoveredTransferEntry.errorClipRight(),
+                    this.hoveredTransferEntry.errorClipBottom());
+            try {
+                this.transferBridge.renderError(
+                        this.hoveredTransferEntry.summary(),
+                        this.hoveredTransferEntry.state(),
+                        drawContext,
+                        mouseX,
+                        mouseY);
+            } finally {
+                drawContext.method_44380();
+            }
+        }
         if (!this.hoveredTransferTooltip.isEmpty()) {
             drawContext.method_51434(this.field_22793, this.hoveredTransferTooltip, mouseX, mouseY);
         }
@@ -1662,10 +1677,14 @@ public class RecipeDetailScreen extends class_437 {
     }
 
     private record TransferButtonEntry(RecipeSummary summary, RecipeTransferBridge.TransferState state, int x, int y,
-            int width, int height) {
+            int width, int height, int errorClipLeft, int errorClipTop, int errorClipRight, int errorClipBottom) {
         private boolean contains(double mouseX, double mouseY) {
             return mouseX >= this.x && mouseX < this.x + this.width && mouseY >= this.y
                     && mouseY < this.y + this.height;
+        }
+
+        private boolean hasVisibleErrorArea() {
+            return this.errorClipRight > this.errorClipLeft && this.errorClipBottom > this.errorClipTop;
         }
     }
 
