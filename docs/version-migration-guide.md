@@ -123,15 +123,9 @@ rg 'class_[0-9]+|method_[0-9]+|field_[0-9]+' src/main/java src/main/resources
 最终原则：
 
 - 参考目标版本 MaLiLib/Litematica 原生 `GuiConfigsBase`、`ConfigOptionChangeListenerKeybind` 的监听生命周期。
-- 在键盘或鼠标完成绑定后立即调用 `updateKeybindButtons()`，不能依赖搜索框焦点变化触发重绘。
-- 在 `ConfigOptionChangeListenerKeybind.updateButtons()` 尾部按当前值与默认值直接设置 reset button：
-
-```java
-button.setEnabled(!Objects.equals(
-        keybind.getStringValue(),
-        keybind.getDefaultStringValue()));
-```
-
+- `initGui()` 必须先调用 `clearOptions()` 清理旧监听器，再调用 `super.initGui()` 创建新列表和新的热键监听器；顺序反过来会把刚创建的监听器清空，表现为只有点击搜索框后重置按钮才刷新。
+- 仅在 LMLP 自己的 `GuiConfigs` 中，于键盘或鼠标完成绑定后调用 `updateKeybindButtons()`；不要对 MaLiLib 公共 `GuiConfigsBase` 注入全局刷新，否则会改变 Litematica、Tweakeroo 及其他 MaLiLib 模组的配置页面。
+- 保留 MaLiLib 原生的 `IKeybind.isModified()` 判断。不要在公共 `ConfigOptionChangeListenerKeybind.updateButtons()` 尾部用字符串比较覆盖结果，否则热键设置项的修改状态可能被错误忽略。
 - 不要覆写或清空整个配置选项列表来刷新一个按钮；这会造成“页面只剩搜索图标/全部配置消失”。
 - 每次升级 MaLiLib 后用 `javap` 确认 `onKeyTyped`、`onMouseClicked`、`updateKeybindButtons`、`updateButtons` 的实际名称和参数。
 
