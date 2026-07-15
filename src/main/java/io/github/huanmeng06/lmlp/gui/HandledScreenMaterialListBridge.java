@@ -1,18 +1,18 @@
 package io.github.huanmeng06.lmlp.gui;
 
-import net.minecraft.class_465;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 
 public final class HandledScreenMaterialListBridge {
-    private static class_465<?> preservedScreen;
+    private static AbstractContainerScreen<?> preservedScreen;
 
     private HandledScreenMaterialListBridge() {
     }
 
-    public static void preserveOnce(class_465<?> screen) {
+    public static void preserveOnce(AbstractContainerScreen<?> screen) {
         preservedScreen = screen;
     }
 
-    public static boolean consumePreserveClose(class_465<?> screen) {
+    public static boolean consumePreserveClose(AbstractContainerScreen<?> screen) {
         if (preservedScreen != screen) {
             return false;
         }

@@ -1,21 +1,21 @@
 package io.github.huanmeng06.lmlp.gui;
 
 import fi.dy.masa.malilib.render.GuiContext;
-import net.minecraft.class_1799;
-import net.minecraft.class_327;
-import net.minecraft.class_332;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.world.item.ItemStack;
 
 public final class ItemTooltipRenderer {
     private ItemTooltipRenderer() {
     }
 
-    public static boolean render(class_332 context, class_327 textRenderer, class_1799 stack, int mouseX, int mouseY) {
-        if (stack.method_7960()) {
+    public static boolean render(GuiGraphicsExtractor context, Font textRenderer, ItemStack stack, int mouseX, int mouseY) {
+        if (stack.isEmpty()) {
             return false;
         }
 
-        class_332 target = context instanceof GuiContext guiContext ? guiContext.getGuiGraphics() : context;
-        target.method_51446(textRenderer, stack, mouseX, mouseY);
+        GuiGraphicsExtractor target = context instanceof GuiContext guiContext ? guiContext.getGuiGraphics() : context;
+        target.setTooltipForNextFrame(textRenderer, stack, mouseX, mouseY);
         return true;
     }
 }

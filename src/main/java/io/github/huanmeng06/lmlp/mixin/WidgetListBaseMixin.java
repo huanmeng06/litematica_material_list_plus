@@ -278,9 +278,9 @@ public abstract class WidgetListBaseMixin implements WidgetListBoundsAccess {
             if (entry == null) {
                 widget.render(drawContext, mouseX, mouseY, selected);
             } else if (clipBottom > entriesClipTop) {
-                drawContext.method_44379(this.posX, entriesClipTop, this.posX + this.browserWidth, clipBottom);
+                drawContext.enableScissor(this.posX, entriesClipTop, this.posX + this.browserWidth, clipBottom);
                 widget.render(drawContext, mouseX, mouseY, selected);
-                drawContext.method_44380();
+                drawContext.disableScissor();
             }
 
             if (widget.isMouseOver(mouseX, mouseY)) {
@@ -388,8 +388,8 @@ public abstract class WidgetListBaseMixin implements WidgetListBoundsAccess {
         WidgetSearchBar fresh = new WidgetSearchBar(this.posX + 2, this.posY + 8, this.totalWidth - 16, 14, 0, Icons.FILE_ICON_SEARCH, LeftRight.RIGHT);
         fresh.setZLevel(1);
         fresh.setSearchOpen(old.isSearchOpen());
-        String text = ((WidgetSearchBarAccessor) old).lmlp$getSearchBox().method_1882();
-        ((WidgetSearchBarAccessor) fresh).lmlp$getSearchBox().method_1852(text);
+        String text = ((WidgetSearchBarAccessor) old).lmlp$getSearchBox().getValue();
+        ((WidgetSearchBarAccessor) fresh).lmlp$getSearchBox().setValue(text);
         this.widgetSearchBar = fresh;
     }
 

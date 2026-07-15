@@ -323,7 +323,7 @@ public final class MaterialListPlusState {
         return key(ingredient.icon(), ingredient.countTotal(), ingredient.countMissing());
     }
 
-    private static String key(net.minecraft.class_1799 stack, int totalCount, int missingCount) {
+    private static String key(net.minecraft.world.item.ItemStack stack, int totalCount, int missingCount) {
         return ItemStackTexts.id(stack) + "|" + totalCount + "|" + missingCount;
     }
 }

@@ -53,10 +53,10 @@ public class InitHandler implements IInitializationHandler {
             ChunkMissingMaterialListCache.onWorldDisconnected("client.lifecycle.stopping");
         });
     }
-    private static void handleHotkeyFallback(net.minecraft.class_310 client) {
+    private static void handleHotkeyFallback(net.minecraft.client.Minecraft client) {
         // The raw key polling below ignores malilib's keybind contexts, so it
         // must not fire on the title screen or inside other GUIs.
-        if (client == null || client.field_1687 == null || client.field_1755 != null) {
+        if (client == null || client.level == null || client.screen != null) {
             openConfigHotkeyWasDown = false;
             clearOriginMarkerHotkeyWasDown = false;
             return;
@@ -75,8 +75,8 @@ public class InitHandler implements IInitializationHandler {
         clearOriginMarkerHotkeyWasDown = clearMarkerDown;
     }
 
-    private static boolean isHotkeyDown(net.minecraft.class_310 client, List<Integer> keys) {
-        if (client == null || client.method_22683() == null || keys == null || keys.isEmpty()) {
+    private static boolean isHotkeyDown(net.minecraft.client.Minecraft client, List<Integer> keys) {
+        if (client == null || client.getWindow() == null || keys == null || keys.isEmpty()) {
             return false;
         }
 

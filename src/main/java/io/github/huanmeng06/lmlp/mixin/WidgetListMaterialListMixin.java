@@ -72,7 +72,7 @@ public abstract class WidgetListMaterialListMixin implements WidgetMaterialListA
         cir.setReturnValue((a, b) -> {
             int missingA = MinimalSubMaterialListView.netMissing(a, materialList);
             int missingB = MinimalSubMaterialListView.netMissing(b, materialList);
-            int nameCmp = a.getStack().method_7964().getString().compareTo(b.getStack().method_7964().getString());
+            int nameCmp = a.getStack().getHoverName().getString().compareTo(b.getStack().getHoverName().getString());
             if (missingA == missingB) {
                 return nameCmp;
             }

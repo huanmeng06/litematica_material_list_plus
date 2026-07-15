@@ -6,15 +6,15 @@ import io.github.huanmeng06.lmlp.recipe.RecipeResolvers;
 import mezz.jei.api.IModPlugin;
 import mezz.jei.api.JeiPlugin;
 import mezz.jei.api.runtime.IJeiRuntime;
-import net.minecraft.class_2960;
+import net.minecraft.resources.Identifier;
 
 @JeiPlugin
 public final class JeiRuntimeBridge implements IModPlugin {
     private static volatile IJeiRuntime runtime;
 
     @Override
-    public class_2960 getPluginUid() {
-        return class_2960.method_60655("litematica_material_list_plus", "jei_bridge");
+    public Identifier getPluginUid() {
+        return Identifier.fromNamespaceAndPath("litematica_material_list_plus", "jei_bridge");
     }
 
     @Override

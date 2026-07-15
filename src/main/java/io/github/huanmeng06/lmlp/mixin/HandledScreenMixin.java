@@ -9,22 +9,22 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import io.github.huanmeng06.lmlp.gui.HandledScreenMaterialListBridge;
 import io.github.huanmeng06.lmlp.gui.MaterialListHotkeyMatcher;
 import io.github.huanmeng06.lmlp.gui.MaterialListOpener;
-import net.minecraft.class_11908;
-import net.minecraft.class_465;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.client.input.KeyEvent;
 
-@Mixin(class_465.class)
+@Mixin(AbstractContainerScreen.class)
 public abstract class HandledScreenMixin {
-    @Inject(method = "method_25432", at = @At("HEAD"), cancellable = true, remap = false)
+    @Inject(method = "removed", at = @At("HEAD"), cancellable = true, remap = false)
     private void lmlp$keepContainerOpenForMaterialList(CallbackInfo ci) {
-        if (HandledScreenMaterialListBridge.consumePreserveClose((class_465<?>) (Object) this)) {
+        if (HandledScreenMaterialListBridge.consumePreserveClose((AbstractContainerScreen<?>) (Object) this)) {
             ci.cancel();
         }
     }
 
-    @Inject(method = "method_25404", at = @At("HEAD"), cancellable = true, remap = false)
-    private void lmlp$openMaterialListFromHandledScreen(class_11908 event, CallbackInfoReturnable<Boolean> cir) {
-        if (MaterialListHotkeyMatcher.matches(event.comp_4795())) {
-            cir.setReturnValue(MaterialListOpener.openFromHandledScreen((class_465<?>) (Object) this));
+    @Inject(method = "keyPressed", at = @At("HEAD"), cancellable = true, remap = false)
+    private void lmlp$openMaterialListFromHandledScreen(KeyEvent event, CallbackInfoReturnable<Boolean> cir) {
+        if (MaterialListHotkeyMatcher.matches(event.key())) {
+            cir.setReturnValue(MaterialListOpener.openFromHandledScreen((AbstractContainerScreen<?>) (Object) this));
         }
     }
 }

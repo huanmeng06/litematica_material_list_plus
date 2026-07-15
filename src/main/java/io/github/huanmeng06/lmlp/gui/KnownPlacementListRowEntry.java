@@ -16,11 +16,11 @@ import io.github.huanmeng06.lmlp.cache.ChunkMissingMaterialListCache.KnownPlacem
 import io.github.huanmeng06.lmlp.gui.KnownPlacementRows.ColumnLayout;
 import io.github.huanmeng06.lmlp.gui.KnownPlacementRows.PlacementLine;
 import io.github.huanmeng06.lmlp.gui.KnownPlacementRows.KnownPlacementRow;
-import net.minecraft.class_437;
 import fi.dy.masa.malilib.render.GuiContext;
 
 import java.util.ArrayList;
 import java.util.List;
+import net.minecraft.client.gui.screens.Screen;
 
 public class KnownPlacementListRowEntry extends WidgetListEntryBase<KnownPlacementRow> {
     private final KnownPlacementRow row;
@@ -148,15 +148,15 @@ public class KnownPlacementListRowEntry extends WidgetListEntryBase<KnownPlaceme
     }
 
     @Override
-    public boolean canSelectAt(net.minecraft.class_11909 event) {
+    public boolean canSelectAt(net.minecraft.client.input.MouseButtonEvent event) {
         return false;
     }
 
     @Override
-    public boolean onMouseClicked(net.minecraft.class_11909 event, boolean doubleClick) {
-        int mouseX = (int) event.comp_4798();
-        int mouseY = (int) event.comp_4799();
-        int mouseButton = event.comp_4800().comp_4801();
+    public boolean onMouseClicked(net.minecraft.client.input.MouseButtonEvent event, boolean doubleClick) {
+        int mouseX = (int) event.x();
+        int mouseY = (int) event.y();
+        int mouseButton = event.buttonInfo().button();
         if (!this.isMouseOver(mouseX, mouseY) || mouseButton != 0) {
             return super.onMouseClicked(event, doubleClick);
         }
@@ -229,7 +229,7 @@ public class KnownPlacementListRowEntry extends WidgetListEntryBase<KnownPlaceme
             return;
         }
 
-        drawContext.method_44379(this.x, this.y, this.x + this.width, this.y + this.height);
+        drawContext.enableScissor(this.x, this.y, this.x + this.width, this.y + this.height);
         if (this.isMouseOver(mouseX, mouseY)) {
             RenderUtils.drawRect(drawContext, this.x, this.y, this.width, this.height, 0xA0707070);
         } else if (this.isOdd) {
@@ -254,7 +254,7 @@ public class KnownPlacementListRowEntry extends WidgetListEntryBase<KnownPlaceme
         KnownPlacementRows.renderPlacementLine(this, this.zLevel, drawContext, line, color, nameHovered, context, originHovered);
 
         this.drawSubWidgets(drawContext, mouseX, mouseY);
-        drawContext.method_44380();
+        drawContext.disableScissor();
     }
 
     @Override
@@ -312,7 +312,7 @@ class OfflineCacheMissingConfirmGui extends GuiConfirmAction {
     private static final int MIN_DIALOG_WIDTH = 200;
     private static final int MAX_DIALOG_WIDTH = 320;
 
-    OfflineCacheMissingConfirmGui(KnownPlacementContext context, IConfirmationListener listener, class_437 parent) {
+    OfflineCacheMissingConfirmGui(KnownPlacementContext context, IConfirmationListener listener, Screen parent) {
         super(
                 INITIAL_DIALOG_WIDTH,
                 "lmlp.gui.title.offline_cache_not_found",

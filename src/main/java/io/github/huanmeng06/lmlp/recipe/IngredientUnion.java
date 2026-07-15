@@ -2,9 +2,8 @@ package io.github.huanmeng06.lmlp.recipe;
 
 import java.util.List;
 import java.util.Map;
-
+import net.minecraft.world.item.ItemStack;
 import io.github.huanmeng06.lmlp.material.ItemStackTexts;
-import net.minecraft.class_1799;
 
 // Shared logic for merging equivalent entries across a choice group's
 // alternatives (oak_planks -> oak_log, spruce_planks -> spruce_log, ...)
@@ -16,20 +15,20 @@ public final class IngredientUnion {
     private IngredientUnion() {
     }
 
-    public static void addIngredient(IngredientSummary child, Map<String, class_1799> icons, List<String> names) {
+    public static void addIngredient(IngredientSummary child, Map<String, ItemStack> icons, List<String> names) {
         addIcons(child.icons().isEmpty() ? List.of(child.icon()) : child.icons(), child.alternatives(), child.icon(), icons, names);
     }
 
-    public static void addSlot(RecipeSlotSummary slot, Map<String, class_1799> icons, List<String> names) {
+    public static void addSlot(RecipeSlotSummary slot, Map<String, ItemStack> icons, List<String> names) {
         addIcons(slot.icons().isEmpty() ? List.of(slot.icon()) : slot.icons(), slot.alternatives(), slot.icon(), icons, names);
     }
 
-    private static void addIcons(List<class_1799> stacks, List<String> alternativeNames, class_1799 fallbackIcon, Map<String, class_1799> icons, List<String> names) {
-        for (class_1799 stack : stacks) {
-            if (stack.method_7960()) {
+    private static void addIcons(List<ItemStack> stacks, List<String> alternativeNames, ItemStack fallbackIcon, Map<String, ItemStack> icons, List<String> names) {
+        for (ItemStack stack : stacks) {
+            if (stack.isEmpty()) {
                 continue;
             }
-            icons.putIfAbsent(ItemStackTexts.id(stack), stack.method_7972());
+            icons.putIfAbsent(ItemStackTexts.id(stack), stack.copy());
         }
 
         if (alternativeNames.isEmpty()) {

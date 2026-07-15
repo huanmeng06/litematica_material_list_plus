@@ -1,20 +1,19 @@
 package io.github.huanmeng06.lmlp.gui.textlist;
 
-import net.minecraft.class_1792;
-import net.minecraft.class_1799;
-import net.minecraft.class_2960;
-import net.minecraft.class_7923;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.Identifier;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
 
 final class ItemIdListIconResolver {
     private static final long DISPLAY_CYCLE_MS = 900L;
-    private static final Display EMPTY_DISPLAY = new Display(class_1799.field_8037, "");
+    private static final Display EMPTY_DISPLAY = new Display(ItemStack.EMPTY, "");
     private static final List<String> COLOR_NAMES = List.of(
             "white",
             "orange",
@@ -87,13 +86,13 @@ final class ItemIdListIconResolver {
 
         if (ids.size() == 1 && ids.get(0).equals(normalized)) {
             Display display = resolveDisplay(normalized);
-            return display.stack().method_7960() ? List.of() : List.of(display);
+            return display.stack().isEmpty() ? List.of() : List.of(display);
         }
 
         Map<String, Display> displays = new LinkedHashMap<>();
         for (String id : ids) {
             Display display = resolveDisplay(id);
-            if (!display.stack().method_7960()) {
+            if (!display.stack().isEmpty()) {
                 displays.putIfAbsent(id, display);
             }
         }
@@ -112,30 +111,30 @@ final class ItemIdListIconResolver {
     }
 
     private static Display resolveDisplay(String id) {
-        class_1799 stack = resolveStack(id);
-        return stack.method_7960() ? EMPTY_DISPLAY : new Display(stack, id);
+        ItemStack stack = resolveStack(id);
+        return stack.isEmpty() ? EMPTY_DISPLAY : new Display(stack, id);
     }
 
-    private static class_1799 resolveStack(String id) {
+    private static ItemStack resolveStack(String id) {
         if (id.isEmpty() || id.startsWith("#")) {
-            return class_1799.field_8037;
+            return ItemStack.EMPTY;
         }
 
         try {
-            class_2960 identifier = class_2960.method_60654(id);
-            if (!class_7923.field_41178.method_10250(identifier)) {
-                return class_1799.field_8037;
+            Identifier identifier = Identifier.parse(id);
+            if (!BuiltInRegistries.ITEM.containsKey(identifier)) {
+                return ItemStack.EMPTY;
             }
 
-            class_1792 item = class_7923.field_41178.method_17966(identifier).orElse(null);
+            Item item = BuiltInRegistries.ITEM.getOptional(identifier).orElse(null);
             if (item == null) {
-                return class_1799.field_8037;
+                return ItemStack.EMPTY;
             }
 
-            class_1799 stack = item.method_7854();
-            return stack == null || stack.method_7960() ? class_1799.field_8037 : stack;
+            ItemStack stack = item.getDefaultInstance();
+            return stack == null || stack.isEmpty() ? ItemStack.EMPTY : stack;
         } catch (RuntimeException exception) {
-            return class_1799.field_8037;
+            return ItemStack.EMPTY;
         }
     }
 
@@ -148,6 +147,6 @@ final class ItemIdListIconResolver {
         return "minecraft:" + trimmed;
     }
 
-    record Display(class_1799 stack, String id) {
+    record Display(ItemStack stack, String id) {
     }
 }

@@ -1,6 +1,6 @@
 package io.github.huanmeng06.lmlp.gui;
 
-import net.minecraft.class_310;
+import net.minecraft.client.Minecraft;
 import org.lwjgl.glfw.GLFW;
 
 public final class ClickableCursor {
@@ -34,12 +34,12 @@ public final class ClickableCursor {
         }
 
         try {
-            class_310 client = class_310.method_1551();
-            if (client == null || client.method_22683() == null) {
+            Minecraft client = Minecraft.getInstance();
+            if (client == null || client.getWindow() == null) {
                 return;
             }
 
-            long window = client.method_22683().method_4490();
+            long window = client.getWindow().handle();
             if (hand) {
                 if (handCursor == 0L) {
                     handCursor = GLFW.glfwCreateStandardCursor(GLFW.GLFW_HAND_CURSOR);

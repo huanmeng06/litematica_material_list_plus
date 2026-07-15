@@ -12,8 +12,6 @@ import io.github.huanmeng06.lmlp.recipe.IngredientSummary;
 import io.github.huanmeng06.lmlp.recipe.RecipeResolvers;
 import io.github.huanmeng06.lmlp.recipe.RecipeSummary;
 import io.github.huanmeng06.lmlp.recipe.RecipeSummaryFormatter;
-import net.minecraft.class_1799;
-
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -31,6 +29,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
+import net.minecraft.world.item.ItemStack;
 
 public final class SubMaterialExporter {
     private static final int MAX_RECIPE_DEPTH = 16;
@@ -66,10 +65,10 @@ public final class SubMaterialExporter {
         List<TreeRow> treeRows = new ArrayList<>();
         Map<String, SummaryAccumulator> summaryRows = new HashMap<>();
         for (MaterialListEntry entry : entries) {
-            class_1799 stack = entry.getStack();
+            ItemStack stack = entry.getStack();
             int total = MaterialCounts.total(entry, materialList);
             int missing = MaterialCounts.missing(entry, materialList);
-            treeRows.add(TreeRow.root(ItemStackTexts.name(stack), stack.method_7914(), total, missing));
+            treeRows.add(TreeRow.root(ItemStackTexts.name(stack), stack.getMaxStackSize(), total, missing));
             appendChildren(stack, total, missing, 1, List.of(), new HashSet<>(), treeRows);
 
             List<LeafMaterial> leaves = new ArrayList<>();
@@ -87,8 +86,8 @@ public final class SubMaterialExporter {
         return new ExportRows(treeRows, summaries);
     }
 
-    private static void appendChildren(class_1799 stack, int totalCount, int missingCount, int depth, List<Boolean> ancestorLast, Set<String> seenItems, List<TreeRow> rows) {
-        class_1799 icon = stack.method_7972();
+    private static void appendChildren(ItemStack stack, int totalCount, int missingCount, int depth, List<Boolean> ancestorLast, Set<String> seenItems, List<TreeRow> rows) {
+        ItemStack icon = stack.copy();
         String itemId = ItemStackTexts.id(icon);
         if (depth > MAX_RECIPE_DEPTH || seenItems.contains(itemId) || Configs.shouldStopRecipeDecomposition(itemId)) {
             return;
@@ -108,7 +107,7 @@ public final class SubMaterialExporter {
             String name = RecipeSummaryFormatter.ingredientName(ingredient);
             rows.add(TreeRow.child(
                     name,
-                    ingredient.icon().method_7914(),
+                    ingredient.icon().getMaxStackSize(),
                     ingredient.countTotal(),
                     ingredient.countMissing(),
                     depth,
@@ -136,15 +135,15 @@ public final class SubMaterialExporter {
         return builder.toString();
     }
 
-    private static void collectLeaves(class_1799 stack, String name, int totalCount, int missingCount, int depth, Set<String> seenItems, List<LeafMaterial> leaves) {
-        class_1799 icon = stack.method_7972();
+    private static void collectLeaves(ItemStack stack, String name, int totalCount, int missingCount, int depth, Set<String> seenItems, List<LeafMaterial> leaves) {
+        ItemStack icon = stack.copy();
         String itemId = ItemStackTexts.id(icon);
         if (totalCount <= 0 && missingCount <= 0) {
             return;
         }
 
         if (depth >= MAX_RECIPE_DEPTH || seenItems.contains(itemId) || Configs.shouldStopRecipeDecomposition(itemId)) {
-            leaves.add(new LeafMaterial(itemId, name, icon.method_7914(), totalCount, missingCount));
+            leaves.add(new LeafMaterial(itemId, name, icon.getMaxStackSize(), totalCount, missingCount));
             return;
         }
 
@@ -152,7 +151,7 @@ public final class SubMaterialExporter {
         childSeenItems.add(itemId);
         List<RecipeSummary> summaries = RecipeResolvers.findRecipes(icon, totalCount, missingCount);
         if (summaries.isEmpty() || summaries.get(0).ingredients().isEmpty()) {
-            leaves.add(new LeafMaterial(itemId, name, icon.method_7914(), totalCount, missingCount));
+            leaves.add(new LeafMaterial(itemId, name, icon.getMaxStackSize(), totalCount, missingCount));
             return;
         }
 

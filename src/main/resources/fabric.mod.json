@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "litematica_material_list_plus",
-  "version": "1.7.1+mc1.21.11",
+  "version": "${version}",
   "name": "Litematica Material List Plus",
   "description": "Enhances Litematica's material list with grouped counts and JEI recipe summaries.",
   "icon": "assets/litematica_material_list_plus/icon.png",
@@ -26,10 +26,10 @@
   ],
   "depends": {
     "fabricloader": ">=0.16.9",
-    "minecraft": "1.21.11",
+    "minecraft": "26.1.2",
     "fabric-api": "*",
-    "litematica": ">=0.26.12",
-    "malilib": ">=0.27.16",
-    "jei": ">=27.17.0"
+    "litematica": ">=0.27.10",
+    "malilib": ">=0.28.9",
+    "jei": ">=29.16.0"
   }
 }

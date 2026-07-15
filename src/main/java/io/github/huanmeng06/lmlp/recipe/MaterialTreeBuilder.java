@@ -6,10 +6,9 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
+import net.minecraft.world.item.ItemStack;
 import io.github.huanmeng06.lmlp.config.Configs;
 import io.github.huanmeng06.lmlp.material.ItemStackTexts;
-import net.minecraft.class_1799;
 
 public final class MaterialTreeBuilder {
     private static final int MAX_DEPTH = 3;
@@ -17,7 +16,7 @@ public final class MaterialTreeBuilder {
     private MaterialTreeBuilder() {
     }
 
-    public static boolean hasChildren(class_1799 stack, int totalCount, int missingCount) {
+    public static boolean hasChildren(ItemStack stack, int totalCount, int missingCount) {
         if (Configs.shouldStopRecipeDecomposition(ItemStackTexts.id(stack))) {
             return false;
         }
@@ -28,7 +27,7 @@ public final class MaterialTreeBuilder {
                 && !RecipeResolvers.leadsBackTo(ItemStackTexts.id(stack), summaries.get(0), MAX_DEPTH);
     }
 
-    public static MaterialTreeNode build(class_1799 stack, int totalCount, int missingCount) {
+    public static MaterialTreeNode build(ItemStack stack, int totalCount, int missingCount) {
         return build(stack, ItemStackTexts.name(stack), totalCount, missingCount, "root", 0, new HashSet<>());
     }
 
@@ -41,9 +40,9 @@ public final class MaterialTreeBuilder {
     // single-item children fall back to the normal decomposition. Quantities
     // follow the representative recipe's yield, matching the single-item path.
     public static MaterialTreeNode buildChoiceGroup(IngredientSummary ingredient, String path) {
-        List<class_1799> icons = ingredient.icons().isEmpty() ? List.of(ingredient.icon()) : ingredient.icons();
+        List<ItemStack> icons = ingredient.icons().isEmpty() ? List.of(ingredient.icon()) : ingredient.icons();
         return buildChoiceGroupNode(
-                ingredient.icon().method_7972(),
+                ingredient.icon().copy(),
                 icons,
                 ingredient.alternatives(),
                 RecipeSummaryFormatter.ingredientName(ingredient),
@@ -54,7 +53,7 @@ public final class MaterialTreeBuilder {
                 new HashSet<>());
     }
 
-    private static MaterialTreeNode buildChoiceGroupNode(class_1799 icon, List<class_1799> icons, List<String> alternatives, String name, int totalCount, int missingCount, String path, int depth, Set<String> seenItems) {
+    private static MaterialTreeNode buildChoiceGroupNode(ItemStack icon, List<ItemStack> icons, List<String> alternatives, String name, int totalCount, int missingCount, String path, int depth, Set<String> seenItems) {
         String itemId = ItemStackTexts.id(icon);
         List<MaterialTreeNode> children = List.of();
 
@@ -77,20 +76,20 @@ public final class MaterialTreeBuilder {
                 name,
                 totalCount,
                 missingCount,
-                Math.max(1, icon.method_7914()),
+                Math.max(1, icon.getMaxStackSize()),
                 depth,
                 children);
     }
 
-    private static List<MaterialTreeNode> buildChoiceGroupChildren(List<class_1799> parentIcons, RecipeSummary representative, int totalCount, int missingCount, String parentPath, int depth, Set<String> seenItems) {
+    private static List<MaterialTreeNode> buildChoiceGroupChildren(List<ItemStack> parentIcons, RecipeSummary representative, int totalCount, int missingCount, String parentPath, int depth, Set<String> seenItems) {
         // Resolve each parent alternative's recipe once so slot i can be
         // unioned across all alternatives (oak_log + spruce_log + ... ->
         // "任意原木") rather than only the representative's slot. All
         // alternatives share the same yield ratio, so the same total/missing
         // count is passed and the representative's per-slot counts are used.
         List<List<IngredientSummary>> perAlternative = new ArrayList<>();
-        for (class_1799 alternativeIcon : parentIcons) {
-            if (alternativeIcon.method_7960()) {
+        for (ItemStack alternativeIcon : parentIcons) {
+            if (alternativeIcon.isEmpty()) {
                 perAlternative.add(List.of());
                 continue;
             }
@@ -106,7 +105,7 @@ public final class MaterialTreeBuilder {
                 continue;
             }
 
-            Map<String, class_1799> unionIcons = new LinkedHashMap<>();
+            Map<String, ItemStack> unionIcons = new LinkedHashMap<>();
             List<String> unionNames = new ArrayList<>();
             IngredientUnion.addIngredient(repChild, unionIcons, unionNames);
             for (List<IngredientSummary> altIngredients : perAlternative) {
@@ -115,11 +114,11 @@ public final class MaterialTreeBuilder {
                 }
             }
 
-            List<class_1799> icons = new ArrayList<>(unionIcons.values());
+            List<ItemStack> icons = new ArrayList<>(unionIcons.values());
             if (icons.isEmpty()) {
-                icons = List.of(repChild.icon().method_7972());
+                icons = List.of(repChild.icon().copy());
             }
-            class_1799 icon = icons.get(0);
+            ItemStack icon = icons.get(0);
             boolean choiceGroup = icons.size() > 1 || unionNames.size() > 1;
             String name = choiceGroup ? AlternativeItemDisplay.name(icons, unionNames) : "";
             if (name.isEmpty()) {
@@ -154,20 +153,20 @@ public final class MaterialTreeBuilder {
         return children;
     }
 
-    public static MaterialTreeNode build(class_1799 stack, String name, int totalCount, int missingCount) {
+    public static MaterialTreeNode build(ItemStack stack, String name, int totalCount, int missingCount) {
         return build(stack, name, totalCount, missingCount, "root", 0, new HashSet<>());
     }
 
-    public static MaterialTreeNode build(class_1799 stack, String name, int totalCount, int missingCount, String path) {
+    public static MaterialTreeNode build(ItemStack stack, String name, int totalCount, int missingCount, String path) {
         return build(stack, List.of(stack), name, totalCount, missingCount, path, 0, new HashSet<>());
     }
 
-    private static MaterialTreeNode build(class_1799 stack, String name, int totalCount, int missingCount, String path, int depth, Set<String> seenItems) {
+    private static MaterialTreeNode build(ItemStack stack, String name, int totalCount, int missingCount, String path, int depth, Set<String> seenItems) {
         return build(stack, List.of(stack), name, totalCount, missingCount, path, depth, seenItems);
     }
 
-    private static MaterialTreeNode build(class_1799 stack, List<class_1799> icons, String name, int totalCount, int missingCount, String path, int depth, Set<String> seenItems) {
-        class_1799 icon = stack.method_7972();
+    private static MaterialTreeNode build(ItemStack stack, List<ItemStack> icons, String name, int totalCount, int missingCount, String path, int depth, Set<String> seenItems) {
+        ItemStack icon = stack.copy();
         String itemId = ItemStackTexts.id(icon);
         List<MaterialTreeNode> children = List.of();
 
@@ -182,7 +181,7 @@ public final class MaterialTreeBuilder {
             }
         }
 
-        return new MaterialTreeNode(path, icon, icons, name, totalCount, missingCount, Math.max(1, icon.method_7914()), depth, children);
+        return new MaterialTreeNode(path, icon, icons, name, totalCount, missingCount, Math.max(1, icon.getMaxStackSize()), depth, children);
     }
 
     private static List<MaterialTreeNode> buildChildren(RecipeSummary summary, String parentPath, int depth, Set<String> seenItems) {
@@ -193,7 +192,7 @@ public final class MaterialTreeBuilder {
                 continue;
             }
 
-            class_1799 icon = ingredient.icon().method_7972();
+            ItemStack icon = ingredient.icon().copy();
             String path = parentPath + "/" + index + ":" + ItemStackTexts.id(icon);
             if (ingredient.isChoiceGroup()) {
                 // A choice group reached through a plain item's recipe (e.g.

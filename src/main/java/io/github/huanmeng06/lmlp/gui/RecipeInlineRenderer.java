@@ -1,6 +1,7 @@
 package io.github.huanmeng06.lmlp.gui;
 
 import java.util.List;
+import net.minecraft.world.item.ItemStack;
 import fi.dy.masa.malilib.gui.GuiBase;
 import fi.dy.masa.malilib.gui.widgets.WidgetBase;
 import fi.dy.masa.malilib.render.RenderUtils;
@@ -12,7 +13,6 @@ import io.github.huanmeng06.lmlp.recipe.IngredientSummary;
 import io.github.huanmeng06.lmlp.recipe.MaterialTreeNode;
 import io.github.huanmeng06.lmlp.recipe.RecipeSummary;
 import io.github.huanmeng06.lmlp.recipe.RecipeSummaryFormatter;
-import net.minecraft.class_1799;
 import fi.dy.masa.malilib.render.GuiContext;
 
 public final class RecipeInlineRenderer {
@@ -71,11 +71,11 @@ public final class RecipeInlineRenderer {
             return;
         }
 
-        context.method_44379(x + 1, y + 1, x + panelWidth - 1, y + visibleHeight - 1);
+        context.enableScissor(x + 1, y + 1, x + panelWidth - 1, y + visibleHeight - 1);
 
         if (summaries.isEmpty()) {
             widget.drawString(context, textX, y + 16, 0xFFFFCC66, StringUtils.translate("lmlp.label.recipe.none"));
-            context.method_44380();
+            context.disableScissor();
             drawOutline(context, x, y, panelWidth, visibleHeight, 0xFF777777);
             return;
         }
@@ -90,7 +90,7 @@ public final class RecipeInlineRenderer {
                 : "";
         int multipleWidth = multipleLabel.isEmpty() ? 0 : StringUtils.getStringWidth(multipleLabel) + 4;
         String itemName = truncateToWidth(ItemStackTexts.name(summary.outputIcon()), lineBudget - 24 - multipleWidth);
-        context.method_51427(summary.outputIcon(), textX, cursorY);
+        context.renderItem(summary.outputIcon(), textX, cursorY);
         int itemNameX = textX + 24;
         boolean titleHovered = isInside(mouseX, mouseY, itemNameX, cursorY + 2,
                 StringUtils.getStringWidth(itemName), 14);
@@ -130,15 +130,15 @@ public final class RecipeInlineRenderer {
                 int fullHeight = visibleChildrenHeight(root.children());
                 int childVisibleHeight = Math.min(fullHeight, Math.round(fullHeight * MaterialListPlusState.treeProgress(root.path())));
                 if (childVisibleHeight > 0) {
-                    context.method_44379(textX, cursorY - 3, x + panelWidth - PADDING, cursorY + childVisibleHeight);
+                    context.enableScissor(textX, cursorY - 3, x + panelWidth - PADDING, cursorY + childVisibleHeight);
                     renderChildren(widget, context, textX, cursorY, root.children(), 1, childVisibleHeight, rightEdge, mouseX, mouseY);
-                    context.method_44380();
+                    context.disableScissor();
                     cursorY += childVisibleHeight;
                 }
             }
         }
 
-        context.method_44380();
+        context.disableScissor();
         drawOutline(context, x, y, panelWidth, visibleHeight, 0xFF777777);
     }
 
@@ -230,11 +230,11 @@ public final class RecipeInlineRenderer {
         return NavigationTarget.NONE;
     }
 
-    public static class_1799 hoveredStackAt(List<RecipeSummary> summaries, int x, int y, int width, int visibleOuterHeight, int mouseX, int mouseY) {
+    public static ItemStack hoveredStackAt(List<RecipeSummary> summaries, int x, int y, int width, int visibleOuterHeight, int mouseX, int mouseY) {
         int panelWidth = Math.max(160, width);
         int height = Math.min(getHeight(summaries, width), Math.max(0, visibleOuterHeight));
         if (mouseX < x || mouseX >= x + panelWidth || mouseY < y || mouseY >= y + height || summaries.isEmpty()) {
-            return class_1799.field_8037;
+            return ItemStack.EMPTY;
         }
 
         RecipeSummary summary = summaries.get(0);
@@ -245,8 +245,8 @@ public final class RecipeInlineRenderer {
         }
 
         cursorY += 24 + HEADER_ROW_HEIGHT * headerLines(summary, panelWidth - PADDING * 2).size() + 18;
-        class_1799 stack = hoveredIngredientStackAt(summary.ingredients(), textX, cursorY, 0, Integer.MAX_VALUE, mouseX, mouseY);
-        return stack == null ? class_1799.field_8037 : stack;
+        ItemStack stack = hoveredIngredientStackAt(summary.ingredients(), textX, cursorY, 0, Integer.MAX_VALUE, mouseX, mouseY);
+        return stack == null ? ItemStack.EMPTY : stack;
     }
 
     // When the mouse is over a choice-group row's NAME text (not its item
@@ -335,7 +335,7 @@ public final class RecipeInlineRenderer {
 
     // A hovered choice-group: the group's icon + label, and the concrete
     // items (icon + name, kept parallel) it stands for.
-    public record ChoiceGroupHover(class_1799 icon, String name, List<class_1799> icons, List<String> alternatives) {
+    public record ChoiceGroupHover(ItemStack icon, String name, List<ItemStack> icons, List<String> alternatives) {
     }
 
     // Only the yellow name text is hoverable, not the whole row. Stop the hit
@@ -385,7 +385,7 @@ public final class RecipeInlineRenderer {
         return cursorY;
     }
 
-    private static class_1799 hoveredIngredientStackAt(List<IngredientSummary> ingredients, int textX, int y, int depth, int visibleHeight, int mouseX, int mouseY) {
+    private static ItemStack hoveredIngredientStackAt(List<IngredientSummary> ingredients, int textX, int y, int depth, int visibleHeight, int mouseX, int mouseY) {
         int cursorY = y;
         int remainingHeight = visibleHeight;
         for (IngredientSummary ingredient : ingredients) {
@@ -394,7 +394,7 @@ public final class RecipeInlineRenderer {
             }
 
             int visibleRowHeight = Math.min(INGREDIENT_HEIGHT, remainingHeight);
-            class_1799 icon = AlternativeItemDisplay.icon(ingredient);
+            ItemStack icon = AlternativeItemDisplay.icon(ingredient);
             String name = RecipeSummaryFormatter.ingredientName(ingredient);
             if (isRowStackHovered(textX, cursorY, depth, name, visibleRowHeight, mouseX, mouseY)) {
                 return icon;
@@ -408,7 +408,7 @@ public final class RecipeInlineRenderer {
                 int childVisibleHeight = Math.min(fullChildrenHeight, Math.round(fullChildrenHeight * MaterialListPlusState.treeProgress(root.path())));
                 childVisibleHeight = Math.min(childVisibleHeight, remainingHeight);
                 if (childVisibleHeight > 0) {
-                    class_1799 childStack = hoveredNodeStackAt(root.children(), textX, cursorY, depth + 1, childVisibleHeight, mouseX, mouseY);
+                    ItemStack childStack = hoveredNodeStackAt(root.children(), textX, cursorY, depth + 1, childVisibleHeight, mouseX, mouseY);
                     if (childStack != null) {
                         return childStack;
                     }
@@ -421,7 +421,7 @@ public final class RecipeInlineRenderer {
         return null;
     }
 
-    private static class_1799 hoveredNodeStackAt(List<MaterialTreeNode> nodes, int textX, int y, int depth, int visibleHeight, int mouseX, int mouseY) {
+    private static ItemStack hoveredNodeStackAt(List<MaterialTreeNode> nodes, int textX, int y, int depth, int visibleHeight, int mouseX, int mouseY) {
         int cursorY = y;
         int remainingHeight = visibleHeight;
         for (MaterialTreeNode node : nodes) {
@@ -430,7 +430,7 @@ public final class RecipeInlineRenderer {
             }
 
             int visibleRowHeight = Math.min(INGREDIENT_HEIGHT, remainingHeight);
-            class_1799 icon = AlternativeItemDisplay.icon(node);
+            ItemStack icon = AlternativeItemDisplay.icon(node);
             if (isRowStackHovered(textX, cursorY, depth, node.name(), visibleRowHeight, mouseX, mouseY)) {
                 return icon;
             }
@@ -442,7 +442,7 @@ public final class RecipeInlineRenderer {
                 int childVisibleHeight = Math.min(fullChildrenHeight, Math.round(fullChildrenHeight * MaterialListPlusState.treeProgress(node.path())));
                 childVisibleHeight = Math.min(childVisibleHeight, remainingHeight);
                 if (childVisibleHeight > 0) {
-                    class_1799 childStack = hoveredNodeStackAt(node.children(), textX, cursorY, depth + 1, childVisibleHeight, mouseX, mouseY);
+                    ItemStack childStack = hoveredNodeStackAt(node.children(), textX, cursorY, depth + 1, childVisibleHeight, mouseX, mouseY);
                     if (childStack != null) {
                         return childStack;
                     }
@@ -466,7 +466,7 @@ public final class RecipeInlineRenderer {
                 && mouseY < y - 3 + Math.min(18, visibleRowHeight);
     }
 
-    private static void renderRow(WidgetBase widget, GuiContext context, int textX, int y, int depth, boolean hasTree, float expandProgress, net.minecraft.class_1799 icon, String name, boolean choiceGroup, int totalCount, int missingCount, int maxStackSize, int rightEdge, boolean clickableName, int mouseX, int mouseY) {
+    private static void renderRow(WidgetBase widget, GuiContext context, int textX, int y, int depth, boolean hasTree, float expandProgress, net.minecraft.world.item.ItemStack icon, String name, boolean choiceGroup, int totalCount, int missingCount, int maxStackSize, int rightEdge, boolean clickableName, int mouseX, int mouseY) {
         int rowX = textX + depth * TREE_INDENT_WIDTH;
         int iconX = rowX + INGREDIENT_ICON_OFFSET;
         int iconY = y - 2;
@@ -476,7 +476,7 @@ public final class RecipeInlineRenderer {
         }
 
         RenderUtils.drawRect(context, iconX, y - 3, 18, 18, 0x30FFFFFF);
-        context.method_51427(icon, iconX + 1, iconY);
+        context.renderItem(icon, iconX + 1, iconY);
 
         String countColor = missingCount == 0 ? GuiBase.TXT_GREEN : GuiBase.TXT_RED;
         String count = CountFormatter.format(missingCount, maxStackSize);

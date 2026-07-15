@@ -12,10 +12,10 @@ import fi.dy.masa.malilib.render.RenderUtils;
 import fi.dy.masa.malilib.util.StringUtils;
 import io.github.huanmeng06.lmlp.config.Configs;
 import io.github.huanmeng06.lmlp.material.ItemStackTexts;
-import net.minecraft.class_1799;
 import fi.dy.masa.malilib.render.GuiContext;
 
 import java.util.List;
+import net.minecraft.world.item.ItemStack;
 
 public class WidgetItemIdStringListEditEntry extends WidgetConfigOptionBase<String> {
     private static final int INDEX_WIDTH = 30;
@@ -118,7 +118,7 @@ public class WidgetItemIdStringListEditEntry extends WidgetConfigOptionBase<Stri
             this.addLabel(x + 2, centerY - 5, INDEX_WIDTH - 4, 12, 0xFFC0C0C0, String.format("%3d:", listIndex + 1));
             this.toggleButton = this.createToggleButton(toggleX, buttonY);
             this.addEntryTextField(textX, textY, textWidth, CONTROL_HEIGHT, cleanValue, this.toggleButton);
-            this.textField.textField().method_1868(this.enabled ? TEXT_COLOR_ENABLED : TEXT_COLOR_DISABLED);
+            this.textField.textField().setTextColor(this.enabled ? TEXT_COLOR_ENABLED : TEXT_COLOR_DISABLED);
             this.addSelectButton(selectX, buttonY);
             this.addToggleButton(this.toggleButton);
             this.addActionButton(actionStartX, buttonY, MaLiLibIcons.PLUS, "lmlp.gui.button.hovertext.add_below", this::insertEntryAfter);
@@ -129,10 +129,10 @@ public class WidgetItemIdStringListEditEntry extends WidgetConfigOptionBase<Stri
     }
 
     @Override
-    public boolean onMouseClicked(net.minecraft.class_11909 event, boolean doubleClick) {
-        int mouseX = (int) event.comp_4798();
-        int mouseY = (int) event.comp_4799();
-        int mouseButton = event.comp_4800().comp_4801();
+    public boolean onMouseClicked(net.minecraft.client.input.MouseButtonEvent event, boolean doubleClick) {
+        int mouseX = (int) event.x();
+        int mouseY = (int) event.y();
+        int mouseButton = event.buttonInfo().button();
         if (!this.isDummy() && mouseButton == 0 && this.isHandleHovered(mouseX, mouseY)) {
             this.listWidget.beginDrag(this.listIndex);
             return true;
@@ -151,7 +151,7 @@ public class WidgetItemIdStringListEditEntry extends WidgetConfigOptionBase<Stri
         }
 
         GuiTextFieldGeneric field = this.textField.textField();
-        field.method_1852(id);
+        field.setValue(id);
         this.applyNewValueToConfig();
         this.listWidget.markConfigsModified();
     }
@@ -162,8 +162,8 @@ public class WidgetItemIdStringListEditEntry extends WidgetConfigOptionBase<Stri
 
     private void addEntryTextField(int x, int y, int width, int height, String value, ButtonBase toggleButton) {
         GuiTextFieldGeneric field = this.createTextField(x, y + 1, width, height - 3);
-        field.method_1880(this.maxTextfieldTextLength);
-        field.method_1852(value);
+        field.setMaxLength(this.maxTextfieldTextLength);
+        field.setValue(value);
         this.addTextField(field, new EntryChangeListener(NO_OP_STRING_REPRESENTABLE, field, toggleButton, this));
     }
 
@@ -239,26 +239,26 @@ public class WidgetItemIdStringListEditEntry extends WidgetConfigOptionBase<Stri
 
     private void renderItemIcon(GuiContext context, int mouseX, int mouseY) {
         boolean overIconSlot = GuiBase.isMouseOver(mouseX, mouseY, this.iconX, this.iconY, ICON_SLOT_SIZE, ICON_SLOT_SIZE);
-        boolean handleHovered = this.isHandleHovered(mouseX, mouseY) && !this.listWidget.isDragging();
-        boolean isDraggedRow = this.listWidget.isDragging() && this.listWidget.dragIndex() == this.listIndex;
+        boolean handleHovered = this.isHandleHovered(mouseX, mouseY) && !this.listWidget.isReordering();
+        boolean isDraggedRow = this.listWidget.isReordering() && this.listWidget.dragIndex() == this.listIndex;
         if (handleHovered || isDraggedRow) {
             RenderUtils.drawRect(context, this.x, this.y, this.width, this.height, 0x40FFFFFF);
         }
         RenderUtils.drawOutlinedBox(context, this.iconX, this.iconY, ICON_SLOT_SIZE, ICON_SLOT_SIZE, ICON_SLOT_BACKGROUND, ICON_SLOT_BORDER);
         ItemIdListIconResolver.Display display = ItemIdListIconResolver.currentIcon(this.currentText());
-        class_1799 stack = display.stack();
+        ItemStack stack = display.stack();
         // While a drag is in progress, only the dragged-row ghost label should
         // show -- suppress this row's own hover tooltips so the item id (or the
         // drag hint) doesn't render behind the ghost label.
-        boolean dragging = this.listWidget.isDragging();
-        if (!dragging && !stack.method_7960() && overIconSlot) {
+        boolean dragging = this.listWidget.isReordering();
+        if (!dragging && !stack.isEmpty() && overIconSlot) {
             this.editor.setHoveredText(ItemStackTexts.name(stack));
         }
-        if (!stack.method_7960()) {
+        if (!stack.isEmpty()) {
             int drawX = this.iconX + (ICON_SLOT_SIZE - ITEM_ICON_SIZE) / 2;
             int drawY = this.iconY + (ICON_SLOT_SIZE - ITEM_ICON_SIZE) / 2;
             if (this.enabled || !GrayscaleItemIcon.render(context, stack, display.id(), drawX, drawY, ITEM_ICON_SIZE)) {
-                context.method_51427(stack, drawX, drawY);
+                context.renderItem(stack, drawX, drawY);
             }
         }
         if (!dragging && handleHovered && !overIconSlot) {
@@ -267,7 +267,7 @@ public class WidgetItemIdStringListEditEntry extends WidgetConfigOptionBase<Stri
     }
 
     private String currentText() {
-        return this.textField != null ? this.textField.textField().method_1882() : "";
+        return this.textField != null ? this.textField.textField().getValue() : "";
     }
 
     private void insertEntryAfter() {

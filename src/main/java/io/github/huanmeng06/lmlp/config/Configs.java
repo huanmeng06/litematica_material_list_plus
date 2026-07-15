@@ -211,7 +211,7 @@ public class Configs implements IConfigHandler {
     public static void loadFromFile() {
         File file = new File(FileUtils.getConfigDirectoryAsPath().toFile(), FILE_NAME);
         if (file.exists() && file.isFile() && file.canRead()) {
-            JsonElement element = JsonUtils.parseJsonFile(file);
+            JsonElement element = JsonUtils.parseJsonFile(file.toPath());
             if (element != null && element.isJsonObject()) {
                 JsonObject root = element.getAsJsonObject();
                 ConfigUtils.readConfigBase(root, GENERIC, Generic.OPTIONS);
@@ -241,7 +241,7 @@ public class Configs implements IConfigHandler {
             ConfigUtils.writeConfigBase(root, CONFIG_FORMS, ConfigForms.OPTIONS);
             ConfigUtils.writeConfigBase(root, HOTKEYS, Hotkeys.HOTKEY_LIST);
             writePreferredRecipes(root);
-            JsonUtils.writeJsonToFile(root, new File(dir, FILE_NAME));
+            JsonUtils.writeJsonToFile(root, new File(dir, FILE_NAME).toPath());
         }
     }
 

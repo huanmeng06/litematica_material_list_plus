@@ -1,23 +1,22 @@
 package io.github.huanmeng06.lmlp.recipe;
 
 import java.util.List;
-
-import net.minecraft.class_1799;
+import net.minecraft.world.item.ItemStack;
 
 public final class IngredientSummary {
-    private final class_1799 icon;
-    private final List<class_1799> icons;
+    private final ItemStack icon;
+    private final List<ItemStack> icons;
     private final List<String> alternatives;
     private final int countPerCraft;
     private final int countTotal;
     private final int countMissing;
     private final int maxStackSize;
 
-    public IngredientSummary(class_1799 icon, List<String> alternatives, int countPerCraft, int countTotal, int countMissing, int maxStackSize) {
+    public IngredientSummary(ItemStack icon, List<String> alternatives, int countPerCraft, int countTotal, int countMissing, int maxStackSize) {
         this(icon, List.of(icon), alternatives, countPerCraft, countTotal, countMissing, maxStackSize);
     }
 
-    public IngredientSummary(class_1799 icon, List<class_1799> icons, List<String> alternatives, int countPerCraft, int countTotal, int countMissing, int maxStackSize) {
+    public IngredientSummary(ItemStack icon, List<ItemStack> icons, List<String> alternatives, int countPerCraft, int countTotal, int countMissing, int maxStackSize) {
         this.icon = icon;
         this.icons = copyIcons(icons);
         this.alternatives = List.copyOf(alternatives);
@@ -27,11 +26,11 @@ public final class IngredientSummary {
         this.maxStackSize = maxStackSize;
     }
 
-    public class_1799 icon() {
+    public ItemStack icon() {
         return this.icon;
     }
 
-    public List<class_1799> icons() {
+    public List<ItemStack> icons() {
         return this.icons;
     }
 
@@ -59,14 +58,14 @@ public final class IngredientSummary {
         return this.maxStackSize;
     }
 
-    private static List<class_1799> copyIcons(List<class_1799> icons) {
+    private static List<ItemStack> copyIcons(List<ItemStack> icons) {
         if (icons.isEmpty()) {
             return List.of();
         }
 
         return icons.stream()
-                .filter(icon -> !icon.method_7960())
-                .map(class_1799::method_7972)
+                .filter(icon -> !icon.isEmpty())
+                .map(ItemStack::copy)
                 .toList();
     }
 }

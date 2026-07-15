@@ -8,20 +8,20 @@ import io.github.huanmeng06.lmlp.recipe.RecipeSummary;
 import mezz.jei.api.recipe.transfer.IRecipeTransferError;
 import mezz.jei.api.recipe.transfer.IRecipeTransferHandler;
 import mezz.jei.api.runtime.IJeiRuntime;
-import net.minecraft.class_1703;
-import net.minecraft.class_124;
-import net.minecraft.class_2561;
-import net.minecraft.class_310;
-import net.minecraft.class_332;
-import net.minecraft.class_465;
-import net.minecraft.class_768;
+import net.minecraft.ChatFormatting;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.client.renderer.Rect2i;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.inventory.AbstractContainerMenu;
 
 public final class JeiRecipeTransferBridge implements RecipeTransferBridge {
     // REI TransferHandler.Result's original failed-transfer tint.
     private static final int REI_FAILED_TRANSFER_TINT = 0x67FF0000;
 
     @Override
-    public TransferState evaluate(RecipeSummary summary, class_465<?> containerScreen) {
+    public TransferState evaluate(RecipeSummary summary, AbstractContainerScreen<?> containerScreen) {
         try {
             TransferLookup lookup = transferLookup(summary, containerScreen);
             if (lookup == null) {
@@ -79,7 +79,7 @@ public final class JeiRecipeTransferBridge implements RecipeTransferBridge {
     }
 
     @Override
-    public boolean transfer(RecipeSummary summary, class_465<?> containerScreen, boolean maxTransfer) {
+    public boolean transfer(RecipeSummary summary, AbstractContainerScreen<?> containerScreen, boolean maxTransfer) {
         try {
             TransferLookup lookup = transferLookup(summary, containerScreen);
             if (lookup == null || lookup.handler().isEmpty()) {
@@ -95,7 +95,7 @@ public final class JeiRecipeTransferBridge implements RecipeTransferBridge {
     }
 
     @Override
-    public void renderError(RecipeSummary summary, TransferState state, class_332 context, int mouseX, int mouseY) {
+    public void renderError(RecipeSummary summary, TransferState state, GuiGraphicsExtractor context, int mouseX, int mouseY) {
         if (!(state.nativeState() instanceof IRecipeTransferError error)) {
             return;
         }
@@ -105,37 +105,37 @@ public final class JeiRecipeTransferBridge implements RecipeTransferBridge {
             return;
         }
 
-        class_768 recipeBounds = nativeRecipe.layout().getRect();
+        Rect2i recipeBounds = nativeRecipe.layout().getRect();
         error.showError(
                 context,
                 mouseX,
                 mouseY,
                 nativeRecipe.layout().getRecipeSlotsView(),
-                recipeBounds.method_3321(),
-                recipeBounds.method_3322());
+                recipeBounds.getX(),
+                recipeBounds.getY());
     }
 
     @SuppressWarnings({"rawtypes", "unchecked"})
-    private static TransferLookup transferLookup(RecipeSummary summary, class_465<?> containerScreen) {
+    private static TransferLookup transferLookup(RecipeSummary summary, AbstractContainerScreen<?> containerScreen) {
         IJeiRuntime runtime = JeiRuntimeBridge.runtime().orElse(null);
         JeiRecipeResolver.JeiNativeRecipe nativeRecipe = nativeRecipe(summary);
-        if (runtime == null || nativeRecipe == null || containerScreen == null || class_310.method_1551().field_1724 == null) {
+        if (runtime == null || nativeRecipe == null || containerScreen == null || Minecraft.getInstance().player == null) {
             return null;
         }
 
-        class_1703 menu = containerScreen.method_17577();
-        Optional<IRecipeTransferHandler<class_1703, Object>> handler = (Optional) runtime.getRecipeTransferManager()
+        AbstractContainerMenu menu = containerScreen.getMenu();
+        Optional<IRecipeTransferHandler<AbstractContainerMenu, Object>> handler = (Optional) runtime.getRecipeTransferManager()
                 .getRecipeTransferHandler(menu, nativeRecipe.category());
         return new TransferLookup(handler, menu, nativeRecipe);
     }
 
-    private static List<class_2561> tooltip(RecipeSummary summary, String primaryKey) {
-        List<class_2561> lines = new java.util.ArrayList<>();
-        lines.add(class_2561.method_43471(primaryKey));
-        if (class_310.method_1551().field_1690 != null && class_310.method_1551().field_1690.field_1827) {
-            String recipeIdLabel = class_2561.method_43471("lmlp.label.recipe.recipe_id").getString();
-            lines.add(class_2561.method_43470(recipeIdLabel + ": " + summary.recipeId())
-                    .method_27692(class_124.field_1080));
+    private static List<Component> tooltip(RecipeSummary summary, String primaryKey) {
+        List<Component> lines = new java.util.ArrayList<>();
+        lines.add(Component.translatable(primaryKey));
+        if (Minecraft.getInstance().options != null && Minecraft.getInstance().options.advancedItemTooltips) {
+            String recipeIdLabel = Component.translatable("lmlp.label.recipe.recipe_id").getString();
+            lines.add(Component.literal(recipeIdLabel + ": " + summary.recipeId())
+                    .withStyle(ChatFormatting.GRAY));
         }
         return List.copyOf(lines);
     }
@@ -145,17 +145,17 @@ public final class JeiRecipeTransferBridge implements RecipeTransferBridge {
     }
 
     @SuppressWarnings({"rawtypes", "unchecked"})
-    private record TransferLookup(Optional<IRecipeTransferHandler<class_1703, Object>> handler, class_1703 menu, JeiRecipeResolver.JeiNativeRecipe nativeRecipe) {
+    private record TransferLookup(Optional<IRecipeTransferHandler<AbstractContainerMenu, Object>> handler, AbstractContainerMenu menu, JeiRecipeResolver.JeiNativeRecipe nativeRecipe) {
     }
 
     @SuppressWarnings({"rawtypes", "unchecked"})
-    private record TransferContext(IRecipeTransferHandler handler, class_1703 menu, JeiRecipeResolver.JeiNativeRecipe nativeRecipe) {
+    private record TransferContext(IRecipeTransferHandler handler, AbstractContainerMenu menu, JeiRecipeResolver.JeiNativeRecipe nativeRecipe) {
         private IRecipeTransferError check(boolean maxTransfer, boolean doTransfer) {
             return this.handler.transferRecipe(
                     this.menu,
                     this.nativeRecipe.recipe(),
                     this.nativeRecipe.layout().getRecipeSlotsView(),
-                    class_310.method_1551().field_1724,
+                    Minecraft.getInstance().player,
                     maxTransfer,
                     doTransfer);
         }

@@ -10,7 +10,7 @@ import java.util.Map;
 import io.github.huanmeng06.lmlp.config.Configs;
 import io.github.huanmeng06.lmlp.material.ItemStackTexts;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.class_1799;
+import net.minecraft.world.item.ItemStack;
 
 public final class RecipeResolvers {
     private static final int MAX_QUERY_CACHE_SIZE = 8192;
@@ -33,7 +33,7 @@ public final class RecipeResolvers {
     private RecipeResolvers() {
     }
 
-    public static List<RecipeSummary> findRecipes(class_1799 target, int totalCount, int missingCount) {
+    public static List<RecipeSummary> findRecipes(ItemStack target, int totalCount, int missingCount) {
         if (Configs.shouldStopRecipeDecomposition(ItemStackTexts.id(target))) {
             return Collections.emptyList();
         }
@@ -133,11 +133,11 @@ public final class RecipeResolvers {
     private static boolean leadsBackTo(String targetItemId, RecipeSummary summary, int remainingDepth,
             Map<String, Integer> visitedDepths) {
         for (IngredientSummary ingredient : summary.ingredients()) {
-            List<class_1799> icons = ingredient.icons().isEmpty()
+            List<ItemStack> icons = ingredient.icons().isEmpty()
                     ? List.of(ingredient.icon())
                     : ingredient.icons();
-            for (class_1799 icon : icons) {
-                if (icon.method_7960()) {
+            for (ItemStack icon : icons) {
+                if (icon.isEmpty()) {
                     continue;
                 }
                 String itemId = ItemStackTexts.id(icon);
@@ -213,7 +213,7 @@ public final class RecipeResolvers {
             if (ingredient.icons().isEmpty()) {
                 return false;
             }
-            for (class_1799 icon : ingredient.icons()) {
+            for (ItemStack icon : ingredient.icons()) {
                 if (!itemPath(ItemStackTexts.id(icon)).endsWith("_planks")) {
                     return false;
                 }
@@ -227,9 +227,9 @@ public final class RecipeResolvers {
         return separator >= 0 ? id.substring(separator + 1) : id;
     }
 
-    private static String stackFingerprint(class_1799 stack) {
-        class_1799 normalized = stack.method_7972();
-        normalized.method_7939(1);
+    private static String stackFingerprint(ItemStack stack) {
+        ItemStack normalized = stack.copy();
+        normalized.setCount(1);
         return ItemStackTexts.id(normalized) + '|' + normalized;
     }
 

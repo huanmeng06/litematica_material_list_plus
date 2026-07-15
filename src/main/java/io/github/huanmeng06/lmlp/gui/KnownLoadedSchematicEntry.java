@@ -76,10 +76,10 @@ public class KnownLoadedSchematicEntry extends WidgetSchematicEntry {
     }
 
     @Override
-    public boolean onMouseClicked(net.minecraft.class_11909 event, boolean doubleClick) {
-        int mouseX = (int) event.comp_4798();
-        int mouseY = (int) event.comp_4799();
-        int mouseButton = event.comp_4800().comp_4801();
+    public boolean onMouseClicked(net.minecraft.client.input.MouseButtonEvent event, boolean doubleClick) {
+        int mouseX = (int) event.x();
+        int mouseY = (int) event.y();
+        int mouseButton = event.buttonInfo().button();
         if (!this.isMouseOver(mouseX, mouseY) || mouseButton != 0) {
             return super.onMouseClicked(event, doubleClick);
         }

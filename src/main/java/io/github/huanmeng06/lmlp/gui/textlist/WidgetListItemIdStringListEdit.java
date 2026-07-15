@@ -6,13 +6,13 @@ import fi.dy.masa.malilib.render.RenderUtils;
 import fi.dy.masa.malilib.util.StringUtils;
 import io.github.huanmeng06.lmlp.config.Configs;
 import io.github.huanmeng06.lmlp.material.ItemStackTexts;
-import net.minecraft.class_124;
-import net.minecraft.class_2561;
-import net.minecraft.class_310;
 import fi.dy.masa.malilib.render.GuiContext;
 
 import java.util.Collection;
 import java.util.List;
+import net.minecraft.ChatFormatting;
+import net.minecraft.client.Minecraft;
+import net.minecraft.network.chat.Component;
 
 public class WidgetListItemIdStringListEdit extends WidgetListConfigOptionsBase<String, WidgetItemIdStringListEditEntry> {
     private static final int DRAG_LINE_HEIGHT = 2;
@@ -44,7 +44,7 @@ public class WidgetListItemIdStringListEdit extends WidgetListConfigOptionsBase<
         }
     }
 
-    boolean isDragging() {
+    boolean isReordering() {
         return this.dragIndex >= 0;
     }
 
@@ -53,9 +53,9 @@ public class WidgetListItemIdStringListEdit extends WidgetListConfigOptionsBase<
     }
 
     @Override
-    public boolean onMouseReleased(net.minecraft.class_11909 event) {
-        int mouseY = (int) event.comp_4799();
-        int mouseButton = event.comp_4800().comp_4801();
+    public boolean onMouseReleased(net.minecraft.client.input.MouseButtonEvent event) {
+        int mouseY = (int) event.y();
+        int mouseButton = event.buttonInfo().button();
         if (mouseButton == 0 && this.dragIndex >= 0) {
             int dragged = this.dragIndex;
             this.dragIndex = -1;
@@ -84,7 +84,7 @@ public class WidgetListItemIdStringListEdit extends WidgetListConfigOptionsBase<
         // of a scrolling list. In 1.21.11 text fields are no longer clipped by
         // the surrounding dialog automatically, so that row can paint over
         // the panel below it. Clip this custom list to its actual browser box.
-        context.getGuiGraphics().method_44379(
+        context.getGuiGraphics().enableScissor(
                 this.posX,
                 this.posY,
                 this.posX + this.browserWidth,
@@ -95,7 +95,7 @@ public class WidgetListItemIdStringListEdit extends WidgetListConfigOptionsBase<
                 this.renderDragFeedback(context, mouseX, mouseY);
             }
         } finally {
-            context.getGuiGraphics().method_44380();
+            context.getGuiGraphics().disableScissor();
         }
     }
 
@@ -159,9 +159,9 @@ public class WidgetListItemIdStringListEdit extends WidgetListConfigOptionsBase<
         // itself, instead of the list's browserEntryWidth which can be a
         // couple pixels narrower.
         if (lineY != null) {
-            context.method_51448().pushMatrix();
+            context.pose().pushMatrix();
             RenderUtils.drawRect(context, lineX, lineY, lineWidth, DRAG_LINE_HEIGHT, 0xFFFFCC00);
-            context.method_51448().popMatrix();
+            context.pose().popMatrix();
         }
 
         // The dragged-row ghost label is drawn as a REAL vanilla tooltip. Item
@@ -170,17 +170,17 @@ public class WidgetListItemIdStringListEdit extends WidgetListConfigOptionsBase<
         // so a hand-drawn label (or just its shadow) kept losing to the row
         // icons. Vanilla tooltips are the one thing guaranteed to paint over
         // item icons (every inventory item tooltip does), so route the label
-        // through method_51434 and let MC own the layering/shadow/position.
+        // through setComponentTooltipForNextFrame and let MC own the layering/shadow/position.
         String label = Configs.stripEntryDisabledPrefix(entries.get(this.dragIndex));
         // Prefer the item's localized display name over the raw configured id
         // (e.g. "移动：铁锭" instead of "移动：minecraft:iron_ingot"); fall back
         // to the raw text when the id doesn't resolve to a real item.
         ItemIdListIconResolver.Display display = ItemIdListIconResolver.currentIcon(label);
-        String name = display.stack().method_7960() ? label : ItemStackTexts.name(display.stack());
+        String name = display.stack().isEmpty() ? label : ItemStackTexts.name(display.stack());
         String shown = name.isEmpty() ? StringUtils.translate("lmlp.gui.label.text_list.empty_entry") : name;
         String prefixed = StringUtils.translate("lmlp.gui.label.text_list.dragging", shown);
-        class_2561 text = class_2561.method_43470(prefixed).method_27692(class_124.field_1065);
-        context.method_51434(class_310.method_1551().field_1772, List.of(text), mouseX, mouseY);
+        Component text = Component.literal(prefixed).withStyle(ChatFormatting.GOLD);
+        context.setComponentTooltipForNextFrame(Minecraft.getInstance().font, List.of(text), mouseX, mouseY);
     }
 
     List<String> getEntries() {

@@ -22,21 +22,21 @@ import mezz.jei.api.recipe.IRecipeManager;
 import mezz.jei.api.recipe.RecipeIngredientRole;
 import mezz.jei.api.recipe.category.IRecipeCategory;
 import mezz.jei.api.runtime.IJeiRuntime;
-import net.minecraft.class_1799;
+import net.minecraft.world.item.ItemStack;
 
 public final class JeiRecipeResolver implements RecipeResolver {
     @Override
-    public List<RecipeSummary> findRecipes(class_1799 target, int totalCount, int missingCount) {
+    public List<RecipeSummary> findRecipes(ItemStack target, int totalCount, int missingCount) {
         IJeiRuntime runtime = JeiRuntimeBridge.runtime().orElse(null);
-        if (runtime == null || target.method_7960()) {
+        if (runtime == null || target.isEmpty()) {
             return List.of();
         }
 
         IFocusFactory focusFactory = runtime.getJeiHelpers().getFocusFactory();
-        IFocus<class_1799> outputFocus = focusFactory.createFocus(
+        IFocus<ItemStack> outputFocus = focusFactory.createFocus(
                 RecipeIngredientRole.OUTPUT,
                 VanillaTypes.ITEM_STACK,
-                target.method_7972());
+                target.copy());
         List<IFocus<?>> focuses = List.of(outputFocus);
         IFocusGroup focusGroup = focusFactory.createFocusGroup(focuses);
         IRecipeManager recipeManager = runtime.getRecipeManager();
@@ -54,7 +54,7 @@ public final class JeiRecipeResolver implements RecipeResolver {
             IRecipeCategory<R> category,
             IFocusGroup focusGroup,
             List<IFocus<?>> focuses,
-            class_1799 target,
+            ItemStack target,
             int totalCount,
             int missingCount,
             List<RecipeSummary> summaries) {
@@ -72,23 +72,23 @@ public final class JeiRecipeResolver implements RecipeResolver {
             IRecipeCategory<R> category,
             R recipe,
             IRecipeLayoutDrawable<R> layout,
-            class_1799 target,
+            ItemStack target,
             int totalCount,
             int missingCount,
             List<RecipeSummary> summaries) {
-        class_1799 output = layout.getRecipeSlotsView()
+        ItemStack output = layout.getRecipeSlotsView()
                 .getSlotViews(RecipeIngredientRole.OUTPUT)
                 .stream()
                 .flatMap(IRecipeSlotView::getItemStacks)
-                .filter(stack -> !stack.method_7960() && stack.method_7909() == target.method_7909())
+                .filter(stack -> !stack.isEmpty() && stack.getItem() == target.getItem())
                 .findFirst()
-                .map(class_1799::method_7972)
-                .orElse(class_1799.field_8037);
-        if (output.method_7960()) {
+                .map(ItemStack::copy)
+                .orElse(ItemStack.EMPTY);
+        if (output.isEmpty()) {
             return;
         }
 
-        int outputCount = Math.max(1, output.method_7947());
+        int outputCount = Math.max(1, output.getCount());
         int craftsTotal = divideRoundUp(totalCount, outputCount);
         int craftsMissing = divideRoundUp(missingCount, outputCount);
         List<RecipeSlotSummary> slots = summarizeSlots(layout);
@@ -114,9 +114,9 @@ public final class JeiRecipeResolver implements RecipeResolver {
     private static List<RecipeSlotSummary> summarizeSlots(IRecipeLayoutDrawable<?> layout) {
         List<RecipeSlotSummary> slots = new ArrayList<>();
         for (IRecipeSlotView slot : layout.getRecipeSlotsView().getSlotViews(RecipeIngredientRole.INPUT)) {
-            List<class_1799> alternatives = slot.getItemStacks()
-                    .filter(stack -> !stack.method_7960())
-                    .map(class_1799::method_7972)
+            List<ItemStack> alternatives = slot.getItemStacks()
+                    .filter(stack -> !stack.isEmpty())
+                    .map(ItemStack::copy)
                     .toList();
             if (alternatives.isEmpty()) {
                 slots.add(RecipeSlotSummary.EMPTY);
@@ -124,8 +124,8 @@ public final class JeiRecipeResolver implements RecipeResolver {
             }
 
             List<String> names = alternatives.stream().map(ItemStackTexts::name).distinct().toList();
-            class_1799 first = alternatives.get(0);
-            slots.add(new RecipeSlotSummary(first.method_7972(), alternatives, names, Math.max(1, first.method_7947())));
+            ItemStack first = alternatives.get(0);
+            slots.add(new RecipeSlotSummary(first.copy(), alternatives, names, Math.max(1, first.getCount())));
         }
         while (slots.size() < 9) {
             slots.add(RecipeSlotSummary.EMPTY);
@@ -220,13 +220,13 @@ public final class JeiRecipeResolver implements RecipeResolver {
 
         private IngredientSummary toSummary(int craftsTotal, int craftsMissing) {
             return new IngredientSummary(
-                    this.slot.icon().method_7972(),
+                    this.slot.icon().copy(),
                     this.slot.icons(),
                     this.slot.alternatives(),
                     this.countPerCraft,
                     this.countPerCraft * craftsTotal,
                     this.countPerCraft * craftsMissing,
-                    Math.max(1, this.slot.icon().method_7914()));
+                    Math.max(1, this.slot.icon().getMaxStackSize()));
         }
     }
 }

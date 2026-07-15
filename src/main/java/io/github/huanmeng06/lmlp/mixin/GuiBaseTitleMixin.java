@@ -4,7 +4,6 @@ import fi.dy.masa.litematica.gui.GuiMaterialList;
 import fi.dy.masa.malilib.gui.GuiBase;
 import fi.dy.masa.malilib.render.RenderUtils;
 import fi.dy.masa.malilib.render.GuiContext;
-import net.minecraft.class_332;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -13,6 +12,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.util.ArrayList;
 import java.util.List;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 
 // GuiBase.drawTitle() draws the title as a single unclamped drawString call
 // at a fixed (20, 10): on the material list screen the title carries the
@@ -52,7 +52,7 @@ public abstract class GuiBaseTitleMixin {
             return;
         }
 
-        int budget = ((net.minecraft.class_437) (Object) self).field_22789 - x - TITLE_RIGHT_RESERVE;
+        int budget = ((net.minecraft.client.gui.screens.Screen) (Object) self).width - x - TITLE_RIGHT_RESERVE;
         String shown = self.getStringWidth(text) <= budget ? text : lmlp$truncateToWidth(self, text, budget);
 
         this.lmlp$titleFullText = text;
@@ -64,8 +64,8 @@ public abstract class GuiBaseTitleMixin {
 
     // Always available on hover (not just when the title was actually
     // truncated) so the full name is a hover away no matter the window width.
-    @Inject(method = "method_25394", at = @At("TAIL"))
-    private void lmlp$renderTitleHoverTooltip(class_332 drawContext, int mouseX, int mouseY, float partialTicks, CallbackInfo ci) {
+    @Inject(method = "extractRenderState", at = @At("TAIL"))
+    private void lmlp$renderTitleHoverTooltip(GuiGraphicsExtractor drawContext, int mouseX, int mouseY, float partialTicks, CallbackInfo ci) {
         if (this.lmlp$titleFullText == null || !(((Object) this) instanceof GuiBase self)) {
             return;
         }

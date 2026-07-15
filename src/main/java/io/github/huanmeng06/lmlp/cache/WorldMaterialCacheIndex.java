@@ -8,14 +8,14 @@ import fi.dy.masa.litematica.util.BlockInfoListType;
 import fi.dy.masa.malilib.util.JsonUtils;
 import io.github.huanmeng06.lmlp.LitematicaMaterialListPlus;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.class_1132;
-import net.minecraft.class_1792;
-import net.minecraft.class_1799;
-import net.minecraft.class_2960;
-import net.minecraft.class_310;
-import net.minecraft.class_642;
-import net.minecraft.class_7923;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.ServerData;
+import net.minecraft.client.server.IntegratedServer;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,37 +33,37 @@ import java.util.List;
 public final class WorldMaterialCacheIndex {
     private static final Logger LOGGER = LoggerFactory.getLogger(LitematicaMaterialListPlus.MOD_ID);
     private static final int CACHE_FORMAT_VERSION = 1;
-    private static final String LEVEL_STORAGE_SESSION_FIELD = "field_23784";
-    private static final String LEVEL_STORAGE_SESSION_NAME_METHOD = "method_27005";
+    private static final String LEVEL_STORAGE_SESSION_FIELD = "storageSource";
+    private static final String LEVEL_STORAGE_SESSION_NAME_METHOD = "getLevelId";
 
     private WorldMaterialCacheIndex() {
     }
 
-    public static String resolveWorldId(class_310 client) {
+    public static String resolveWorldId(Minecraft client) {
         if (client == null) {
-            client = class_310.method_1551();
+            client = Minecraft.getInstance();
         }
 
         if (client == null) {
             return null;
         }
 
-        class_1132 server = client.method_1576();
+        IntegratedServer server = client.getSingleplayerServer();
         if (server != null) {
             return resolveLocalWorldId(client, server);
         }
 
-        class_642 serverInfo = client.method_1558();
+        ServerData serverInfo = client.getCurrentServer();
         if (serverInfo != null) {
-            String address = serverInfo.field_3761 == null ? "" : serverInfo.field_3761;
-            String name = serverInfo.field_3752 == null ? "" : serverInfo.field_3752;
+            String address = serverInfo.ip == null ? "" : serverInfo.ip;
+            String name = serverInfo.name == null ? "" : serverInfo.name;
             return "server:" + address + "|" + name;
         }
 
         return null;
     }
 
-    private static String resolveLocalWorldId(class_310 client, class_1132 server) {
+    private static String resolveLocalWorldId(Minecraft client, IntegratedServer server) {
         try {
             Field sessionField = MinecraftServer.class.getDeclaredField(LEVEL_STORAGE_SESSION_FIELD);
             sessionField.setAccessible(true);
@@ -81,7 +81,7 @@ public final class WorldMaterialCacheIndex {
                 return null;
             }
 
-            File saveDir = new File(new File(client.field_1697, "saves"), saveName);
+            File saveDir = new File(new File(client.gameDirectory, "saves"), saveName);
             return "local:" + canonicalPath(saveDir);
         } catch (ReflectiveOperationException | RuntimeException exception) {
             LOGGER.warn("[LMLP cache-index] local world id skipped reason=reflection_failed", exception);
@@ -106,7 +106,7 @@ public final class WorldMaterialCacheIndex {
         }
 
         try {
-            JsonElement element = JsonUtils.parseJsonFile(file);
+            JsonElement element = JsonUtils.parseJsonFile(file.toPath());
             if (element == null || !element.isJsonObject()) {
                 LOGGER.warn("[LMLP cache-index] cache read failed reason=not_json_object worldId={} path={}", worldId, file.getAbsolutePath());
                 return new LoadResult(file, List.of(), null);
@@ -174,7 +174,7 @@ public final class WorldMaterialCacheIndex {
 
         try {
             Files.createDirectories(file.toPath().getParent());
-            JsonUtils.writeJsonToFile(root, file);
+            JsonUtils.writeJsonToFile(root, file.toPath());
             LOGGER.info("[LMLP cache-index] cache write path={} entries={}", file.getAbsolutePath(), records.size());
         } catch (Exception exception) {
             LOGGER.warn("[LMLP cache-index] cache write failed path={} entries={}",
@@ -283,19 +283,19 @@ public final class WorldMaterialCacheIndex {
             int countMismatched,
             int countAvailable) {
         private static EntryRecord fromEntry(MaterialListEntry entry) {
-            class_1799 stack = entry.getStack();
-            if (stack == null || stack.method_7960()) {
+            ItemStack stack = entry.getStack();
+            if (stack == null || stack.isEmpty()) {
                 return null;
             }
 
-            class_2960 itemId = class_7923.field_41178.method_10221(stack.method_7909());
+            Identifier itemId = BuiltInRegistries.ITEM.getKey(stack.getItem());
             if (itemId == null) {
                 return null;
             }
 
             return new EntryRecord(
                     itemId.toString(),
-                    Math.max(1, stack.method_7947()),
+                    Math.max(1, stack.getCount()),
                     entry.getCountTotal(),
                     entry.getCountMissing(),
                     entry.getCountMismatched(),
@@ -330,13 +330,13 @@ public final class WorldMaterialCacheIndex {
 
         public MaterialListEntry toEntry() {
             try {
-                class_1792 item = class_7923.field_41178.method_17966(class_2960.method_60654(this.itemId)).orElse(null);
+                Item item = BuiltInRegistries.ITEM.getOptional(Identifier.parse(this.itemId)).orElse(null);
                 if (item == null) {
                     LOGGER.warn("[LMLP cache-index] material entry skipped reason=unknown_item itemId={}", this.itemId);
                     return null;
                 }
 
-                class_1799 stack = new class_1799(item, Math.max(1, this.stackCount));
+                ItemStack stack = new ItemStack(item, Math.max(1, this.stackCount));
                 return new MaterialListEntry(stack, this.countTotal, this.countMissing, this.countMismatched, this.countAvailable);
             } catch (RuntimeException exception) {
                 LOGGER.warn("[LMLP cache-index] material entry skipped reason=invalid_item itemId={}", this.itemId, exception);

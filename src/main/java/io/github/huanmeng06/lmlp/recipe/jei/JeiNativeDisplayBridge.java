@@ -12,14 +12,14 @@ import mezz.jei.api.ingredients.ITypedIngredient;
 import mezz.jei.api.recipe.IFocus;
 import mezz.jei.api.recipe.RecipeIngredientRole;
 import mezz.jei.api.runtime.IJeiRuntime;
-import net.minecraft.class_1799;
-import net.minecraft.class_2561;
-import net.minecraft.class_2960;
-import net.minecraft.class_327;
-import net.minecraft.class_332;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
+import net.minecraft.world.item.ItemStack;
 
 public final class JeiNativeDisplayBridge implements RecipeNativeDisplayBridge {
-    private static final class_2960 CATALYST_TAB = class_2960.method_60655("litematica_material_list_plus", "textures/gui/catalyst_tab.png");
+    private static final Identifier CATALYST_TAB = Identifier.fromNamespaceAndPath("litematica_material_list_plus", "textures/gui/catalyst_tab.png");
 
     @Override
     public boolean canRender(RecipeSummary summary) {
@@ -39,14 +39,14 @@ public final class JeiNativeDisplayBridge implements RecipeNativeDisplayBridge {
     }
 
     @Override
-    public void render(RecipeSummary summary, class_332 context, int x, int y, int width, int height, int mouseX, int mouseY, float delta) {
+    public void render(RecipeSummary summary, GuiGraphicsExtractor context, int x, int y, int width, int height, int mouseX, int mouseY, float delta) {
         IRecipeLayoutDrawable<?> layout = requireNativeRecipe(summary).layout();
         layout.setPosition(x, y);
         layout.drawRecipe(context, mouseX, mouseY);
     }
 
     @Override
-    public boolean renderTooltip(RecipeSummary summary, class_332 context, class_327 textRenderer, int x, int y, int width, int height, int mouseX, int mouseY) {
+    public boolean renderTooltip(RecipeSummary summary, GuiGraphicsExtractor context, Font textRenderer, int x, int y, int width, int height, int mouseX, int mouseY) {
         IRecipeLayoutDrawable<?> layout = requireNativeRecipe(summary).layout();
         layout.setPosition(x, y);
         if (!layout.isMouseOver(mouseX, mouseY)) {
@@ -58,13 +58,13 @@ public final class JeiNativeDisplayBridge implements RecipeNativeDisplayBridge {
     }
 
     @Override
-    public boolean renderCategoryTab(RecipeSummary summary, class_332 context, int x, int y, boolean hovered) {
+    public boolean renderCategoryTab(RecipeSummary summary, GuiGraphicsExtractor context, int x, int y, boolean hovered) {
         JeiRecipeResolver.JeiNativeRecipe<?> nativeRecipe = nativeRecipe(summary);
         if (nativeRecipe == null) {
             return false;
         }
 
-        context.method_25290(net.minecraft.class_10799.field_56883, CATALYST_TAB, x, y, 0.0F, 0.0F, 28, 28, 28, 28);
+        context.blit(net.minecraft.client.renderer.RenderPipelines.GUI_TEXTURED, CATALYST_TAB, x, y, 0.0F, 0.0F, 28, 28, 28, 28);
         IJeiRuntime runtime = JeiRuntimeBridge.runtime().orElse(null);
         if (runtime != null) {
             runtime.getJeiHelpers().getGuiHelper().getSlotDrawable().draw(context, x + 5, y + 5);
@@ -75,33 +75,33 @@ public final class JeiNativeDisplayBridge implements RecipeNativeDisplayBridge {
             int iconY = y + 6 + (16 - icon.getHeight()) / 2;
             icon.draw(context, iconX, iconY);
             if (hovered) {
-                context.method_25294(x + 6, y + 6, x + 22, y + 22, 0x80FFFFFF);
+                context.fill(x + 6, y + 6, x + 22, y + 22, 0x80FFFFFF);
             }
             return true;
         }
 
         if (runtime != null) {
-            class_1799 catalyst = catalyst(nativeRecipe, runtime);
-            if (!catalyst.method_7960()) {
-                context.method_51427(catalyst, x + 6, y + 6);
+            ItemStack catalyst = catalyst(nativeRecipe, runtime);
+            if (!catalyst.isEmpty()) {
+                context.item(catalyst, x + 6, y + 6);
             }
         }
         if (hovered) {
-            context.method_25294(x + 6, y + 6, x + 22, y + 22, 0x80FFFFFF);
+            context.fill(x + 6, y + 6, x + 22, y + 22, 0x80FFFFFF);
         }
         return true;
     }
 
     @Override
-    public List<class_2561> getCategoryTooltip(RecipeSummary summary) {
+    public List<Component> getCategoryTooltip(RecipeSummary summary) {
         return List.of();
     }
 
     @Override
-    public class_1799 getCategoryIngredient(RecipeSummary summary) {
+    public ItemStack getCategoryIngredient(RecipeSummary summary) {
         JeiRecipeResolver.JeiNativeRecipe<?> nativeRecipe = nativeRecipe(summary);
         IJeiRuntime runtime = JeiRuntimeBridge.runtime().orElse(null);
-        return nativeRecipe == null || runtime == null ? class_1799.field_8037 : catalyst(nativeRecipe, runtime);
+        return nativeRecipe == null || runtime == null ? ItemStack.EMPTY : catalyst(nativeRecipe, runtime);
     }
 
     @Override
@@ -117,8 +117,8 @@ public final class JeiNativeDisplayBridge implements RecipeNativeDisplayBridge {
         // icon lands on JEI's "planks -> crafting table" recipe page instead
         // of merely selecting the broad crafting category at an arbitrary
         // recipe. Fall back to category focus for non-item catalysts.
-        class_1799 catalyst = catalyst(nativeRecipe, runtime);
-        if (!catalyst.method_7960()) {
+        ItemStack catalyst = catalyst(nativeRecipe, runtime);
+        if (!catalyst.isEmpty()) {
             boolean opened = runtime.getIngredientManager()
                     .createTypedIngredient(catalyst)
                     .map(ingredient -> openIngredient(runtime, ingredient, RecipeIngredientRole.OUTPUT))
@@ -162,13 +162,13 @@ public final class JeiNativeDisplayBridge implements RecipeNativeDisplayBridge {
         return nativeRecipe;
     }
 
-    private static class_1799 catalyst(JeiRecipeResolver.JeiNativeRecipe<?> nativeRecipe, IJeiRuntime runtime) {
+    private static ItemStack catalyst(JeiRecipeResolver.JeiNativeRecipe<?> nativeRecipe, IJeiRuntime runtime) {
         return runtime.getRecipeManager()
                 .createRecipeCatalystLookup(nativeRecipe.category().getRecipeType())
                 .getItemStack()
                 .findFirst()
-                .map(class_1799::method_7972)
-                .orElse(class_1799.field_8037);
+                .map(ItemStack::copy)
+                .orElse(ItemStack.EMPTY);
     }
 
     private static <T> boolean openIngredient(IJeiRuntime runtime, ITypedIngredient<T> ingredient, RecipeIngredientRole role) {

@@ -2,8 +2,7 @@ package io.github.huanmeng06.lmlp.material;
 
 import java.util.ArrayList;
 import java.util.List;
-
-import net.minecraft.class_1799;
+import net.minecraft.world.item.ItemStack;
 
 /**
  * Time-based icon cycling for choice-group ("任意X") rows, grouped by wood
@@ -76,9 +75,9 @@ public final class FamilyIconCycle {
      * @param fallbackStepMillis per-icon step used when the list has no wood
      *                           families to group by (single mixed group)
      */
-    public static class_1799 pick(List<class_1799> icons, long nowMillis, long familyWindowMillis, long fallbackStepMillis) {
+    public static ItemStack pick(List<ItemStack> icons, long nowMillis, long familyWindowMillis, long fallbackStepMillis) {
         if (icons.isEmpty()) {
-            return class_1799.field_8037;
+            return ItemStack.EMPTY;
         }
         if (icons.size() == 1) {
             return icons.get(0);
@@ -95,7 +94,7 @@ public final class FamilyIconCycle {
         // and it wrongly fell back to the 900ms cycle while the logs list ran
         // on the 2s family window — the two drifted apart.
         boolean hasWoodFamily = false;
-        for (class_1799 stack : icons) {
+        for (ItemStack stack : icons) {
             if (!familyOf(stack).isEmpty()) {
                 hasWoodFamily = true;
                 break;
@@ -139,7 +138,7 @@ public final class FamilyIconCycle {
         return icons.get(group[0] + variant);
     }
 
-    private static String familyOf(class_1799 stack) {
+    private static String familyOf(ItemStack stack) {
         String id = ItemStackTexts.id(stack);
         int colon = id.indexOf(':');
         String path = colon >= 0 ? id.substring(colon + 1) : id;

@@ -6,15 +6,14 @@ import fi.dy.masa.malilib.render.RenderUtils;
 import fi.dy.masa.malilib.util.StringUtils;
 import io.github.huanmeng06.lmlp.LitematicaMaterialListPlus;
 import io.github.huanmeng06.lmlp.material.CountFormatter;
-import net.minecraft.class_1799;
-import net.minecraft.class_2561;
 import fi.dy.masa.malilib.render.GuiContext;
-import net.minecraft.class_332;
-import net.minecraft.class_437;
-
 import java.util.List;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.item.ItemStack;
 
-public class MinimalSourceDetailScreen extends class_437 {
+public class MinimalSourceDetailScreen extends Screen {
     private static final int BACK_BUTTON_WIDTH = 112;
     private static final int BACK_BUTTON_HEIGHT = 20;
     private static final int SCREEN_BACKGROUND_COLOR = 0xB0000000;
@@ -34,52 +33,52 @@ public class MinimalSourceDetailScreen extends class_437 {
     private static final int SOURCE_BOX_GAP = 10;
     private static final int WHEEL_SCROLL_PIXELS = 36;
 
-    private final class_437 parent;
-    private final class_1799 target;
+    private final Screen parent;
+    private final ItemStack target;
     private final String targetName;
     private final int totalCount;
     private final int missingCount;
     private final List<MinimalSubMaterialListView.SourceContribution> sources;
     private final GuiScrollBar scrollBar = new GuiScrollBar();
     private final ButtonGeneric backButton = new ButtonGeneric(0, 0, BACK_BUTTON_WIDTH, BACK_BUTTON_HEIGHT, "");
-    private class_1799 hoveredStack = class_1799.field_8037;
+    private ItemStack hoveredStack = ItemStack.EMPTY;
     private boolean draggingScrollbar;
     private double scrollRemainder;
 
-    public MinimalSourceDetailScreen(class_437 parent, class_1799 target, String targetName, int totalCount, int missingCount, List<MinimalSubMaterialListView.SourceContribution> sources) {
-        super(class_2561.method_43471("lmlp.gui.minimal_sources.title"));
+    public MinimalSourceDetailScreen(Screen parent, ItemStack target, String targetName, int totalCount, int missingCount, List<MinimalSubMaterialListView.SourceContribution> sources) {
+        super(Component.translatable("lmlp.gui.minimal_sources.title"));
         this.parent = parent;
-        this.target = target.method_7972();
+        this.target = target.copy();
         this.targetName = targetName;
         this.totalCount = totalCount;
         this.missingCount = missingCount;
         this.sources = List.copyOf(sources);
         this.backButton.setDisplayString(StringUtils.translate("lmlp.label.recipe.back"));
         this.backButton.setTextCentered(true);
-        this.backButton.setActionListener((button, mouseButton) -> this.method_25419());
+        this.backButton.setActionListener((button, mouseButton) -> this.onClose());
     }
 
     @Override
-    public void method_25419() {
-        this.field_22787.method_1507(this.parent);
+    public void onClose() {
+        this.minecraft.setScreen(this.parent);
     }
 
     @Override
-    public boolean method_25421() {
+    public boolean isPauseScreen() {
         return false;
     }
 
     @Override
-    public boolean method_25401(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
+    public boolean mouseScrolled(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
         this.offsetScroll(verticalAmount);
         return true;
     }
 
     @Override
-    public boolean method_25402(net.minecraft.class_11909 event, boolean doubleClick) {
-        double mouseX = event.comp_4798();
-        double mouseY = event.comp_4799();
-        int button = event.comp_4800().comp_4801();
+    public boolean mouseClicked(net.minecraft.client.input.MouseButtonEvent event, boolean doubleClick) {
+        double mouseX = event.x();
+        double mouseY = event.y();
+        int button = event.buttonInfo().button();
         if (button == 0 && this.backButton.onMouseClicked(event, doubleClick)) {
             return true;
         }
@@ -90,37 +89,37 @@ public class MinimalSourceDetailScreen extends class_437 {
             return true;
         }
 
-        return super.method_25402(event, doubleClick);
+        return super.mouseClicked(event, doubleClick);
     }
 
     @Override
-    public boolean method_25403(net.minecraft.class_11909 event, double deltaX, double deltaY) {
-        int button = event.comp_4800().comp_4801();
-        return button == 0 && this.draggingScrollbar || super.method_25403(event, deltaX, deltaY);
+    public boolean mouseDragged(net.minecraft.client.input.MouseButtonEvent event, double deltaX, double deltaY) {
+        int button = event.buttonInfo().button();
+        return button == 0 && this.draggingScrollbar || super.mouseDragged(event, deltaX, deltaY);
     }
 
     @Override
-    public boolean method_25406(net.minecraft.class_11909 event) {
-        int button = event.comp_4800().comp_4801();
+    public boolean mouseReleased(net.minecraft.client.input.MouseButtonEvent event) {
+        int button = event.buttonInfo().button();
         if (button == 0) {
             this.scrollBar.setIsDragging(false);
             this.draggingScrollbar = false;
         }
 
-        return super.method_25406(event);
+        return super.mouseReleased(event);
     }
 
     @Override
-    public void method_25394(class_332 drawContext, int mouseX, int mouseY, float delta) {
+    public void extractRenderState(GuiGraphicsExtractor drawContext, int mouseX, int mouseY, float delta) {
         GuiContext context = GuiContext.fromGuiGraphics(drawContext);
-        RenderUtils.drawRect(context, 0, 0, this.field_22789, this.field_22790, SCREEN_BACKGROUND_COLOR);
+        RenderUtils.drawRect(context, 0, 0, this.width, this.height, SCREEN_BACKGROUND_COLOR);
 
         Layout layout = this.layout();
         int contentTop = layout.headerTop() + HEADER_HEIGHT + 12;
-        int contentBottom = this.field_22790 - PAGE_BOTTOM_MARGIN;
+        int contentBottom = this.height - PAGE_BOTTOM_MARGIN;
         int viewportHeight = Math.max(0, contentBottom - contentTop);
 
-        this.hoveredStack = class_1799.field_8037;
+        this.hoveredStack = ItemStack.EMPTY;
         this.scrollBar.setMaxValue(Math.max(0, this.contentHeight() - viewportHeight));
         this.updateBackButtonPosition(layout);
 
@@ -129,27 +128,27 @@ public class MinimalSourceDetailScreen extends class_437 {
         this.renderTargetHeader(context, layout.left(), layout.headerTop(), layout.headerWidth(), HEADER_HEIGHT, mouseX, mouseY);
 
         int y = contentTop - this.scrollBar.getValue();
-        context.method_44379(layout.left() - OUTLINE_CLIP_PADDING, contentTop - OUTLINE_CLIP_PADDING, layout.left() + layout.contentWidth() + OUTLINE_CLIP_PADDING, contentBottom);
+        context.enableScissor(layout.left() - OUTLINE_CLIP_PADDING, contentTop - OUTLINE_CLIP_PADDING, layout.left() + layout.contentWidth() + OUTLINE_CLIP_PADDING, contentBottom);
         if (this.sources.isEmpty()) {
             RenderUtils.drawOutlinedBox(context, layout.left(), y, layout.contentWidth(), SOURCE_BOX_HEIGHT, 0xDD000000, 0xFF777777);
-            context.method_51433(this.field_22793, StringUtils.translate("lmlp.label.minimal_sources.none"), layout.left() + 10, y + 17, 0xFFFFCC66, false);
+            context.drawString(this.font, StringUtils.translate("lmlp.label.minimal_sources.none"), layout.left() + 10, y + 17, 0xFFFFCC66, false);
         } else {
             for (MinimalSubMaterialListView.SourceContribution source : this.sources) {
                 this.renderSourceBox(context, source, layout.left(), y, layout.contentWidth(), mouseX, mouseY);
                 y += SOURCE_BOX_HEIGHT + SOURCE_BOX_GAP;
             }
         }
-        context.method_44380();
+        context.disableScissor();
 
         this.renderScrollbar(context, mouseX, mouseY, delta, contentTop, contentBottom);
-        if (!this.hoveredStack.method_7960()) {
-            ItemTooltipRenderer.render(context, this.field_22793, this.hoveredStack, mouseX, mouseY);
+        if (!this.hoveredStack.isEmpty()) {
+            ItemTooltipRenderer.render(context, this.font, this.hoveredStack, mouseX, mouseY);
         }
     }
 
     private void renderTitle(GuiContext context, int left) {
-        context.method_51433(
-                this.field_22793,
+        context.drawString(
+                this.font,
                 StringUtils.translate("lmlp.gui.title.recipe_detail_header", LitematicaMaterialListPlus.MOD_VERSION),
                 left,
                 TITLE_Y,
@@ -159,26 +158,26 @@ public class MinimalSourceDetailScreen extends class_437 {
 
     private void renderTargetHeader(GuiContext context, int left, int top, int width, int height, int mouseX, int mouseY) {
         RenderUtils.drawOutlinedBox(context, left, top, width, height, 0xDD000000, 0xFF888888);
-        context.method_51427(this.target, left + 10, top + 9);
+        context.renderItem(this.target, left + 10, top + 9);
         if (isInside(mouseX, mouseY, left + 10, top + 9, 16, 16)) {
             this.hoveredStack = this.target;
         }
 
         int textX = left + 36;
         int textRight = Math.max(textX + 1, left + width - 6);
-        context.method_44379(textX, top + 4, textRight, top + height - 4);
-        context.method_51433(this.field_22793, this.targetName, textX, top + 8, 0xFFFFFFFF, false);
+        context.enableScissor(textX, top + 4, textRight, top + height - 4);
+        context.drawString(this.font, this.targetName, textX, top + 8, 0xFFFFFFFF, false);
 
         String total = StringUtils.translate("lmlp.label.recipe.total_short") + ": " + CountFormatter.format(this.target, this.totalCount);
         String missing = StringUtils.translate("lmlp.label.recipe.missing_short") + ": " + CountFormatter.format(this.target, this.missingCount);
         String counts = total + "    " + missing;
-        if (this.field_22793.method_1727(counts) <= textRight - textX) {
-            context.method_51433(this.field_22793, counts, textX, top + 28, 0xFFAAAAAA, false);
+        if (this.font.width(counts) <= textRight - textX) {
+            context.drawString(this.font, counts, textX, top + 28, 0xFFAAAAAA, false);
         } else {
-            context.method_51433(this.field_22793, total, textX, top + 23, 0xFFAAAAAA, false);
-            context.method_51433(this.field_22793, missing, textX, top + 35, 0xFFAAAAAA, false);
+            context.drawString(this.font, total, textX, top + 23, 0xFFAAAAAA, false);
+            context.drawString(this.font, missing, textX, top + 35, 0xFFAAAAAA, false);
         }
-        context.method_44380();
+        context.disableScissor();
     }
 
     private void renderBackButton(GuiContext context, int mouseX, int mouseY) {
@@ -187,19 +186,19 @@ public class MinimalSourceDetailScreen extends class_437 {
 
     private void renderSourceBox(GuiContext context, MinimalSubMaterialListView.SourceContribution source, int left, int y, int width, int mouseX, int mouseY) {
         RenderUtils.drawOutlinedBox(context, left, y, width, SOURCE_BOX_HEIGHT, 0xDD000000, 0xFF777777);
-        context.method_51427(source.icon(), left + 10, y + 10);
+        context.renderItem(source.icon(), left + 10, y + 10);
         if (isInside(mouseX, mouseY, left + 10, y + 10, 16, 16)) {
             this.hoveredStack = source.icon();
         }
 
         int textX = left + 34;
         int textRight = left + width - 10;
-        context.method_44379(textX, y + 6, textRight, y + SOURCE_BOX_HEIGHT - 4);
-        context.method_51433(this.field_22793, source.name(), textX, y + 12, 0xFFFFFFFF, false);
+        context.enableScissor(textX, y + 6, textRight, y + SOURCE_BOX_HEIGHT - 4);
+        context.drawString(this.font, source.name(), textX, y + 12, 0xFFFFFFFF, false);
 
         String countText = CountFormatter.format(source.totalCount(), source.maxStackSize());
-        context.method_51433(this.field_22793, countText, textX, y + 28, 0xFFFFAA00, false);
-        context.method_44380();
+        context.drawString(this.font, countText, textX, y + 28, 0xFFFFAA00, false);
+        context.disableScissor();
     }
 
     private void renderScrollbar(GuiContext context, int mouseX, int mouseY, float delta, int top, int bottom) {
@@ -230,12 +229,12 @@ public class MinimalSourceDetailScreen extends class_437 {
     }
 
     private int scrollbarX() {
-        return this.field_22789 - 18;
+        return this.width - 18;
     }
 
     private Layout layout() {
         int left = PAGE_MARGIN_X;
-        int availableWidth = Math.max(1, this.field_22789 - PAGE_MARGIN_X * 2);
+        int availableWidth = Math.max(1, this.width - PAGE_MARGIN_X * 2);
         int contentWidth = Math.max(1, availableWidth - CONTENT_RIGHT_INSET);
         int contentRight = left + contentWidth;
         int backButtonX = Math.max(left, contentRight - BACK_BUTTON_WIDTH);

@@ -1,16 +1,15 @@
 package io.github.huanmeng06.lmlp.material;
 
 import fi.dy.masa.litematica.materials.MaterialListUtils;
-import fi.dy.masa.malilib.util.ItemType;
+import fi.dy.masa.malilib.util.data.ItemType;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
-import net.minecraft.class_1799;
-import net.minecraft.class_310;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import net.minecraft.client.Minecraft;
+import net.minecraft.world.item.ItemStack;
 
 public final class InventoryCounts {
     private static Snapshot cachedSnapshot;
@@ -37,12 +36,12 @@ public final class InventoryCounts {
 
     private static Snapshot capture() {
         try {
-            class_310 client = class_310.method_1551();
-            if (client == null || client.field_1724 == null) {
+            Minecraft client = Minecraft.getInstance();
+            if (client == null || client.player == null) {
                 return Snapshot.EMPTY;
             }
 
-            return new Snapshot(MaterialListUtils.getInventoryItemCounts(client.field_1724.method_31548()));
+            return new Snapshot(MaterialListUtils.getInventoryItemCounts(client.player.getInventory()));
         } catch (Throwable throwable) {
             return Snapshot.EMPTY;
         }
@@ -55,19 +54,19 @@ public final class InventoryCounts {
             this(counts, buildSignature(counts));
         }
 
-        public int count(class_1799 stack) {
-            if (stack.method_7960()) {
+        public int count(ItemStack stack) {
+            if (stack.isEmpty()) {
                 return 0;
             }
 
             return this.counts.getInt(new ItemType(stack, true, false));
         }
 
-        public int countAny(List<class_1799> stacks) {
+        public int countAny(List<ItemStack> stacks) {
             int total = 0;
             Set<String> seen = new HashSet<>();
-            for (class_1799 stack : stacks) {
-                if (!stack.method_7960() && seen.add(ItemStackTexts.id(stack))) {
+            for (ItemStack stack : stacks) {
+                if (!stack.isEmpty() && seen.add(ItemStackTexts.id(stack))) {
                     total += this.count(stack);
                 }
             }

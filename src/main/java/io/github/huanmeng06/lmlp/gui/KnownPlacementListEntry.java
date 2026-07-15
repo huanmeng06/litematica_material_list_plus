@@ -105,15 +105,15 @@ public class KnownPlacementListEntry extends WidgetSchematicPlacement {
     }
 
     @Override
-    public boolean canSelectAt(net.minecraft.class_11909 event) {
-        return event.comp_4798() < this.buttonsStartX && super.canSelectAt(event);
+    public boolean canSelectAt(net.minecraft.client.input.MouseButtonEvent event) {
+        return event.x() < this.buttonsStartX && super.canSelectAt(event);
     }
 
     @Override
-    public boolean onMouseClicked(net.minecraft.class_11909 event, boolean doubleClick) {
-        int mouseX = (int) event.comp_4798();
-        int mouseY = (int) event.comp_4799();
-        int mouseButton = event.comp_4800().comp_4801();
+    public boolean onMouseClicked(net.minecraft.client.input.MouseButtonEvent event, boolean doubleClick) {
+        int mouseX = (int) event.x();
+        int mouseY = (int) event.y();
+        int mouseButton = event.buttonInfo().button();
         if (mouseButton == 0 && this.context != null) {
             PlacementLine line = KnownPlacementRows.placementLine(this, this.context, this.placement.getName(), KnownPlacementRows.PAGE_SCHEMATIC_PLACEMENTS);
             if (PlacementOriginMarker.originHovered(this.context, line, this, mouseX, mouseY)) {

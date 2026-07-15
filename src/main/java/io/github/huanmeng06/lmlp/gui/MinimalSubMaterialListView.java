@@ -13,8 +13,6 @@ import io.github.huanmeng06.lmlp.recipe.IngredientSummary;
 import io.github.huanmeng06.lmlp.recipe.RecipeResolvers;
 import io.github.huanmeng06.lmlp.recipe.RecipeSummary;
 import io.github.huanmeng06.lmlp.recipe.RecipeSummaryFormatter;
-import net.minecraft.class_1799;
-import net.minecraft.class_7923;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,6 +29,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.WeakHashMap;
 import java.util.function.Predicate;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.world.item.ItemStack;
 
 public final class MinimalSubMaterialListView {
     private static final Logger LOGGER = LoggerFactory.getLogger("LMLP MinimalSubMaterialListView");
@@ -282,24 +282,24 @@ public final class MinimalSubMaterialListView {
         return display == null ? ItemStackTexts.name(entry.getStack()) : display.widestName();
     }
 
-    public static class_1799 displayStack(MaterialListEntry entry) {
+    public static ItemStack displayStack(MaterialListEntry entry) {
         DisplayData display = displayData(entry);
         if (display == null || display.candidates().isEmpty()) {
             return entry.getStack();
         }
 
-        return display.currentCandidate().icon().method_7972();
+        return display.currentCandidate().icon().copy();
     }
 
-    public static List<class_1799> displayStacks(MaterialListEntry entry) {
+    public static List<ItemStack> displayStacks(MaterialListEntry entry) {
         DisplayData display = displayData(entry);
         if (display == null || display.candidates().isEmpty()) {
             return List.of(entry.getStack());
         }
 
-        List<class_1799> stacks = new ArrayList<>(display.candidates().size());
+        List<ItemStack> stacks = new ArrayList<>(display.candidates().size());
         for (Candidate candidate : display.candidates()) {
-            stacks.add(candidate.icon().method_7972());
+            stacks.add(candidate.icon().copy());
         }
         return stacks;
     }
@@ -312,7 +312,7 @@ public final class MinimalSubMaterialListView {
 
         List<TooltipCandidate> candidates = new ArrayList<>(display.candidates().size());
         for (Candidate candidate : display.candidates()) {
-            candidates.add(new TooltipCandidate(candidate.icon().method_7972(), candidate.name()));
+            candidates.add(new TooltipCandidate(candidate.icon().copy(), candidate.name()));
         }
         return List.copyOf(candidates);
     }
@@ -389,9 +389,9 @@ public final class MinimalSubMaterialListView {
 
         List<TooltipCandidate> candidates = new ArrayList<>(requirement.icons().size());
         for (int index = 0; index < requirement.icons().size(); index++) {
-            class_1799 icon = requirement.icons().get(index);
+            ItemStack icon = requirement.icons().get(index);
             String name = index < requirement.candidateNames().size() ? requirement.candidateNames().get(index) : ItemStackTexts.name(icon);
-            candidates.add(new TooltipCandidate(icon.method_7972(), name));
+            candidates.add(new TooltipCandidate(icon.copy(), name));
         }
         return List.copyOf(candidates);
     }
@@ -403,9 +403,9 @@ public final class MinimalSubMaterialListView {
 
         List<TooltipCandidate> candidates = new ArrayList<>(upstream.icons().size());
         for (int index = 0; index < upstream.icons().size(); index++) {
-            class_1799 icon = upstream.icons().get(index);
+            ItemStack icon = upstream.icons().get(index);
             String name = index < upstream.candidateNames().size() ? upstream.candidateNames().get(index) : ItemStackTexts.name(icon);
-            candidates.add(new TooltipCandidate(icon.method_7972(), name));
+            candidates.add(new TooltipCandidate(icon.copy(), name));
         }
         return List.copyOf(candidates);
     }
@@ -507,8 +507,8 @@ public final class MinimalSubMaterialListView {
         expandedSourceKey = "";
     }
 
-    private static void collectLeaves(class_1799 stack, List<class_1799> icons, List<String> names, String name, SourceOrigin source, int count, int scale, boolean prepared, int depth, Set<String> seenItems, Map<String, Accumulator> materials) {
-        class_1799 icon = stack.method_7972();
+    private static void collectLeaves(ItemStack stack, List<ItemStack> icons, List<String> names, String name, SourceOrigin source, int count, int scale, boolean prepared, int depth, Set<String> seenItems, Map<String, Accumulator> materials) {
+        ItemStack icon = stack.copy();
         String itemId = ItemStackTexts.id(icon);
         if (count <= 0 || scale <= 0) {
             return;
@@ -536,7 +536,7 @@ public final class MinimalSubMaterialListView {
         }
 
         for (IngredientSummary ingredient : summaries.get(0).ingredients()) {
-            List<class_1799> ingredientIcons = ingredient.icons().isEmpty() ? List.of(ingredient.icon()) : ingredient.icons();
+            List<ItemStack> ingredientIcons = ingredient.icons().isEmpty() ? List.of(ingredient.icon()) : ingredient.icons();
             List<String> ingredientNames = candidateNames(ingredientIcons, ingredient.alternatives());
             if (ingredient.isChoiceGroup()) {
                 CandidateSet refinedChoice = expandRegisteredLogCandidates(
@@ -631,12 +631,12 @@ public final class MinimalSubMaterialListView {
     // accumulator instead of building nodes. All candidates in a wood group share
     // the same recipe yield ratio, so the representative's per-slot counts are
     // authoritative (same assumption as the tree engine).
-    private static void collectChoiceGroupLeaves(List<class_1799> icons, List<String> names, String name, int count, SourceOrigin source, int scale, boolean prepared, int depth, Set<String> seenItems, Map<String, Accumulator> materials) {
+    private static void collectChoiceGroupLeaves(List<ItemStack> icons, List<String> names, String name, int count, SourceOrigin source, int scale, boolean prepared, int depth, Set<String> seenItems, Map<String, Accumulator> materials) {
         if (count <= 0 || scale <= 0 || icons.isEmpty()) {
             return;
         }
 
-        class_1799 representative = icons.get(0);
+        ItemStack representative = icons.get(0);
         String representativeId = ItemStackTexts.id(representative);
         if (depth >= MAX_RECIPE_DEPTH || seenItems.contains(representativeId)
                 || Configs.shouldStopRecipeDecomposition(representativeId) || keepGroupAsLeaf(icons)) {
@@ -655,7 +655,7 @@ public final class MinimalSubMaterialListView {
         childSeenItems.add(representativeId);
 
         List<List<IngredientSummary>> perCandidate = new ArrayList<>();
-        for (class_1799 candidate : icons) {
+        for (ItemStack candidate : icons) {
             List<RecipeSummary> summaries = RecipeResolvers.findRecipes(candidate, count, count);
             perCandidate.add(summaries.isEmpty() ? List.of() : summaries.get(0).ingredients());
         }
@@ -667,7 +667,7 @@ public final class MinimalSubMaterialListView {
                 continue;
             }
 
-            Map<String, class_1799> unionIcons = new LinkedHashMap<>();
+            Map<String, ItemStack> unionIcons = new LinkedHashMap<>();
             List<String> unionNames = new ArrayList<>();
             addSlotToUnion(representativeChild, unionIcons, unionNames);
             for (List<IngredientSummary> candidateIngredients : perCandidate) {
@@ -676,9 +676,9 @@ public final class MinimalSubMaterialListView {
                 }
             }
 
-            List<class_1799> childIcons = new ArrayList<>(unionIcons.values());
+            List<ItemStack> childIcons = new ArrayList<>(unionIcons.values());
             if (childIcons.isEmpty()) {
-                childIcons = List.of(representativeChild.icon().method_7972());
+                childIcons = List.of(representativeChild.icon().copy());
             }
             List<String> childNames = candidateNames(childIcons, unionNames);
             String childFallback = childNames.isEmpty()
@@ -695,11 +695,11 @@ public final class MinimalSubMaterialListView {
         }
     }
 
-    private static void addSlotToUnion(IngredientSummary child, Map<String, class_1799> icons, List<String> names) {
-        List<class_1799> childIcons = child.icons().isEmpty() ? List.of(child.icon()) : child.icons();
-        for (class_1799 stack : childIcons) {
-            if (!stack.method_7960()) {
-                icons.putIfAbsent(ItemStackTexts.id(stack), stack.method_7972());
+    private static void addSlotToUnion(IngredientSummary child, Map<String, ItemStack> icons, List<String> names) {
+        List<ItemStack> childIcons = child.icons().isEmpty() ? List.of(child.icon()) : child.icons();
+        for (ItemStack stack : childIcons) {
+            if (!stack.isEmpty()) {
+                icons.putIfAbsent(ItemStackTexts.id(stack), stack.copy());
             }
         }
 
@@ -719,20 +719,20 @@ public final class MinimalSubMaterialListView {
         }
     }
 
-    private static boolean keepGroupAsLeaf(List<class_1799> icons) {
+    private static boolean keepGroupAsLeaf(List<ItemStack> icons) {
         if (icons.isEmpty()) {
             return false;
         }
-        for (class_1799 icon : icons) {
-            if (icon.method_7960() || !Configs.shouldKeepAsLeaf(ItemStackTexts.id(icon))) {
+        for (ItemStack icon : icons) {
+            if (icon.isEmpty() || !Configs.shouldKeepAsLeaf(ItemStackTexts.id(icon))) {
                 return false;
             }
         }
         return true;
     }
 
-    private static boolean isChoiceGroupDecomposable(List<class_1799> icons) {
-        for (class_1799 icon : icons) {
+    private static boolean isChoiceGroupDecomposable(List<ItemStack> icons) {
+        for (ItemStack icon : icons) {
             List<RecipeSummary> summaries = RecipeResolvers.findRecipes(icon, 1, 1);
             if (summaries.isEmpty() || summaries.get(0).ingredients().isEmpty()) {
                 return false;
@@ -741,11 +741,11 @@ public final class MinimalSubMaterialListView {
         return true;
     }
 
-    private static boolean isWoodChoiceGroup(List<class_1799> icons) {
+    private static boolean isWoodChoiceGroup(List<ItemStack> icons) {
         return allIconsMatch(icons, path -> !woodFamily(path).isEmpty());
     }
 
-    private static void collectPreparedLeaves(class_1799 stack, List<class_1799> icons, List<String> names, String name, SourceOrigin source, int baseCount, int preparedCount, Map<String, Accumulator> materials) {
+    private static void collectPreparedLeaves(ItemStack stack, List<ItemStack> icons, List<String> names, String name, SourceOrigin source, int baseCount, int preparedCount, Map<String, Accumulator> materials) {
         if (preparedCount <= 0) {
             return;
         }
@@ -765,11 +765,11 @@ public final class MinimalSubMaterialListView {
         }
     }
 
-    private static void addLeaf(class_1799 stack, List<class_1799> icons, List<String> names, String name, SourceOrigin source, int count, boolean prepared, Map<String, Accumulator> materials) {
+    private static void addLeaf(ItemStack stack, List<ItemStack> icons, List<String> names, String name, SourceOrigin source, int count, boolean prepared, Map<String, Accumulator> materials) {
         CandidateSet candidates = expandRegisteredLogCandidates(
                 refineWoodCandidatesForSource(source, icons.isEmpty() ? List.of(stack) : icons, names));
         String displayNameFallback = candidates.names().size() == 1 ? candidates.names().get(0) : name;
-        class_1799 displayStack = candidates.icons().isEmpty() ? stack : candidates.icons().get(0);
+        ItemStack displayStack = candidates.icons().isEmpty() ? stack : candidates.icons().get(0);
         String key = groupKey(displayStack, candidates.icons(), displayNameFallback);
         String displayName = groupDisplayName(candidates.icons(), displayNameFallback);
         materials.computeIfAbsent(key, ignored -> new Accumulator(displayStack, displayName))
@@ -780,7 +780,7 @@ public final class MinimalSubMaterialListView {
         return candidates.icons().size() == 1 && isPlanksLike(itemPath(candidates.icons().get(0)));
     }
 
-    private static CandidateSet refineWoodCandidatesForSource(SourceOrigin source, List<class_1799> icons, List<String> names) {
+    private static CandidateSet refineWoodCandidatesForSource(SourceOrigin source, List<ItemStack> icons, List<String> names) {
         if (icons.size() < 2) {
             return new CandidateSet(icons, names);
         }
@@ -790,10 +790,10 @@ public final class MinimalSubMaterialListView {
             return new CandidateSet(icons, names);
         }
 
-        List<class_1799> refinedIcons = new ArrayList<>();
+        List<ItemStack> refinedIcons = new ArrayList<>();
         List<String> refinedNames = new ArrayList<>();
         for (int index = 0; index < icons.size(); index++) {
-            class_1799 icon = icons.get(index);
+            ItemStack icon = icons.get(index);
             if (sourceFamily.equals(woodFamily(itemPath(icon)))) {
                 refinedIcons.add(icon);
                 refinedNames.add(index < names.size() ? names.get(index) : ItemStackTexts.name(icon));
@@ -810,22 +810,22 @@ public final class MinimalSubMaterialListView {
             return candidates;
         }
 
-        Map<String, class_1799> iconsById = new LinkedHashMap<>();
-        for (class_1799 icon : candidates.icons()) {
-            iconsById.putIfAbsent(ItemStackTexts.id(icon), icon.method_7972());
+        Map<String, ItemStack> iconsById = new LinkedHashMap<>();
+        for (ItemStack icon : candidates.icons()) {
+            iconsById.putIfAbsent(ItemStackTexts.id(icon), icon.copy());
         }
 
         // JEI may keep a recipe's alternative list from an older tag snapshot.
         // Merge every currently registered log-like item so new vanilla and
         // modded wood families still appear in the "Any log" hover panel.
         try {
-            for (var identifier : class_7923.field_41178.method_10235()) {
-                if (!isLogLike(identifier.method_12832())) {
+            for (var identifier : BuiltInRegistries.ITEM.keySet()) {
+                if (!isLogLike(identifier.getPath())) {
                     continue;
                 }
-                var item = class_7923.field_41178.method_17966(identifier).orElse(null);
+                var item = BuiltInRegistries.ITEM.getOptional(identifier).orElse(null);
                 if (item != null) {
-                    class_1799 icon = new class_1799(item, 1);
+                    ItemStack icon = new ItemStack(item, 1);
                     iconsById.putIfAbsent(ItemStackTexts.id(icon), icon);
                 }
             }
@@ -833,11 +833,11 @@ public final class MinimalSubMaterialListView {
             return candidates;
         }
 
-        List<class_1799> icons = List.copyOf(iconsById.values());
+        List<ItemStack> icons = List.copyOf(iconsById.values());
         return new CandidateSet(icons, candidateNames(icons, List.of()));
     }
 
-    private static String groupKey(class_1799 stack, List<class_1799> icons, String name) {
+    private static String groupKey(ItemStack stack, List<ItemStack> icons, String name) {
         String alternativeKey = knownAlternativeTranslationKey(icons.isEmpty() ? List.of(stack) : icons);
         if (!alternativeKey.isEmpty()) {
             return "group:" + alternativeKey;
@@ -851,7 +851,7 @@ public final class MinimalSubMaterialListView {
         return "id:" + ItemStackTexts.id(stack);
     }
 
-    private static String groupDisplayName(List<class_1799> icons, String fallback) {
+    private static String groupDisplayName(List<ItemStack> icons, String fallback) {
         String alternativeKey = knownAlternativeTranslationKey(icons);
         if (!alternativeKey.isEmpty()) {
             return StringUtils.translate(alternativeKey);
@@ -860,7 +860,7 @@ public final class MinimalSubMaterialListView {
         return fallback;
     }
 
-    private static List<String> candidateNames(List<class_1799> icons, List<String> alternatives) {
+    private static List<String> candidateNames(List<ItemStack> icons, List<String> alternatives) {
         List<String> names = new ArrayList<>();
         for (String alternative : alternatives) {
             if (alternative != null && !alternative.isBlank()) {
@@ -873,8 +873,8 @@ public final class MinimalSubMaterialListView {
         }
 
         names.clear();
-        for (class_1799 icon : icons) {
-            if (!icon.method_7960()) {
+        for (ItemStack icon : icons) {
+            if (!icon.isEmpty()) {
                 names.add(ItemStackTexts.name(icon));
             }
         }
@@ -956,7 +956,7 @@ public final class MinimalSubMaterialListView {
         List<RequirementContribution> requirements = new ArrayList<>();
         for (int index = 0; index < baseIngredients.size(); index++) {
             IngredientSummary base = baseIngredients.get(index);
-            Map<String, class_1799> iconsById = new LinkedHashMap<>();
+            Map<String, ItemStack> iconsById = new LinkedHashMap<>();
             List<String> names = new ArrayList<>();
 
             for (List<IngredientSummary> ingredients : recipeIngredients) {
@@ -965,10 +965,10 @@ public final class MinimalSubMaterialListView {
                 }
 
                 IngredientSummary ingredient = ingredients.get(index);
-                List<class_1799> icons = ingredient.icons().isEmpty() ? List.of(ingredient.icon()) : ingredient.icons();
-                for (class_1799 icon : icons) {
-                    if (!icon.method_7960()) {
-                        iconsById.putIfAbsent(ItemStackTexts.id(icon), icon.method_7972());
+                List<ItemStack> icons = ingredient.icons().isEmpty() ? List.of(ingredient.icon()) : ingredient.icons();
+                for (ItemStack icon : icons) {
+                    if (!icon.isEmpty()) {
+                        iconsById.putIfAbsent(ItemStackTexts.id(icon), icon.copy());
                     }
                 }
                 for (String alternative : ingredient.alternatives()) {
@@ -982,13 +982,13 @@ public final class MinimalSubMaterialListView {
                 continue;
             }
 
-            List<class_1799> icons = List.copyOf(iconsById.values());
+            List<ItemStack> icons = List.copyOf(iconsById.values());
             List<String> candidateNames = candidateNames(icons, names);
             String fallbackName = candidateNames.isEmpty() ? RecipeSummaryFormatter.ingredientName(base) : candidateNames.get(0);
             String name = requirementGroupName(targetPlanksGroup, icons, fallbackName);
-            List<class_1799> copiedIcons = icons.stream().map(class_1799::method_7972).toList();
+            List<ItemStack> copiedIcons = icons.stream().map(ItemStack::copy).toList();
             requirements.add(new RequirementContribution(
-                    icons.get(0).method_7972(),
+                    icons.get(0).copy(),
                     copiedIcons,
                     candidateNames,
                     name,
@@ -1001,15 +1001,15 @@ public final class MinimalSubMaterialListView {
         return List.copyOf(requirements);
     }
 
-    private static UpstreamRequirement upstreamRequirement(List<class_1799> icons, int totalCount, int missingCount) {
+    private static UpstreamRequirement upstreamRequirement(List<ItemStack> icons, int totalCount, int missingCount) {
         if (!allIconsMatch(icons, MinimalSubMaterialListView::isPlanksLike)) {
             return null;
         }
 
-        Map<String, class_1799> iconsById = new LinkedHashMap<>();
+        Map<String, ItemStack> iconsById = new LinkedHashMap<>();
         List<String> names = new ArrayList<>();
         IngredientSummary firstBase = null;
-        for (class_1799 icon : icons) {
+        for (ItemStack icon : icons) {
             List<RecipeSummary> summaries = RecipeResolvers.findRecipes(icon, totalCount, missingCount);
             if (summaries.isEmpty()) {
                 continue;
@@ -1024,10 +1024,10 @@ public final class MinimalSubMaterialListView {
                 firstBase = ingredient;
             }
 
-            List<class_1799> ingredientIcons = ingredient.icons().isEmpty() ? List.of(ingredient.icon()) : ingredient.icons();
-            for (class_1799 ingredientIcon : ingredientIcons) {
-                if (!ingredientIcon.method_7960()) {
-                    iconsById.putIfAbsent(ItemStackTexts.id(ingredientIcon), ingredientIcon.method_7972());
+            List<ItemStack> ingredientIcons = ingredient.icons().isEmpty() ? List.of(ingredient.icon()) : ingredient.icons();
+            for (ItemStack ingredientIcon : ingredientIcons) {
+                if (!ingredientIcon.isEmpty()) {
+                    iconsById.putIfAbsent(ItemStackTexts.id(ingredientIcon), ingredientIcon.copy());
                 }
             }
             for (String alternative : ingredient.alternatives()) {
@@ -1041,7 +1041,7 @@ public final class MinimalSubMaterialListView {
             return null;
         }
 
-        List<class_1799> upstreamIcons = List.copyOf(iconsById.values());
+        List<ItemStack> upstreamIcons = List.copyOf(iconsById.values());
         if (!allIconsMatch(upstreamIcons, MinimalSubMaterialListView::isLogLike)) {
             return null;
         }
@@ -1052,8 +1052,8 @@ public final class MinimalSubMaterialListView {
         List<String> candidateNames = expanded.names();
         String name = StringUtils.translate("lmlp.label.recipe.any.log");
         return new UpstreamRequirement(
-                upstreamIcons.get(0).method_7972(),
-                upstreamIcons.stream().map(class_1799::method_7972).toList(),
+                upstreamIcons.get(0).copy(),
+                upstreamIcons.stream().map(ItemStack::copy).toList(),
                 candidateNames,
                 name,
                 firstBase.countTotal(),
@@ -1063,7 +1063,7 @@ public final class MinimalSubMaterialListView {
 
     private static IngredientSummary firstLogIngredient(List<IngredientSummary> ingredients) {
         for (IngredientSummary ingredient : ingredients) {
-            List<class_1799> icons = ingredient.icons().isEmpty() ? List.of(ingredient.icon()) : ingredient.icons();
+            List<ItemStack> icons = ingredient.icons().isEmpty() ? List.of(ingredient.icon()) : ingredient.icons();
             if (allIconsMatch(icons, MinimalSubMaterialListView::isLogLike)) {
                 return ingredient;
             }
@@ -1072,7 +1072,7 @@ public final class MinimalSubMaterialListView {
         return null;
     }
 
-    private static String requirementGroupName(boolean targetPlanksGroup, List<class_1799> icons, String fallbackName) {
+    private static String requirementGroupName(boolean targetPlanksGroup, List<ItemStack> icons, String fallbackName) {
         if (targetPlanksGroup && allIconsMatch(icons, MinimalSubMaterialListView::isLogLike)) {
             return StringUtils.translate("lmlp.label.recipe.any.log");
         }
@@ -1149,30 +1149,30 @@ public final class MinimalSubMaterialListView {
     }
 
     private static final class Accumulator {
-        private final class_1799 stack;
+        private final ItemStack stack;
         private final String name;
         private final Map<String, Candidate> candidates = new LinkedHashMap<>();
         private final Map<String, SourceAccumulator> sources = new LinkedHashMap<>();
         private long totalCount;
         private long preparedCount;
 
-        private Accumulator(class_1799 stack, String name) {
-            this.stack = stack.method_7972();
+        private Accumulator(ItemStack stack, String name) {
+            this.stack = stack.copy();
             this.name = name;
-            this.candidates.put(ItemStackTexts.id(stack), new Candidate(stack.method_7972(), ItemStackTexts.name(stack)));
+            this.candidates.put(ItemStackTexts.id(stack), new Candidate(stack.copy(), ItemStackTexts.name(stack)));
         }
 
-        private void add(int count, boolean prepared, List<class_1799> icons, List<String> names, SourceOrigin source) {
+        private void add(int count, boolean prepared, List<ItemStack> icons, List<String> names, SourceOrigin source) {
             if (prepared) {
                 this.preparedCount += count;
             } else {
                 this.totalCount += count;
             }
             for (int index = 0; index < icons.size(); index++) {
-                class_1799 icon = icons.get(index);
-                if (!icon.method_7960()) {
+                ItemStack icon = icons.get(index);
+                if (!icon.isEmpty()) {
                     String name = index < names.size() ? names.get(index) : ItemStackTexts.name(icon);
-                    this.candidates.putIfAbsent(ItemStackTexts.id(icon), new Candidate(icon.method_7972(), name));
+                    this.candidates.putIfAbsent(ItemStackTexts.id(icon), new Candidate(icon.copy(), name));
                 }
             }
             this.sources.computeIfAbsent(source.id(), ignored -> new SourceAccumulator(source))
@@ -1192,17 +1192,17 @@ public final class MinimalSubMaterialListView {
             return List.copyOf(this.candidates.values());
         }
 
-        private List<class_1799> candidateIcons() {
-            List<class_1799> icons = new ArrayList<>(this.candidates.size());
+        private List<ItemStack> candidateIcons() {
+            List<ItemStack> icons = new ArrayList<>(this.candidates.size());
             for (Candidate candidate : this.candidates.values()) {
-                icons.add(candidate.icon().method_7972());
+                icons.add(candidate.icon().copy());
             }
             return List.copyOf(icons);
         }
 
         private List<SourceContribution> sources() {
             List<SourceContribution> contributions = new ArrayList<>(this.sources.size());
-            int maxStackSize = Math.max(1, this.stack.method_7914());
+            int maxStackSize = Math.max(1, this.stack.getMaxStackSize());
             for (SourceAccumulator source : this.sources.values()) {
                 contributions.add(source.toContribution(maxStackSize));
             }
@@ -1239,7 +1239,7 @@ public final class MinimalSubMaterialListView {
         private SourceContribution toContribution(int maxStackSize) {
             long missingCount = Math.max(0L, this.totalCount - this.preparedCount);
             return new SourceContribution(
-                    this.origin.icon().method_7972(),
+                    this.origin.icon().copy(),
                     this.origin.name(),
                     clampToInt(this.totalCount),
                     clampToInt(missingCount),
@@ -1291,12 +1291,12 @@ public final class MinimalSubMaterialListView {
                     try {
                         RecipeResolvers.checkpoint();
                         MaterialListEntry entry = this.sourceEntries.get(this.nextSourceIndex);
-                        class_1799 stack = entry.getStack();
+                        ItemStack stack = entry.getStack();
                         int baseTotal = entry.getCountTotal();
                         int total = scaledCount(baseTotal, this.multiplier);
                         int missing = MaterialCounts.netMissing(entry, this.multiplier);
                         int prepared = Math.max(0, total - Math.min(total, missing));
-                        SourceOrigin source = new SourceOrigin(ItemStackTexts.id(stack), stack.method_7972(), ItemStackTexts.name(stack), total, missing);
+                        SourceOrigin source = new SourceOrigin(ItemStackTexts.id(stack), stack.copy(), ItemStackTexts.name(stack), total, missing);
                         collectLeaves(stack, List.of(stack), List.of(ItemStackTexts.name(stack)), ItemStackTexts.name(stack), source, baseTotal, this.multiplier, false, 0, new HashSet<>(), delta);
                         collectPreparedLeaves(stack, List.of(stack), List.of(ItemStackTexts.name(stack)), ItemStackTexts.name(stack), source, baseTotal, prepared, delta);
                     } catch (RecipeResolvers.BudgetExceededException exception) {
@@ -1331,7 +1331,7 @@ public final class MinimalSubMaterialListView {
             for (Accumulator material : this.materials.values()) {
                 int total = clampToInt(material.totalCount);
                 int available = resolvedAvailable(material.preparedCount, this.inventory.countAny(material.candidateIcons()));
-                MaterialListEntry entry = new MaterialListEntry(material.stack.method_7972(), total, total, 0, available);
+                MaterialListEntry entry = new MaterialListEntry(material.stack.copy(), total, total, 0, available);
                 entries.add(entry);
                 DisplayData display = new DisplayData(material.name, material.candidates(), material.sources());
                 displays.put(entry, display);
@@ -1388,11 +1388,11 @@ public final class MinimalSubMaterialListView {
             // / 任意木板 shown here stays on the same wood family that its
             // upstream 任意原木 is currently showing. Pick the icon via the
             // shared helper, then map it back to its candidate by id.
-            List<class_1799> icons = new ArrayList<>(this.candidates.size());
+            List<ItemStack> icons = new ArrayList<>(this.candidates.size());
             for (Candidate candidate : this.candidates) {
                 icons.add(candidate.icon());
             }
-            class_1799 picked = FamilyIconCycle.pick(icons, System.currentTimeMillis(), FAMILY_CYCLE_MS, DISPLAY_CYCLE_MS);
+            ItemStack picked = FamilyIconCycle.pick(icons, System.currentTimeMillis(), FAMILY_CYCLE_MS, DISPLAY_CYCLE_MS);
             String pickedId = ItemStackTexts.id(picked);
             for (Candidate candidate : this.candidates) {
                 if (ItemStackTexts.id(candidate.icon()).equals(pickedId)) {
@@ -1419,7 +1419,7 @@ public final class MinimalSubMaterialListView {
         }
 
         private String knownAlternativeName() {
-            List<class_1799> icons = new ArrayList<>(this.candidates.size());
+            List<ItemStack> icons = new ArrayList<>(this.candidates.size());
             for (Candidate candidate : this.candidates) {
                 icons.add(candidate.icon());
             }
@@ -1428,25 +1428,25 @@ public final class MinimalSubMaterialListView {
         }
     }
 
-    private record Candidate(class_1799 icon, String name) {
+    private record Candidate(ItemStack icon, String name) {
     }
 
-    private record SourceOrigin(String id, class_1799 icon, String name, int totalCount, int missingCount) {
+    private record SourceOrigin(String id, ItemStack icon, String name, int totalCount, int missingCount) {
     }
 
-    private record CandidateSet(List<class_1799> icons, List<String> names) {
+    private record CandidateSet(List<ItemStack> icons, List<String> names) {
     }
 
-    public record TooltipCandidate(class_1799 icon, String name) {
+    public record TooltipCandidate(ItemStack icon, String name) {
     }
 
-    public record RequirementContribution(class_1799 icon, List<class_1799> icons, List<String> candidateNames, String name, int totalCount, int missingCount, int maxStackSize, UpstreamRequirement upstream) {
+    public record RequirementContribution(ItemStack icon, List<ItemStack> icons, List<String> candidateNames, String name, int totalCount, int missingCount, int maxStackSize, UpstreamRequirement upstream) {
     }
 
-    public record UpstreamRequirement(class_1799 icon, List<class_1799> icons, List<String> candidateNames, String name, int totalCount, int missingCount, int maxStackSize) {
+    public record UpstreamRequirement(ItemStack icon, List<ItemStack> icons, List<String> candidateNames, String name, int totalCount, int missingCount, int maxStackSize) {
     }
 
-    public record SourceContribution(class_1799 icon, String name, int totalCount, int missingCount, int sourceTotalCount, int sourceMissingCount, int maxStackSize) {
+    public record SourceContribution(ItemStack icon, String name, int totalCount, int missingCount, int sourceTotalCount, int sourceMissingCount, int maxStackSize) {
     }
 
     public enum SourceSortMode {
@@ -1458,7 +1458,7 @@ public final class MinimalSubMaterialListView {
         }
     }
 
-    private static String itemPath(class_1799 stack) {
+    private static String itemPath(ItemStack stack) {
         String id = ItemStackTexts.id(stack);
         return itemPath(id);
     }
@@ -1487,8 +1487,8 @@ public final class MinimalSubMaterialListView {
         return stableEntryKey(display.currentCandidate().icon(), display.candidates(), display.name());
     }
 
-    private static String stableEntryKey(class_1799 stack, List<Candidate> candidates, String name) {
-        List<class_1799> icons = new ArrayList<>(candidates.size());
+    private static String stableEntryKey(ItemStack stack, List<Candidate> candidates, String name) {
+        List<ItemStack> icons = new ArrayList<>(candidates.size());
         for (Candidate candidate : candidates) {
             icons.add(candidate.icon());
         }
@@ -1496,7 +1496,7 @@ public final class MinimalSubMaterialListView {
         return groupKey(stack, icons, name);
     }
 
-    private static String knownAlternativeTranslationKey(List<class_1799> icons) {
+    private static String knownAlternativeTranslationKey(List<ItemStack> icons) {
         if (icons.size() < 2) {
             return "";
         }
@@ -1518,13 +1518,13 @@ public final class MinimalSubMaterialListView {
         return "";
     }
 
-    private static boolean allIconsMatch(List<class_1799> icons, Predicate<String> predicate) {
+    private static boolean allIconsMatch(List<ItemStack> icons, Predicate<String> predicate) {
         if (icons.isEmpty()) {
             return false;
         }
 
-        for (class_1799 icon : icons) {
-            if (icon.method_7960() || !predicate.test(itemPath(icon))) {
+        for (ItemStack icon : icons) {
+            if (icon.isEmpty() || !predicate.test(itemPath(icon))) {
                 return false;
             }
         }
@@ -1568,9 +1568,9 @@ public final class MinimalSubMaterialListView {
         return Configs.shouldKeepAsLeaf(itemId);
     }
 
-    private static boolean hasMultipleWoodFamilies(List<class_1799> icons) {
+    private static boolean hasMultipleWoodFamilies(List<ItemStack> icons) {
         String firstFamily = "";
-        for (class_1799 icon : icons) {
+        for (ItemStack icon : icons) {
             String family = woodFamily(itemPath(icon));
             if (family.isEmpty()) {
                 return true;
@@ -1606,8 +1606,8 @@ public final class MinimalSubMaterialListView {
 
         Set<String> families = new LinkedHashSet<>(FALLBACK_WOOD_FAMILIES);
         try {
-            for (var identifier : class_7923.field_41178.method_10235()) {
-                String path = identifier.method_12832();
+            for (var identifier : BuiltInRegistries.ITEM.keySet()) {
+                String path = identifier.getPath();
                 if (path.endsWith("_planks") && path.length() > "_planks".length()) {
                     families.add(path.substring(0, path.length() - "_planks".length()));
                 }

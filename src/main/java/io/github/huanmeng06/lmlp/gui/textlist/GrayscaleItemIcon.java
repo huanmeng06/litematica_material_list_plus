@@ -1,7 +1,7 @@
 package io.github.huanmeng06.lmlp.gui.textlist;
 
-import net.minecraft.class_1799;
 import fi.dy.masa.malilib.render.GuiContext;
+import net.minecraft.world.item.ItemStack;
 
 /**
  * Renders the disabled state for an item icon.
@@ -21,13 +21,13 @@ final class GrayscaleItemIcon {
         // GUI item rendering is queued in 1.21.11; there is no cache to prewarm.
     }
 
-    static boolean render(GuiContext context, class_1799 stack, String cacheKey, int x, int y, int size) {
-        if (context == null || stack == null || stack.method_7960()) {
+    static boolean render(GuiContext context, ItemStack stack, String cacheKey, int x, int y, int size) {
+        if (context == null || stack == null || stack.isEmpty()) {
             return false;
         }
 
-        context.method_51427(stack, x, y);
-        context.method_25294(x, y, x + size, y + size, DISABLED_VEIL);
+        context.renderItem(stack, x, y);
+        context.fill(x, y, x + size, y + size, DISABLED_VEIL);
         return true;
     }
 }

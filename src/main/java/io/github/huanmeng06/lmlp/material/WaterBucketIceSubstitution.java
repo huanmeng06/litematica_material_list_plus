@@ -2,13 +2,12 @@ package io.github.huanmeng06.lmlp.material;
 
 import java.util.ArrayList;
 import java.util.List;
-
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.Identifier;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
 import fi.dy.masa.litematica.materials.MaterialListEntry;
 import io.github.huanmeng06.lmlp.config.Configs;
-import net.minecraft.class_1792;
-import net.minecraft.class_1799;
-import net.minecraft.class_2960;
-import net.minecraft.class_7923;
 
 public final class WaterBucketIceSubstitution {
     private static final String WATER_BUCKET_ID = "minecraft:water_bucket";
@@ -44,7 +43,7 @@ public final class WaterBucketIceSubstitution {
             return entries;
         }
 
-        class_1799 iceStack = iceStack();
+        ItemStack iceStack = iceStack();
         if (iceStack == null) {
             return entries;
         }
@@ -72,8 +71,8 @@ public final class WaterBucketIceSubstitution {
         return result;
     }
 
-    private static class_1799 iceStack() {
-        class_1792 item = class_7923.field_41178.method_17966(class_2960.method_60654(ICE_ID)).orElse(null);
-        return item == null ? null : new class_1799(item, 1);
+    private static ItemStack iceStack() {
+        Item item = BuiltInRegistries.ITEM.getOptional(Identifier.parse(ICE_ID)).orElse(null);
+        return item == null ? null : new ItemStack(item, 1);
     }
 }

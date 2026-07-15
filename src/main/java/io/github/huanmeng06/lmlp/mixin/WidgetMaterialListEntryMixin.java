@@ -26,8 +26,6 @@ import io.github.huanmeng06.lmlp.material.CountFormatter;
 import io.github.huanmeng06.lmlp.material.MaterialCounts;
 import io.github.huanmeng06.lmlp.recipe.RecipeResolvers;
 import io.github.huanmeng06.lmlp.recipe.RecipeSummary;
-import net.minecraft.class_1799;
-import net.minecraft.class_437;
 import fi.dy.masa.malilib.render.GuiContext;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -35,6 +33,8 @@ import org.spongepowered.asm.mixin.Overwrite;
 import org.spongepowered.asm.mixin.Shadow;
 
 import java.util.List;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.world.item.ItemStack;
 
 @Mixin(value = WidgetMaterialListEntry.class, remap = false)
 public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortable<MaterialListEntry> implements MinimalChoiceTooltipAccess {
@@ -130,7 +130,7 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
             String name = MinimalSubMaterialListView.widestDisplayName(entry);
 
             maxNameLength = Math.max(maxNameLength, StringUtils.getStringWidth(name));
-            for (class_1799 stack : MinimalSubMaterialListView.displayStacks(entry)) {
+            for (ItemStack stack : MinimalSubMaterialListView.displayStacks(entry)) {
                 maxCountLength1 = Math.max(maxCountLength1, StringUtils.getStringWidth(CountFormatter.formatAligned(stack, total, lmlpMaxTotalDigits)));
                 maxCountLength2 = Math.max(maxCountLength2, StringUtils.getStringWidth(CountFormatter.formatAligned(stack, missing, lmlpMaxMissingDigits)));
                 maxCountLength3 = Math.max(maxCountLength3, StringUtils.getStringWidth(CountFormatter.formatAligned(stack, available, lmlpMaxAvailableDigits)));
@@ -214,10 +214,10 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
      * @reason Use row clicks for inline expansion and direct name clicks for details.
      */
     @Overwrite
-    protected boolean onMouseClickedImpl(net.minecraft.class_11909 event, boolean doubleClick) {
-        int mouseX = (int) event.comp_4798();
-        int mouseY = (int) event.comp_4799();
-        int mouseButton = event.comp_4800().comp_4801();
+    protected boolean onMouseClickedImpl(net.minecraft.client.input.MouseButtonEvent event, boolean doubleClick) {
+        int mouseX = (int) event.x();
+        int mouseY = (int) event.y();
+        int mouseButton = event.buttonInfo().button();
         if (this.entry == null) {
             if (this.header1 != null && this.listWidget.getSearchBarWidget().isSearchOpen()) {
                 return false;
@@ -267,7 +267,7 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         if (mouseButton == 0 && this.isMouseOver(mouseX, mouseY)) {
             if (this.lmlp$isMaterialNameHovered(mouseX, mouseY)) {
                 List<RecipeSummary> summaries = MaterialListPlusState.resolveFor(this.entry, this.materialList);
-                this.mc.method_1507(new RecipeDetailScreen(
+                this.mc.setScreen(new RecipeDetailScreen(
                         GuiUtils.getCurrentScreen(),
                         this.entry.getStack(),
                         MaterialCounts.total(this.entry, this.materialList),
@@ -306,7 +306,7 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
      * @reason Preserve original non-selectable rows.
      */
     @Overwrite
-    public boolean canSelectAt(net.minecraft.class_11909 event) {
+    public boolean canSelectAt(net.minecraft.client.input.MouseButtonEvent event) {
         return false;
     }
 
@@ -359,7 +359,7 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
             return;
         }
 
-        class_1799 stack = MinimalSubMaterialListView.displayStack(this.entry);
+        ItemStack stack = MinimalSubMaterialListView.displayStack(this.entry);
         String name = MinimalSubMaterialListView.displayName(this.entry);
         int total = MinimalSubMaterialListView.total(this.entry, this.materialList);
         int rawMissing = MinimalSubMaterialListView.missing(this.entry, this.materialList);
@@ -384,11 +384,11 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
             this.drawString(drawContext, xAvailable, yText, -1, availableColor(available, rawMissing) + CountFormatter.formatAligned(stack, available, lmlpMaxAvailableDigits));
         }
 
-        drawContext.method_51448().pushMatrix();
+        drawContext.pose().pushMatrix();
         int iconY = this.y + 3;
         RenderUtils.drawRect(drawContext, iconX, iconY, 16, 16, 0x20FFFFFF);
-        drawContext.method_51427(stack, iconX, iconY);
-        drawContext.method_51448().popMatrix();
+        drawContext.renderItem(stack, iconX, iconY);
+        drawContext.pose().popMatrix();
 
         if (MaterialListPlusState.isRecipeVisible(this.entry)) {
             List<RecipeSummary> summaries = MaterialListPlusState.getSummaries(this.entry, this.materialList);
@@ -533,7 +533,7 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
     // otherwise derive each row's label from its own icon to guarantee the
     // icon and name always match.
     private static List<MinimalSubMaterialListView.TooltipCandidate> lmlp$choiceGroupCandidates(RecipeInlineRenderer.ChoiceGroupHover hover) {
-        List<class_1799> icons = hover.icons();
+        List<ItemStack> icons = hover.icons();
         List<String> names = hover.alternatives();
         if (icons.isEmpty()) {
             return List.of();
@@ -542,12 +542,12 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         boolean namesParallel = names.size() == icons.size();
         List<MinimalSubMaterialListView.TooltipCandidate> candidates = new java.util.ArrayList<>(icons.size());
         for (int index = 0; index < icons.size(); index++) {
-            class_1799 icon = icons.get(index);
-            if (icon.method_7960()) {
+            ItemStack icon = icons.get(index);
+            if (icon.isEmpty()) {
                 continue;
             }
             String name = namesParallel ? names.get(index) : ItemStackTexts.name(icon);
-            candidates.add(new MinimalSubMaterialListView.TooltipCandidate(icon.method_7972(), name));
+            candidates.add(new MinimalSubMaterialListView.TooltipCandidate(icon.copy(), name));
         }
         return candidates;
     }
@@ -572,8 +572,8 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
 
     // Shared rich choice-group grid (icon + name, up to four columns) used by both
     // the minimal sub-material page and the recipe panel's "任意X" hover.
-    private boolean lmlp$renderChoiceGrid(GuiContext drawContext, int mouseX, int mouseY, class_1799 headerStack, String headerName, List<MinimalSubMaterialListView.TooltipCandidate> candidates) {
-        int maxPanelWidth = Math.max(120, this.mc.method_22683().method_4486() - HOVER_TOOLTIP_MARGIN * 2);
+    private boolean lmlp$renderChoiceGrid(GuiContext drawContext, int mouseX, int mouseY, ItemStack headerStack, String headerName, List<MinimalSubMaterialListView.TooltipCandidate> candidates) {
+        int maxPanelWidth = Math.max(120, this.mc.getWindow().getGuiScaledWidth() - HOVER_TOOLTIP_MARGIN * 2);
         int maxContentWidth = Math.max(80, maxPanelWidth - HOVER_TOOLTIP_PADDING * 2);
         int maxCandidateNameWidth = 0;
         for (MinimalSubMaterialListView.TooltipCandidate candidate : candidates) {
@@ -624,15 +624,15 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         // Submit JEI's and item renderer's queued batches before painting the
         // tooltip. Otherwise those older vertices flush afterwards and appear
         // through the panel regardless of its Z translation.
-        drawContext.method_51448().pushMatrix();
+        drawContext.pose().pushMatrix();
         // Match vanilla tooltip headroom and the full recipe-detail tooltip.
         // JEI's native display items can render above +200 and otherwise bleed
         // through this panel (for example the crafting-table catalyst icon).
         lmlp$drawTooltipBox(drawContext, panelX, panelY, panelWidth, panelHeight, 0xF0000000, 0xFF999999);
 
-        drawContext.method_25294(contentX, headerY - 4, contentX + HOVER_TOOLTIP_ICON_SIZE,
+        drawContext.fill(contentX, headerY - 4, contentX + HOVER_TOOLTIP_ICON_SIZE,
                 headerY - 4 + HOVER_TOOLTIP_ICON_SIZE, 0x20FFFFFF);
-        drawContext.method_51427(headerStack, contentX, headerY - 4);
+        drawContext.renderItem(headerStack, contentX, headerY - 4);
         this.drawString(drawContext, contentX + HOVER_TOOLTIP_ICON_SIZE + HOVER_TOOLTIP_ICON_GAP, headerY, 0xFFFFFFFF, headerText);
 
         for (int index = 0; index < candidates.size(); index++) {
@@ -645,13 +645,13 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
             int maxNameWidth = Math.max(20, columnWidth - HOVER_TOOLTIP_ICON_SIZE - HOVER_TOOLTIP_ICON_GAP);
             String itemName = this.truncateToWidth(candidate.name(), maxNameWidth);
 
-            drawContext.method_25294(rowX, rowTop + 1, rowX + HOVER_TOOLTIP_ICON_SIZE,
+            drawContext.fill(rowX, rowTop + 1, rowX + HOVER_TOOLTIP_ICON_SIZE,
                     rowTop + 1 + HOVER_TOOLTIP_ICON_SIZE, 0x20FFFFFF);
-            drawContext.method_51427(candidate.icon(), rowX, rowTop + 1);
+            drawContext.renderItem(candidate.icon(), rowX, rowTop + 1);
             this.drawString(drawContext, textX, rowTop + 5, 0xFFFFFFFF, itemName);
         }
 
-        drawContext.method_51448().popMatrix();
+        drawContext.pose().popMatrix();
         return true;
     }
 
@@ -661,16 +661,16 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
             return false;
         }
 
-        class_1799 stack = this.panelHoveredStack(mouseX, mouseY);
-        if (stack.method_7960()) {
+        ItemStack stack = this.panelHoveredStack(mouseX, mouseY);
+        if (stack.isEmpty()) {
             return false;
         }
 
-        return ItemTooltipRenderer.render(drawContext, this.mc.field_1772, stack, mouseX, mouseY);
+        return ItemTooltipRenderer.render(drawContext, this.mc.font, stack, mouseX, mouseY);
     }
 
     private ChoiceTooltipTarget minimalChoiceTooltipTarget(int mouseX, int mouseY) {
-        if (!this.panelHoveredStack(mouseX, mouseY).method_7960()) {
+        if (!this.panelHoveredStack(mouseX, mouseY).isEmpty()) {
             return null;
         }
 
@@ -690,7 +690,7 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
             return null;
         }
 
-        class_1799 stack = MinimalSubMaterialListView.displayStack(this.entry);
+        ItemStack stack = MinimalSubMaterialListView.displayStack(this.entry);
         int total = MinimalSubMaterialListView.total(this.entry, this.materialList);
         int missing = MinimalSubMaterialListView.netMissing(this.entry, this.materialList);
         List<MinimalSubMaterialListView.RequirementContribution> requirements = MinimalSubMaterialListView.sourceRequirements(this.entry, total, missing);
@@ -741,7 +741,7 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
             return false;
         }
 
-        class_1799 stack = MinimalSubMaterialListView.displayStack(this.entry);
+        ItemStack stack = MinimalSubMaterialListView.displayStack(this.entry);
         int total = MinimalSubMaterialListView.total(this.entry, this.materialList);
         int missing = MinimalSubMaterialListView.netMissing(this.entry, this.materialList);
         List<MinimalSubMaterialListView.RequirementContribution> requirements = MinimalSubMaterialListView.sourceRequirements(this.entry, total, missing);
@@ -760,8 +760,8 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
                 && mouseY < textY + HOVER_TEXT_HEIGHT;
     }
 
-    private class_1799 panelHoveredStack(int mouseX, int mouseY) {
-        class_1799 rowStack = MinimalSubMaterialListView.displayStack(this.entry);
+    private ItemStack panelHoveredStack(int mouseX, int mouseY) {
+        ItemStack rowStack = MinimalSubMaterialListView.displayStack(this.entry);
         if (this.isRowItemHovered(mouseX, mouseY)) {
             return rowStack;
         }
@@ -791,7 +791,7 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
             return MinimalSourceInlineRenderer.hoveredStackAt(panelX, panelY, panelWidth, rowStack, requirements, sources, showAllSources, visibleOuterHeight, mouseX, mouseY);
         }
 
-        return class_1799.field_8037;
+        return ItemStack.EMPTY;
     }
 
     private boolean isRowItemHovered(int mouseX, int mouseY) {
@@ -808,15 +808,15 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
     }
 
     private void renderVanillaMaterialHoverTooltip(GuiContext drawContext, int mouseX, int mouseY) {
-        class_1799 stack = MinimalSubMaterialListView.displayStack(this.entry);
+        ItemStack stack = MinimalSubMaterialListView.displayStack(this.entry);
         String itemLabel = GuiBase.TXT_BOLD + StringUtils.translate("litematica.gui.label.material_list.title.item");
         String totalLabel = GuiBase.TXT_BOLD + StringUtils.translate("litematica.gui.label.material_list.title.total");
         String missingLabel = GuiBase.TXT_BOLD + StringUtils.translate("litematica.gui.label.material_list.title.missing");
         String itemText = MinimalSubMaterialListView.displayName(this.entry);
         int total = MinimalSubMaterialListView.total(this.entry, this.materialList);
         int missing = MinimalSubMaterialListView.missing(this.entry, this.materialList);
-        String totalText = this.formatVanillaCount(total, stack.method_7914());
-        String missingText = this.formatVanillaCount(missing, stack.method_7914());
+        String totalText = this.formatVanillaCount(total, stack.getMaxStackSize());
+        String missingText = this.formatVanillaCount(missing, stack.getMaxStackSize());
         int labelWidth = Math.max(this.getStringWidth(itemLabel), Math.max(this.getStringWidth(totalLabel), this.getStringWidth(missingLabel)));
         int valueWidth = Math.max(this.getStringWidth(itemText) + 20, Math.max(this.getStringWidth(totalText), this.getStringWidth(missingText)));
         int panelWidth = labelWidth + valueWidth + VANILLA_TOOLTIP_LABEL_VALUE_GAP + VANILLA_TOOLTIP_PADDING_EXTRA;
@@ -832,7 +832,7 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         int lineY = panelY + 6;
         int iconY = lineY;
 
-        drawContext.method_51448().pushMatrix();
+        drawContext.pose().pushMatrix();
         lmlp$drawTooltipBox(drawContext, panelX, panelY, panelWidth, VANILLA_TOOLTIP_HEIGHT, 0xFF000000,
                 0xFF999999);
 
@@ -849,17 +849,17 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         this.drawString(drawContext, valueX, lineY, 0xFFFFFFFF, missingText);
 
         RenderUtils.drawRect(drawContext, valueX, iconY, 16, 16, 0x20FFFFFF);
-        drawContext.method_51427(stack, valueX, iconY);
-        drawContext.method_51448().popMatrix();
+        drawContext.renderItem(stack, valueX, iconY);
+        drawContext.pose().popMatrix();
     }
 
     private static void lmlp$drawTooltipBox(GuiContext context, int x, int y, int width, int height,
             int background, int border) {
-        context.method_25294(x, y, x + width, y + height, background);
-        context.method_25294(x, y, x + width, y + 1, border);
-        context.method_25294(x, y + height - 1, x + width, y + height, border);
-        context.method_25294(x, y, x + 1, y + height, border);
-        context.method_25294(x + width - 1, y, x + width, y + height, border);
+        context.fill(x, y, x + width, y + height, background);
+        context.fill(x, y, x + width, y + 1, border);
+        context.fill(x, y + height - 1, x + width, y + height, border);
+        context.fill(x, y, x + 1, y + height, border);
+        context.fill(x + width - 1, y, x + width, y + height, border);
     }
 
     private String formatVanillaCount(int count, int maxStackSize) {
@@ -890,8 +890,8 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         }
 
         TooltipBounds vanilla = this.vanillaTooltipBounds(mouseX, mouseY);
-        int screenWidth = this.mc.method_22683().method_4486();
-        int screenHeight = this.mc.method_22683().method_4502();
+        int screenWidth = this.mc.getWindow().getGuiScaledWidth();
+        int screenHeight = this.mc.getWindow().getGuiScaledHeight();
         int minX = HOVER_TOOLTIP_MARGIN;
         int minY = HOVER_TOOLTIP_MARGIN;
         int maxX = Math.max(minX, screenWidth - panelWidth - HOVER_TOOLTIP_MARGIN);
@@ -923,15 +923,15 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
     }
 
     private TooltipBounds vanillaTooltipBounds(int mouseX, int mouseY) {
-        class_1799 stack = MinimalSubMaterialListView.displayStack(this.entry);
+        ItemStack stack = MinimalSubMaterialListView.displayStack(this.entry);
         String itemLabel = GuiBase.TXT_BOLD + StringUtils.translate("litematica.gui.label.material_list.title.item");
         String totalLabel = GuiBase.TXT_BOLD + StringUtils.translate("litematica.gui.label.material_list.title.total");
         String missingLabel = GuiBase.TXT_BOLD + StringUtils.translate("litematica.gui.label.material_list.title.missing");
         String itemText = MinimalSubMaterialListView.displayName(this.entry);
         int total = MinimalSubMaterialListView.total(this.entry, this.materialList);
         int missing = MinimalSubMaterialListView.missing(this.entry, this.materialList);
-        String totalText = this.formatVanillaCount(total, stack.method_7914());
-        String missingText = this.formatVanillaCount(missing, stack.method_7914());
+        String totalText = this.formatVanillaCount(total, stack.getMaxStackSize());
+        String missingText = this.formatVanillaCount(missing, stack.getMaxStackSize());
         int labelWidth = Math.max(this.getStringWidth(itemLabel), Math.max(this.getStringWidth(totalLabel), this.getStringWidth(missingLabel)));
         int valueWidth = Math.max(this.getStringWidth(itemText) + 20, Math.max(this.getStringWidth(totalText), this.getStringWidth(missingText)));
         int panelWidth = labelWidth + valueWidth + VANILLA_TOOLTIP_LABEL_VALUE_GAP + VANILLA_TOOLTIP_PADDING_EXTRA;
@@ -946,8 +946,8 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
     }
 
     private PanelBounds hoverTooltipBounds(int mouseX, int mouseY, int panelWidth, int panelHeight) {
-        int screenWidth = this.mc.method_22683().method_4486();
-        int screenHeight = this.mc.method_22683().method_4502();
+        int screenWidth = this.mc.getWindow().getGuiScaledWidth();
+        int screenHeight = this.mc.getWindow().getGuiScaledHeight();
         int minX = HOVER_TOOLTIP_MARGIN;
         int minY = HOVER_TOOLTIP_MARGIN;
         int maxX = Math.max(minX, screenWidth - panelWidth - HOVER_TOOLTIP_MARGIN);
@@ -1031,11 +1031,11 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
 
         int total = MaterialCounts.total(this.entry, this.materialList);
         int missing = MaterialCounts.netMissing(this.entry, this.materialList);
-        class_437 parent = GuiUtils.getCurrentScreen();
+        Screen parent = GuiUtils.getCurrentScreen();
         if (target.title()) {
-            this.mc.method_1507(new RecipeDetailScreen(parent, this.entry.getStack(), total, missing, summaries));
+            this.mc.setScreen(new RecipeDetailScreen(parent, this.entry.getStack(), total, missing, summaries));
         } else {
-            this.mc.method_1507(new RecipeDetailScreen(parent, this.entry.getStack(), total, missing, summaries,
+            this.mc.setScreen(new RecipeDetailScreen(parent, this.entry.getStack(), total, missing, summaries,
                     target.recipeId(), target.itemId()));
         }
         return true;
@@ -1046,7 +1046,7 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
             return false;
         }
 
-        class_1799 stack = MinimalSubMaterialListView.displayStack(this.entry);
+        ItemStack stack = MinimalSubMaterialListView.displayStack(this.entry);
         int total = MinimalSubMaterialListView.total(this.entry, this.materialList);
         int missing = MinimalSubMaterialListView.netMissing(this.entry, this.materialList);
         List<MinimalSubMaterialListView.RequirementContribution> requirements = MinimalSubMaterialListView.sourceRequirements(this.entry, total, missing);
@@ -1062,7 +1062,7 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         }
 
         List<RecipeSummary> summaries = RecipeResolvers.findRecipes(source.icon(), source.sourceTotalCount(), source.sourceMissingCount());
-        this.mc.method_1507(new RecipeDetailScreen(GuiUtils.getCurrentScreen(), source.icon(), source.sourceTotalCount(), source.sourceMissingCount(), summaries));
+        this.mc.setScreen(new RecipeDetailScreen(GuiUtils.getCurrentScreen(), source.icon(), source.sourceTotalCount(), source.sourceMissingCount(), summaries));
         return true;
     }
 
@@ -1071,7 +1071,7 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
             return false;
         }
 
-        class_1799 stack = MinimalSubMaterialListView.displayStack(this.entry);
+        ItemStack stack = MinimalSubMaterialListView.displayStack(this.entry);
         int total = MinimalSubMaterialListView.total(this.entry, this.materialList);
         int missing = MinimalSubMaterialListView.netMissing(this.entry, this.materialList);
         List<MinimalSubMaterialListView.RequirementContribution> requirements = MinimalSubMaterialListView.sourceRequirements(this.entry, total, missing);
@@ -1155,6 +1155,6 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
     private record TooltipBounds(int x, int y, int width, int height) {
     }
 
-    private record ChoiceTooltipTarget(class_1799 icon, String name, List<MinimalSubMaterialListView.TooltipCandidate> candidates) {
+    private record ChoiceTooltipTarget(ItemStack icon, String name, List<MinimalSubMaterialListView.TooltipCandidate> candidates) {
     }
 }

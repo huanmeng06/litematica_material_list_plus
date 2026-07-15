@@ -1,17 +1,16 @@
 package io.github.huanmeng06.lmlp.gui;
 
 import java.util.List;
-
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.network.chat.Component;
 import io.github.huanmeng06.lmlp.recipe.RecipeSummary;
-import net.minecraft.class_2561;
-import net.minecraft.class_332;
-import net.minecraft.class_465;
 
 public interface RecipeTransferBridge {
     RecipeTransferBridge DISABLED = new RecipeTransferBridge() {
     };
 
-    default TransferState evaluate(RecipeSummary summary, class_465<?> containerScreen) {
+    default TransferState evaluate(RecipeSummary summary, AbstractContainerScreen<?> containerScreen) {
         return TransferState.UNSUPPORTED;
     }
 
@@ -19,17 +18,17 @@ public interface RecipeTransferBridge {
         return new Bounds(panelX + panelWidth + 2, panelY + panelHeight - 16, 10, 10);
     }
 
-    default boolean transfer(RecipeSummary summary, class_465<?> containerScreen, boolean maxTransfer) {
+    default boolean transfer(RecipeSummary summary, AbstractContainerScreen<?> containerScreen, boolean maxTransfer) {
         return false;
     }
 
-    default void renderError(RecipeSummary summary, TransferState state, class_332 context, int mouseX, int mouseY) {
+    default void renderError(RecipeSummary summary, TransferState state, GuiGraphicsExtractor context, int mouseX, int mouseY) {
     }
 
     record Bounds(int x, int y, int width, int height) {
     }
 
-    record TransferState(boolean supported, boolean enabled, boolean tinted, int tint, String label, List<class_2561> tooltip, Object nativeState) {
+    record TransferState(boolean supported, boolean enabled, boolean tinted, int tint, String label, List<Component> tooltip, Object nativeState) {
         public static final TransferState UNSUPPORTED = new TransferState(false, false, false, 0, "!", List.of(), null);
 
         public TransferState {

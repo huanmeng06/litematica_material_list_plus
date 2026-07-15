@@ -30,16 +30,6 @@ import io.github.huanmeng06.lmlp.cache.WorldMaterialCacheIndex.PlacementRecord;
 import io.github.huanmeng06.lmlp.gui.IgnoredMaterialRegistry;
 import io.github.huanmeng06.lmlp.gui.MaterialListPlusState;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
-import net.minecraft.class_1923;
-import net.minecraft.class_2338;
-import net.minecraft.class_2382;
-import net.minecraft.class_2680;
-import net.minecraft.class_2791;
-import net.minecraft.class_2806;
-import net.minecraft.class_2818;
-import net.minecraft.class_310;
-import net.minecraft.class_631;
-import net.minecraft.class_638;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -53,6 +43,16 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.ClientChunkCache;
+import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Vec3i;
+import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.chunk.ChunkAccess;
+import net.minecraft.world.level.chunk.LevelChunk;
+import net.minecraft.world.level.chunk.status.ChunkStatus;
 
 public final class ChunkMissingMaterialListCache {
     private static final Logger LOGGER = LoggerFactory.getLogger(LitematicaMaterialListPlus.MOD_ID);
@@ -73,7 +73,7 @@ public final class ChunkMissingMaterialListCache {
     private ChunkMissingMaterialListCache() {
     }
 
-    public static void onWorldJoined(class_310 client, String reason) {
+    public static void onWorldJoined(Minecraft client, String reason) {
         String worldId = WorldMaterialCacheIndex.resolveWorldId(client);
         if (worldId == null) {
             LOGGER.warn("[LMLP cache-index] world join skipped reason=missing_world_id currentDimension={}", currentDimensionId());
@@ -652,13 +652,13 @@ public final class ChunkMissingMaterialListCache {
     }
 
     public static boolean arePlacementChunksLoaded(SchematicPlacement placement) {
-        class_310 client = class_310.method_1551();
-        class_638 world = client.field_1687;
-        if (world == null || client.field_1724 == null || !isPlacementInCurrentDimension(placement)) {
+        Minecraft client = Minecraft.getInstance();
+        ClientLevel world = client.level;
+        if (world == null || client.player == null || !isPlacementInCurrentDimension(placement)) {
             return false;
         }
 
-        Collection<class_1923> touchedChunks;
+        Collection<ChunkPos> touchedChunks;
         try {
             touchedChunks = placement.getTouchedChunks();
         } catch (RuntimeException exception) {
@@ -670,18 +670,18 @@ public final class ChunkMissingMaterialListCache {
             return false;
         }
 
-        class_631 chunkManager = world.method_2935();
+        ClientChunkCache chunkManager = world.getChunkSource();
         if (chunkManager == null) {
             return false;
         }
 
-        for (class_1923 chunkPos : touchedChunks) {
-            if (chunkPos == null || !world.method_8393(chunkPos.field_9181, chunkPos.field_9180)) {
+        for (ChunkPos chunkPos : touchedChunks) {
+            if (chunkPos == null || !world.hasChunk(chunkPos.x(), chunkPos.z())) {
                 return false;
             }
 
-            class_2791 chunk = chunkManager.method_12121(chunkPos.field_9181, chunkPos.field_9180, class_2806.field_12803, false);
-            if (!(chunk instanceof class_2818) || !chunk.method_12009().method_12165(class_2806.field_12803)) {
+            ChunkAccess chunk = chunkManager.getChunk(chunkPos.x(), chunkPos.z(), ChunkStatus.FULL, false);
+            if (!(chunk instanceof LevelChunk) || !chunk.getPersistedStatus().isOrAfter(ChunkStatus.FULL)) {
                 return false;
             }
         }
@@ -977,8 +977,8 @@ public final class ChunkMissingMaterialListCache {
     }
 
     private static String currentDimensionId() {
-        class_638 world = class_310.method_1551().field_1687;
-        return world == null ? null : world.method_27983().method_29177().toString();
+        ClientLevel world = Minecraft.getInstance().level;
+        return world == null ? null : world.dimension().identifier().toString();
     }
 
     private static String displayDimension(String dimension) {
@@ -1033,7 +1033,7 @@ public final class ChunkMissingMaterialListCache {
             return MaterialListUtils.createMaterialListFor(schematic, enabledRegions);
         }
 
-        Object2IntOpenHashMap<class_2680> counts = new Object2IntOpenHashMap<>();
+        Object2IntOpenHashMap<BlockState> counts = new Object2IntOpenHashMap<>();
         LayerRange layerRange = DataManager.getRenderLayerRange();
         for (String regionName : enabledRegions) {
             countRegionInLayer(placement, schematic, regionName, layerRange, counts);
@@ -1043,7 +1043,7 @@ public final class ChunkMissingMaterialListCache {
                 counts,
                 counts,
                 new Object2IntOpenHashMap<>(),
-                class_310.method_1551().field_1724);
+                Minecraft.getInstance().player);
     }
 
     private static void setSchematicEntries(MaterialListBase materialList, SchematicPlacement placement, BlockInfoListType type) {
@@ -1165,22 +1165,22 @@ public final class ChunkMissingMaterialListCache {
             LitematicaSchematic schematic,
             String regionName,
             LayerRange layerRange,
-            Object2IntOpenHashMap<class_2680> counts) {
+            Object2IntOpenHashMap<BlockState> counts) {
         LitematicaBlockStateContainer container = schematic.getSubRegionContainer(regionName);
         SubRegionPlacement region = placement.getRelativeSubRegionPlacement(regionName);
         if (container == null || region == null) {
             return;
         }
 
-        class_2382 size = container.getSize();
-        class_2338 regionOrigin = PositionUtils.getTransformedBlockPos(region.getPos(), placement.getMirror(), placement.getRotation())
-                .method_10081(placement.getOrigin());
-        for (int y = 0; y < size.method_10264(); y++) {
-            for (int z = 0; z < size.method_10260(); z++) {
-                for (int x = 0; x < size.method_10263(); x++) {
-                    class_2338 localPos = new class_2338(x, y, z);
-                    class_2338 worldPos = PositionUtils.getTransformedPlacementPosition(localPos, placement, region)
-                            .method_10081(regionOrigin);
+        Vec3i size = container.getSize();
+        BlockPos regionOrigin = PositionUtils.getTransformedBlockPos(region.getPos(), placement.getMirror(), placement.getRotation())
+                .offset(placement.getOrigin());
+        for (int y = 0; y < size.getY(); y++) {
+            for (int z = 0; z < size.getZ(); z++) {
+                for (int x = 0; x < size.getX(); x++) {
+                    BlockPos localPos = new BlockPos(x, y, z);
+                    BlockPos worldPos = PositionUtils.getTransformedPlacementPosition(localPos, placement, region)
+                            .offset(regionOrigin);
                     if (layerRange.isPositionWithinRange(worldPos)) {
                         counts.addTo(container.get(x, y, z), 1);
                     }
@@ -1250,12 +1250,12 @@ public final class ChunkMissingMaterialListCache {
         return builder.toString();
     }
 
-    private static void appendPos(StringBuilder builder, class_2338 pos) {
-        builder.append(pos.method_10263()).append(',').append(pos.method_10264()).append(',').append(pos.method_10260());
+    private static void appendPos(StringBuilder builder, BlockPos pos) {
+        builder.append(pos.getX()).append(',').append(pos.getY()).append(',').append(pos.getZ());
     }
 
-    private static String formatPos(class_2338 pos) {
-        return "[" + pos.method_10263() + ", " + pos.method_10264() + ", " + pos.method_10260() + "]";
+    private static String formatPos(BlockPos pos) {
+        return "[" + pos.getX() + ", " + pos.getY() + ", " + pos.getZ() + "]";
     }
 
     private static void ensureWorldSession(String reason) {
@@ -1263,7 +1263,7 @@ public final class ChunkMissingMaterialListCache {
             return;
         }
 
-        String worldId = WorldMaterialCacheIndex.resolveWorldId(class_310.method_1551());
+        String worldId = WorldMaterialCacheIndex.resolveWorldId(Minecraft.getInstance());
         if (worldId == null) {
             if (currentWorldId != null || !PLACEMENT_CONTEXTS_BY_KEY.isEmpty()) {
                 LOGGER.warn("[LMLP cache-index] world session cleared reason=missing_world_id caller={} previousWorldId={}",

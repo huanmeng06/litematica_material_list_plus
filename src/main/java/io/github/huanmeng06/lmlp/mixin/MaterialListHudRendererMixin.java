@@ -7,7 +7,7 @@ import io.github.huanmeng06.lmlp.gui.MinimalSubMaterialHudRenderer;
 import io.github.huanmeng06.lmlp.gui.MinimalSubMaterialListView;
 import io.github.huanmeng06.lmlp.material.CountFormatter;
 import io.github.huanmeng06.lmlp.material.MaterialListHudState;
-import net.minecraft.class_332;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Overwrite;
@@ -25,7 +25,7 @@ public abstract class MaterialListHudRendererMixin {
     protected MaterialListBase materialList;
 
     @Inject(method = "render", at = @At("HEAD"), cancellable = true)
-    private void lmlp$renderMinimalSubMaterialHud(class_332 drawContext, int xOffset, int yOffset, HudAlignment alignment, CallbackInfoReturnable<Integer> cir) {
+    private void lmlp$renderMinimalSubMaterialHud(GuiGraphicsExtractor drawContext, int xOffset, int yOffset, HudAlignment alignment, CallbackInfoReturnable<Integer> cir) {
         if (MinimalSubMaterialListView.isActive(this.materialList)) {
             cir.setReturnValue(MinimalSubMaterialHudRenderer.render(this.materialList, xOffset, yOffset, alignment, drawContext));
         }

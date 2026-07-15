@@ -1,7 +1,7 @@
 package io.github.huanmeng06.lmlp.gui;
 
 import java.util.List;
-
+import net.minecraft.world.item.ItemStack;
 import fi.dy.masa.malilib.gui.GuiBase;
 import fi.dy.masa.malilib.gui.widgets.WidgetBase;
 import fi.dy.masa.malilib.render.RenderUtils;
@@ -9,7 +9,6 @@ import fi.dy.masa.malilib.util.StringUtils;
 import io.github.huanmeng06.lmlp.material.CountFormatter;
 import io.github.huanmeng06.lmlp.material.FamilyIconCycle;
 import io.github.huanmeng06.lmlp.material.ItemStackTexts;
-import net.minecraft.class_1799;
 import fi.dy.masa.malilib.render.GuiContext;
 
 public final class MinimalSourceInlineRenderer {
@@ -45,11 +44,11 @@ public final class MinimalSourceInlineRenderer {
     private MinimalSourceInlineRenderer() {
     }
 
-    public static int getHeight(class_1799 targetIcon, List<MinimalSubMaterialListView.RequirementContribution> requirements, List<MinimalSubMaterialListView.SourceContribution> sources, boolean showAll) {
+    public static int getHeight(ItemStack targetIcon, List<MinimalSubMaterialListView.RequirementContribution> requirements, List<MinimalSubMaterialListView.SourceContribution> sources, boolean showAll) {
         return getHeight(targetIcon, requirements, sources, showAll, 0);
     }
 
-    public static int getHeight(class_1799 targetIcon, List<MinimalSubMaterialListView.RequirementContribution> requirements, List<MinimalSubMaterialListView.SourceContribution> sources, boolean showAll, int width) {
+    public static int getHeight(ItemStack targetIcon, List<MinimalSubMaterialListView.RequirementContribution> requirements, List<MinimalSubMaterialListView.SourceContribution> sources, boolean showAll, int width) {
         if (sources.isEmpty()) {
             return 48;
         }
@@ -63,19 +62,19 @@ public final class MinimalSourceInlineRenderer {
         return 50 + requirementHeight(requirements, contentWidth) + layout.rowCount() * ROW_HEIGHT + INNER_BOTTOM_PADDING;
     }
 
-    public static int getOuterHeight(class_1799 targetIcon, List<MinimalSubMaterialListView.RequirementContribution> requirements, List<MinimalSubMaterialListView.SourceContribution> sources, boolean showAll) {
+    public static int getOuterHeight(ItemStack targetIcon, List<MinimalSubMaterialListView.RequirementContribution> requirements, List<MinimalSubMaterialListView.SourceContribution> sources, boolean showAll) {
         return getHeight(targetIcon, requirements, sources, showAll) + ENTRY_BOTTOM_GAP;
     }
 
-    public static int getOuterHeight(class_1799 targetIcon, List<MinimalSubMaterialListView.RequirementContribution> requirements, List<MinimalSubMaterialListView.SourceContribution> sources, boolean showAll, int width) {
+    public static int getOuterHeight(ItemStack targetIcon, List<MinimalSubMaterialListView.RequirementContribution> requirements, List<MinimalSubMaterialListView.SourceContribution> sources, boolean showAll, int width) {
         return getHeight(targetIcon, requirements, sources, showAll, width) + ENTRY_BOTTOM_GAP;
     }
 
-    public static int getOuterHeight(class_1799 targetIcon, List<MinimalSubMaterialListView.RequirementContribution> requirements, List<MinimalSubMaterialListView.SourceContribution> sources, boolean showAll, float progress) {
+    public static int getOuterHeight(ItemStack targetIcon, List<MinimalSubMaterialListView.RequirementContribution> requirements, List<MinimalSubMaterialListView.SourceContribution> sources, boolean showAll, float progress) {
         return Math.round(getOuterHeight(targetIcon, requirements, sources, showAll) * progress);
     }
 
-    public static int getOuterHeight(class_1799 targetIcon, List<MinimalSubMaterialListView.RequirementContribution> requirements, List<MinimalSubMaterialListView.SourceContribution> sources, boolean showAll, int width, float progress) {
+    public static int getOuterHeight(ItemStack targetIcon, List<MinimalSubMaterialListView.RequirementContribution> requirements, List<MinimalSubMaterialListView.SourceContribution> sources, boolean showAll, int width, float progress) {
         return Math.round(getOuterHeight(targetIcon, requirements, sources, showAll, width) * progress);
     }
 
@@ -83,7 +82,7 @@ public final class MinimalSourceInlineRenderer {
         return requiredContentWidth(requirements, sources);
     }
 
-    public static boolean isTargetNameHovered(int x, int y, int width, class_1799 targetIcon, int targetNameWidth, List<MinimalSubMaterialListView.RequirementContribution> requirements, List<MinimalSubMaterialListView.SourceContribution> sources, int visibleOuterHeight, int mouseX, int mouseY) {
+    public static boolean isTargetNameHovered(int x, int y, int width, ItemStack targetIcon, int targetNameWidth, List<MinimalSubMaterialListView.RequirementContribution> requirements, List<MinimalSubMaterialListView.SourceContribution> sources, int visibleOuterHeight, int mouseX, int mouseY) {
         int visibleHeight = Math.max(0, visibleOuterHeight - ENTRY_BOTTOM_GAP);
         int textX = x + PADDING + 24;
         int textY = y + PADDING + 4;
@@ -112,7 +111,7 @@ public final class MinimalSourceInlineRenderer {
         return isVisibleTextHovered(textX, cursorY, targetNameWidth, y, visibleHeight, mouseX, mouseY);
     }
 
-    public static MinimalSubMaterialListView.SourceContribution sourceAt(int x, int y, int width, class_1799 targetIcon, List<MinimalSubMaterialListView.RequirementContribution> requirements, List<MinimalSubMaterialListView.SourceContribution> sources, boolean showAll, int visibleOuterHeight, int mouseX, int mouseY) {
+    public static MinimalSubMaterialListView.SourceContribution sourceAt(int x, int y, int width, ItemStack targetIcon, List<MinimalSubMaterialListView.RequirementContribution> requirements, List<MinimalSubMaterialListView.SourceContribution> sources, boolean showAll, int visibleOuterHeight, int mouseX, int mouseY) {
         if (sources.isEmpty() || isSelfSource(targetIcon, sources)) {
             return null;
         }
@@ -147,9 +146,9 @@ public final class MinimalSourceInlineRenderer {
         return null;
     }
 
-    public static class_1799 hoveredStackAt(int x, int y, int width, class_1799 targetIcon, List<MinimalSubMaterialListView.RequirementContribution> requirements, List<MinimalSubMaterialListView.SourceContribution> sources, boolean showAll, int visibleOuterHeight, int mouseX, int mouseY) {
+    public static ItemStack hoveredStackAt(int x, int y, int width, ItemStack targetIcon, List<MinimalSubMaterialListView.RequirementContribution> requirements, List<MinimalSubMaterialListView.SourceContribution> sources, boolean showAll, int visibleOuterHeight, int mouseX, int mouseY) {
         if (sources.isEmpty()) {
-            return class_1799.field_8037;
+            return ItemStack.EMPTY;
         }
 
         int panelWidth = panelWidthFor(width);
@@ -163,14 +162,14 @@ public final class MinimalSourceInlineRenderer {
 
         cursorY += 24;
         if (isSelfSource(targetIcon, sources)) {
-            return class_1799.field_8037;
+            return ItemStack.EMPTY;
         }
 
         if (!requirements.isEmpty()) {
             cursorY += 18;
             for (MinimalSubMaterialListView.RequirementContribution requirement : requirements) {
-                class_1799 stack = hoveredRequirementStackAt(requirement, textX, cursorY, y, visibleHeight, mouseX, mouseY, contentWidth);
-                if (!stack.method_7960()) {
+                ItemStack stack = hoveredRequirementStackAt(requirement, textX, cursorY, y, visibleHeight, mouseX, mouseY, contentWidth);
+                if (!stack.isEmpty()) {
                     return stack;
                 }
                 cursorY += requirementLineCount(requirement, contentWidth) * ROW_HEIGHT;
@@ -193,10 +192,10 @@ public final class MinimalSourceInlineRenderer {
             }
         }
 
-        return class_1799.field_8037;
+        return ItemStack.EMPTY;
     }
 
-    public static void render(WidgetBase widget, GuiContext context, int x, int y, int width, class_1799 targetIcon, String targetName, List<MinimalSubMaterialListView.RequirementContribution> requirements, List<MinimalSubMaterialListView.SourceContribution> sources, boolean showAll, int visibleOuterHeight, int mouseX, int mouseY) {
+    public static void render(WidgetBase widget, GuiContext context, int x, int y, int width, ItemStack targetIcon, String targetName, List<MinimalSubMaterialListView.RequirementContribution> requirements, List<MinimalSubMaterialListView.SourceContribution> sources, boolean showAll, int visibleOuterHeight, int mouseX, int mouseY) {
         int height = getHeight(targetIcon, requirements, sources, showAll, width);
         int panelWidth = panelWidthFor(width);
         int contentWidth = panelWidth - PADDING * 2;
@@ -212,24 +211,24 @@ public final class MinimalSourceInlineRenderer {
             return;
         }
 
-        context.method_44379(x + 1, y + 1, x + panelWidth - 1, y + visibleHeight - 1);
+        context.enableScissor(x + 1, y + 1, x + panelWidth - 1, y + visibleHeight - 1);
 
         if (sources.isEmpty()) {
             widget.drawString(context, textX, y + 16, 0xFFFFCC66, StringUtils.translate("lmlp.label.minimal_sources.none"));
-            context.method_44380();
+            context.disableScissor();
             drawOutline(context, x, y, panelWidth, visibleHeight, 0xFF777777);
             return;
         }
 
         int cursorY = y + PADDING;
-        context.method_51427(targetIcon, textX, cursorY);
+        context.renderItem(targetIcon, textX, cursorY);
         widget.drawString(context, textX + 24, cursorY + 4, 0xFFFFFFFF, GuiBase.TXT_BOLD + targetName);
         cursorY += 24;
 
         String boldTargetName = GuiBase.TXT_BOLD + targetName + GuiBase.TXT_RST;
         if (isSelfSource(targetIcon, sources)) {
             widget.drawString(context, textX, cursorY + 2, 0xFFFFFFFF, StringUtils.translate("lmlp.label.minimal_sources.self_material", boldTargetName));
-            context.method_44380();
+            context.disableScissor();
             drawOutline(context, x, y, panelWidth, visibleHeight, 0xFF777777);
             return;
         }
@@ -302,7 +301,7 @@ public final class MinimalSourceInlineRenderer {
             renderSourceRow(widget, context, rowX, rowY, source, source == hoveredSource);
         }
 
-        context.method_44380();
+        context.disableScissor();
         drawOutline(context, x, y, panelWidth, visibleHeight, 0xFF777777);
     }
 
@@ -321,7 +320,7 @@ public final class MinimalSourceInlineRenderer {
         return StringUtils.translate(key);
     }
 
-    public static SortButtonTarget sortButtonTargetAt(int x, int y, int width, class_1799 targetIcon, List<MinimalSubMaterialListView.RequirementContribution> requirements, List<MinimalSubMaterialListView.SourceContribution> sources, int visibleOuterHeight, int mouseX, int mouseY) {
+    public static SortButtonTarget sortButtonTargetAt(int x, int y, int width, ItemStack targetIcon, List<MinimalSubMaterialListView.RequirementContribution> requirements, List<MinimalSubMaterialListView.SourceContribution> sources, int visibleOuterHeight, int mouseX, int mouseY) {
         if (sources.isEmpty() || isSelfSource(targetIcon, sources)) {
             return SortButtonTarget.NONE;
         }
@@ -462,7 +461,7 @@ public final class MinimalSourceInlineRenderer {
         return (visibleCount + columns - 1) / columns;
     }
 
-    private static boolean isSelfSource(class_1799 targetIcon, List<MinimalSubMaterialListView.SourceContribution> sources) {
+    private static boolean isSelfSource(ItemStack targetIcon, List<MinimalSubMaterialListView.SourceContribution> sources) {
         return sources.size() == 1 && ItemStackTexts.id(targetIcon).equals(ItemStackTexts.id(sources.get(0).icon()));
     }
 
@@ -506,7 +505,7 @@ public final class MinimalSourceInlineRenderer {
                 upstream.maxStackSize());
     }
 
-    private static class_1799 hoveredRequirementStackAt(MinimalSubMaterialListView.RequirementContribution requirement, int textX, int y, int panelY, int visibleHeight, int mouseX, int mouseY, int contentWidth) {
+    private static ItemStack hoveredRequirementStackAt(MinimalSubMaterialListView.RequirementContribution requirement, int textX, int y, int panelY, int visibleHeight, int mouseX, int mouseY, int contentWidth) {
         String line = countLine(MinimalSubMaterialListView.requirementDisplayName(requirement), requirement.totalCount(), requirement.missingCount(), requirement.maxStackSize());
         if (isCountRowHovered(textX, y, line, panelY, visibleHeight, mouseX, mouseY)) {
             return cyclingIcon(requirement.icons(), requirement.icon());
@@ -514,7 +513,7 @@ public final class MinimalSourceInlineRenderer {
 
         MinimalSubMaterialListView.UpstreamRequirement upstream = requirement.upstream();
         if (upstream == null) {
-            return class_1799.field_8037;
+            return ItemStack.EMPTY;
         }
 
         int arrowX;
@@ -533,12 +532,12 @@ public final class MinimalSourceInlineRenderer {
             return cyclingIcon(upstream.icons(), upstream.icon());
         }
 
-        return class_1799.field_8037;
+        return ItemStack.EMPTY;
     }
 
     /** A hovered "任意X" name in the requirement block: which requirement/upstream
      * plus the icon currently on screen (cycling with the family clock). */
-    public record RequirementNameHit(class_1799 icon, MinimalSubMaterialListView.RequirementContribution requirement, boolean upstream) {
+    public record RequirementNameHit(ItemStack icon, MinimalSubMaterialListView.RequirementContribution requirement, boolean upstream) {
     }
 
     // Hit-test the requirement block's yellow "任意X" name text (the trigger for the
@@ -546,7 +545,7 @@ public final class MinimalSourceInlineRenderer {
     // hit-box follows the same one-line/wrapped placement and the returned icon
     // matches the inline cycling icon. Returns null when no requirement name is
     // hovered.
-    public static RequirementNameHit hoveredRequirementName(int x, int y, int width, class_1799 targetIcon, List<MinimalSubMaterialListView.RequirementContribution> requirements, List<MinimalSubMaterialListView.SourceContribution> sources, boolean showAll, int visibleOuterHeight, int mouseX, int mouseY) {
+    public static RequirementNameHit hoveredRequirementName(int x, int y, int width, ItemStack targetIcon, List<MinimalSubMaterialListView.RequirementContribution> requirements, List<MinimalSubMaterialListView.SourceContribution> sources, boolean showAll, int visibleOuterHeight, int mouseX, int mouseY) {
         if (requirements.isEmpty() || sources.isEmpty() || isSelfSource(targetIcon, sources)) {
             return null;
         }
@@ -589,22 +588,22 @@ public final class MinimalSourceInlineRenderer {
         return null;
     }
 
-    private static void renderNameRow(WidgetBase widget, GuiContext context, int textX, int y, class_1799 icon, String name) {
+    private static void renderNameRow(WidgetBase widget, GuiContext context, int textX, int y, ItemStack icon, String name) {
         RenderUtils.drawRect(context, textX, y + SOURCE_ICON_BOX_Y_OFFSET, SOURCE_ICON_BOX_SIZE,
                 SOURCE_ICON_BOX_SIZE, 0x30FFFFFF);
-        context.method_51427(icon, textX + 1, y + SOURCE_ICON_BOX_Y_OFFSET + 1);
+        context.renderItem(icon, textX + 1, y + SOURCE_ICON_BOX_Y_OFFSET + 1);
 
         widget.drawString(context, textX + 26, y + 2, 0xFFFFFFFF, name);
     }
 
-    private static String renderCountRow(WidgetBase widget, GuiContext context, int textX, int y, class_1799 icon, String name, int totalCount, int missingCount, int maxStackSize) {
+    private static String renderCountRow(WidgetBase widget, GuiContext context, int textX, int y, ItemStack icon, String name, int totalCount, int missingCount, int maxStackSize) {
         return renderCountRow(widget, context, textX, y, icon, name, totalCount, missingCount, maxStackSize, false);
     }
 
-    private static String renderCountRow(WidgetBase widget, GuiContext context, int textX, int y, class_1799 icon, String name, int totalCount, int missingCount, int maxStackSize, boolean underlined) {
+    private static String renderCountRow(WidgetBase widget, GuiContext context, int textX, int y, ItemStack icon, String name, int totalCount, int missingCount, int maxStackSize, boolean underlined) {
         RenderUtils.drawRect(context, textX, y + SOURCE_ICON_BOX_Y_OFFSET, SOURCE_ICON_BOX_SIZE,
                 SOURCE_ICON_BOX_SIZE, 0x30FFFFFF);
-        context.method_51427(icon, textX + 1, y + SOURCE_ICON_BOX_Y_OFFSET + 1);
+        context.renderItem(icon, textX + 1, y + SOURCE_ICON_BOX_Y_OFFSET + 1);
 
         String total = CountFormatter.format(totalCount, maxStackSize);
         String missing = CountFormatter.format(missingCount, maxStackSize);
@@ -645,13 +644,13 @@ public final class MinimalSourceInlineRenderer {
                 && mouseY < panelY + visibleHeight;
     }
 
-    private static class_1799 cyclingIcon(List<class_1799> icons, class_1799 fallback) {
+    private static ItemStack cyclingIcon(List<ItemStack> icons, ItemStack fallback) {
         if (icons.isEmpty()) {
             return fallback;
         }
 
-        class_1799 icon = FamilyIconCycle.pick(icons, System.currentTimeMillis(), FAMILY_CYCLE_MILLIS, ICON_CYCLE_MILLIS);
-        return icon.method_7960() ? fallback : icon;
+        ItemStack icon = FamilyIconCycle.pick(icons, System.currentTimeMillis(), FAMILY_CYCLE_MILLIS, ICON_CYCLE_MILLIS);
+        return icon.isEmpty() ? fallback : icon;
     }
 
     private static void drawColumnSeparators(GuiContext context, int contentX, int boxY, SourceColumnLayout layout) {

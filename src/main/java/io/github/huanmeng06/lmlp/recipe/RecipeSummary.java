@@ -1,13 +1,12 @@
 package io.github.huanmeng06.lmlp.recipe;
 
 import java.util.List;
-
-import net.minecraft.class_1799;
+import net.minecraft.world.item.ItemStack;
 
 public final class RecipeSummary {
     private final String category;
     private final String recipeId;
-    private final class_1799 outputIcon;
+    private final ItemStack outputIcon;
     private final int outputCount;
     private final int craftsTotal;
     private final int craftsMissing;
@@ -18,11 +17,11 @@ public final class RecipeSummary {
     private final boolean shapeless;
     private final Object nativeDisplay;
 
-    public RecipeSummary(String category, String recipeId, class_1799 outputIcon, int outputCount, int craftsTotal, int craftsMissing, List<IngredientSummary> ingredients, List<RecipeSlotSummary> inputSlots, int gridWidth, int gridHeight, boolean shapeless) {
+    public RecipeSummary(String category, String recipeId, ItemStack outputIcon, int outputCount, int craftsTotal, int craftsMissing, List<IngredientSummary> ingredients, List<RecipeSlotSummary> inputSlots, int gridWidth, int gridHeight, boolean shapeless) {
         this(category, recipeId, outputIcon, outputCount, craftsTotal, craftsMissing, ingredients, inputSlots, gridWidth, gridHeight, shapeless, null);
     }
 
-    public RecipeSummary(String category, String recipeId, class_1799 outputIcon, int outputCount, int craftsTotal, int craftsMissing, List<IngredientSummary> ingredients, List<RecipeSlotSummary> inputSlots, int gridWidth, int gridHeight, boolean shapeless, Object nativeDisplay) {
+    public RecipeSummary(String category, String recipeId, ItemStack outputIcon, int outputCount, int craftsTotal, int craftsMissing, List<IngredientSummary> ingredients, List<RecipeSlotSummary> inputSlots, int gridWidth, int gridHeight, boolean shapeless, Object nativeDisplay) {
         this.category = category;
         this.recipeId = recipeId;
         this.outputIcon = outputIcon;
@@ -45,7 +44,7 @@ public final class RecipeSummary {
         return this.recipeId;
     }
 
-    public class_1799 outputIcon() {
+    public ItemStack outputIcon() {
         return this.outputIcon;
     }
 

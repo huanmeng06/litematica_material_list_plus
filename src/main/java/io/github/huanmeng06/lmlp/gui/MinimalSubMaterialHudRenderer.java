@@ -6,13 +6,10 @@ import fi.dy.masa.litematica.materials.MaterialListEntry;
 import fi.dy.masa.malilib.config.HudAlignment;
 import fi.dy.masa.malilib.gui.GuiBase;
 import fi.dy.masa.malilib.render.RenderUtils;
+import fi.dy.masa.malilib.render.GuiContext;
 import fi.dy.masa.malilib.util.GuiUtils;
 import fi.dy.masa.malilib.util.StringUtils;
 import io.github.huanmeng06.lmlp.material.CountFormatter;
-import net.minecraft.class_1799;
-import net.minecraft.class_310;
-import net.minecraft.class_327;
-import net.minecraft.class_332;
 import org.joml.Matrix3x2fStack;
 
 import java.util.ArrayList;
@@ -20,6 +17,10 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.WeakHashMap;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.world.item.ItemStack;
 
 /**
  * Renders the material list HUD for the minimal sub-material view, mirroring
@@ -33,8 +34,9 @@ public final class MinimalSubMaterialHudRenderer {
     private MinimalSubMaterialHudRenderer() {
     }
 
-    public static int render(MaterialListBase materialList, int xOffset, int yOffset, HudAlignment alignment, class_332 drawContext) {
-        class_310 mc = class_310.method_1551();
+    public static int render(MaterialListBase materialList, int xOffset, int yOffset, HudAlignment alignment, GuiGraphicsExtractor drawContext) {
+        GuiContext context = GuiContext.fromGuiGraphics(drawContext);
+        Minecraft mc = Minecraft.getInstance();
         List<HudLine> lines = linesFor(materialList);
 
         if (lines.isEmpty()) {
@@ -48,7 +50,7 @@ public final class MinimalSubMaterialHudRenderer {
             return 0;
         }
 
-        class_327 font = mc.field_1772;
+        Font font = mc.font;
         int bgMargin = 2;
         int lineHeight = 16;
         final int size = Math.min(lines.size(), maxLines);
@@ -62,8 +64,8 @@ public final class MinimalSubMaterialHudRenderer {
 
         for (int i = 0; i < size; i++) {
             HudLine line = lines.get(i);
-            maxTextLength = Math.max(maxTextLength, font.method_1727(line.name()));
-            maxCountLength = Math.max(maxCountLength, font.method_1727(line.countText()));
+            maxTextLength = Math.max(maxTextLength, font.width(line.name()));
+            maxCountLength = Math.max(maxCountLength, font.width(line.countText()));
         }
 
         final int maxLineLength = maxTextLength + maxCountLength + 30;
@@ -84,9 +86,9 @@ public final class MinimalSubMaterialHudRenderer {
         }
 
         posY = RenderUtils.getHudPosY(posY, yOffset, contentHeight, scale, alignment);
-        posY += RenderUtils.getHudOffsetForPotions(alignment, scale, mc.field_1724);
+        posY += RenderUtils.getHudOffsetForPotions(alignment, scale, mc.player);
 
-        Matrix3x2fStack matrixStack = drawContext.method_51448();
+        Matrix3x2fStack matrixStack = context.pose();
 
         if (scale != 1d) {
             matrixStack.pushMatrix();
@@ -97,20 +99,18 @@ public final class MinimalSubMaterialHudRenderer {
         int y1 = posY - bgMargin;
         int x2 = x1 + maxLineLength + bgMargin * 2;
         int y2 = y1 + contentHeight + bgMargin;
-        drawContext.method_25294(x1, y1, x2, y2, bgColor);
+        context.fill(x1, y1, x2, y2, bgColor);
 
         int x = posX;
         int y = posY + 12;
 
-        RenderUtils.blend(true);
-
         for (int i = 0; i < size; i++) {
-            drawContext.method_51427(lines.get(i).stack(), x, y);
+            context.renderItem(lines.get(i).stack(), x, y);
             y += lineHeight;
         }
 
         String title = GuiBase.TXT_BOLD + StringUtils.translate("lmlp.hud.title.minimal_sub_material") + GuiBase.TXT_RST;
-        drawContext.method_51433(font, title, posX + 2, posY + 2, textColor, false);
+        context.drawString(font, title, posX + 2, posY + 2, textColor, false);
 
         final int itemCountTextColor = Configs.Colors.MATERIAL_LIST_HUD_ITEM_COUNTS.getIntegerValue();
         x = posX + 18;
@@ -118,11 +118,11 @@ public final class MinimalSubMaterialHudRenderer {
 
         for (int i = 0; i < size; i++) {
             HudLine line = lines.get(i);
-            int cntLen = font.method_1727(line.countText());
+            int cntLen = font.width(line.countText());
             int cntPosX = posX + maxLineLength - cntLen - 2;
 
-            drawContext.method_51433(font, line.name(), x, y, textColor, false);
-            drawContext.method_51433(font, line.countText(), cntPosX, y, itemCountTextColor, false);
+            context.drawString(font, line.name(), x, y, textColor, false);
+            context.drawString(font, line.countText(), cntPosX, y, itemCountTextColor, false);
 
             y += lineHeight;
         }
@@ -151,9 +151,9 @@ public final class MinimalSubMaterialHudRenderer {
                 continue;
             }
 
-            class_1799 stack = MinimalSubMaterialListView.displayStack(entry);
+            ItemStack stack = MinimalSubMaterialListView.displayStack(entry);
             String name = MinimalSubMaterialListView.displayName(entry);
-            lines.add(new HudLine(stack, name, count, CountFormatter.format(count, stack.method_7914())));
+            lines.add(new HudLine(stack, name, count, CountFormatter.format(count, stack.getMaxStackSize())));
         }
 
         lines.sort(Comparator.comparingInt(HudLine::count).reversed());
@@ -161,7 +161,7 @@ public final class MinimalSubMaterialHudRenderer {
         return lines;
     }
 
-    private record HudLine(class_1799 stack, String name, int count, String countText) {
+    private record HudLine(ItemStack stack, String name, int count, String countText) {
     }
 
     private record CachedLines(List<HudLine> lines, long updateTime) {

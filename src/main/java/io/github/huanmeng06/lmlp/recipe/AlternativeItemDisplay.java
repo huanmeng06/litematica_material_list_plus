@@ -3,11 +3,10 @@ package io.github.huanmeng06.lmlp.recipe;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
+import net.minecraft.world.item.ItemStack;
 import fi.dy.masa.malilib.util.StringUtils;
 import io.github.huanmeng06.lmlp.material.FamilyIconCycle;
 import io.github.huanmeng06.lmlp.material.ItemStackTexts;
-import net.minecraft.class_1799;
 
 public final class AlternativeItemDisplay {
     // How long each wood family stays on screen before the cycle advances to
@@ -68,19 +67,19 @@ public final class AlternativeItemDisplay {
     private AlternativeItemDisplay() {
     }
 
-    public static class_1799 icon(IngredientSummary ingredient) {
+    public static ItemStack icon(IngredientSummary ingredient) {
         return cyclingIcon(ingredient.icons(), ingredient.icon());
     }
 
-    public static class_1799 icon(RecipeSlotSummary slot) {
+    public static ItemStack icon(RecipeSlotSummary slot) {
         return cyclingIcon(slot.icons(), slot.icon());
     }
 
-    public static class_1799 icon(MaterialTreeNode node) {
+    public static ItemStack icon(MaterialTreeNode node) {
         return cyclingIcon(node.icons(), node.icon());
     }
 
-    public static String name(List<class_1799> icons, List<String> alternatives) {
+    public static String name(List<ItemStack> icons, List<String> alternatives) {
         if (alternatives.isEmpty()) {
             return "";
         }
@@ -122,7 +121,7 @@ public final class AlternativeItemDisplay {
         return "";
     }
 
-    private static String directAlternativeName(List<class_1799> icons, List<String> alternatives) {
+    private static String directAlternativeName(List<ItemStack> icons, List<String> alternatives) {
         String coalCharcoalName = coalCharcoalName(icons, alternatives);
         if (!coalCharcoalName.isEmpty()) {
             return coalCharcoalName;
@@ -139,7 +138,7 @@ public final class AlternativeItemDisplay {
         return "";
     }
 
-    private static String coalCharcoalName(List<class_1799> icons, List<String> alternatives) {
+    private static String coalCharcoalName(List<ItemStack> icons, List<String> alternatives) {
         if (icons.size() != 2 || icons.size() != alternatives.size()) {
             return "";
         }
@@ -160,10 +159,10 @@ public final class AlternativeItemDisplay {
         return coal.isEmpty() || charcoal.isEmpty() ? "" : charcoal + "/" + coal;
     }
 
-    private static boolean isSandPair(List<class_1799> icons) {
+    private static boolean isSandPair(List<ItemStack> icons) {
         boolean hasSand = false;
         boolean hasRedSand = false;
-        for (class_1799 icon : icons) {
+        for (ItemStack icon : icons) {
             String id = ItemStackTexts.id(icon);
             if (id.equals("minecraft:sand")) {
                 hasSand = true;
@@ -177,10 +176,10 @@ public final class AlternativeItemDisplay {
         return hasSand && hasRedSand;
     }
 
-    private static boolean isPurpurPair(List<class_1799> icons) {
+    private static boolean isPurpurPair(List<ItemStack> icons) {
         boolean hasPurpurBlock = false;
         boolean hasPurpurPillar = false;
-        for (class_1799 icon : icons) {
+        for (ItemStack icon : icons) {
             String id = ItemStackTexts.id(icon);
             if (id.equals("minecraft:purpur_block")) {
                 hasPurpurBlock = true;
@@ -194,7 +193,7 @@ public final class AlternativeItemDisplay {
         return hasPurpurBlock && hasPurpurPillar;
     }
 
-    private static String sameWoodFamilyLogName(List<class_1799> icons, List<String> alternatives) {
+    private static String sameWoodFamilyLogName(List<ItemStack> icons, List<String> alternatives) {
         if (icons.size() < 2 || icons.size() != alternatives.size()) {
             return "";
         }
@@ -225,7 +224,7 @@ public final class AlternativeItemDisplay {
         return preferredName.isEmpty() ? alternatives.get(0) : preferredName;
     }
 
-    private static String sameWoodFamilyPlanksName(List<class_1799> icons, List<String> alternatives) {
+    private static String sameWoodFamilyPlanksName(List<ItemStack> icons, List<String> alternatives) {
         if (icons.size() < 2 || icons.size() != alternatives.size()) {
             return "";
         }
@@ -256,16 +255,16 @@ public final class AlternativeItemDisplay {
         return preferredName.isEmpty() ? alternatives.get(0) : preferredName;
     }
 
-    private static class_1799 cyclingIcon(List<class_1799> icons, class_1799 fallback) {
+    private static ItemStack cyclingIcon(List<ItemStack> icons, ItemStack fallback) {
         if (icons.isEmpty()) {
             return fallback;
         }
 
-        class_1799 icon = FamilyIconCycle.pick(icons, System.currentTimeMillis(), FAMILY_CYCLE_MILLIS, ICON_CYCLE_MILLIS);
-        return icon.method_7960() ? fallback : icon;
+        ItemStack icon = FamilyIconCycle.pick(icons, System.currentTimeMillis(), FAMILY_CYCLE_MILLIS, ICON_CYCLE_MILLIS);
+        return icon.isEmpty() ? fallback : icon;
     }
 
-    private static String commonGroupKey(List<class_1799> icons) {
+    private static String commonGroupKey(List<ItemStack> icons) {
         if (icons.size() < 2) {
             return "";
         }
@@ -278,9 +277,9 @@ public final class AlternativeItemDisplay {
         return suffix.isEmpty() ? "" : COMMON_GROUP_KEYS.getOrDefault(suffix, "");
     }
 
-    private static String commonIdSuffix(List<class_1799> icons) {
+    private static String commonIdSuffix(List<ItemStack> icons) {
         String suffix = null;
-        for (class_1799 icon : icons) {
+        for (ItemStack icon : icons) {
             String id = ItemStackTexts.id(icon);
             String path = itemPath(id);
             String currentSuffix = removeCommonPrefix(path);
@@ -297,10 +296,10 @@ public final class AlternativeItemDisplay {
         return suffix == null ? "" : suffix;
     }
 
-    private static String commonWoodLogSuffix(List<class_1799> icons) {
+    private static String commonWoodLogSuffix(List<ItemStack> icons) {
         boolean hasLog = false;
         boolean hasWood = false;
-        for (class_1799 icon : icons) {
+        for (ItemStack icon : icons) {
             String id = ItemStackTexts.id(icon);
             String path = itemPath(id);
             String suffix = removeCommonPrefix(path);
@@ -344,7 +343,7 @@ public final class AlternativeItemDisplay {
     // heuristics, which only fire when every icon shares one family (e.g.
     // oak_log + oak_wood) and would otherwise fall back to a single item name
     // like "橡木原木" for a cross-family union.
-    private static String woodFamilyGroupName(List<class_1799> icons) {
+    private static String woodFamilyGroupName(List<ItemStack> icons) {
         if (icons.size() < 2) {
             return "";
         }
@@ -360,9 +359,9 @@ public final class AlternativeItemDisplay {
         return "";
     }
 
-    private static boolean hasMultipleWoodFamilies(List<class_1799> icons) {
+    private static boolean hasMultipleWoodFamilies(List<ItemStack> icons) {
         String firstFamily = "";
-        for (class_1799 icon : icons) {
+        for (ItemStack icon : icons) {
             String family = woodFamily(itemPath(icon));
             if (family.isEmpty()) {
                 return true;
@@ -377,13 +376,13 @@ public final class AlternativeItemDisplay {
         return false;
     }
 
-    private static boolean allIconsMatch(List<class_1799> icons, java.util.function.Predicate<String> predicate) {
+    private static boolean allIconsMatch(List<ItemStack> icons, java.util.function.Predicate<String> predicate) {
         if (icons.isEmpty()) {
             return false;
         }
 
-        for (class_1799 icon : icons) {
-            if (icon.method_7960() || !predicate.test(itemPath(icon))) {
+        for (ItemStack icon : icons) {
+            if (icon.isEmpty() || !predicate.test(itemPath(icon))) {
                 return false;
             }
         }
@@ -414,7 +413,7 @@ public final class AlternativeItemDisplay {
         return "";
     }
 
-    private static String itemPath(class_1799 stack) {
+    private static String itemPath(ItemStack stack) {
         return itemPath(ItemStackTexts.id(stack));
     }
 

@@ -3,10 +3,9 @@ package io.github.huanmeng06.lmlp.material;
 import fi.dy.masa.malilib.util.StringUtils;
 import io.github.huanmeng06.lmlp.config.Configs;
 import io.github.huanmeng06.lmlp.config.CountDisplayStyle;
-import net.minecraft.class_1799;
-
 import java.util.LinkedHashMap;
 import java.util.Map;
+import net.minecraft.world.item.ItemStack;
 
 public final class CountFormatter {
     private static final int STACKS_PER_SHULKER_BOX = 27;
@@ -41,12 +40,12 @@ public final class CountFormatter {
         COMPACT_CACHE.clear();
     }
 
-    public static String format(class_1799 stack, int count) {
+    public static String format(ItemStack stack, int count) {
         return format(stack, (long) count);
     }
 
-    public static String format(class_1799 stack, long count) {
-        return format(count, stack.method_7914());
+    public static String format(ItemStack stack, long count) {
+        return format(count, stack.getMaxStackSize());
     }
 
     public static String format(int count, int maxStackSize) {
@@ -57,8 +56,8 @@ public final class CountFormatter {
         return format(count, maxStackSize, 0);
     }
 
-    public static String formatAligned(class_1799 stack, int count, int rawDigits) {
-        return format(count, stack.method_7914(), rawDigits);
+    public static String formatAligned(ItemStack stack, int count, int rawDigits) {
+        return format(count, stack.getMaxStackSize(), rawDigits);
     }
 
     public static String format(int count, int maxStackSize, int rawDigits) {

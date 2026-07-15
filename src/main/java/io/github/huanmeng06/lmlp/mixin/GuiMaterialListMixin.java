@@ -22,7 +22,6 @@ import io.github.huanmeng06.lmlp.gui.KnownPlacementRows.ReadStatus;
 import io.github.huanmeng06.lmlp.export.SubMaterialExporter;
 import io.github.huanmeng06.lmlp.gui.MinimalSubMaterialListView;
 import io.github.huanmeng06.lmlp.material.CountFormatter;
-import net.minecraft.class_437;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -68,8 +67,8 @@ public abstract class GuiMaterialListMixin extends GuiListBase {
 
     @Inject(method = "<init>", at = @At("TAIL"))
     private void lmlp$refreshForCurrentStateOnEntry(MaterialListBase materialList, CallbackInfo ci) {
-        if (ChunkMissingMaterialListCache.refreshForCurrentState(this.materialList, false) && this.mc.field_1724 != null) {
-            MaterialListUtils.updateAvailableCounts(this.materialList.getMaterialsAll(), this.mc.field_1724);
+        if (ChunkMissingMaterialListCache.refreshForCurrentState(this.materialList, false) && this.mc.player != null) {
+            MaterialListUtils.updateAvailableCounts(this.materialList.getMaterialsAll(), this.mc.player);
         }
     }
 
@@ -135,7 +134,7 @@ public abstract class GuiMaterialListMixin extends GuiListBase {
     // label widths so it's available at initGui HEAD (before the buttons and
     // the progress label exist). Returns 0 in wide mode where nothing wraps.
     private int lmlp$computeButtonRowCount() {
-        if (this.field_22789 >= this.lmlp$fullTopRowWidth()) {
+        if (this.width >= this.lmlp$fullTopRowWidth()) {
             return 0;
         }
 
@@ -158,7 +157,7 @@ public abstract class GuiMaterialListMixin extends GuiListBase {
             widths.add(this.lmlp$onOffButtonWidth("litematica.gui.button.material_list.toggle_info_hud", this.materialList.getHudRenderer().getShouldRenderCustom()));
         }
 
-        int fullLimit = this.field_22789 - 12;
+        int fullLimit = this.width - 12;
         int pinnedLimit = this.lmlp$openConfigButtonX() - 4;
         int rows = 1;
         int x = 12;
@@ -192,10 +191,10 @@ public abstract class GuiMaterialListMixin extends GuiListBase {
     // Computed from label widths so it's available at initGui HEAD and shared
     // by lmlp$wrapOverflowingTopButtons and lmlp$computeButtonRowCount.
     private int lmlp$movedTopToggleCount() {
-        // Left edge of vanilla's multiplier label (field_22789 - labelW - 56),
+        // Left edge of vanilla's multiplier label (width - labelW - 56),
         // minus a small gap the buttons must stay clear of.
         int multiplierLabelWidth = this.getStringWidth(StringUtils.translate("litematica.gui.label.material_list.multiplier"));
-        int available = this.field_22789 - multiplierLabelWidth - 56 - 4;
+        int available = this.width - multiplierLabelWidth - 56 - 4;
 
         int x = 12;
         x += this.lmlp$genericButtonWidth(StringUtils.translate("litematica.gui.button.material_list.refresh_list")) + BUTTON_SPACING;
@@ -222,9 +221,9 @@ public abstract class GuiMaterialListMixin extends GuiListBase {
     // height-22*rows, so the summary is lifted one line above it rather than
     // being overlapped by the stacked buttons.
     private int lmlp$progressBottomLineY() {
-        int vanilla = this.field_22790 - 36;
+        int vanilla = this.height - 36;
         if (this.lmlp$buttonRowCount >= 2) {
-            int topButtonRowY = this.field_22790 - WRAPPED_BUTTON_Y_OFFSET * this.lmlp$buttonRowCount;
+            int topButtonRowY = this.height - WRAPPED_BUTTON_Y_OFFSET * this.lmlp$buttonRowCount;
             return Math.min(vanilla, topButtonRowY - PROGRESS_LINE_HEIGHT);
         }
 
@@ -259,7 +258,7 @@ public abstract class GuiMaterialListMixin extends GuiListBase {
         }
 
         String full = strt + " / " + StringUtils.translate("litematica.gui.label.material_list.progress", strp);
-        int budget = this.field_22789 - 12 - 4;
+        int budget = this.width - 12 - 4;
         if (this.getStringWidth(full) <= budget) {
             return 1;
         }
@@ -287,12 +286,12 @@ public abstract class GuiMaterialListMixin extends GuiListBase {
         // Defensive fallback in case a future vanilla change shifts which
         // addLabel call this ordinal lands on: only wrap the one at the
         // expected progress-line position, pass everything else through.
-        if (y != this.field_22790 - 36) {
+        if (y != this.height - 36) {
             return this.addLabel(x, y, width, height, color, text);
         }
 
         String full = text.length > 0 ? text[0] : "";
-        int budget = this.field_22789 - x - 4;
+        int budget = this.width - x - 4;
         if (this.getStringWidth(full) <= budget) {
             this.lmlp$progressLineCount = 1;
             return this.addLabel(x, this.lmlp$progressBottomLineY(), width, height, color, full);
@@ -351,7 +350,7 @@ public abstract class GuiMaterialListMixin extends GuiListBase {
     @Inject(method = "initGui", at = @At("TAIL"))
     private void lmlp$addSubMaterialExportButton(CallbackInfo ci) {
         int x = this.lmlp$subMaterialExportButtonX();
-        int y = this.field_22789 < this.lmlp$fullTopRowWidth() ? this.field_22790 - WRAPPED_BUTTON_Y_OFFSET : BUTTON_Y;
+        int y = this.width < this.lmlp$fullTopRowWidth() ? this.height - WRAPPED_BUTTON_Y_OFFSET : BUTTON_Y;
         String label = StringUtils.translate("lmlp.gui.button.material_list.write_sub_materials");
         ButtonGeneric button = new ButtonGeneric(x, y, -1, 20, label, new String[0]);
         button.setHoverStrings("lmlp.gui.button.hover.material_list.write_sub_materials");
@@ -370,7 +369,7 @@ public abstract class GuiMaterialListMixin extends GuiListBase {
     private void lmlp$addOpenConfigButton(CallbackInfo ci) {
         String label = StringUtils.translate("lmlp.gui.button.material_list.open_config");
         int width = this.getStringWidth(label) + 20;
-        ButtonGeneric button = new ButtonGeneric(this.lmlp$openConfigButtonX(), this.field_22790 - 36, width, 20, label, new String[0]);
+        ButtonGeneric button = new ButtonGeneric(this.lmlp$openConfigButtonX(), this.height - 36, width, 20, label, new String[0]);
         button.setHoverStrings("lmlp.gui.button.hover.material_list.open_config");
         this.addButton(button, new OpenConfigButtonListener((GuiMaterialList) (Object) this));
     }
@@ -391,7 +390,7 @@ public abstract class GuiMaterialListMixin extends GuiListBase {
     private int lmlp$mainMenuButtonX() {
         String menuLabel = StringUtils.translate("litematica.gui.button.change_menu.to_main_menu");
         int menuWidth = this.getStringWidth(menuLabel) + 20;
-        return this.field_22789 - menuWidth - 10;
+        return this.width - menuWidth - 10;
     }
 
     @Inject(method = "initGui", at = @At("TAIL"))
@@ -404,10 +403,10 @@ public abstract class GuiMaterialListMixin extends GuiListBase {
             // (height-24). Narrow mode: the bottom is crowded by wrapped button
             // rows and the lifted progress block, so sit one line above the top
             // of that block instead of overlapping it.
-            boolean narrow = this.field_22789 < this.lmlp$fullTopRowWidth();
+            boolean narrow = this.width < this.lmlp$fullTopRowWidth();
             int y = narrow
                     ? this.lmlp$progressBlockTopLineY() - PROGRESS_LINE_HEIGHT
-                    : this.field_22790 - 24;
+                    : this.height - 24;
             this.addLabel(12, y, width, 12, readStatus.color(), status);
         }
     }
@@ -434,11 +433,11 @@ public abstract class GuiMaterialListMixin extends GuiListBase {
         }
         topRow.sort(Comparator.comparingInt(ButtonBase::getX));
 
-        int rowY = this.field_22790 - WRAPPED_BUTTON_Y_OFFSET;
+        int rowY = this.height - WRAPPED_BUTTON_Y_OFFSET;
         int count = Math.min(moved, Math.max(0, topRow.size() - 1));
         for (int k = 0; k < count; k++) {
             ButtonBase button = topRow.get(topRow.size() - count + k);
-            button.setPosition(this.field_22789 + k, rowY);
+            button.setPosition(this.width + k, rowY);
         }
     }
 
@@ -451,12 +450,12 @@ public abstract class GuiMaterialListMixin extends GuiListBase {
     // group, and the left-to-right flow stops short of the leftmost of them.
     @Inject(method = "initGui", at = @At("TAIL"))
     private void lmlp$reflowWrappedBottomButtons(CallbackInfo ci) {
-        if (this.field_22789 >= this.lmlp$fullTopRowWidth()) {
+        if (this.width >= this.lmlp$fullTopRowWidth()) {
             return;
         }
 
-        int rowY = this.field_22790 - WRAPPED_BUTTON_Y_OFFSET;
-        int menuRowY = this.field_22790 - 36;
+        int rowY = this.height - WRAPPED_BUTTON_Y_OFFSET;
+        int menuRowY = this.height - 36;
         List<ButtonBase> pinned = new ArrayList<>();
         List<ButtonBase> row = new ArrayList<>();
         for (ButtonBase button : ((GuiBaseHoverAccess) (Object) this).lmlp$getButtons()) {
@@ -470,7 +469,7 @@ public abstract class GuiMaterialListMixin extends GuiListBase {
         // Pull the right-aligned pair down to the wrapped row, keeping their
         // relative X so they stay side by side; the left flow on this bottom
         // row must stop before the leftmost of them.
-        int fullLimit = this.field_22789 - 12;
+        int fullLimit = this.width - 12;
         int pinnedLimit = fullLimit;
         for (ButtonBase button : pinned) {
             button.setPosition(button.getX(), rowY);
@@ -513,7 +512,7 @@ public abstract class GuiMaterialListMixin extends GuiListBase {
         }
         x += this.lmlp$onOffButtonWidth("litematica.gui.button.material_list.hide_available", this.materialList.getHideAvailable()) + BUTTON_SPACING;
         x += this.lmlp$onOffButtonWidth("litematica.gui.button.material_list.toggle_info_hud", this.materialList.getHudRenderer().getShouldRenderCustom()) + BUTTON_SPACING;
-        if (this.field_22789 < this.lmlp$fullTopRowWidth()) {
+        if (this.width < this.lmlp$fullTopRowWidth()) {
             x = 12;
         }
 
@@ -570,7 +569,7 @@ public abstract class GuiMaterialListMixin extends GuiListBase {
             if (file != null) {
                 String messageKey = "litematica.message.material_list_written_to_file";
                 this.parent.addMessage(MessageType.SUCCESS, messageKey, file.getName());
-                StringUtils.sendOpenFileChatMessage(this.parent.mc.field_1724, messageKey, file);
+                StringUtils.sendOpenFileChatMessage(this.parent.mc.player, messageKey, file);
             } else {
                 this.parent.addMessage(MessageType.ERROR, "lmlp.message.sub_material_list_export_failed");
             }

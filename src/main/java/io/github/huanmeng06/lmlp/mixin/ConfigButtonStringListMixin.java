@@ -8,7 +8,7 @@ import fi.dy.masa.malilib.gui.interfaces.IDialogHandler;
 import fi.dy.masa.malilib.util.GuiUtils;
 import io.github.huanmeng06.lmlp.gui.textlist.GuiItemIdStringListEdit;
 import io.github.huanmeng06.lmlp.gui.textlist.ItemIdStringListConfigs;
-import net.minecraft.class_11909;
+import net.minecraft.client.input.MouseButtonEvent;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -23,7 +23,7 @@ public abstract class ConfigButtonStringListMixin {
     @Shadow @Final private IDialogHandler dialogHandler;
 
     @Inject(method = "onMouseClickedImpl", at = @At("HEAD"), cancellable = true)
-    private void lmlp$openItemIdStringListEditor(class_11909 event, boolean doubleClick, CallbackInfoReturnable<Boolean> cir) {
+    private void lmlp$openItemIdStringListEditor(MouseButtonEvent event, boolean doubleClick, CallbackInfoReturnable<Boolean> cir) {
         if (!ItemIdStringListConfigs.isSupported(this.config)) {
             return;
         }

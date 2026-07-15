@@ -1,23 +1,23 @@
 package io.github.huanmeng06.lmlp.mixin;
 
 import com.mojang.blaze3d.pipeline.RenderPipeline;
-import net.minecraft.class_10799;
+import net.minecraft.client.renderer.RenderPipelines;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 
-@Mixin(class_10799.class)
+@Mixin(RenderPipelines.class)
 public interface RenderPipelinesAccessor {
-    @Accessor("field_56860")
+    @Accessor("DEBUG_FILLED_SNIPPET")
     static RenderPipeline.Snippet lmlp$getPositionColorSnippet() {
         throw new AssertionError();
     }
 
-    @Accessor("field_56855")
+    @Accessor("BEACON_BEAM_SNIPPET")
     static RenderPipeline.Snippet lmlp$getBeaconBeamSnippet() {
         throw new AssertionError();
     }
 
-    @Accessor("field_56864")
+    @Accessor("GUI_TEXTURED_SNIPPET")
     static RenderPipeline.Snippet lmlp$getGuiTexturedSnippet() {
         throw new AssertionError();
     }

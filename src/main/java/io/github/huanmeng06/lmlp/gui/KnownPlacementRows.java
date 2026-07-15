@@ -15,14 +15,7 @@ import io.github.huanmeng06.lmlp.cache.ChunkMissingMaterialListCache.KnownPlacem
 import io.github.huanmeng06.lmlp.cache.ChunkMissingMaterialListCache.ReadMode;
 import io.github.huanmeng06.lmlp.cache.MaterialListDataSource;
 import io.github.huanmeng06.lmlp.config.Configs;
-import net.minecraft.class_1297;
-import net.minecraft.class_2338;
-import net.minecraft.class_1921;
-import net.minecraft.class_2960;
-import net.minecraft.class_310;
 import fi.dy.masa.malilib.render.GuiContext;
-import net.minecraft.class_638;
-
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -31,6 +24,11 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.core.BlockPos;
+import net.minecraft.resources.Identifier;
+import net.minecraft.world.entity.Entity;
 
 public final class KnownPlacementRows {
     public static final int ROW_HEIGHT = 24;
@@ -62,10 +60,10 @@ public final class KnownPlacementRows {
     private static final int ORIGIN_TEXT_COLOR = 0xFFB8B8B8;
     private static final int ORIGINAL_HEADER_BACKGROUND = 0xA0101010;
 
-    private static final class_2960 OVERWORLD_ICON = class_2960.method_60655(LitematicaMaterialListPlus.MOD_ID, "textures/gui/dimensions/overworld.png");
-    private static final class_2960 NETHER_ICON = class_2960.method_60655(LitematicaMaterialListPlus.MOD_ID, "textures/gui/dimensions/nether.png");
-    private static final class_2960 END_ICON = class_2960.method_60655(LitematicaMaterialListPlus.MOD_ID, "textures/gui/dimensions/end.png");
-    private static final class_2960 DIM_ICON = class_2960.method_60655(LitematicaMaterialListPlus.MOD_ID, "textures/gui/dimensions/dim.png");
+    private static final Identifier OVERWORLD_ICON = Identifier.fromNamespaceAndPath(LitematicaMaterialListPlus.MOD_ID, "textures/gui/dimensions/overworld.png");
+    private static final Identifier NETHER_ICON = Identifier.fromNamespaceAndPath(LitematicaMaterialListPlus.MOD_ID, "textures/gui/dimensions/nether.png");
+    private static final Identifier END_ICON = Identifier.fromNamespaceAndPath(LitematicaMaterialListPlus.MOD_ID, "textures/gui/dimensions/end.png");
+    private static final Identifier DIM_ICON = Identifier.fromNamespaceAndPath(LitematicaMaterialListPlus.MOD_ID, "textures/gui/dimensions/dim.png");
     private static final Map<String, Boolean> COLLAPSED_GROUPS = new LinkedHashMap<>();
     private static final Map<String, SortState> SORT_STATES = new LinkedHashMap<>();
     private static final ExpandAnimationTracker GROUP_ANIMATIONS = new ExpandAnimationTracker();
@@ -551,10 +549,10 @@ public final class KnownPlacementRows {
     }
 
     private static void drawIcon(String dimension, int x, int y, GuiContext drawContext) {
-        drawContext.method_25290(net.minecraft.class_10799.field_56883, icon(dimension), x, y, 0.0F, 0.0F, ICON_SIZE, ICON_SIZE, ICON_SIZE, ICON_SIZE);
+        drawContext.blit(net.minecraft.client.renderer.RenderPipelines.GUI_TEXTURED, icon(dimension), x, y, 0.0F, 0.0F, ICON_SIZE, ICON_SIZE, ICON_SIZE, ICON_SIZE);
     }
 
-    private static class_2960 icon(String dimension) {
+    private static Identifier icon(String dimension) {
         return switch (normalizedDimension(dimension)) {
             case "minecraft:overworld" -> OVERWORLD_ICON;
             case "minecraft:the_nether" -> NETHER_ICON;
@@ -649,8 +647,8 @@ public final class KnownPlacementRows {
     }
 
     private static boolean isNearOrigin(KnownPlacementContext context) {
-        class_2338 origin = PlacementOriginMarker.parseOrigin(context.originPosition());
-        class_1297 player = class_310.method_1551().field_1724;
+        BlockPos origin = PlacementOriginMarker.parseOrigin(context.originPosition());
+        Entity player = Minecraft.getInstance().player;
         if (origin == null || player == null) {
             return false;
         }
@@ -660,7 +658,7 @@ public final class KnownPlacementRows {
         // recorded coordinate, small enough to filter out "same dimension, but
         // nowhere near the site" false triggers.
         double range = Configs.Generic.MISSING_PLACEMENT_BUTTON_RANGE.getIntegerValue();
-        return player.method_5707(origin.method_46558()) <= range * range;
+        return player.distanceToSqr(origin.getCenter()) <= range * range;
     }
 
     private static int[] headerColumnPositions(WidgetBase widget, KnownPlacementRow row) {
@@ -747,8 +745,8 @@ public final class KnownPlacementRows {
     }
 
     private static String currentDimensionId() {
-        class_638 world = class_310.method_1551().field_1687;
-        return world == null ? null : world.method_27983().method_29177().toString();
+        ClientLevel world = Minecraft.getInstance().level;
+        return world == null ? null : world.dimension().identifier().toString();
     }
 
     private static String schematicDisplayName(KnownPlacementContext context) {

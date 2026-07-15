@@ -16,10 +16,7 @@ import fi.dy.masa.litematica.gui.Icons;
 import io.github.huanmeng06.lmlp.gui.ItemTooltipRenderer;
 import io.github.huanmeng06.lmlp.material.ItemStackTexts;
 import io.github.huanmeng06.lmlp.recipe.jei.JeiRuntimeBridge;
-import net.minecraft.class_1799;
 import fi.dy.masa.malilib.render.GuiContext;
-import net.minecraft.class_332;
-import net.minecraft.class_437;
 import org.lwjgl.glfw.GLFW;
 
 import java.text.Collator;
@@ -29,6 +26,9 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.world.item.ItemStack;
 
 public class GuiItemIdStringListEdit extends GuiListBase<String, WidgetItemIdStringListEditEntry, WidgetListItemIdStringListEdit> {
     private static final int PANEL_MARGIN_X = 42;
@@ -59,7 +59,7 @@ public class GuiItemIdStringListEdit extends GuiListBase<String, WidgetItemIdStr
     private final List<Candidate> filteredCandidates = new ArrayList<>();
     private WidgetItemIdStringListEditEntry pickerTarget;
     private GuiTextFieldGeneric pickerSearchField;
-    private class_1799 hoveredStack = class_1799.field_8037;
+    private ItemStack hoveredStack = ItemStack.EMPTY;
     private String hoveredText = "";
     private List<String> titleInfoTooltip = List.of();
     private String pickerQuery = "";
@@ -75,7 +75,7 @@ public class GuiItemIdStringListEdit extends GuiListBase<String, WidgetItemIdStr
     private boolean draggingPickerScrollbar;
     private double pickerScrollRemainder;
 
-    public GuiItemIdStringListEdit(IConfigStringList config, IConfigGui configGui, IDialogHandler dialogHandler, class_437 parent) {
+    public GuiItemIdStringListEdit(IConfigStringList config, IConfigGui configGui, IDialogHandler dialogHandler, Screen parent) {
         super(0, 0);
         this.config = config;
         this.configGui = configGui;
@@ -105,7 +105,7 @@ public class GuiItemIdStringListEdit extends GuiListBase<String, WidgetItemIdStr
     }
 
     void setHoveredText(String text) {
-        this.hoveredStack = class_1799.field_8037;
+        this.hoveredStack = ItemStack.EMPTY;
         this.hoveredText = text == null ? "" : text;
     }
 
@@ -117,7 +117,7 @@ public class GuiItemIdStringListEdit extends GuiListBase<String, WidgetItemIdStr
         this.pickerOpen = true;
         this.pickerSearchFocused = true;
         if (this.pickerSearchField != null) {
-            this.pickerSearchField.method_25365(true);
+            this.pickerSearchField.setFocused(true);
         }
         this.updatePickerSortButton();
         this.updateFilteredCandidates();
@@ -153,15 +153,15 @@ public class GuiItemIdStringListEdit extends GuiListBase<String, WidgetItemIdStr
     }
 
     @Override
-    public void method_25432() {
+    public void removed() {
         this.saveEditorEntries();
-        super.method_25432();
+        super.removed();
     }
 
     @Override
-    public void method_25394(class_332 drawContext, int mouseX, int mouseY, float delta) {
+    public void extractRenderState(GuiGraphicsExtractor drawContext, int mouseX, int mouseY, float delta) {
         GuiContext context = GuiContext.fromGuiGraphics(drawContext);
-        this.hoveredStack = class_1799.field_8037;
+        this.hoveredStack = ItemStack.EMPTY;
         this.hoveredText = "";
         this.titleInfoTooltip = List.of();
 
@@ -183,7 +183,7 @@ public class GuiItemIdStringListEdit extends GuiListBase<String, WidgetItemIdStr
     }
 
     private void renderActiveTooltip(GuiContext context, int mouseX, int mouseY) {
-        if (!this.hoveredStack.method_7960()) {
+        if (!this.hoveredStack.isEmpty()) {
             ItemTooltipRenderer.render(context, this.font, this.hoveredStack, mouseX, mouseY);
         } else if (!this.hoveredText.isEmpty()) {
             RenderUtils.drawHoverText(context, mouseX, mouseY, List.of(this.hoveredText));
@@ -193,80 +193,80 @@ public class GuiItemIdStringListEdit extends GuiListBase<String, WidgetItemIdStr
     }
 
     @Override
-    public boolean method_25401(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
+    public boolean mouseScrolled(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
         if (this.pickerOpen) {
             this.offsetPickerScroll(verticalAmount);
             return true;
         }
-        return super.method_25401(mouseX, mouseY, horizontalAmount, verticalAmount);
+        return super.mouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount);
     }
 
     @Override
-    public boolean method_25402(net.minecraft.class_11909 event, boolean doubleClick) {
-        double mouseX = event.comp_4798();
-        double mouseY = event.comp_4799();
-        int button = event.comp_4800().comp_4801();
+    public boolean mouseClicked(net.minecraft.client.input.MouseButtonEvent event, boolean doubleClick) {
+        double mouseX = event.x();
+        double mouseY = event.y();
+        int button = event.buttonInfo().button();
         if (this.pickerOpen) {
             return button == 0 ? this.onPickerClicked(event, doubleClick) : true;
         }
         if (this.backButton.onMouseClicked(event, doubleClick)) {
             return true;
         }
-        return super.method_25402(event, doubleClick);
+        return super.mouseClicked(event, doubleClick);
     }
 
     @Override
-    public boolean method_25406(net.minecraft.class_11909 event) {
+    public boolean mouseReleased(net.minecraft.client.input.MouseButtonEvent event) {
         if (this.pickerOpen) {
             this.draggingPickerSearch = false;
             this.draggingPickerScrollbar = false;
             this.pickerScrollBar.setIsDragging(false);
             return true;
         }
-        return super.method_25406(event);
+        return super.mouseReleased(event);
     }
 
     @Override
-    public boolean method_25403(net.minecraft.class_11909 event, double deltaX, double deltaY) {
-        double mouseX = event.comp_4798();
-        double mouseY = event.comp_4799();
-        int button = event.comp_4800().comp_4801();
+    public boolean mouseDragged(net.minecraft.client.input.MouseButtonEvent event, double deltaX, double deltaY) {
+        double mouseX = event.x();
+        double mouseY = event.y();
+        int button = event.buttonInfo().button();
         if (this.pickerOpen) {
             if (button == 0 && this.draggingPickerSearch) {
                 GuiTextFieldGeneric field = this.ensurePickerSearchField(this.pickerLayout());
-                field.method_25348(event, true);
-                field.method_1884(this.pickerSearchDragAnchor);
+                field.onClick(event, true);
+                field.setHighlightPos(this.pickerSearchDragAnchor);
             }
             return true;
         }
-        return super.method_25403(event, deltaX, deltaY);
+        return super.mouseDragged(event, deltaX, deltaY);
     }
 
     @Override
-    public boolean method_25404(net.minecraft.class_11908 event) {
-        int keyCode = event.comp_4795();
-        int scanCode = event.comp_4796();
-        int modifiers = event.comp_4797();
+    public boolean keyPressed(net.minecraft.client.input.KeyEvent event) {
+        int keyCode = event.key();
+        int scanCode = event.scancode();
+        int modifiers = event.modifiers();
         if (this.pickerOpen) {
             return this.onPickerKeyPressed(event);
         }
-        return super.method_25404(event);
+        return super.keyPressed(event);
     }
 
     @Override
-    public boolean method_25400(net.minecraft.class_11905 event) {
+    public boolean charTyped(net.minecraft.client.input.CharacterEvent event) {
         if (this.pickerOpen) {
-            this.ensurePickerSearchField(this.pickerLayout()).method_25400(event);
+            this.ensurePickerSearchField(this.pickerLayout()).charTyped(event);
             return true;
         }
-        return super.method_25400(event);
+        return super.charTyped(event);
     }
 
     @Override
-    public boolean onKeyTyped(net.minecraft.class_11908 event) {
-        int keyCode = event.comp_4795();
-        int scanCode = event.comp_4796();
-        int modifiers = event.comp_4797();
+    public boolean onKeyTyped(net.minecraft.client.input.KeyEvent event) {
+        int keyCode = event.key();
+        int scanCode = event.scancode();
+        int modifiers = event.modifiers();
         if (this.pickerOpen) {
             return this.onPickerKeyPressed(event);
         }
@@ -286,12 +286,12 @@ public class GuiItemIdStringListEdit extends GuiListBase<String, WidgetItemIdStr
 
     @Override
     protected void drawTitle(GuiContext context, int mouseX, int mouseY, float partialTicks) {
-        int textY = this.dialogTop + (PANEL_TITLE_HEIGHT - this.font.field_2000) / 2;
+        int textY = this.dialogTop + (PANEL_TITLE_HEIGHT - this.font.lineHeight) / 2;
         this.drawStringWithShadow(context, this.title, this.dialogLeft + 10, textY, 0xFFFFFFFF);
 
         // "More info" icon next to the title: hovering it explains the
         // {color}/{wood} wildcards supported by this item-id list editor.
-        int iconX = this.dialogLeft + 10 + this.font.method_1727(this.title) + TITLE_INFO_ICON_GAP;
+        int iconX = this.dialogLeft + 10 + this.font.width(this.title) + TITLE_INFO_ICON_GAP;
         int iconY = this.dialogTop + (PANEL_TITLE_HEIGHT - Icons.INFO_11.getHeight()) / 2;
         boolean hovered = GuiBase.isMouseOver(mouseX, mouseY, iconX, iconY, Icons.INFO_11.getWidth(), Icons.INFO_11.getHeight());
         Icons.INFO_11.renderAt(context, iconX, iconY, 0.0F, hovered, false);
@@ -362,7 +362,7 @@ public class GuiItemIdStringListEdit extends GuiListBase<String, WidgetItemIdStr
         this.draggingPickerSearch = false;
         this.draggingPickerScrollbar = false;
         if (this.pickerSearchField != null) {
-            this.pickerSearchField.method_25365(false);
+            this.pickerSearchField.setFocused(false);
         }
         this.pickerScrollBar.setIsDragging(false);
     }
@@ -371,17 +371,17 @@ public class GuiItemIdStringListEdit extends GuiListBase<String, WidgetItemIdStr
         Map<String, Integer> creativeOrder = CreativeItemOrderResolver.createOrder();
         Map<String, Candidate> byId = new LinkedHashMap<>();
         int originalIndex = 0;
-        List<class_1799> jeiItems = JeiRuntimeBridge.runtime()
+        List<ItemStack> jeiItems = JeiRuntimeBridge.runtime()
                 .map(runtime -> List.copyOf(runtime.getIngredientManager().getAllItemStacks()))
                 .orElseGet(List::of);
-        for (class_1799 stack : jeiItems) {
-            if (stack.method_7960()) {
+        for (ItemStack stack : jeiItems) {
+            if (stack.isEmpty()) {
                 continue;
             }
             String id = ItemStackTexts.id(stack);
             String name = ItemStackTexts.name(stack);
             byId.putIfAbsent(id, new Candidate(
-                    stack.method_7972(),
+                    stack.copy(),
                     id,
                     name,
                     normalizeDisplayName(name),
@@ -412,7 +412,7 @@ public class GuiItemIdStringListEdit extends GuiListBase<String, WidgetItemIdStr
 
     private void renderPicker(GuiContext context, int mouseX, int mouseY, float delta) {
         PickerLayout layout = this.pickerLayout();
-        this.hoveredStack = class_1799.field_8037;
+        this.hoveredStack = ItemStack.EMPTY;
         this.hoveredText = "";
         this.pickerCloseButton.setPosition(layout.right() - 96, layout.top() + 8);
         this.pickerSortButton.setPosition(layout.gridLeft() + 60, this.pickerSortY(layout));
@@ -422,7 +422,7 @@ public class GuiItemIdStringListEdit extends GuiListBase<String, WidgetItemIdStr
         RenderUtils.drawRect(context, 0, 0, GuiUtils.getScaledWindowWidth(), GuiUtils.getScaledWindowHeight(),
                 0x66000000);
         RenderUtils.drawOutlinedBox(context, layout.left(), layout.top(), layout.width(), layout.height(), 0xEE000000, 0xFFAAAAAA);
-        context.method_51433(this.font, StringUtils.translate("lmlp.gui.item_id_picker.title"), layout.left() + 10, layout.top() + 12, 0xFFFFFFFF, false);
+        context.drawString(this.font, StringUtils.translate("lmlp.gui.item_id_picker.title"), layout.left() + 10, layout.top() + 12, 0xFFFFFFFF, false);
         this.pickerCloseButton.render(context, mouseX, mouseY, false);
         this.renderPickerSearch(context, layout, mouseX, mouseY, delta);
         this.renderPickerSort(context, layout, mouseX, mouseY);
@@ -433,21 +433,21 @@ public class GuiItemIdStringListEdit extends GuiListBase<String, WidgetItemIdStr
     }
 
     private void renderPickerSearch(GuiContext context, PickerLayout layout, int mouseX, int mouseY, float delta) {
-        context.method_51433(this.font, StringUtils.translate("lmlp.gui.item_id_picker.search"), layout.gridLeft(), layout.top() + 36, 0xFFE0E0E0, false);
-        this.ensurePickerSearchField(layout).method_48579(context, mouseX, mouseY, delta);
+        context.drawString(this.font, StringUtils.translate("lmlp.gui.item_id_picker.search"), layout.gridLeft(), layout.top() + 36, 0xFFE0E0E0, false);
+        this.ensurePickerSearchField(layout).extractWidgetRenderState(context, mouseX, mouseY, delta);
     }
 
     private void renderPickerSort(GuiContext context, PickerLayout layout, int mouseX, int mouseY) {
         int y = this.pickerSortY(layout);
-        context.method_51433(this.font, StringUtils.translate("lmlp.gui.item_id_picker.sort"), layout.gridLeft(), y + 6, 0xFFE0E0E0, false);
+        context.drawString(this.font, StringUtils.translate("lmlp.gui.item_id_picker.sort"), layout.gridLeft(), y + 6, 0xFFE0E0E0, false);
         this.pickerSortButton.render(context, mouseX, mouseY, this.pickerSortButton.isMouseOver());
     }
 
     private void renderPickerGrid(GuiContext context, PickerLayout layout, int mouseX, int mouseY) {
         RenderUtils.drawOutlinedBox(context, layout.gridLeft(), layout.gridTop(), layout.gridWidth(), layout.gridHeight(), 0xDD000000, 0xFF888888);
-        context.method_44379(layout.gridLeft() + 1, layout.gridTop() + 1, layout.gridRight() - 1, layout.gridBottom() - 1);
+        context.enableScissor(layout.gridLeft() + 1, layout.gridTop() + 1, layout.gridRight() - 1, layout.gridBottom() - 1);
         if (this.filteredCandidates.isEmpty()) {
-            context.method_51433(this.font, StringUtils.translate("lmlp.gui.item_id_picker.empty"), layout.gridLeft() + 8, layout.gridTop() + 10, 0xFFFFCC66, false);
+            context.drawString(this.font, StringUtils.translate("lmlp.gui.item_id_picker.empty"), layout.gridLeft() + 8, layout.gridTop() + 10, 0xFFFFCC66, false);
         } else {
             int columns = layout.columns();
             int startRow = this.pickerScrollBar.getValue() / layout.cellStride();
@@ -466,23 +466,23 @@ public class GuiItemIdStringListEdit extends GuiListBase<String, WidgetItemIdStr
                 }
             }
         }
-        context.method_44380();
+        context.disableScissor();
     }
 
     private void renderPickerSlot(GuiContext context, Candidate candidate, int x, int y, int mouseX, int mouseY) {
         boolean hovered = GuiBase.isMouseOver(mouseX, mouseY, x, y, PICKER_SLOT, PICKER_SLOT);
         RenderUtils.drawOutlinedBox(context, x, y, PICKER_SLOT, PICKER_SLOT, hovered ? 0xA0707070 : 0xA0404040, hovered ? 0xFFFFFF88 : 0xFF888888);
-        context.method_51427(candidate.stack(), x + 4, y + 4);
+        context.renderItem(candidate.stack(), x + 4, y + 4);
         if (hovered) {
             this.hoveredStack = candidate.stack();
             this.hoveredText = candidate.id();
         }
     }
 
-    private boolean onPickerClicked(net.minecraft.class_11909 event, boolean doubleClick) {
-        double mouseX = event.comp_4798();
-        double mouseY = event.comp_4799();
-        int button = event.comp_4800().comp_4801();
+    private boolean onPickerClicked(net.minecraft.client.input.MouseButtonEvent event, boolean doubleClick) {
+        double mouseX = event.x();
+        double mouseY = event.y();
+        int button = event.buttonInfo().button();
         PickerLayout layout = this.pickerLayout();
         GuiTextFieldGeneric searchField = this.ensurePickerSearchField(layout);
         if (this.pickerCloseButton.onMouseClicked(event, doubleClick)) {
@@ -491,15 +491,15 @@ public class GuiItemIdStringListEdit extends GuiListBase<String, WidgetItemIdStr
         if (this.pickerSortButton.onMouseClicked(event, doubleClick)) {
             return true;
         }
-        if (searchField.method_25402(event, doubleClick)) {
+        if (searchField.mouseClicked(event, doubleClick)) {
             this.pickerSearchFocused = true;
             this.draggingPickerSearch = button == 0 && searchField.isMouseOver((int) mouseX, (int) mouseY);
-            this.pickerSearchDragAnchor = searchField.method_1881();
+            this.pickerSearchDragAnchor = searchField.getCursorPosition();
             return true;
         }
         this.pickerSearchFocused = false;
         this.draggingPickerSearch = false;
-        searchField.method_25365(false);
+        searchField.setFocused(false);
 
         int index = this.pickerIndexAt(layout, mouseX, mouseY);
         if (index >= 0 && this.pickerTarget != null) {
@@ -515,13 +515,13 @@ public class GuiItemIdStringListEdit extends GuiListBase<String, WidgetItemIdStr
         return true;
     }
 
-    private boolean onPickerKeyPressed(net.minecraft.class_11908 event) {
-        int keyCode = event.comp_4795();
+    private boolean onPickerKeyPressed(net.minecraft.client.input.KeyEvent event) {
+        int keyCode = event.key();
         if (keyCode == GLFW.GLFW_KEY_ESCAPE) {
             this.closeItemPicker();
             return true;
         }
-        this.ensurePickerSearchField(this.pickerLayout()).method_25404(event);
+        this.ensurePickerSearchField(this.pickerLayout()).keyPressed(event);
         return true;
     }
 
@@ -581,21 +581,21 @@ public class GuiItemIdStringListEdit extends GuiListBase<String, WidgetItemIdStr
         int width = layout.gridWidth();
         if (this.pickerSearchField == null || this.pickerSearchFieldWidth != width) {
             GuiTextFieldGeneric field = new GuiTextFieldGeneric(x, y, width, 20, this.font);
-            field.method_1880(128);
-            field.method_1852(this.pickerQuery);
-            field.method_1863(value -> {
+            field.setMaxLength(128);
+            field.setValue(this.pickerQuery);
+            field.setResponder(value -> {
                 if (!this.pickerQuery.equals(value)) {
                     this.pickerQuery = value;
                     this.updateFilteredCandidates();
                 }
             });
-            field.method_25365(this.pickerSearchFocused);
+            field.setFocused(this.pickerSearchFocused);
             this.pickerSearchField = field;
             this.pickerSearchFieldWidth = width;
         } else {
-            this.pickerSearchField.method_46421(x);
-            this.pickerSearchField.method_46419(y);
-            this.pickerSearchField.method_25365(this.pickerSearchFocused);
+            this.pickerSearchField.setX(x);
+            this.pickerSearchField.setY(y);
+            this.pickerSearchField.setFocused(this.pickerSearchFocused);
         }
 
         return this.pickerSearchField;
@@ -694,7 +694,7 @@ public class GuiItemIdStringListEdit extends GuiListBase<String, WidgetItemIdStr
         }
     }
 
-    private record Candidate(class_1799 stack, String id, String name, String normalizedName, int creativeOrder, int originalIndex) {
+    private record Candidate(ItemStack stack, String id, String name, String normalizedName, int creativeOrder, int originalIndex) {
         private String namespace() {
             int separator = this.id.indexOf(':');
             return separator > 0 ? this.id.substring(0, separator) : "minecraft";

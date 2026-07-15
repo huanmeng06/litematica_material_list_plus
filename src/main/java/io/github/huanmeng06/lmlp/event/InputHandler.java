@@ -6,10 +6,9 @@ import fi.dy.masa.malilib.hotkeys.IKeyboardInputHandler;
 import fi.dy.masa.malilib.hotkeys.KeybindMulti;
 import io.github.huanmeng06.lmlp.LitematicaMaterialListPlus;
 import io.github.huanmeng06.lmlp.config.Hotkeys;
-import net.minecraft.class_310;
-import net.minecraft.class_457;
-
 import java.util.List;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.advancements.AdvancementsScreen;
 
 public class InputHandler implements IKeybindProvider, IKeyboardInputHandler {
     private static final InputHandler INSTANCE = new InputHandler();
@@ -51,22 +50,22 @@ public class InputHandler implements IKeybindProvider, IKeyboardInputHandler {
      * advancements screen is opened then, preserving the vanilla shortcut.
      */
     @Override
-    public boolean onKeyInput(net.minecraft.class_11908 event, boolean state) {
-        int keyCode = event.comp_4795();
-        class_310 mc = class_310.method_1551();
+    public boolean onKeyInput(net.minecraft.client.input.KeyEvent event, boolean state) {
+        int keyCode = event.key();
+        Minecraft mc = Minecraft.getInstance();
         List<Integer> comboKeys = Hotkeys.OPEN_CONFIG_GUI.getKeybind().getKeys();
-        if (comboKeys.size() < 2 || mc.field_1690 == null) {
+        if (comboKeys.size() < 2 || mc.options == null) {
             this.comboFirstKeyHeld = false;
             return false;
         }
 
-        int advancementsKey = KeybindMulti.getKeyCode(mc.field_1690.field_1844);
+        int advancementsKey = KeybindMulti.getKeyCode(mc.options.keyAdvancements);
         int firstComboKey = comboKeys.get(0);
         if (firstComboKey != advancementsKey || keyCode != firstComboKey) {
             return false;
         }
 
-        boolean inGame = mc.field_1687 != null && mc.field_1724 != null && mc.field_1755 == null;
+        boolean inGame = mc.level != null && mc.player != null && mc.screen == null;
         if (state) {
             if (inGame) {
                 this.comboFirstKeyHeld = true;
@@ -80,7 +79,7 @@ public class InputHandler implements IKeybindProvider, IKeyboardInputHandler {
             // Any screen open at release means the combo (or something else)
             // already took over; only then skip the deferred vanilla action.
             if (inGame) {
-                mc.method_1507(new class_457(mc.field_1724.field_3944.method_2869()));
+                mc.setScreen(new AdvancementsScreen(mc.player.connection.getAdvancements()));
             }
         }
         return false;

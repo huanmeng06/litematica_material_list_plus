@@ -1,13 +1,12 @@
 package io.github.huanmeng06.lmlp.recipe;
 
 import java.util.List;
-
-import net.minecraft.class_1799;
+import net.minecraft.world.item.ItemStack;
 
 public final class MaterialTreeNode {
     private final String path;
-    private final class_1799 icon;
-    private final List<class_1799> icons;
+    private final ItemStack icon;
+    private final List<ItemStack> icons;
     private final List<String> alternatives;
     private final String name;
     private final int totalCount;
@@ -16,15 +15,15 @@ public final class MaterialTreeNode {
     private final int depth;
     private final List<MaterialTreeNode> children;
 
-    public MaterialTreeNode(String path, class_1799 icon, String name, int totalCount, int missingCount, int maxStackSize, int depth, List<MaterialTreeNode> children) {
+    public MaterialTreeNode(String path, ItemStack icon, String name, int totalCount, int missingCount, int maxStackSize, int depth, List<MaterialTreeNode> children) {
         this(path, icon, List.of(icon), List.of(), name, totalCount, missingCount, maxStackSize, depth, children);
     }
 
-    public MaterialTreeNode(String path, class_1799 icon, List<class_1799> icons, String name, int totalCount, int missingCount, int maxStackSize, int depth, List<MaterialTreeNode> children) {
+    public MaterialTreeNode(String path, ItemStack icon, List<ItemStack> icons, String name, int totalCount, int missingCount, int maxStackSize, int depth, List<MaterialTreeNode> children) {
         this(path, icon, icons, List.of(), name, totalCount, missingCount, maxStackSize, depth, children);
     }
 
-    public MaterialTreeNode(String path, class_1799 icon, List<class_1799> icons, List<String> alternatives, String name, int totalCount, int missingCount, int maxStackSize, int depth, List<MaterialTreeNode> children) {
+    public MaterialTreeNode(String path, ItemStack icon, List<ItemStack> icons, List<String> alternatives, String name, int totalCount, int missingCount, int maxStackSize, int depth, List<MaterialTreeNode> children) {
         this.path = path;
         this.icon = icon;
         this.icons = copyIcons(icons);
@@ -41,11 +40,11 @@ public final class MaterialTreeNode {
         return this.path;
     }
 
-    public class_1799 icon() {
+    public ItemStack icon() {
         return this.icon;
     }
 
-    public List<class_1799> icons() {
+    public List<ItemStack> icons() {
         return this.icons;
     }
 
@@ -85,14 +84,14 @@ public final class MaterialTreeNode {
         return !this.children.isEmpty();
     }
 
-    private static List<class_1799> copyIcons(List<class_1799> icons) {
+    private static List<ItemStack> copyIcons(List<ItemStack> icons) {
         if (icons.isEmpty()) {
             return List.of();
         }
 
         return icons.stream()
-                .filter(icon -> !icon.method_7960())
-                .map(class_1799::method_7972)
+                .filter(icon -> !icon.isEmpty())
+                .map(ItemStack::copy)
                 .toList();
     }
 }

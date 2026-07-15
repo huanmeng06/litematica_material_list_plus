@@ -1,9 +1,8 @@
 package io.github.huanmeng06.lmlp.recipe;
 
 import java.util.List;
-
-import net.minecraft.class_1799;
+import net.minecraft.world.item.ItemStack;
 
 public interface RecipeResolver {
-    List<RecipeSummary> findRecipes(class_1799 target, int totalCount, int missingCount);
+    List<RecipeSummary> findRecipes(ItemStack target, int totalCount, int missingCount);
 }
