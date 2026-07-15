@@ -1,9 +1,14 @@
 package io.github.huanmeng06.lmlp.recipe.jei;
 
+import java.lang.reflect.Field;
 import java.util.List;
+import java.util.Optional;
 
 import io.github.huanmeng06.lmlp.gui.RecipeNativeDisplayBridge;
+import io.github.huanmeng06.lmlp.recipe.AlternativeItemDisplay;
+import io.github.huanmeng06.lmlp.recipe.RecipeSlotSummary;
 import io.github.huanmeng06.lmlp.recipe.RecipeSummary;
+import mezz.jei.api.constants.VanillaTypes;
 import mezz.jei.api.gui.drawable.IDrawable;
 import mezz.jei.api.gui.IRecipeLayoutDrawable;
 import mezz.jei.api.gui.ingredient.IRecipeSlotDrawable;
@@ -19,6 +24,7 @@ import net.minecraft.class_332;
 
 public final class JeiNativeDisplayBridge implements RecipeNativeDisplayBridge {
     private static final class_2960 CATALYST_TAB = new class_2960("litematica_material_list_plus", "textures/gui/catalyst_tab.png");
+    private static final java.util.Map<Class<?>, Field> DISPLAY_INGREDIENT_FIELDS = new java.util.concurrent.ConcurrentHashMap<>();
 
     @Override
     public boolean canRender(RecipeSummary summary) {
@@ -40,8 +46,77 @@ public final class JeiNativeDisplayBridge implements RecipeNativeDisplayBridge {
     @Override
     public void render(RecipeSummary summary, class_332 context, int x, int y, int width, int height, int mouseX, int mouseY, float delta) {
         IRecipeLayoutDrawable<?> layout = requireNativeRecipe(summary).layout();
+        applySynchronizedDisplayOverrides(summary, layout);
         layout.setPosition(x, y);
         layout.drawRecipe(context, mouseX, mouseY);
+    }
+
+    private static void applySynchronizedDisplayOverrides(RecipeSummary summary, IRecipeLayoutDrawable<?> layout) {
+        IJeiRuntime runtime = JeiRuntimeBridge.runtime().orElse(null);
+        if (runtime == null) {
+            return;
+        }
+
+        List<IRecipeSlotDrawable> inputSlots = layout.getRecipeSlotsView()
+                .getSlotViews(RecipeIngredientRole.INPUT)
+                .stream()
+                .filter(IRecipeSlotDrawable.class::isInstance)
+                .map(IRecipeSlotDrawable.class::cast)
+                .toList();
+        List<RecipeSlotSummary> summarySlots = summary.inputSlots();
+        for (int index = 0; index < Math.min(inputSlots.size(), summarySlots.size()); index++) {
+            RecipeSlotSummary summarySlot = summarySlots.get(index);
+            if (summarySlot.icons().size() > 1) {
+                setDisplayedItem(inputSlots.get(index), AlternativeItemDisplay.icon(summarySlot), runtime);
+            }
+        }
+
+        if (summary.outputIcons().size() > 1) {
+            class_1799 output = AlternativeItemDisplay.icon(summary.outputIcons(), summary.outputIcon());
+            layout.getRecipeSlotsView()
+                    .getSlotViews(RecipeIngredientRole.OUTPUT)
+                    .stream()
+                    .filter(IRecipeSlotDrawable.class::isInstance)
+                    .map(IRecipeSlotDrawable.class::cast)
+                    .findFirst()
+                    .ifPresent(slot -> setDisplayedItem(slot, output, runtime));
+        }
+    }
+
+    private static void setDisplayedItem(IRecipeSlotDrawable slot, class_1799 stack, IJeiRuntime runtime) {
+        Optional<ITypedIngredient<class_1799>> ingredient = runtime.getIngredientManager()
+                .createTypedIngredient(VanillaTypes.ITEM_STACK, stack);
+        if (ingredient.isEmpty()) {
+            return;
+        }
+
+        try {
+            Field field = findField(slot.getClass(), "displayIngredients");
+            field.set(slot, List.of(ingredient));
+        } catch (Throwable ignored) {
+            // JEI 17 has no public display-override API. If its internal slot
+            // representation changes, keep the native recipe usable and simply
+            // fall back to JEI's own cycling behavior.
+        }
+    }
+
+    private static Field findField(Class<?> type, String name) throws NoSuchFieldException {
+        Field cached = DISPLAY_INGREDIENT_FIELDS.get(type);
+        if (cached != null) {
+            return cached;
+        }
+        Class<?> current = type;
+        while (current != null) {
+            try {
+                Field field = current.getDeclaredField(name);
+                field.setAccessible(true);
+                DISPLAY_INGREDIENT_FIELDS.put(type, field);
+                return field;
+            } catch (NoSuchFieldException ignored) {
+                current = current.getSuperclass();
+            }
+        }
+        throw new NoSuchFieldException(name);
     }
 
     @Override

@@ -26,6 +26,10 @@ public interface RecipeTransferBridge {
     default void renderError(RecipeSummary summary, TransferState state, class_332 context, int mouseX, int mouseY) {
     }
 
+    default boolean renderErrorIncludesTooltip(TransferState state) {
+        return false;
+    }
+
     record Bounds(int x, int y, int width, int height) {
     }
 
