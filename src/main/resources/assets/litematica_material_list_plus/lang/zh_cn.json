@@ -44,6 +44,8 @@
   "lmlp.label.recipe.any.purpur": "任意紫珀方块",
   "lmlp.label.recipe.recipe_id": "配方 ID",
   "text.auto_craft.move_items": "移动物品",
+  "lmlp.tooltip.recipe.transfer_missing": "单击：移动缺少组数的配方物品",
+  "lmlp.tooltip.recipe.transfer_all": "Shift+单击：移动所有配方物品",
   "error.rei.not.enough.materials": "原料不足",
   "error.rei.not.supported.move.items": "此配方和容器不支持移动物品。",
   "lmlp.label.recipe.preferred_pin": "置顶",

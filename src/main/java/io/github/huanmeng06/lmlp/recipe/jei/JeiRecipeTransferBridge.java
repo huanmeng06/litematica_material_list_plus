@@ -1,14 +1,23 @@
 package io.github.huanmeng06.lmlp.recipe.jei;
 
+import java.lang.reflect.Field;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import io.github.huanmeng06.lmlp.gui.RecipeTransferBridge;
+import io.github.huanmeng06.lmlp.mixin.ClientRecipeBookAccessor;
 import io.github.huanmeng06.lmlp.recipe.RecipeSummary;
 import mezz.jei.api.recipe.transfer.IRecipeTransferError;
 import mezz.jei.api.recipe.transfer.IRecipeTransferHandler;
 import mezz.jei.api.runtime.IJeiRuntime;
 import net.minecraft.class_1703;
+import net.minecraft.class_1860;
+import net.minecraft.class_8786;
+import net.minecraft.class_10295;
+import net.minecraft.class_10297;
+import net.minecraft.class_10298;
 import net.minecraft.class_124;
 import net.minecraft.class_2561;
 import net.minecraft.class_310;
@@ -42,7 +51,7 @@ public final class JeiRecipeTransferBridge implements RecipeTransferBridge {
             TransferContext context = new TransferContext(lookup.handler().get(), lookup.menu(), lookup.nativeRecipe());
             IRecipeTransferError error = context.check(false, false);
             if (error == null) {
-                return new TransferState(true, true, false, 0, "+", tooltip(summary, "text.auto_craft.move_items"), null);
+                return new TransferState(true, true, false, 0, "+", transferTooltip(), null);
             }
 
             if (error.getType() == IRecipeTransferError.Type.INTERNAL) {
@@ -57,14 +66,13 @@ public final class JeiRecipeTransferBridge implements RecipeTransferBridge {
             }
 
             boolean enabled = error.getType().allowsTransfer;
-            String tooltipKey = enabled ? "text.auto_craft.move_items" : "error.rei.not.enough.materials";
             return new TransferState(
                     true,
                     enabled,
                     !enabled,
                     enabled ? 0 : REI_FAILED_TRANSFER_TINT,
                     "+",
-                    tooltip(summary, tooltipKey),
+                    enabled ? transferTooltip() : errorTooltip(error),
                     error);
         } catch (Throwable throwable) {
             return TransferState.UNSUPPORTED;
@@ -81,13 +89,16 @@ public final class JeiRecipeTransferBridge implements RecipeTransferBridge {
     @Override
     public boolean transfer(RecipeSummary summary, class_465<?> containerScreen, boolean maxTransfer) {
         try {
+            if (!maxTransfer && summary.craftsMissing() <= 0) {
+                return false;
+            }
             TransferLookup lookup = transferLookup(summary, containerScreen);
             if (lookup == null || lookup.handler().isEmpty()) {
                 return false;
             }
 
             TransferContext context = new TransferContext(lookup.handler().get(), lookup.menu(), lookup.nativeRecipe());
-            IRecipeTransferError error = context.check(maxTransfer, true);
+            IRecipeTransferError error = context.transfer(summary.craftsMissing(), maxTransfer);
             return error == null || error.getType().allowsTransfer;
         } catch (Throwable throwable) {
             return false;
@@ -140,6 +151,41 @@ public final class JeiRecipeTransferBridge implements RecipeTransferBridge {
         return List.copyOf(lines);
     }
 
+    private static List<class_2561> transferTooltip() {
+        return List.of(
+                class_2561.method_43471("lmlp.tooltip.recipe.transfer_missing"),
+                class_2561.method_43471("lmlp.tooltip.recipe.transfer_all"));
+    }
+
+    private static List<class_2561> errorTooltip(IRecipeTransferError error) {
+        Class<?> type = error.getClass();
+        while (type != null) {
+            try {
+                Field messageField = type.getDeclaredField("message");
+                messageField.setAccessible(true);
+                if (messageField.get(error) instanceof List<?> rawLines) {
+                    List<class_2561> lines = new ArrayList<>();
+                    for (Object rawLine : rawLines) {
+                        if (rawLine instanceof class_2561 line) {
+                            lines.add(line);
+                        }
+                    }
+                    if (!lines.isEmpty()) {
+                        return List.copyOf(lines);
+                    }
+                }
+            } catch (ReflectiveOperationException ignored) {
+                // Older and newer JEI versions expose this message differently.
+            }
+            type = type.getSuperclass();
+        }
+
+        return List.of(
+                class_2561.method_43471("jei.tooltip.transfer"),
+                class_2561.method_43471("jei.tooltip.error.recipe.transfer.missing")
+                        .method_27692(class_124.field_1061));
+    }
+
     private static JeiRecipeResolver.JeiNativeRecipe<?> nativeRecipe(RecipeSummary summary) {
         return summary.nativeDisplay() instanceof JeiRecipeResolver.JeiNativeRecipe<?> nativeRecipe ? nativeRecipe : null;
     }
@@ -158,6 +204,42 @@ public final class JeiRecipeTransferBridge implements RecipeTransferBridge {
                     class_310.method_1551().field_1724,
                     maxTransfer,
                     doTransfer);
+        }
+
+        private IRecipeTransferError transfer(int craftsMissing, boolean maxTransfer) {
+            if (maxTransfer || craftsMissing <= 1) {
+                return this.check(maxTransfer, true);
+            }
+            IRecipeTransferError error = this.check(false, true);
+            if ((error == null || error.getType().allowsTransfer)
+                    && class_310.method_1551().field_1761 != null) {
+                this.recipeDisplayId().ifPresent(displayId -> {
+                    for (int craft = 1; craft < craftsMissing; craft++) {
+                        class_310.method_1551().field_1761.method_2912(
+                                this.menu.field_7763,
+                                displayId,
+                                false);
+                    }
+                });
+            }
+            return error;
+        }
+
+        private Optional<class_10298> recipeDisplayId() {
+            if (!(this.nativeRecipe.recipe() instanceof class_8786<?> holder)
+                    || !(holder.comp_1933() instanceof class_1860<?> recipe)
+                    || class_310.method_1551().field_1724 == null) {
+                return Optional.empty();
+            }
+
+            List<class_10295> displays = recipe.method_64664();
+            Map<class_10298, class_10297> entries =
+                    ((ClientRecipeBookAccessor) class_310.method_1551().field_1724.method_3130())
+                            .lmlp$getDisplayEntries();
+            return entries.entrySet().stream()
+                    .filter(entry -> displays.contains(entry.getValue().comp_3263()))
+                    .map(Map.Entry::getKey)
+                    .findFirst();
         }
     }
 }

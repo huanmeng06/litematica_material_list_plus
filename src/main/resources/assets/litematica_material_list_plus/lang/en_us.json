@@ -44,6 +44,8 @@
   "lmlp.label.recipe.any.purpur": "Any purpur block",
   "lmlp.label.recipe.recipe_id": "Recipe ID",
   "text.auto_craft.move_items": "Move Items",
+  "lmlp.tooltip.recipe.transfer_missing": "Click: move the recipe ingredients needed for missing crafts",
+  "lmlp.tooltip.recipe.transfer_all": "Shift+Click: move all possible recipe ingredients",
   "error.rei.not.enough.materials": "Not enough materials.",
   "error.rei.not.supported.move.items": "Move Items is not supported with this recipe and this container.",
   "lmlp.label.recipe.preferred_pin": "Pin",

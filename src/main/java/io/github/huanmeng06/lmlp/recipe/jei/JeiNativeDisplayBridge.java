@@ -3,6 +3,8 @@ package io.github.huanmeng06.lmlp.recipe.jei;
 import java.util.List;
 
 import io.github.huanmeng06.lmlp.gui.RecipeNativeDisplayBridge;
+import io.github.huanmeng06.lmlp.recipe.AlternativeItemDisplay;
+import io.github.huanmeng06.lmlp.recipe.RecipeSlotSummary;
 import io.github.huanmeng06.lmlp.recipe.RecipeSummary;
 import mezz.jei.api.gui.drawable.IDrawable;
 import mezz.jei.api.gui.IRecipeLayoutDrawable;
@@ -39,10 +41,48 @@ public final class JeiNativeDisplayBridge implements RecipeNativeDisplayBridge {
     }
 
     @Override
+    public void tick(RecipeSummary summary) {
+        requireNativeRecipe(summary).layout().tick();
+    }
+
+    @Override
     public void render(RecipeSummary summary, class_332 context, int x, int y, int width, int height, int mouseX, int mouseY, float delta) {
         IRecipeLayoutDrawable<?> layout = requireNativeRecipe(summary).layout();
+        applySynchronizedDisplayOverrides(summary, layout);
         layout.setPosition(x, y);
         layout.drawRecipe(context, mouseX, mouseY);
+    }
+
+    private static void applySynchronizedDisplayOverrides(RecipeSummary summary, IRecipeLayoutDrawable<?> layout) {
+        List<IRecipeSlotDrawable> inputSlots = layout.getRecipeSlotsView()
+                .getSlotViews(RecipeIngredientRole.INPUT)
+                .stream()
+                .filter(IRecipeSlotDrawable.class::isInstance)
+                .map(IRecipeSlotDrawable.class::cast)
+                .toList();
+        List<RecipeSlotSummary> summarySlots = summary.inputSlots();
+        for (int index = 0; index < Math.min(inputSlots.size(), summarySlots.size()); index++) {
+            RecipeSlotSummary summarySlot = summarySlots.get(index);
+            if (summarySlot.icons().size() > 1) {
+                IRecipeSlotDrawable slot = inputSlots.get(index);
+                slot.clearDisplayOverrides();
+                slot.createDisplayOverrides().add(AlternativeItemDisplay.icon(summarySlot));
+            }
+        }
+
+        if (summary.outputIcons().size() > 1) {
+            class_1799 output = AlternativeItemDisplay.icon(summary.outputIcons(), summary.outputIcon());
+            layout.getRecipeSlotsView()
+                    .getSlotViews(RecipeIngredientRole.OUTPUT)
+                    .stream()
+                    .filter(IRecipeSlotDrawable.class::isInstance)
+                    .map(IRecipeSlotDrawable.class::cast)
+                    .findFirst()
+                    .ifPresent(slot -> {
+                        slot.clearDisplayOverrides();
+                        slot.createDisplayOverrides().add(output);
+                    });
+        }
     }
 
     @Override

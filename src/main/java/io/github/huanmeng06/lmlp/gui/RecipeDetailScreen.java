@@ -3,6 +3,7 @@ package io.github.huanmeng06.lmlp.gui;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -181,6 +182,18 @@ public class RecipeDetailScreen extends class_437 {
     @Override
     public boolean method_25421() {
         return false;
+    }
+
+    @Override
+    public void method_25393() {
+        super.method_25393();
+        Set<Object> tickedDisplays = java.util.Collections.newSetFromMap(new IdentityHashMap<>());
+        for (NativeDisplayArea area : this.nativeDisplayAreas) {
+            Object nativeDisplay = area.summary().nativeDisplay();
+            if (nativeDisplay != null && tickedDisplays.add(nativeDisplay)) {
+                this.nativeDisplayBridge.tick(area.summary());
+            }
+        }
     }
 
     @Override
@@ -450,8 +463,9 @@ public class RecipeDetailScreen extends class_437 {
     private void renderRecipeBoxContents(class_332 context, RecipeSummary summary, int index, String path,
             String listPath, int depth, int left, int y, int width, int boxHeight, int mouseX, int mouseY,
             float delta) {
-        context.method_51427(summary.outputIcon(), left + 10, y + 10);
-        this.captureHoveredStack(summary.outputIcon(), mouseX, mouseY, left + 10, y + 10, 16, 16);
+        class_1799 displayOutput = displayOutputIcon(summary);
+        context.method_51427(displayOutput, left + 10, y + 10);
+        this.captureHoveredStack(displayOutput, mouseX, mouseY, left + 10, y + 10, 16, 16);
         context.method_51433(this.field_22793, RecipeSummaryFormatter.header(summary, index), left + 34, y + 12,
                 0xFFFFFFFF, false);
         this.renderPreferredRecipeButton(context, summary, listPath, left, y, width, mouseX, mouseY);
@@ -622,9 +636,10 @@ public class RecipeDetailScreen extends class_437 {
         int outputX = x + 166;
         int outputY = y + 35;
         drawOutputSlot(context, outputX, outputY);
+        class_1799 displayOutput = displayOutputIcon(summary);
         drawSlotItem(
-                context, outputX + 5, outputY + 5, new RecipeSlotSummary(summary.outputIcon(),
-                        List.of(ItemStackTexts.name(summary.outputIcon())), summary.outputCount()),
+                context, outputX + 5, outputY + 5, new RecipeSlotSummary(displayOutput,
+                        List.of(ItemStackTexts.name(displayOutput)), summary.outputCount()),
                 mouseX, mouseY, 16, 16);
     }
 
@@ -810,8 +825,12 @@ public class RecipeDetailScreen extends class_437 {
         if (hovered) {
             this.hoveredTransferTooltip = state.tooltip();
         }
+        int errorClipLeft = panelX;
+        int errorClipTop = Math.max(panelY, this.activeClipTop);
+        int errorClipRight = panelX + panelWidth;
+        int errorClipBottom = Math.min(panelY + panelHeight, this.activeClipBottom);
         TransferButtonEntry entry = new TransferButtonEntry(summary, state, bounds.x(), visibleTop, bounds.width(),
-                visibleHeight);
+                visibleHeight, errorClipLeft, errorClipTop, errorClipRight, errorClipBottom);
         this.transferButtons.add(entry);
         if (hovered) {
             this.hoveredTransferEntry = entry;
@@ -840,6 +859,23 @@ public class RecipeDetailScreen extends class_437 {
             return false;
         }
 
+        if (this.hoveredTransferEntry.hasVisibleErrorArea()) {
+            context.method_44379(
+                    this.hoveredTransferEntry.errorClipLeft(),
+                    this.hoveredTransferEntry.errorClipTop(),
+                    this.hoveredTransferEntry.errorClipRight(),
+                    this.hoveredTransferEntry.errorClipBottom());
+            try {
+                this.transferBridge.renderError(
+                        this.hoveredTransferEntry.summary(),
+                        this.hoveredTransferEntry.state(),
+                        context,
+                        mouseX,
+                        mouseY);
+            } finally {
+                context.method_44380();
+            }
+        }
         if (!this.hoveredTransferTooltip.isEmpty()) {
             context.method_51434(this.field_22793, this.hoveredTransferTooltip, mouseX, mouseY);
         }
@@ -1038,6 +1074,7 @@ public class RecipeDetailScreen extends class_437 {
                 representative.category(),
                 representative.recipeId(),
                 representative.outputIcon(),
+                perAlternative.stream().map(RecipeSummary::outputIcon).toList(),
                 representative.outputCount(),
                 representative.craftsTotal(),
                 representative.craftsMissing(),
@@ -1047,6 +1084,10 @@ public class RecipeDetailScreen extends class_437 {
                 representative.gridHeight(),
                 representative.shapeless(),
                 representative.nativeDisplay()));
+    }
+
+    private static class_1799 displayOutputIcon(RecipeSummary summary) {
+        return AlternativeItemDisplay.icon(summary.outputIcons(), summary.outputIcon());
     }
 
     private static List<RecipeSlotSummary> unionSlots(List<RecipeSummary> perAlternative,
@@ -1188,7 +1229,7 @@ public class RecipeDetailScreen extends class_437 {
             int visibleBottom = Math.min(y + height, this.activeClipBottom);
             if (visibleBottom > visibleTop) {
                 this.nativeDisplayAreas
-                        .add(new NativeDisplayArea(summary, x, visibleTop, width, visibleBottom - visibleTop));
+                        .add(new NativeDisplayArea(summary, x, y, width, height, visibleTop, visibleBottom));
             }
             return true;
         } catch (Throwable throwable) {
@@ -1625,18 +1666,23 @@ public class RecipeDetailScreen extends class_437 {
     private record PanelBounds(int x, int y) {
     }
 
-    private record NativeDisplayArea(RecipeSummary summary, int x, int y, int width, int height) {
+    private record NativeDisplayArea(RecipeSummary summary, int x, int y, int width, int height, int visibleTop,
+            int visibleBottom) {
         private boolean contains(double mouseX, double mouseY) {
-            return mouseX >= this.x && mouseX < this.x + this.width && mouseY >= this.y
-                    && mouseY < this.y + this.height;
+            return mouseX >= this.x && mouseX < this.x + this.width && mouseY >= this.visibleTop
+                    && mouseY < this.visibleBottom;
         }
     }
 
     private record TransferButtonEntry(RecipeSummary summary, RecipeTransferBridge.TransferState state, int x, int y,
-            int width, int height) {
+            int width, int height, int errorClipLeft, int errorClipTop, int errorClipRight, int errorClipBottom) {
         private boolean contains(double mouseX, double mouseY) {
             return mouseX >= this.x && mouseX < this.x + this.width && mouseY >= this.y
                     && mouseY < this.y + this.height;
+        }
+
+        private boolean hasVisibleErrorArea() {
+            return this.errorClipRight > this.errorClipLeft && this.errorClipBottom > this.errorClipTop;
         }
     }
 
