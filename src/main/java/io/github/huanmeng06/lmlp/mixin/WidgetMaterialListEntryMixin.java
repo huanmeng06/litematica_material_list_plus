@@ -349,6 +349,8 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
                 // the screen's top-left corner.
                 if (this.materialList.getSortCriteria() != MaterialListBase.SortCriteria.CACHE_ORDER) {
                     this.renderColumnHeader(drawContext, mouseX, mouseY, Icons.ARROW_DOWN, Icons.ARROW_UP);
+                } else {
+                    this.lmlp$renderColumnHeaderOutlines(drawContext, mouseX, mouseY);
                 }
             }
 
@@ -419,6 +421,17 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
             this.drawSubWidgets(drawContext, mouseX, mouseY);
         } else {
             super.render(drawContext, mouseX, mouseY, selected);
+        }
+    }
+
+    private void lmlp$renderColumnHeaderOutlines(GuiContext drawContext, int mouseX, int mouseY) {
+        int hoveredColumn = this.getMouseOverColumn(mouseX, mouseY);
+        for (int column = 0; column < this.getColumnCount(); column++) {
+            int color = hoveredColumn == column ? -1 : 0xC0707070;
+            int xStart = this.getColumnPosX(column);
+            int xEnd = this.getColumnPosX(column + 1);
+            RenderUtils.drawOutline(drawContext, xStart - 3, this.y + 1,
+                    xEnd - xStart - 2, this.height - 2, color);
         }
     }
 
