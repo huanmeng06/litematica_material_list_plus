@@ -1,8 +1,12 @@
 package io.github.huanmeng06.lmlp.recipe.jei;
 
 import java.util.List;
+import java.util.Optional;
 
+import fi.dy.masa.malilib.render.GuiContext;
 import io.github.huanmeng06.lmlp.gui.RecipeNativeDisplayBridge;
+import io.github.huanmeng06.lmlp.recipe.AlternativeItemDisplay;
+import io.github.huanmeng06.lmlp.recipe.RecipeSlotSummary;
 import io.github.huanmeng06.lmlp.recipe.RecipeSummary;
 import mezz.jei.api.gui.drawable.IDrawable;
 import mezz.jei.api.gui.IRecipeLayoutDrawable;
@@ -17,6 +21,7 @@ import net.minecraft.class_2561;
 import net.minecraft.class_2960;
 import net.minecraft.class_327;
 import net.minecraft.class_332;
+import net.minecraft.class_768;
 
 public final class JeiNativeDisplayBridge implements RecipeNativeDisplayBridge {
     private static final class_2960 CATALYST_TAB = class_2960.method_60655("litematica_material_list_plus", "textures/gui/catalyst_tab.png");
@@ -39,22 +44,111 @@ public final class JeiNativeDisplayBridge implements RecipeNativeDisplayBridge {
     }
 
     @Override
+    public void tick(RecipeSummary summary) {
+        requireNativeRecipe(summary).layout().tick();
+    }
+
+    @Override
     public void render(RecipeSummary summary, class_332 context, int x, int y, int width, int height, int mouseX, int mouseY, float delta) {
         IRecipeLayoutDrawable<?> layout = requireNativeRecipe(summary).layout();
+        applySynchronizedDisplayOverrides(summary, layout);
         layout.setPosition(x, y);
         layout.drawRecipe(context, mouseX, mouseY);
+    }
+
+    private static void applySynchronizedDisplayOverrides(RecipeSummary summary, IRecipeLayoutDrawable<?> layout) {
+        List<IRecipeSlotDrawable> inputSlots = layout.getRecipeSlotsView()
+                .getSlotViews(RecipeIngredientRole.INPUT)
+                .stream()
+                .filter(IRecipeSlotDrawable.class::isInstance)
+                .map(IRecipeSlotDrawable.class::cast)
+                .toList();
+        List<RecipeSlotSummary> summarySlots = summary.inputSlots();
+        for (int index = 0; index < Math.min(inputSlots.size(), summarySlots.size()); index++) {
+            RecipeSlotSummary summarySlot = summarySlots.get(index);
+            if (summarySlot.icons().size() > 1) {
+                IRecipeSlotDrawable slot = inputSlots.get(index);
+                slot.clearDisplayOverrides();
+                slot.createDisplayOverrides().add(AlternativeItemDisplay.icon(summarySlot));
+            }
+        }
+
+        if (summary.outputIcons().size() > 1) {
+            class_1799 output = AlternativeItemDisplay.icon(summary.outputIcons(), summary.outputIcon());
+            layout.getRecipeSlotsView()
+                    .getSlotViews(RecipeIngredientRole.OUTPUT)
+                    .stream()
+                    .filter(IRecipeSlotDrawable.class::isInstance)
+                    .map(IRecipeSlotDrawable.class::cast)
+                    .findFirst()
+                    .ifPresent(slot -> {
+                        slot.clearDisplayOverrides();
+                        slot.createDisplayOverrides().add(output);
+                    });
+        }
     }
 
     @Override
     public boolean renderTooltip(RecipeSummary summary, class_332 context, class_327 textRenderer, int x, int y, int width, int height, int mouseX, int mouseY) {
         IRecipeLayoutDrawable<?> layout = requireNativeRecipe(summary).layout();
         layout.setPosition(x, y);
+        class_332 target = context instanceof GuiContext guiContext ? guiContext.getGuiGraphics() : context;
+
+        // Let JEI render its native tooltip whenever its own slot hit test
+        // succeeds. GuiContext is a malilib wrapper; tooltip rendering must be
+        // queued on the underlying GuiGraphics or it never reaches the final
+        // tooltip layer on 1.21.11.
+        if (layout.getSlotUnderMouse(mouseX, mouseY).isPresent()) {
+            layout.drawOverlays(target, mouseX, mouseY);
+            return true;
+        }
+
+        Optional<class_1799> hoveredStack = hoveredItemStack(summary, layout, x, y, mouseX, mouseY);
+        if (hoveredStack.isPresent()) {
+            target.method_51446(textRenderer, hoveredStack.get(), mouseX, mouseY);
+            return true;
+        }
+
         if (!layout.isMouseOver(mouseX, mouseY)) {
             return false;
         }
 
-        layout.drawOverlays(context, mouseX, mouseY);
+        layout.drawOverlays(target, mouseX, mouseY);
         return true;
+    }
+
+    private static Optional<class_1799> hoveredItemStack(RecipeSummary summary, IRecipeLayoutDrawable<?> layout,
+            int layoutX, int layoutY, int mouseX, int mouseY) {
+        int inputIndex = 0;
+        for (var slotView : layout.getRecipeSlotsView().getSlotViews()) {
+            if (!(slotView instanceof IRecipeSlotDrawable slot)) {
+                continue;
+            }
+
+            class_768 area = slot.getAreaIncludingBackground();
+            int left = layoutX + area.method_3321();
+            int top = layoutY + area.method_3322();
+            boolean hovered = mouseX >= left && mouseX < left + area.method_3319()
+                    && mouseY >= top && mouseY < top + area.method_3320();
+            if (hovered) {
+                if (slotView.getRole() == RecipeIngredientRole.INPUT && inputIndex < summary.inputSlots().size()) {
+                    RecipeSlotSummary summarySlot = summary.inputSlots().get(inputIndex);
+                    if (!summarySlot.isEmpty()) {
+                        return Optional.of(AlternativeItemDisplay.icon(summarySlot));
+                    }
+                } else if (slotView.getRole() == RecipeIngredientRole.OUTPUT) {
+                    return Optional.of(AlternativeItemDisplay.icon(summary.outputIcons(), summary.outputIcon()));
+                }
+
+                return slot.getDisplayedItemStack();
+            }
+
+            if (slotView.getRole() == RecipeIngredientRole.INPUT) {
+                inputIndex++;
+            }
+        }
+
+        return Optional.empty();
     }
 
     @Override
