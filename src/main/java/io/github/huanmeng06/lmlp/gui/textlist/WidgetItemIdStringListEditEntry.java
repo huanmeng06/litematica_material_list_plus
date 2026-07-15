@@ -129,13 +129,16 @@ public class WidgetItemIdStringListEditEntry extends WidgetConfigOptionBase<Stri
     }
 
     @Override
-    public boolean onMouseClicked(int mouseX, int mouseY, int mouseButton) {
+    public boolean onMouseClicked(net.minecraft.class_11909 event, boolean doubleClick) {
+        int mouseX = (int) event.comp_4798();
+        int mouseY = (int) event.comp_4799();
+        int mouseButton = event.comp_4800().comp_4801();
         if (!this.isDummy() && mouseButton == 0 && this.isHandleHovered(mouseX, mouseY)) {
             this.listWidget.beginDrag(this.listIndex);
             return true;
         }
 
-        return super.onMouseClicked(mouseX, mouseY, mouseButton);
+        return super.onMouseClicked(event, doubleClick);
     }
 
     private boolean isHandleHovered(int mouseX, int mouseY) {
@@ -224,14 +227,14 @@ public class WidgetItemIdStringListEditEntry extends WidgetConfigOptionBase<Stri
     }
 
     @Override
-    public void render(int mouseX, int mouseY, boolean selected, class_332 context) {
-        RenderUtils.color(1.0F, 1.0F, 1.0F, 1.0F);
-        RenderUtils.drawRect(this.x, this.y, this.width, this.height, this.isOdd ? ROW_BACKGROUND_ODD : ROW_BACKGROUND_EVEN);
+    public void render(class_332 context, int mouseX, int mouseY, boolean selected) {
+        RenderUtils.drawRect(context, this.x, this.y, this.width, this.height,
+                this.isOdd ? ROW_BACKGROUND_ODD : ROW_BACKGROUND_EVEN);
         if (!this.isDummy()) {
             this.renderItemIcon(context, mouseX, mouseY);
         }
-        this.drawSubWidgets(mouseX, mouseY, context);
-        this.drawTextFields(mouseX, mouseY, context);
+        this.drawSubWidgets(context, mouseX, mouseY);
+        this.drawTextFields(context, mouseX, mouseY);
     }
 
     private void renderItemIcon(class_332 context, int mouseX, int mouseY) {
@@ -239,9 +242,9 @@ public class WidgetItemIdStringListEditEntry extends WidgetConfigOptionBase<Stri
         boolean handleHovered = this.isHandleHovered(mouseX, mouseY) && !this.listWidget.isDragging();
         boolean isDraggedRow = this.listWidget.isDragging() && this.listWidget.dragIndex() == this.listIndex;
         if (handleHovered || isDraggedRow) {
-            RenderUtils.drawRect(this.x, this.y, this.width, this.height, 0x40FFFFFF);
+            RenderUtils.drawRect(context, this.x, this.y, this.width, this.height, 0x40FFFFFF);
         }
-        RenderUtils.drawOutlinedBox(this.iconX, this.iconY, ICON_SLOT_SIZE, ICON_SLOT_SIZE, ICON_SLOT_BACKGROUND, ICON_SLOT_BORDER);
+        RenderUtils.drawOutlinedBox(context, this.iconX, this.iconY, ICON_SLOT_SIZE, ICON_SLOT_SIZE, ICON_SLOT_BACKGROUND, ICON_SLOT_BORDER);
         ItemIdListIconResolver.Display display = ItemIdListIconResolver.currentIcon(this.currentText());
         class_1799 stack = display.stack();
         // While a drag is in progress, only the dragged-row ghost label should

@@ -105,12 +105,15 @@ public class KnownPlacementListEntry extends WidgetSchematicPlacement {
     }
 
     @Override
-    public boolean canSelectAt(int mouseX, int mouseY, int mouseButton) {
-        return mouseX < this.buttonsStartX && super.canSelectAt(mouseX, mouseY, mouseButton);
+    public boolean canSelectAt(net.minecraft.class_11909 event) {
+        return event.comp_4798() < this.buttonsStartX && super.canSelectAt(event);
     }
 
     @Override
-    public boolean onMouseClicked(int mouseX, int mouseY, int mouseButton) {
+    public boolean onMouseClicked(net.minecraft.class_11909 event, boolean doubleClick) {
+        int mouseX = (int) event.comp_4798();
+        int mouseY = (int) event.comp_4799();
+        int mouseButton = event.comp_4800().comp_4801();
         if (mouseButton == 0 && this.context != null) {
             PlacementLine line = KnownPlacementRows.placementLine(this, this.context, this.placement.getName(), KnownPlacementRows.PAGE_SCHEMATIC_PLACEMENTS);
             if (PlacementOriginMarker.originHovered(this.context, line, this, mouseX, mouseY)) {
@@ -126,22 +129,22 @@ public class KnownPlacementListEntry extends WidgetSchematicPlacement {
             ChunkMissingMaterialListCache.selectEditablePlacement(this.placement, "schematic_placements_list.row_click_legacy");
         }
 
-        return super.onMouseClicked(mouseX, mouseY, mouseButton);
+        return super.onMouseClicked(event, doubleClick);
     }
 
     @Override
-    public void render(int mouseX, int mouseY, boolean selected, class_332 drawContext) {
+    public void render(class_332 drawContext, int mouseX, int mouseY, boolean selected) {
         boolean materialSelected = this.context != null && ChunkMissingMaterialListCache.isMaterialListContextSelected(this.context.key());
         if (selected || this.isMouseOver(mouseX, mouseY)) {
-            RenderUtils.drawRect(this.x, this.y, this.width, this.height, 0xA0707070);
+            RenderUtils.drawRect(drawContext, this.x, this.y, this.width, this.height, 0xA0707070);
         } else if (this.isOdd) {
-            RenderUtils.drawRect(this.x, this.y, this.width, this.height, 0xA0101010);
+            RenderUtils.drawRect(drawContext, this.x, this.y, this.width, this.height, 0xA0101010);
         } else {
-            RenderUtils.drawRect(this.x, this.y, this.width, this.height, 0xA0303030);
+            RenderUtils.drawRect(drawContext, this.x, this.y, this.width, this.height, 0xA0303030);
         }
 
         if (materialSelected) {
-            KnownPlacementRows.renderSelectedOutline(this);
+            KnownPlacementRows.renderSelectedOutline(this, drawContext);
         }
 
         String enabledColor = this.placement.isEnabled() ? GuiBase.TXT_GREEN : GuiBase.TXT_RED;
@@ -154,11 +157,11 @@ public class KnownPlacementListEntry extends WidgetSchematicPlacement {
         }
         KnownPlacementRows.renderPlacementLine(this, this.zLevel, drawContext, line, enabledColor, nameHovered, context, originHovered);
 
-        this.drawSubWidgets(mouseX, mouseY, drawContext);
+        this.drawSubWidgets(drawContext, mouseX, mouseY);
     }
 
     @Override
-    public void postRenderHovered(int mouseX, int mouseY, boolean selected, class_332 drawContext) {
+    public void postRenderHovered(class_332 drawContext, int mouseX, int mouseY, boolean selected) {
         if (this.isMouseOver(mouseX, mouseY) && mouseX < this.buttonsStartX && this.context != null) {
             PlacementLine line = KnownPlacementRows.placementLine(this, this.context, this.placement.getName(), KnownPlacementRows.PAGE_SCHEMATIC_PLACEMENTS);
             List<String> lines = new ArrayList<>();
@@ -175,11 +178,11 @@ public class KnownPlacementListEntry extends WidgetSchematicPlacement {
             }
 
             if (!lines.isEmpty()) {
-                RenderUtils.drawHoverText(mouseX, mouseY, lines, drawContext);
+                RenderUtils.drawHoverText(drawContext, mouseX, mouseY, lines);
             }
         }
 
-        this.drawHoveredSubWidget(mouseX, mouseY, drawContext);
+        this.drawHoveredSubWidget(drawContext, mouseX, mouseY);
     }
 
     private boolean isPlacementNameHovered(int mouseX, int mouseY) {

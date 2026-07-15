@@ -188,12 +188,13 @@ public final class KnownPlacementRows {
     public static void renderHeader(WidgetBase widget, KnownPlacementRow row, int mouseX, int mouseY, class_332 drawContext) {
         boolean hovered = widget.isMouseOver(mouseX, mouseY);
         int background = hovered ? 0xA0707070 : 0xA0303030;
-        RenderUtils.drawRect(widget.getX(), widget.getY(), widget.getWidth(), widget.getHeight(), background);
+        RenderUtils.drawRect(drawContext, widget.getX(), widget.getY(), widget.getWidth(), widget.getHeight(),
+                background);
 
         int centerY = widget.getY() + widget.getHeight() / 2;
         ToggleArrowRenderer.render(drawContext, widget.getX() + ARROW_SLOT_X, ARROW_SLOT_WIDTH, centerY, arrowProgress(row), hovered);
         drawIcon(row.dimension(), widget.getX() + ICON_X, widget.getY() + (widget.getHeight() - ICON_SIZE) / 2, drawContext);
-        widget.drawString(widget.getX() + HEADER_TEXT_X, textY(widget), 0xFFE0E0E0, GuiBase.TXT_BOLD + row.displayName() + GuiBase.TXT_RST, drawContext);
+        widget.drawString(drawContext, widget.getX() + HEADER_TEXT_X, textY(widget), 0xFFE0E0E0, GuiBase.TXT_BOLD + row.displayName() + GuiBase.TXT_RST);
         GROUP_ANIMATIONS.prune();
     }
 
@@ -211,7 +212,8 @@ public final class KnownPlacementRows {
     }
 
     public static void renderTableHeader(WidgetBase widget, KnownPlacementRow row, int mouseX, int mouseY, class_332 drawContext) {
-        RenderUtils.drawRect(widget.getX(), widget.getY(), widget.getWidth(), widget.getHeight(), ORIGINAL_HEADER_BACKGROUND);
+        RenderUtils.drawRect(drawContext, widget.getX(), widget.getY(), widget.getWidth(), widget.getHeight(),
+                ORIGINAL_HEADER_BACKGROUND);
         SortableHeaderRenderer renderer = SortableHeaderRenderer.create(widget, row);
         ColumnLayout columns = computeColumns(widget, row.pageId());
         int textY = textY(widget);
@@ -221,11 +223,11 @@ public final class KnownPlacementRows {
         drawHeaderLabel(widget, SortColumn.ORIGIN, headerTextX(columns.originX()), textY, columns.originWidth(), drawContext);
         if (hasActionColumn(row.pageId())) {
             widget.drawString(
+                    drawContext,
                     headerTextX(columns.actionX()),
                     textY,
                     -1,
-                    GuiBase.TXT_BOLD + StringUtils.translate("lmlp.gui.known_placement.header.actions") + GuiBase.TXT_RST,
-                    drawContext);
+                    GuiBase.TXT_BOLD + StringUtils.translate("lmlp.gui.known_placement.header.actions") + GuiBase.TXT_RST);
         }
         renderer.renderOriginalColumnHeader(mouseX, mouseY, drawContext);
     }
@@ -244,20 +246,18 @@ public final class KnownPlacementRows {
         return true;
     }
 
-    public static void renderSelectedOutline(WidgetBase widget) {
-        RenderUtils.drawOutline(contentLeft(widget), widget.getY() + 1, widget.getWidth() - 2, Math.max(0, Math.min(ROW_HEIGHT, widget.getHeight()) - 2), 0xFFFFFFFF);
+    public static void renderSelectedOutline(WidgetBase widget, class_332 drawContext) {
+        RenderUtils.drawOutline(drawContext, contentLeft(widget), widget.getY() + 1, widget.getWidth() - 2, Math.max(0, Math.min(ROW_HEIGHT, widget.getHeight()) - 2), 0xFFFFFFFF);
     }
 
     public static void renderPlacementIcon(WidgetBase widget, float zLevel, class_332 drawContext) {
-        RenderUtils.color(1.0F, 1.0F, 1.0F, 1.0F);
-        widget.bindTexture(Icons.TEXTURE, drawContext);
         Icons.SCHEMATIC_TYPE_FILE.renderAt(
+                drawContext,
                 widget.getX() + PLACEMENT_ICON_X,
                 widget.getY() + (ROW_HEIGHT - Icons.SCHEMATIC_TYPE_FILE.getHeight()) / 2,
                 zLevel,
                 false,
-                false,
-                drawContext);
+                false);
     }
 
     public static PlacementLine placementLine(WidgetBase widget, KnownPlacementContext context, String placementName, String pageId) {
@@ -301,14 +301,14 @@ public final class KnownPlacementRows {
 
         int textY = textY(widget);
         String formattedName = nameColor + (nameHovered ? UNDERLINE : "") + line.nameText() + GuiBase.TXT_RST;
-        widget.drawString(line.layout().nameX(), textY, 0xFFFFFFFF, formattedName, drawContext);
+        widget.drawString(drawContext, line.layout().nameX(), textY, 0xFFFFFFFF, formattedName);
 
         if (!line.fileText().isEmpty()) {
-            widget.drawString(line.layout().fileX(), textY, FILE_TEXT_COLOR, line.fileText(), drawContext);
+            widget.drawString(drawContext, line.layout().fileX(), textY, FILE_TEXT_COLOR, line.fileText());
         }
 
         if (line.status() != null && line.layout().statusWidth() > 0) {
-            widget.drawString(line.layout().statusX(), textY, line.status().color(), line.status().text(), drawContext);
+            widget.drawString(drawContext, line.layout().statusX(), textY, line.status().color(), line.status().text());
         }
 
         if (!line.originText().isEmpty()) {
@@ -318,7 +318,7 @@ public final class KnownPlacementRows {
                     + line.originText()
                     + GuiBase.TXT_RST;
             int color = PlacementOriginMarker.canHighlightOrigin(context) ? PlacementOriginMarker.ORIGIN_TEXT_COLOR : ORIGIN_TEXT_COLOR;
-            widget.drawString(line.layout().originX(), textY, color, formattedOrigin, drawContext);
+            widget.drawString(drawContext, line.layout().originX(), textY, color, formattedOrigin);
         }
     }
 
@@ -703,7 +703,7 @@ public final class KnownPlacementRows {
             case ORIGIN -> StringUtils.translate("lmlp.gui.known_placement.header.origin");
         };
         String truncated = truncateToWidth(widget, label, maxWidth);
-        widget.drawString(x, y, -1, GuiBase.TXT_BOLD + truncated + GuiBase.TXT_RST, drawContext);
+        widget.drawString(drawContext, x, y, -1, GuiBase.TXT_BOLD + truncated + GuiBase.TXT_RST);
     }
 
     private static Comparator<KnownPlacementContext> sortComparator(String pageId) {
@@ -1130,7 +1130,7 @@ public final class KnownPlacementRows {
         }
 
         private void renderOriginalColumnHeader(int mouseX, int mouseY, class_332 drawContext) {
-            this.renderColumnHeader(mouseX, mouseY, Icons.ARROW_DOWN, Icons.ARROW_UP, drawContext);
+            this.renderColumnHeader(drawContext, mouseX, mouseY, Icons.ARROW_DOWN, Icons.ARROW_UP);
         }
 
         private int mouseOverColumn(int mouseX, int mouseY) {

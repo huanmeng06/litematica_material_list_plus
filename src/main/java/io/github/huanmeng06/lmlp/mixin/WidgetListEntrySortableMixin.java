@@ -2,6 +2,7 @@ package io.github.huanmeng06.lmlp.mixin;
 
 import fi.dy.masa.malilib.gui.widgets.WidgetListEntrySortable;
 import fi.dy.masa.malilib.render.RenderUtils;
+import net.minecraft.class_332;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
@@ -19,12 +20,12 @@ public abstract class WidgetListEntrySortableMixin {
             method = "renderColumnHeader",
             at = @At(
                     value = "INVOKE",
-                    target = "Lfi/dy/masa/malilib/render/RenderUtils;drawOutline(IIIII)V"))
-    private void lmlp$skipDegenerateColumnOutline(int x, int y, int width, int height, int color) {
+                    target = "Lfi/dy/masa/malilib/render/RenderUtils;drawOutline(Lnet/minecraft/class_332;IIIII)V"))
+    private void lmlp$skipDegenerateColumnOutline(class_332 drawContext, int x, int y, int width, int height, int color) {
         if (width <= 0) {
             return;
         }
 
-        RenderUtils.drawOutline(x, y, width, height, color);
+        RenderUtils.drawOutline(drawContext, x, y, width, height, color);
     }
 }

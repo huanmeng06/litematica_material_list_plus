@@ -140,6 +140,7 @@
   "lmlp.config.name.missing_placement_button_range": "找不到投影判定距離",
   "lmlp.config.comment.missing_placement_button_range": "只有當玩家距離該離線快取投影記錄的原點座標在這麼多格以內時，這一行才會顯示「我找不到投影」按鈕。",
   "lmlp.config.name.hover_panel_max_rows": "懸浮面板最大行數",
+  "lmlp.config.comment.hover_panel_max_rows": "任意類懸浮面板每列最多顯示的物品行數；超出後會在螢幕寬度允許時增加欄數。",
   "lmlp.config.count_display_style.style1": "樣式1",
   "lmlp.config.count_display_style.style2": "樣式2",
   "lmlp.config.count_display_style.style3": "樣式3",

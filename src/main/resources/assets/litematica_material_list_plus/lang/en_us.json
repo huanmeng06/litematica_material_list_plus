@@ -140,6 +140,7 @@
   "lmlp.config.name.missing_placement_button_range": "Missing placement button range",
   "lmlp.config.comment.missing_placement_button_range": "How close (in blocks) the player must be to an offline-cached placement's recorded origin for the \"I can't find it\" button to appear on that row.",
   "lmlp.config.name.hover_panel_max_rows": "Hover panel maximum rows",
+  "lmlp.config.comment.hover_panel_max_rows": "Maximum item rows per column in choice-group hover panels. Extra items flow into additional columns as screen width allows.",
   "lmlp.config.count_display_style.style1": "Style 1",
   "lmlp.config.count_display_style.style2": "Style 2",
   "lmlp.config.count_display_style.style3": "Style 3",

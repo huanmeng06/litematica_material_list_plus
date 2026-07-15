@@ -8,13 +8,13 @@ import fi.dy.masa.malilib.interfaces.IInitializationHandler;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
-import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
 import io.github.huanmeng06.lmlp.cache.ChunkMissingMaterialListCache;
 import io.github.huanmeng06.lmlp.config.Configs;
 import io.github.huanmeng06.lmlp.config.Hotkeys;
 import io.github.huanmeng06.lmlp.event.InputHandler;
 import io.github.huanmeng06.lmlp.gui.GuiConfigs;
 import io.github.huanmeng06.lmlp.gui.PlacementOriginMarker;
+import io.github.huanmeng06.lmlp.material.InventoryCounts;
 
 import java.util.List;
 
@@ -36,18 +36,22 @@ public class InitHandler implements IInitializationHandler {
             return true;
         });
         ClientTickEvents.END_CLIENT_TICK.register(InitHandler::handleHotkeyFallback);
+        ClientTickEvents.END_CLIENT_TICK.register(client -> InventoryCounts.refresh());
         ClientTickEvents.END_CLIENT_TICK.register(client -> ChunkMissingMaterialListCache.flushPendingPersistence());
-        ClientPlayConnectionEvents.JOIN.register((handler, sender, client) ->
-                ChunkMissingMaterialListCache.onWorldJoined(client, "client_play.join"));
+        ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> {
+            InventoryCounts.clear();
+            ChunkMissingMaterialListCache.onWorldJoined(client, "client_play.join");
+        });
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
             PlacementOriginMarker.clear();
+            InventoryCounts.clear();
             ChunkMissingMaterialListCache.onWorldDisconnected("client_play.disconnect");
         });
         ClientLifecycleEvents.CLIENT_STOPPING.register(client -> {
             PlacementOriginMarker.clear();
+            InventoryCounts.clear();
             ChunkMissingMaterialListCache.onWorldDisconnected("client.lifecycle.stopping");
         });
-        WorldRenderEvents.LAST.register(PlacementOriginMarker::render);
     }
     private static void handleHotkeyFallback(net.minecraft.class_310 client) {
         // The raw key polling below ignores malilib's keybind contexts, so it

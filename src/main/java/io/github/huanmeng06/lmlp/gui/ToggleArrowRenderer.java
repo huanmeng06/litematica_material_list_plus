@@ -1,7 +1,5 @@
 package io.github.huanmeng06.lmlp.gui;
 
-import org.joml.Quaternionf;
-
 import io.github.huanmeng06.lmlp.LitematicaMaterialListPlus;
 import net.minecraft.class_2960;
 import net.minecraft.class_332;
@@ -25,10 +23,10 @@ final class ToggleArrowRenderer {
             return;
         }
 
-        context.method_51448().method_22903();
-        context.method_51448().method_22904(centerX, centerY, 0.0D);
-        context.method_51448().method_22907(new Quaternionf().rotateZ(rotation));
+        context.method_51448().pushMatrix();
+        context.method_51448().translate(centerX, centerY);
+        context.method_51448().rotate(rotation);
         context.method_52706(net.minecraft.class_10799.field_56883, texture, -ICON_WIDTH / 2, -ICON_HEIGHT / 2, ICON_WIDTH, ICON_HEIGHT);
-        context.method_51448().method_22909();
+        context.method_51448().popMatrix();
     }
 }

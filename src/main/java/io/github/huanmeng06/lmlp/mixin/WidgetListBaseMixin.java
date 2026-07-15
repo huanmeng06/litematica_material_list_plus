@@ -221,8 +221,8 @@ public abstract class WidgetListBaseMixin implements WidgetListBoundsAccess {
     }
 
     @Inject(method = "onMouseScrolled", at = @At("HEAD"), cancellable = true)
-    private void lmlp$scrollByPixels(int mouseX, int mouseY, double horizontalAmount, double verticalAmount, CallbackInfoReturnable<Boolean> cir) {
-        if (!this.lmlp$isInsideBrowser(mouseX, mouseY)) {
+    private void lmlp$scrollByPixels(double mouseX, double mouseY, double horizontalAmount, double verticalAmount, CallbackInfoReturnable<Boolean> cir) {
+        if (!this.lmlp$isInsideBrowser((int) mouseX, (int) mouseY)) {
             return;
         }
 
@@ -248,7 +248,6 @@ public abstract class WidgetListBaseMixin implements WidgetListBoundsAccess {
      */
     @Overwrite
     public void drawContents(class_332 drawContext, int mouseX, int mouseY, float partialTicks) {
-        RenderUtils.color(1.0F, 1.0F, 1.0F, 1.0F);
         this.lmlp$refreshAnimatedRecipeExpansion();
         this.lmlp$frameEntryHeights.clear();
 
@@ -258,7 +257,7 @@ public abstract class WidgetListBaseMixin implements WidgetListBoundsAccess {
         int scrollbarX = this.posX + this.browserWidth - 9;
         int scrollbarY = this.browserEntriesStartY + this.browserEntriesOffsetY;
         this.scrollBar.setMaxValue(this.lmlp$getPixelScrollbarMaxValue(0));
-        this.scrollBar.render(mouseX, mouseY, partialTicks, scrollbarX, scrollbarY, 8, this.lmlp$getListViewportHeight(), contentHeight, drawContext);
+        this.scrollBar.render(drawContext, mouseX, mouseY, partialTicks, scrollbarX, scrollbarY, 8, this.lmlp$getListViewportHeight(), contentHeight);
 
         if (this.scrollBar.getValue() != this.lastScrollbarPosition) {
             this.lastScrollbarPosition = this.scrollBar.getValue();
@@ -277,10 +276,10 @@ public abstract class WidgetListBaseMixin implements WidgetListBoundsAccess {
                     ? this.selectedEntries.contains(entry)
                     : entry != null && entry.equals(this.getLastSelectedEntry());
             if (entry == null) {
-                widget.render(mouseX, mouseY, selected, drawContext);
+                widget.render(drawContext, mouseX, mouseY, selected);
             } else if (clipBottom > entriesClipTop) {
                 drawContext.method_44379(this.posX, entriesClipTop, this.posX + this.browserWidth, clipBottom);
-                widget.render(mouseX, mouseY, selected, drawContext);
+                widget.render(drawContext, mouseX, mouseY, selected);
                 drawContext.method_44380();
             }
 
@@ -290,7 +289,7 @@ public abstract class WidgetListBaseMixin implements WidgetListBoundsAccess {
         }
 
         if (this.widgetSearchBar != null) {
-            this.widgetSearchBar.render(mouseX, mouseY, false, drawContext);
+            this.widgetSearchBar.render(drawContext, mouseX, mouseY, false);
         }
 
         if (hovered == null && this.widgetSearchBar != null && this.widgetSearchBar.isMouseOver(mouseX, mouseY)) {
@@ -299,7 +298,6 @@ public abstract class WidgetListBaseMixin implements WidgetListBoundsAccess {
 
         ((GuiBaseHoverAccess) this).lmlp$setHoveredWidget(hovered);
         this.lmlp$renderPanelTooltipAfterList(drawContext, mouseX, mouseY);
-        RenderUtils.color(1.0F, 1.0F, 1.0F, 1.0F);
     }
 
     @Inject(method = "getBrowserEntryHeightFor", at = @At("HEAD"), cancellable = true)

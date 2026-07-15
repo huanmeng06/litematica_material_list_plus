@@ -144,11 +144,13 @@ public class Configs implements IConfigHandler {
 
         public static final ConfigInteger HOVER_PANEL_MAX_ROWS = new ConfigInteger(
                 "hoverPanelMaxRows",
-                10,
+                12,
                 1,
                 40,
                 true,
-                "Maximum number of item rows in each column of a choice-group hover panel. Extra items flow into additional columns as screen width allows."
+                "lmlp.config.comment.hover_panel_max_rows",
+                "lmlp.config.name.hover_panel_max_rows",
+                "lmlp.config.name.hover_panel_max_rows"
         );
 
         public static final ConfigStringList RECIPE_STOP_ITEMS = new ConfigStringList(
@@ -207,7 +209,7 @@ public class Configs implements IConfigHandler {
     }
 
     public static void loadFromFile() {
-        File file = new File(FileUtils.getConfigDirectory(), FILE_NAME);
+        File file = new File(FileUtils.getConfigDirectoryAsPath().toFile(), FILE_NAME);
         if (file.exists() && file.isFile() && file.canRead()) {
             JsonElement element = JsonUtils.parseJsonFile(file);
             if (element != null && element.isJsonObject()) {
@@ -223,6 +225,7 @@ public class Configs implements IConfigHandler {
                 migrateOpenConfigHotkeyDefault();
                 migrateOriginMarkerTimeConfig(root);
                 migrateDisableLitematicaHoverTooltipConfig(root);
+                migrateHoverPanelMaxRowsDefault(root);
                 migrateDefaultRecipeStopItems();
                 migrateRecipeStopColorPatterns();
                 migrateDefaultKeepAsLeafItems();
@@ -231,7 +234,7 @@ public class Configs implements IConfigHandler {
     }
 
     public static void saveToFile() {
-        File dir = FileUtils.getConfigDirectory();
+        File dir = FileUtils.getConfigDirectoryAsPath().toFile();
         if ((dir.exists() && dir.isDirectory()) || dir.mkdirs()) {
             JsonObject root = new JsonObject();
             ConfigUtils.writeConfigBase(root, GENERIC, Generic.OPTIONS);
@@ -544,6 +547,17 @@ public class Configs implements IConfigHandler {
         String keys = Hotkeys.OPEN_CONFIG_GUI.getStringValue();
         if (OPEN_CONFIG_HOTKEY_OLD_DEFAULTS.contains(keys)) {
             Hotkeys.OPEN_CONFIG_GUI.setValueFromString(OPEN_CONFIG_HOTKEY_CURRENT_DEFAULT);
+        }
+    }
+
+    private static void migrateHoverPanelMaxRowsDefault(JsonObject root) {
+        if (!root.has(GENERIC) || !root.get(GENERIC).isJsonObject()) {
+            return;
+        }
+
+        JsonObject generic = root.getAsJsonObject(GENERIC);
+        if (readIntegerConfig(generic, "hoverPanelMaxRows") == 10) {
+            Generic.HOVER_PANEL_MAX_ROWS.setIntegerValue(12);
         }
     }
 

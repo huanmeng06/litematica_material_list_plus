@@ -7,6 +7,7 @@ import io.github.huanmeng06.lmlp.recipe.RecipeSummary;
 import mezz.jei.api.gui.drawable.IDrawable;
 import mezz.jei.api.gui.IRecipeLayoutDrawable;
 import mezz.jei.api.gui.ingredient.IRecipeSlotDrawable;
+import mezz.jei.api.gui.inputs.RecipeSlotUnderMouse;
 import mezz.jei.api.ingredients.ITypedIngredient;
 import mezz.jei.api.recipe.IFocus;
 import mezz.jei.api.recipe.RecipeIngredientRole;
@@ -144,7 +145,8 @@ public final class JeiNativeDisplayBridge implements RecipeNativeDisplayBridge {
         }
 
         return nativeRecipe.layout()
-                .getRecipeSlotUnderMouse(mouseX, mouseY)
+                .getSlotUnderMouse(mouseX, mouseY)
+                .map(RecipeSlotUnderMouse::slot)
                 .flatMap(IRecipeSlotDrawable::getDisplayedIngredient)
                 .map(ingredient -> openIngredient(runtime, ingredient, button == 0
                         ? RecipeIngredientRole.OUTPUT

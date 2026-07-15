@@ -53,7 +53,9 @@ public class WidgetListItemIdStringListEdit extends WidgetListConfigOptionsBase<
     }
 
     @Override
-    public boolean onMouseReleased(int mouseX, int mouseY, int mouseButton) {
+    public boolean onMouseReleased(net.minecraft.class_11909 event) {
+        int mouseY = (int) event.comp_4799();
+        int mouseButton = event.comp_4800().comp_4801();
         if (mouseButton == 0 && this.dragIndex >= 0) {
             int dragged = this.dragIndex;
             this.dragIndex = -1;
@@ -73,7 +75,7 @@ public class WidgetListItemIdStringListEdit extends WidgetListConfigOptionsBase<
             this.refreshEntries();
             return true;
         }
-        return super.onMouseReleased(mouseX, mouseY, mouseButton);
+        return super.onMouseReleased(event);
     }
 
     @Override
@@ -144,10 +146,9 @@ public class WidgetListItemIdStringListEdit extends WidgetListConfigOptionsBase<
         // itself, instead of the list's browserEntryWidth which can be a
         // couple pixels narrower.
         if (lineY != null) {
-            context.method_51448().method_22903();
-            context.method_51448().method_46416(0.0F, 0.0F, 400.0F);
-            RenderUtils.drawRect(lineX, lineY, lineWidth, DRAG_LINE_HEIGHT, 0xFFFFCC00);
-            context.method_51448().method_22909();
+            context.method_51448().pushMatrix();
+            RenderUtils.drawRect(context, lineX, lineY, lineWidth, DRAG_LINE_HEIGHT, 0xFFFFCC00);
+            context.method_51448().popMatrix();
         }
 
         // The dragged-row ghost label is drawn as a REAL vanilla tooltip. Item

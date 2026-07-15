@@ -4,10 +4,12 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 
 import io.github.huanmeng06.lmlp.material.ItemStackTexts;
 import io.github.huanmeng06.lmlp.recipe.IngredientSummary;
 import io.github.huanmeng06.lmlp.recipe.RecipeResolver;
+import io.github.huanmeng06.lmlp.recipe.RecipeNativeDisplayHandle;
 import io.github.huanmeng06.lmlp.recipe.RecipeSlotSummary;
 import io.github.huanmeng06.lmlp.recipe.RecipeSummary;
 import mezz.jei.api.constants.VanillaTypes;
@@ -60,10 +62,13 @@ public final class JeiRecipeResolver implements RecipeResolver {
                 .limitFocus(focuses)
                 .get()
                 .forEach(recipe -> recipeManager.createRecipeLayoutDrawable(category, recipe, focusGroup)
-                        .ifPresent(layout -> addSummary(category, recipe, layout, target, totalCount, missingCount, summaries)));
+                        .ifPresent(layout -> addSummary(recipeManager, focusGroup, category, recipe, layout,
+                                target, totalCount, missingCount, summaries)));
     }
 
     private static <R> void addSummary(
+            IRecipeManager recipeManager,
+            IFocusGroup focusGroup,
             IRecipeCategory<R> category,
             R recipe,
             IRecipeLayoutDrawable<R> layout,
@@ -88,6 +93,9 @@ public final class JeiRecipeResolver implements RecipeResolver {
         int craftsMissing = divideRoundUp(missingCount, outputCount);
         List<RecipeSlotSummary> slots = summarizeSlots(layout);
         String recipeId = category.getRegistryName(recipe) == null ? "unknown" : category.getRegistryName(recipe).toString();
+        Supplier<IRecipeLayoutDrawable<R>> layoutFactory = () -> recipeManager
+                .createRecipeLayoutDrawable(category, recipe, focusGroup)
+                .orElse(layout);
         summaries.add(new RecipeSummary(
                 category.getRecipeType().getUid().toString(),
                 recipeId,
@@ -100,7 +108,7 @@ public final class JeiRecipeResolver implements RecipeResolver {
                 3,
                 3,
                 false,
-                new JeiNativeRecipe<>(category, recipe, layout)));
+                new JeiNativeRecipe<>(category, recipe, layoutFactory, layout)));
     }
 
     private static List<RecipeSlotSummary> summarizeSlots(IRecipeLayoutDrawable<?> layout) {
@@ -142,7 +150,60 @@ public final class JeiRecipeResolver implements RecipeResolver {
         return value <= 0 ? 0 : (value + divisor - 1) / divisor;
     }
 
-    public record JeiNativeRecipe<R>(IRecipeCategory<R> category, R recipe, IRecipeLayoutDrawable<R> layout) {
+    public static final class JeiNativeRecipe<R> implements RecipeNativeDisplayHandle {
+        private final IRecipeCategory<R> category;
+        private final R recipe;
+        private final Supplier<IRecipeLayoutDrawable<R>> layoutFactory;
+        private final IRecipeLayoutDrawable<R> fallbackLayout;
+        private IRecipeLayoutDrawable<R> layout;
+
+        private JeiNativeRecipe(IRecipeCategory<R> category, R recipe,
+                Supplier<IRecipeLayoutDrawable<R>> layoutFactory, IRecipeLayoutDrawable<R> layout) {
+            this.category = category;
+            this.recipe = recipe;
+            this.layoutFactory = layoutFactory;
+            this.fallbackLayout = layout;
+            this.layout = layout;
+        }
+
+        public IRecipeCategory<R> category() {
+            return this.category;
+        }
+
+        public R recipe() {
+            return this.recipe;
+        }
+
+        public IRecipeLayoutDrawable<R> layout() {
+            if (this.layout == null) {
+                synchronized (this) {
+                    if (this.layout == null) {
+                        try {
+                            this.layout = this.layoutFactory.get();
+                        } catch (Throwable throwable) {
+                            this.layout = this.fallbackLayout;
+                        }
+                    }
+                }
+            }
+            return this.layout;
+        }
+
+        @Override
+        public Object fork() {
+            return new JeiNativeRecipe<>(this.category, this.recipe, this.layoutFactory, this.fallbackLayout, null);
+        }
+
+        private JeiNativeRecipe(IRecipeCategory<R> category, R recipe,
+                Supplier<IRecipeLayoutDrawable<R>> layoutFactory,
+                IRecipeLayoutDrawable<R> fallbackLayout,
+                IRecipeLayoutDrawable<R> layout) {
+            this.category = category;
+            this.recipe = recipe;
+            this.layoutFactory = layoutFactory;
+            this.fallbackLayout = fallbackLayout;
+            this.layout = layout;
+        }
     }
 
     private static final class IngredientAccumulator {

@@ -184,14 +184,15 @@ public class RecipeDetailScreen extends class_437 {
     }
 
     @Override
-    public boolean method_25404(int keyCode, int scanCode, int modifiers) {
+    public boolean method_25404(net.minecraft.class_11908 event) {
+        int keyCode = event.comp_4795();
         if (MaterialListHotkeyMatcher.matches(keyCode) && this.transferContainerScreen != null) {
             MaterialListOpener.rememberHandledScreenOverlay(this);
             this.field_22787.method_1507(this.transferContainerScreen);
             return true;
         }
 
-        return super.method_25404(keyCode, scanCode, modifiers);
+        return super.method_25404(event);
     }
 
     @Override
@@ -207,8 +208,11 @@ public class RecipeDetailScreen extends class_437 {
     }
 
     @Override
-    public boolean method_25402(double mouseX, double mouseY, int button) {
-        if (button == 0 && this.backButton.onMouseClicked((int) mouseX, (int) mouseY, button)) {
+    public boolean method_25402(net.minecraft.class_11909 event, boolean doubleClick) {
+        double mouseX = event.comp_4798();
+        double mouseY = event.comp_4799();
+        int button = event.comp_4800().comp_4801();
+        if (button == 0 && this.backButton.onMouseClicked(event, doubleClick)) {
             return true;
         }
 
@@ -240,11 +244,14 @@ public class RecipeDetailScreen extends class_437 {
             return true;
         }
 
-        return super.method_25402(mouseX, mouseY, button);
+        return super.method_25402(event, doubleClick);
     }
 
     @Override
-    public boolean method_25403(double mouseX, double mouseY, int button, double deltaX, double deltaY) {
+    public boolean method_25403(net.minecraft.class_11909 event, double deltaX, double deltaY) {
+        double mouseX = event.comp_4798();
+        double mouseY = event.comp_4799();
+        int button = event.comp_4800().comp_4801();
         if (button == 0 && this.draggingScrollbar) {
             return true;
         }
@@ -255,11 +262,14 @@ public class RecipeDetailScreen extends class_437 {
             return true;
         }
 
-        return super.method_25403(mouseX, mouseY, button, deltaX, deltaY);
+        return super.method_25403(event, deltaX, deltaY);
     }
 
     @Override
-    public boolean method_25406(double mouseX, double mouseY, int button) {
+    public boolean method_25406(net.minecraft.class_11909 event) {
+        double mouseX = event.comp_4798();
+        double mouseY = event.comp_4799();
+        int button = event.comp_4800().comp_4801();
         if (button == 0) {
             this.scrollBar.setIsDragging(false);
             this.draggingScrollbar = false;
@@ -271,12 +281,12 @@ public class RecipeDetailScreen extends class_437 {
             return true;
         }
 
-        return super.method_25406(mouseX, mouseY, button);
+        return super.method_25406(event);
     }
 
     @Override
     public void method_25394(class_332 context, int mouseX, int mouseY, float delta) {
-        RenderUtils.drawRect(0, 0, this.field_22789, this.field_22790, SCREEN_BACKGROUND_COLOR);
+        RenderUtils.drawRect(context, 0, 0, this.field_22789, this.field_22790, SCREEN_BACKGROUND_COLOR);
         this.nestedRecipeAnimations.prune();
         this.recipeReorderAnimations.entrySet().removeIf(entry -> entry.getValue().isFinished());
 
@@ -318,7 +328,7 @@ public class RecipeDetailScreen extends class_437 {
         context.method_44379(layout.left() - OUTLINE_CLIP_PADDING, contentTop - OUTLINE_CLIP_PADDING,
                 layout.left() + layout.contentWidth() + OUTLINE_CLIP_PADDING, contentBottom);
         if (this.summaries.isEmpty()) {
-            RenderUtils.drawOutlinedBox(layout.left(), y, layout.contentWidth(), 46, 0xDD000000, 0xFF777777);
+            RenderUtils.drawOutlinedBox(context, layout.left(), y, layout.contentWidth(), 46, 0xDD000000, 0xFF777777);
             context.method_51433(this.field_22793, StringUtils.translate("lmlp.label.recipe.none"), layout.left() + 10,
                     y + 17, 0xFFFFCC66, false);
         } else {
@@ -376,7 +386,7 @@ public class RecipeDetailScreen extends class_437 {
 
     private void renderTargetHeader(class_332 context, int left, int top, int width, int height, int mouseX,
             int mouseY) {
-        RenderUtils.drawOutlinedBox(left, top, width, height, 0xDD000000, 0xFF888888);
+        RenderUtils.drawOutlinedBox(context, left, top, width, height, 0xDD000000, 0xFF888888);
         context.method_51427(this.target, left + 10, top + 9);
         if (isInside(mouseX, mouseY, left + 10, top + 9, 16, 16)) {
             this.hoveredStack = this.target;
@@ -402,7 +412,7 @@ public class RecipeDetailScreen extends class_437 {
     }
 
     private void renderBackButton(class_332 context, int mouseX, int mouseY) {
-        this.backButton.render(mouseX, mouseY, false, context);
+        this.backButton.render(context, mouseX, mouseY, false);
     }
 
     private void renderRecipeBox(class_332 context, RecipeSummary summary, int index, String path, String listPath,
@@ -419,7 +429,7 @@ public class RecipeDetailScreen extends class_437 {
             return;
         }
 
-        RenderUtils.drawRect(left, y, width, clippedVisibleHeight, 0xDD000000);
+        RenderUtils.drawRect(context, left, y, width, clippedVisibleHeight, 0xDD000000);
 
         int previousClipTop = this.activeClipTop;
         int previousClipBottom = this.activeClipBottom;
@@ -434,7 +444,7 @@ public class RecipeDetailScreen extends class_437 {
         this.activeClipTop = previousClipTop;
         this.activeClipBottom = previousClipBottom;
 
-        drawOutline(left, y, width, clippedVisibleHeight, 0xFF777777);
+        drawOutline(context, left, y, width, clippedVisibleHeight, 0xFF777777);
     }
 
     private void renderRecipeBoxContents(class_332 context, RecipeSummary summary, int index, String path,
@@ -587,10 +597,10 @@ public class RecipeDetailScreen extends class_437 {
     }
 
     private void renderCraftingGrid(class_332 context, RecipeSummary summary, int x, int y, int mouseX, int mouseY) {
-        RenderUtils.drawRect(x, y, RECIPE_PANEL_WIDTH, RECIPE_PANEL_HEIGHT, 0xFFB8B8B8);
-        RenderUtils.drawOutlinedBox(x, y, RECIPE_PANEL_WIDTH, RECIPE_PANEL_HEIGHT, 0x00FFFFFF, 0xFF000000);
-        RenderUtils.drawRect(x + 2, y + 2, RECIPE_PANEL_WIDTH - 4, 1, 0xFFFFFFFF);
-        RenderUtils.drawRect(x + 2, y + 2, 1, RECIPE_PANEL_HEIGHT - 4, 0xFFFFFFFF);
+        RenderUtils.drawRect(context, x, y, RECIPE_PANEL_WIDTH, RECIPE_PANEL_HEIGHT, 0xFFB8B8B8);
+        RenderUtils.drawOutlinedBox(context, x, y, RECIPE_PANEL_WIDTH, RECIPE_PANEL_HEIGHT, 0x00FFFFFF, 0xFF000000);
+        RenderUtils.drawRect(context, x + 2, y + 2, RECIPE_PANEL_WIDTH - 4, 1, 0xFFFFFFFF);
+        RenderUtils.drawRect(context, x + 2, y + 2, 1, RECIPE_PANEL_HEIGHT - 4, 0xFFFFFFFF);
 
         List<RecipeSlotSummary> slots = summary.inputSlots();
         int gridX = x + 34;
@@ -790,7 +800,7 @@ public class RecipeDetailScreen extends class_437 {
                     state.tint(),
                     state.tint());
         }
-        int textColor = state.enabled() ? (hovered ? 0xFFFFA0 : 0xE0E0E0) : 0xA0A0A0;
+        int textColor = state.enabled() ? (hovered ? 0xFFFFFFA0 : 0xFFE0E0E0) : 0xFFA0A0A0;
         context.method_27534(
                 this.field_22793,
                 class_2561.method_43470(state.label()),
@@ -815,11 +825,14 @@ public class RecipeDetailScreen extends class_437 {
         int width = bounds.width();
         int height = bounds.height();
         float textureV = textureId * 80.0F;
-        context.method_25291(net.minecraft.class_10799.field_56883, TRANSFER_BUTTON_TEXTURE, x, y, 0.0F, textureV, 8, 8, 256, 512, 0);
-        context.method_25291(net.minecraft.class_10799.field_56883, TRANSFER_BUTTON_TEXTURE, x + width - 8, y, 248.0F, textureV, 8, 8, 256, 512, 0);
-        context.method_25291(net.minecraft.class_10799.field_56883, TRANSFER_BUTTON_TEXTURE, x, y + height - 8, 0.0F, textureV + 72.0F, 8, 8, 256, 512, 0);
+        context.method_25291(net.minecraft.class_10799.field_56883, TRANSFER_BUTTON_TEXTURE, x, y, 0.0F, textureV,
+                8, 8, 256, 512, 0xFFFFFFFF);
+        context.method_25291(net.minecraft.class_10799.field_56883, TRANSFER_BUTTON_TEXTURE, x + width - 8, y,
+                248.0F, textureV, 8, 8, 256, 512, 0xFFFFFFFF);
+        context.method_25291(net.minecraft.class_10799.field_56883, TRANSFER_BUTTON_TEXTURE, x, y + height - 8,
+                0.0F, textureV + 72.0F, 8, 8, 256, 512, 0xFFFFFFFF);
         context.method_25291(net.minecraft.class_10799.field_56883, TRANSFER_BUTTON_TEXTURE, x + width - 8, y + height - 8, 248.0F, textureV + 72.0F, 8, 8,
-                256, 512, 0);
+                256, 512, 0xFFFFFFFF);
     }
 
     private boolean renderTransferTooltip(class_332 context, int mouseX, int mouseY) {
@@ -1189,7 +1202,7 @@ public class RecipeDetailScreen extends class_437 {
             return;
         }
 
-        this.scrollBar.render(mouseX, mouseY, delta, this.scrollbarX(), top, 8, bottom - top, this.contentHeight(), context);
+        this.scrollBar.render(context, mouseX, mouseY, delta, this.scrollbarX(), top, 8, bottom - top, this.contentHeight());
     }
 
     private void offsetScroll(double verticalAmount) {
@@ -1332,8 +1345,7 @@ public class RecipeDetailScreen extends class_437 {
 
         // Native JEI layouts queue item and text vertices. Flush the existing
         // recipe batches first so they cannot be submitted over this tooltip.
-        context.method_51452();
-        context.method_51448().method_22903();
+        context.method_51448().pushMatrix();
         // Match vanilla's own tooltip Z offset (see class_332's drawTooltip),
         // not the +200 this was ported with. Now that the recipe box behind
         // this panel can render a recipe viewer's native display, its item
@@ -1341,14 +1353,11 @@ public class RecipeDetailScreen extends class_437 {
         // icons and even the unrelated root recipe's output icon bled through
         // on top of this tooltip. +400 is the same headroom vanilla tooltips
         // rely on to stay above arbitrary GUI content.
-        context.method_51448().method_46416(0.0F, 0.0F, 400.0F);
         drawTooltipBox(context, panelX, panelY, panelWidth, panelHeight, 0xF0000000, 0xFF999999);
 
         context.method_25294(contentX, headerY - 4, contentX + HOVER_TOOLTIP_ICON_SIZE,
                 headerY - 4 + HOVER_TOOLTIP_ICON_SIZE, 0x20FFFFFF);
-        RenderUtils.enableDiffuseLightingGui3D();
         context.method_51427(headerStack, contentX, headerY - 4);
-        RenderUtils.disableDiffuseLighting();
         context.method_51433(this.field_22793, headerText, contentX + HOVER_TOOLTIP_ICON_SIZE + HOVER_TOOLTIP_ICON_GAP,
                 headerY, 0xFFFFFFFF, false);
 
@@ -1364,13 +1373,11 @@ public class RecipeDetailScreen extends class_437 {
 
             context.method_25294(rowX, rowTop + 1, rowX + HOVER_TOOLTIP_ICON_SIZE,
                     rowTop + 1 + HOVER_TOOLTIP_ICON_SIZE, 0x20FFFFFF);
-            RenderUtils.enableDiffuseLightingGui3D();
             context.method_51427(candidate.icon(), rowX, rowTop + 1);
-            RenderUtils.disableDiffuseLighting();
             context.method_51433(this.field_22793, itemName, textX, rowTop + 5, 0xFFFFFFFF, false);
         }
 
-        context.method_51448().method_22909();
+        context.method_51448().popMatrix();
         return true;
     }
 
@@ -1558,16 +1565,16 @@ public class RecipeDetailScreen extends class_437 {
         return mouseX >= x && mouseX < x + width && mouseY >= y && mouseY < y + height;
     }
 
-    private static void drawOutline(int x, int y, int width, int height, int color) {
+    private static void drawOutline(class_332 context, int x, int y, int width, int height, int color) {
         if (width <= 0 || height <= 0) {
             return;
         }
 
-        RenderUtils.drawRect(x, y, width, 1, color);
+        RenderUtils.drawRect(context, x, y, width, 1, color);
         if (height > 1) {
-            RenderUtils.drawRect(x, y + height - 1, width, 1, color);
-            RenderUtils.drawRect(x, y, 1, height, color);
-            RenderUtils.drawRect(x + width - 1, y, 1, height, color);
+            RenderUtils.drawRect(context, x, y + height - 1, width, 1, color);
+            RenderUtils.drawRect(context, x, y, 1, height, color);
+            RenderUtils.drawRect(context, x + width - 1, y, 1, height, color);
         }
     }
 

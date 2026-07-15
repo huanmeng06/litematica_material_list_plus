@@ -256,6 +256,7 @@ public final class MaterialListPlusState {
     }
 
     public static void clearRecipeCaches() {
+        RecipeResolvers.clearCache();
         clearIngredientTrees();
         treeSupportCache.clear();
         treeCache.clear();

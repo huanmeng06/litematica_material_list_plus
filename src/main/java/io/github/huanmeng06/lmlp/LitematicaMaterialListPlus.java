@@ -1,7 +1,6 @@
 package io.github.huanmeng06.lmlp;
 
 import fi.dy.masa.malilib.event.InitializationHandler;
-import io.github.huanmeng06.lmlp.gui.OriginMarkerHudLabelRenderer;
 import net.fabricmc.api.ClientModInitializer;
 
 public class LitematicaMaterialListPlus implements ClientModInitializer {
@@ -12,6 +11,5 @@ public class LitematicaMaterialListPlus implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
         InitializationHandler.getInstance().registerInitializationHandler(new InitHandler());
-        OriginMarkerHudLabelRenderer.register();
     }
 }

@@ -35,7 +35,7 @@ public class KnownLoadedSchematicEntry extends WidgetSchematicEntry {
     }
 
     @Override
-    public void render(int mouseX, int mouseY, boolean selected, class_332 drawContext) {
+    public void render(class_332 drawContext, int mouseX, int mouseY, boolean selected) {
         if (this.row == null) {
             return;
         }
@@ -53,15 +53,15 @@ public class KnownLoadedSchematicEntry extends WidgetSchematicEntry {
         KnownPlacementContext context = this.row.context();
         boolean materialSelected = context != null && ChunkMissingMaterialListCache.isMaterialListContextSelected(context.key());
         if (this.isMouseOver(mouseX, mouseY)) {
-            RenderUtils.drawRect(this.x, this.y, this.width, this.height, 0xA0707070);
+            RenderUtils.drawRect(drawContext, this.x, this.y, this.width, this.height, 0xA0707070);
         } else if (this.isOdd) {
-            RenderUtils.drawRect(this.x, this.y, this.width, this.height, 0xA0101010);
+            RenderUtils.drawRect(drawContext, this.x, this.y, this.width, this.height, 0xA0101010);
         } else {
-            RenderUtils.drawRect(this.x, this.y, this.width, this.height, 0xA0303030);
+            RenderUtils.drawRect(drawContext, this.x, this.y, this.width, this.height, 0xA0303030);
         }
 
         if (materialSelected) {
-            KnownPlacementRows.renderSelectedOutline(this);
+            KnownPlacementRows.renderSelectedOutline(this, drawContext);
         }
 
         String name = context == null ? "" : context.name();
@@ -72,13 +72,16 @@ public class KnownLoadedSchematicEntry extends WidgetSchematicEntry {
             ClickableCursor.requestHand();
         }
         KnownPlacementRows.renderPlacementLine(this, this.zLevel, drawContext, line, "", nameHovered, context, originHovered);
-        this.drawSubWidgets(mouseX, mouseY, drawContext);
+        this.drawSubWidgets(drawContext, mouseX, mouseY);
     }
 
     @Override
-    public boolean onMouseClicked(int mouseX, int mouseY, int mouseButton) {
+    public boolean onMouseClicked(net.minecraft.class_11909 event, boolean doubleClick) {
+        int mouseX = (int) event.comp_4798();
+        int mouseY = (int) event.comp_4799();
+        int mouseButton = event.comp_4800().comp_4801();
         if (!this.isMouseOver(mouseX, mouseY) || mouseButton != 0) {
-            return super.onMouseClicked(mouseX, mouseY, mouseButton);
+            return super.onMouseClicked(event, doubleClick);
         }
 
         if (mouseButton == 0 && this.row != null && this.row.isTableHeader()
@@ -100,11 +103,11 @@ public class KnownLoadedSchematicEntry extends WidgetSchematicEntry {
             return MaterialListOpener.openContext(context.key(), "loaded_schematics_list.name_click", this.listParent.getParentGui());
         }
 
-        return super.onMouseClicked(mouseX, mouseY, mouseButton);
+        return super.onMouseClicked(event, doubleClick);
     }
 
     @Override
-    public void postRenderHovered(int mouseX, int mouseY, boolean selected, class_332 drawContext) {
+    public void postRenderHovered(class_332 drawContext, int mouseX, int mouseY, boolean selected) {
         if (this.row == null || !this.isMouseOver(mouseX, mouseY)) {
             return;
         }
@@ -116,7 +119,7 @@ public class KnownLoadedSchematicEntry extends WidgetSchematicEntry {
         if (this.row.isHeader()) {
             List<String> lines = new ArrayList<>();
             lines.add(this.row.displayName());
-            RenderUtils.drawHoverText(mouseX, mouseY, lines, drawContext);
+            RenderUtils.drawHoverText(drawContext, mouseX, mouseY, lines);
             return;
         }
 
@@ -136,10 +139,10 @@ public class KnownLoadedSchematicEntry extends WidgetSchematicEntry {
         }
 
         if (!lines.isEmpty()) {
-            RenderUtils.drawHoverText(mouseX, mouseY, lines, drawContext);
+            RenderUtils.drawHoverText(drawContext, mouseX, mouseY, lines);
         }
 
-        this.drawHoveredSubWidget(mouseX, mouseY, drawContext);
+        this.drawHoveredSubWidget(drawContext, mouseX, mouseY);
     }
 
     private boolean isPlacementNameHovered(int mouseX, int mouseY) {

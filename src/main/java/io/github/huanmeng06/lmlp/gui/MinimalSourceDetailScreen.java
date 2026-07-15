@@ -75,8 +75,11 @@ public class MinimalSourceDetailScreen extends class_437 {
     }
 
     @Override
-    public boolean method_25402(double mouseX, double mouseY, int button) {
-        if (button == 0 && this.backButton.onMouseClicked((int) mouseX, (int) mouseY, button)) {
+    public boolean method_25402(net.minecraft.class_11909 event, boolean doubleClick) {
+        double mouseX = event.comp_4798();
+        double mouseY = event.comp_4799();
+        int button = event.comp_4800().comp_4801();
+        if (button == 0 && this.backButton.onMouseClicked(event, doubleClick)) {
             return true;
         }
 
@@ -86,27 +89,29 @@ public class MinimalSourceDetailScreen extends class_437 {
             return true;
         }
 
-        return super.method_25402(mouseX, mouseY, button);
+        return super.method_25402(event, doubleClick);
     }
 
     @Override
-    public boolean method_25403(double mouseX, double mouseY, int button, double deltaX, double deltaY) {
-        return button == 0 && this.draggingScrollbar || super.method_25403(mouseX, mouseY, button, deltaX, deltaY);
+    public boolean method_25403(net.minecraft.class_11909 event, double deltaX, double deltaY) {
+        int button = event.comp_4800().comp_4801();
+        return button == 0 && this.draggingScrollbar || super.method_25403(event, deltaX, deltaY);
     }
 
     @Override
-    public boolean method_25406(double mouseX, double mouseY, int button) {
+    public boolean method_25406(net.minecraft.class_11909 event) {
+        int button = event.comp_4800().comp_4801();
         if (button == 0) {
             this.scrollBar.setIsDragging(false);
             this.draggingScrollbar = false;
         }
 
-        return super.method_25406(mouseX, mouseY, button);
+        return super.method_25406(event);
     }
 
     @Override
     public void method_25394(class_332 context, int mouseX, int mouseY, float delta) {
-        RenderUtils.drawRect(0, 0, this.field_22789, this.field_22790, SCREEN_BACKGROUND_COLOR);
+        RenderUtils.drawRect(context, 0, 0, this.field_22789, this.field_22790, SCREEN_BACKGROUND_COLOR);
 
         Layout layout = this.layout();
         int contentTop = layout.headerTop() + HEADER_HEIGHT + 12;
@@ -124,7 +129,7 @@ public class MinimalSourceDetailScreen extends class_437 {
         int y = contentTop - this.scrollBar.getValue();
         context.method_44379(layout.left() - OUTLINE_CLIP_PADDING, contentTop - OUTLINE_CLIP_PADDING, layout.left() + layout.contentWidth() + OUTLINE_CLIP_PADDING, contentBottom);
         if (this.sources.isEmpty()) {
-            RenderUtils.drawOutlinedBox(layout.left(), y, layout.contentWidth(), SOURCE_BOX_HEIGHT, 0xDD000000, 0xFF777777);
+            RenderUtils.drawOutlinedBox(context, layout.left(), y, layout.contentWidth(), SOURCE_BOX_HEIGHT, 0xDD000000, 0xFF777777);
             context.method_51433(this.field_22793, StringUtils.translate("lmlp.label.minimal_sources.none"), layout.left() + 10, y + 17, 0xFFFFCC66, false);
         } else {
             for (MinimalSubMaterialListView.SourceContribution source : this.sources) {
@@ -151,7 +156,7 @@ public class MinimalSourceDetailScreen extends class_437 {
     }
 
     private void renderTargetHeader(class_332 context, int left, int top, int width, int height, int mouseX, int mouseY) {
-        RenderUtils.drawOutlinedBox(left, top, width, height, 0xDD000000, 0xFF888888);
+        RenderUtils.drawOutlinedBox(context, left, top, width, height, 0xDD000000, 0xFF888888);
         context.method_51427(this.target, left + 10, top + 9);
         if (isInside(mouseX, mouseY, left + 10, top + 9, 16, 16)) {
             this.hoveredStack = this.target;
@@ -175,11 +180,11 @@ public class MinimalSourceDetailScreen extends class_437 {
     }
 
     private void renderBackButton(class_332 context, int mouseX, int mouseY) {
-        this.backButton.render(mouseX, mouseY, false, context);
+        this.backButton.render(context, mouseX, mouseY, false);
     }
 
     private void renderSourceBox(class_332 context, MinimalSubMaterialListView.SourceContribution source, int left, int y, int width, int mouseX, int mouseY) {
-        RenderUtils.drawOutlinedBox(left, y, width, SOURCE_BOX_HEIGHT, 0xDD000000, 0xFF777777);
+        RenderUtils.drawOutlinedBox(context, left, y, width, SOURCE_BOX_HEIGHT, 0xDD000000, 0xFF777777);
         context.method_51427(source.icon(), left + 10, y + 10);
         if (isInside(mouseX, mouseY, left + 10, y + 10, 16, 16)) {
             this.hoveredStack = source.icon();
@@ -200,7 +205,7 @@ public class MinimalSourceDetailScreen extends class_437 {
             return;
         }
 
-        this.scrollBar.render(mouseX, mouseY, delta, this.scrollbarX(), top, 8, bottom - top, this.contentHeight(), context);
+        this.scrollBar.render(context, mouseX, mouseY, delta, this.scrollbarX(), top, 8, bottom - top, this.contentHeight());
     }
 
     private void offsetScroll(double verticalAmount) {

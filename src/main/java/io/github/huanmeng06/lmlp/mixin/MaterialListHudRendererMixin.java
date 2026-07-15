@@ -25,7 +25,7 @@ public abstract class MaterialListHudRendererMixin {
     protected MaterialListBase materialList;
 
     @Inject(method = "render", at = @At("HEAD"), cancellable = true)
-    private void lmlp$renderMinimalSubMaterialHud(int xOffset, int yOffset, HudAlignment alignment, class_332 drawContext, CallbackInfoReturnable<Integer> cir) {
+    private void lmlp$renderMinimalSubMaterialHud(class_332 drawContext, int xOffset, int yOffset, HudAlignment alignment, CallbackInfoReturnable<Integer> cir) {
         if (MinimalSubMaterialListView.isActive(this.materialList)) {
             cir.setReturnValue(MinimalSubMaterialHudRenderer.render(this.materialList, xOffset, yOffset, alignment, drawContext));
         }

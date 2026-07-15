@@ -75,7 +75,7 @@ public abstract class GuiBaseTitleMixin {
         }
 
         String name = lmlp$extractQuotedName(this.lmlp$titleFullText);
-        RenderUtils.drawHoverText(mouseX, mouseY, lmlp$wrapTooltipText(self, name), context);
+        RenderUtils.drawHoverText(context, mouseX, mouseY, lmlp$wrapTooltipText(self, name));
     }
 
     // Litematica's title templates all wrap the meaningful name in single

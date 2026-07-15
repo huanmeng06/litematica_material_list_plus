@@ -13,7 +13,7 @@ import net.minecraft.class_1799;
 import net.minecraft.class_310;
 import net.minecraft.class_327;
 import net.minecraft.class_332;
-import net.minecraft.class_4587;
+import org.joml.Matrix3x2fStack;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -86,11 +86,11 @@ public final class MinimalSubMaterialHudRenderer {
         posY = RenderUtils.getHudPosY(posY, yOffset, contentHeight, scale, alignment);
         posY += RenderUtils.getHudOffsetForPotions(alignment, scale, mc.field_1724);
 
-        class_4587 matrixStack = drawContext.method_51448();
+        Matrix3x2fStack matrixStack = drawContext.method_51448();
 
         if (scale != 1d) {
-            matrixStack.method_22903();
-            matrixStack.method_22905((float) scale, (float) scale, (float) scale);
+            matrixStack.pushMatrix();
+            matrixStack.scale((float) scale, (float) scale);
         }
 
         int x1 = posX - bgMargin;
@@ -128,7 +128,7 @@ public final class MinimalSubMaterialHudRenderer {
         }
 
         if (scale != 1d) {
-            matrixStack.method_22909();
+            matrixStack.popMatrix();
         }
 
         return contentHeight + 4;
