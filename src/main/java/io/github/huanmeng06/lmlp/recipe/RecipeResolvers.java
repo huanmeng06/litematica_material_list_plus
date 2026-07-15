@@ -155,6 +155,7 @@ public final class RecipeResolvers {
 
                 List<RecipeSummary> nested = findRecipes(icon, 1, 1);
                 boolean cycles = !nested.isEmpty()
+                        && isUnaryConversion(nested.get(0))
                         && leadsBackTo(targetItemId, nested.get(0), remainingDepth - 1, visitedDepths);
                 if (cycles) {
                     return true;
@@ -225,6 +226,15 @@ public final class RecipeResolvers {
     private static String itemPath(String id) {
         int separator = id.indexOf(':');
         return separator >= 0 ? id.substring(separator + 1) : id;
+    }
+
+    private static boolean isUnaryConversion(RecipeSummary summary) {
+        // Deep cycle lookahead exists to catch reversible one-material
+        // conversions such as bone_meal <-> bone_block before craft rounding.
+        // Do not walk arbitrary multi-input recipes: JEI processing categories
+        // often expose reusable tools or containers as ordinary INPUT slots,
+        // which can otherwise create false paths through axes, picks and sticks.
+        return summary.ingredients().size() == 1;
     }
 
     private static String stackFingerprint(ItemStack stack) {

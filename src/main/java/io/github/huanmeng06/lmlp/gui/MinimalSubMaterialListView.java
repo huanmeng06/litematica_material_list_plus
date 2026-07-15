@@ -514,6 +514,14 @@ public final class MinimalSubMaterialListView {
             return;
         }
 
+        // Raw wood is the terminal result of the wood decomposition chain.
+        // JEI integrations may expose stripping/cutting recipes whose axe slot
+        // would otherwise be treated as another consumed material.
+        if (isLogLike(itemPath(icon))) {
+            addLeaf(icon, icons, names, name, source, scaledCount(count, scale), prepared, materials);
+            return;
+        }
+
         if (depth >= MAX_RECIPE_DEPTH || seenItems.contains(itemId) || Configs.shouldStopRecipeDecomposition(itemId) || keepAsLeaf(itemId)) {
             addLeaf(icon, icons, names, name, source, scaledCount(count, scale), prepared, materials);
             return;
@@ -544,6 +552,19 @@ public final class MinimalSubMaterialListView {
                 String groupName = refinedChoice.names().isEmpty()
                         ? RecipeSummaryFormatter.ingredientName(ingredient)
                         : refinedChoice.names().get(0);
+
+                if (allIconsMatch(refinedChoice.icons(), MinimalSubMaterialListView::isLogLike)) {
+                    addLeaf(
+                            refinedChoice.icons().get(0),
+                            refinedChoice.icons(),
+                            refinedChoice.names(),
+                            groupName,
+                            source,
+                            scaledCount(ingredient.countTotal(), scale),
+                            prepared,
+                            materials);
+                    continue;
+                }
 
                 // (1) Kept by config (任意台阶 by default): show as its own row
                 // plus the "所需" decomposition hint.
@@ -637,6 +658,11 @@ public final class MinimalSubMaterialListView {
         }
 
         ItemStack representative = icons.get(0);
+        if (allIconsMatch(icons, MinimalSubMaterialListView::isLogLike)) {
+            addLeaf(representative, icons, names, name, source, scaledCount(count, scale), prepared, materials);
+            return;
+        }
+
         String representativeId = ItemStackTexts.id(representative);
         if (depth >= MAX_RECIPE_DEPTH || seenItems.contains(representativeId)
                 || Configs.shouldStopRecipeDecomposition(representativeId) || keepGroupAsLeaf(icons)) {

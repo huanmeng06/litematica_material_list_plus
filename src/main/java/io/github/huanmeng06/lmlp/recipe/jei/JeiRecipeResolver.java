@@ -1,11 +1,17 @@
 package io.github.huanmeng06.lmlp.recipe.jei;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Supplier;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import io.github.huanmeng06.lmlp.LitematicaMaterialListPlus;
 import io.github.huanmeng06.lmlp.material.ItemStackTexts;
 import io.github.huanmeng06.lmlp.recipe.IngredientSummary;
 import io.github.huanmeng06.lmlp.recipe.RecipeResolver;
@@ -25,6 +31,10 @@ import mezz.jei.api.runtime.IJeiRuntime;
 import net.minecraft.world.item.ItemStack;
 
 public final class JeiRecipeResolver implements RecipeResolver {
+    private static final Logger LOGGER = LoggerFactory.getLogger(LitematicaMaterialListPlus.MOD_ID);
+    private static final int MAX_REPORTED_FAILURES = 64;
+    private static final Set<String> REPORTED_FAILURES = new HashSet<>();
+
     @Override
     public List<RecipeSummary> findRecipes(ItemStack target, int totalCount, int missingCount) {
         IJeiRuntime runtime = JeiRuntimeBridge.runtime().orElse(null);
@@ -42,10 +52,17 @@ public final class JeiRecipeResolver implements RecipeResolver {
         IRecipeManager recipeManager = runtime.getRecipeManager();
         List<RecipeSummary> summaries = new ArrayList<>();
 
-        recipeManager.createRecipeCategoryLookup()
-                .limitFocus(focuses)
-                .get()
-                .forEach(category -> collectCategory(recipeManager, category, focusGroup, focuses, target, totalCount, missingCount, summaries));
+        try {
+            recipeManager.createRecipeCategoryLookup()
+                    .limitFocus(focuses)
+                    .get()
+                    .forEach(category -> collectCategory(recipeManager, category, focusGroup, focuses,
+                            target, totalCount, missingCount, summaries));
+        } catch (Throwable throwable) {
+            // A broken third-party JEI plugin must not erase valid summaries
+            // already collected from vanilla or other well-behaved categories.
+            reportFailure("category_lookup", target, "unknown", "unknown", throwable);
+        }
         return List.copyOf(summaries);
     }
 
@@ -58,12 +75,52 @@ public final class JeiRecipeResolver implements RecipeResolver {
             int totalCount,
             int missingCount,
             List<RecipeSummary> summaries) {
-        recipeManager.createRecipeLookup(category.getRecipeType())
-                .limitFocus(focuses)
-                .get()
-                .forEach(recipe -> recipeManager.createRecipeLayoutDrawable(category, recipe, focusGroup)
-                        .ifPresent(layout -> addSummary(recipeManager, focusGroup, category, recipe, layout,
-                                target, totalCount, missingCount, summaries)));
+        String categoryId = safeCategoryId(category);
+        try {
+            recipeManager.createRecipeLookup(category.getRecipeType())
+                    .limitFocus(focuses)
+                    .get()
+                    .forEach(recipe -> {
+                        try {
+                            recipeManager.createRecipeLayoutDrawable(category, recipe, focusGroup)
+                                    .ifPresent(layout -> addSummary(recipeManager, focusGroup, category, recipe, layout,
+                                            target, totalCount, missingCount, summaries));
+                        } catch (Throwable throwable) {
+                            reportFailure("recipe_layout", target, categoryId, safeRecipeId(category, recipe), throwable);
+                        }
+                    });
+        } catch (Throwable throwable) {
+            reportFailure("recipe_lookup", target, categoryId, "unknown", throwable);
+        }
+    }
+
+    private static String safeCategoryId(IRecipeCategory<?> category) {
+        try {
+            return category.getRecipeType().getUid().toString();
+        } catch (Throwable throwable) {
+            return "unknown";
+        }
+    }
+
+    private static <R> String safeRecipeId(IRecipeCategory<R> category, R recipe) {
+        try {
+            return category.getRegistryName(recipe) == null ? "unknown" : category.getRegistryName(recipe).toString();
+        } catch (Throwable throwable) {
+            return "unknown";
+        }
+    }
+
+    private static void reportFailure(String stage, ItemStack target, String categoryId, String recipeId,
+            Throwable throwable) {
+        String failureKey = stage + '|' + categoryId + '|' + throwable.getClass().getName();
+        synchronized (REPORTED_FAILURES) {
+            if (REPORTED_FAILURES.size() >= MAX_REPORTED_FAILURES || !REPORTED_FAILURES.add(failureKey)) {
+                return;
+            }
+        }
+
+        LOGGER.warn("[LMLP JEI] skipped invalid entry stage={} target={} category={} recipe={}",
+                stage, ItemStackTexts.id(target), categoryId, recipeId, throwable);
     }
 
     private static <R> void addSummary(
