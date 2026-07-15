@@ -186,6 +186,7 @@ rg 'class_[0-9]+|method_[0-9]+|field_[0-9]+' src/main/java src/main/resources
 - Transfer 按钮既要校验点击行为，也要校验悬浮 Tooltip 和禁用原因渲染。
 - GUI 提取管线升级时，JEI drawable 接收的上下文类型可能同步变化。
 - JEI deprecated API 可暂时编译，但下次迁移前应记录替代接口，避免在大版本一次性集中失效。
+- `onRuntimeAvailable` / `onRuntimeUnavailable` 不能只清 `RecipeResolvers` 查询缓存，还必须调用 `MaterialListPlusState.clearRecipeCaches()`，同步作废配方树和最小子材料的 BuildState/结果缓存。否则后台预热早于 JEI 就绪时得到的“无配方”结果会长期保留，表现为木板等材料错误停止拆分。
 
 ## MaLiLib/Litematica API 易错点
 
