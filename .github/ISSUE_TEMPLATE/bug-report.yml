@@ -1,0 +1,70 @@
+name: Bug 报告
+description: 报告启动、界面、配方或性能问题
+title: "[Bug] "
+labels: [bug]
+body:
+  - type: dropdown
+    id: minecraft
+    attributes:
+      label: Minecraft 版本
+      options:
+        - 1.20.1
+        - 1.20.4
+        - 1.20.6
+        - 1.21.1
+        - 1.21.10
+        - 1.21.11
+        - 26.1.2
+    validations:
+      required: true
+  - type: input
+    id: lmlp
+    attributes:
+      label: LMLP 完整版本
+      description: 例如 1.8.1+mc1.21.11；请勿只写“最新版”。
+    validations:
+      required: true
+  - type: input
+    id: commit
+    attributes:
+      label: 日志中的 Git Commit
+      description: 搜索 latest.log 中的 `[LMLP build]`。
+  - type: textarea
+    id: description
+    attributes:
+      label: 问题描述和复现步骤
+      placeholder: |
+        1. 打开……
+        2. 点击……
+        3. 出现……
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 预期结果与实际结果
+    validations:
+      required: true
+  - type: textarea
+    id: mods
+    attributes:
+      label: 相关模组和依赖版本
+      description: 请至少提供 Fabric API、Litematica、MaLiLib 和 JEI 版本。
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: 日志或调试包
+      description: 拖入 latest.log，或使用仓库工具生成的 lmlp-debug ZIP。
+    validations:
+      required: true
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: 提交前确认
+      options:
+        - label: 我确认实例中只启用了一个 LMLP JAR。
+          required: true
+        - label: 我确认 LMLP JAR 与 Minecraft 版本完全对应。
+          required: true

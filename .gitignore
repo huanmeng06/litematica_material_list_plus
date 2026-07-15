@@ -10,3 +10,10 @@ out/
 *.log
 Thumbs.db
 .DS_Store
+
+# Local release/debug output
+dist/
+debug-bundles/
+.lmlp-local.toml
+__pycache__/
+*.pyc

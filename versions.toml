@@ -1,0 +1,118 @@
+schema = 1
+current_release = "1.8.0"
+next_release = "1.8.1"
+
+[repository]
+default_branch = "main"
+remote = "origin"
+artifact_prefix = "litematica_material_list_plus"
+
+[versions."1.20.1"]
+branch = "mc1.20.1"
+java = 21
+bytecode = 17
+loader = "0.19.3"
+fabric_api = "0.92.9+1.20.1"
+litematica = "0.15.4"
+malilib = "0.16.3"
+jei = "15.20.0.134"
+modmenu = "7.2.2"
+instance = "~/Documents/Minecraft/versions/1.20.1-Fabric 0.19.2-Mod_Dev"
+supported = true
+release = true
+
+[versions."1.20.4"]
+branch = "mc1.20.4"
+java = 21
+bytecode = 17
+loader = "0.19.3"
+fabric_api = "0.97.3+1.20.4"
+litematica = "0.17.4"
+malilib = "0.18.4-alpha.1"
+jei = "17.3.1.5"
+modmenu = "9.2.0"
+instance = "~/Documents/Minecraft/versions/1.20.4-Fabric 0.19.2-Mod_Dev"
+supported = true
+release = true
+
+[versions."1.20.6"]
+branch = "mc1.20.6"
+java = 21
+loader = "0.19.3"
+fabric_api = "0.100.8+1.20.6"
+litematica = "0.18.3"
+malilib = "0.19.2"
+jei = "18.0.0.66"
+modmenu = "10.0.0-beta.1"
+instance = "~/Documents/Minecraft/versions/1.20.6-Fabric 0.19.2-Mod_Dev"
+supported = true
+release = true
+
+[versions."1.21.1"]
+branch = "mc1.21.1"
+java = 21
+loader = "0.19.3"
+fabric_api = "0.116.12+1.21.1"
+litematica = "0.19.60"
+litematica_ci = "0.19.61"
+malilib = "0.21.10"
+jei = "19.38.0.366"
+modmenu = "11.0.4"
+instance = "~/Documents/Minecraft/versions/1.21.1-Fabric 0.19.2-Mod_Dev"
+supported = true
+release = true
+
+[versions."1.21.10"]
+branch = "mc1.21.10"
+java = 21
+loader = "0.19.3"
+fabric_api = "0.138.4+1.21.10"
+litematica = "0.24.9"
+malilib = "0.26.8"
+jei = "26.3.0.31"
+modmenu = "16.0.1"
+instance = "~/Documents/Minecraft/versions/1.21.10-Fabric 0.19.3-Mod_Dev"
+supported = true
+release = true
+
+[versions."1.21.11"]
+branch = "mc1.21.11"
+java = 21
+loader = "0.19.3"
+fabric_api = "0.141.4+1.21.11"
+litematica = "0.26.12"
+malilib = "0.27.16"
+jei = "27.17.0.50"
+modmenu = "17.0.1-beta.1"
+instance = "~/Documents/Minecraft/versions/1.21.11-Fabric 0.19.3-Mod_Dev"
+supported = true
+release = true
+
+[versions."26.1.2"]
+branch = "mc26.1.2"
+java = 26
+bytecode = 25
+local_dependencies = true
+loader = "0.19.3"
+fabric_api = "0.154.2+26.1.2"
+litematica = "0.27.10"
+malilib = "0.28.9"
+jei = "29.16.0.47"
+modmenu = "18.0.0"
+instance = "~/Documents/Minecraft/versions/26.1.2-Fabric 0.19.3-Mod_Dev"
+supported = true
+release = true
+
+[versions."1.21.4"]
+branch = "mc1.21.4"
+supported = false
+release = false
+last_release = "1.7.0"
+reason = "v1.8.0 migrated to JEI; no supported JEI target is provided for this branch"
+
+[versions."1.21.5"]
+branch = "mc1.21.5"
+supported = false
+release = false
+last_release = "1.7.0"
+reason = "v1.8.0 migrated to JEI; no supported JEI target is provided for this branch"
