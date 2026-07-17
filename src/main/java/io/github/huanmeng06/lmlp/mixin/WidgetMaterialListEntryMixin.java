@@ -1114,7 +1114,6 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         }
 
         access.lmlp$scrollEntryIntoView(this.entry, EXPANDED_PANEL_BOTTOM_PADDING);
-        this.listWidget.refreshEntries();
     }
 
     private int minimalSourcePanelWidth() {
