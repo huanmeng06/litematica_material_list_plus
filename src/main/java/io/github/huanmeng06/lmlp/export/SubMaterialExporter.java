@@ -34,7 +34,7 @@ import net.minecraft.world.item.ItemStack;
 public final class SubMaterialExporter {
     private static final int MAX_RECIPE_DEPTH = 16;
     private static final List<String> TREE_HEADERS = List.of("Material", "Type", "Total", "Missing", "Available");
-    private static final List<String> SUMMARY_HEADERS = List.of("Material", "Total", "Missing", "Available");
+    private static final List<String> SUMMARY_HEADERS = List.of("Material", "Total", "Raw Total", "Missing", "Available");
 
     private SubMaterialExporter() {
     }
@@ -170,8 +170,12 @@ public final class SubMaterialExporter {
     private static void writeWorkbook(File file, ExportRows rows) throws IOException {
         List<List<String>> treeSheetRows = treeSheetRows(rows.treeRows());
         List<List<String>> summarySheetRows = summarySheetRows(rows.summaryRows());
+        writeWorkbook(file, treeSheetRows, rows.treeRows(), summarySheetRows);
+    }
+
+    private static void writeWorkbook(File file, List<List<String>> treeSheetRows, List<TreeRow> treeRows, List<List<String>> summarySheetRows) throws IOException {
         SharedStrings sharedStrings = new SharedStrings();
-        String treeWorksheetXml = treeWorksheetXml(treeSheetRows, rows.treeRows(), sharedStrings);
+        String treeWorksheetXml = treeWorksheetXml(treeSheetRows, treeRows, sharedStrings);
         String summaryWorksheetXml = summaryWorksheetXml(summarySheetRows, sharedStrings);
         try (ZipOutputStream zip = new ZipOutputStream(new FileOutputStream(file))) {
             addZipEntry(zip, "[Content_Types].xml", contentTypesXml());
@@ -218,14 +222,19 @@ public final class SubMaterialExporter {
 
     private static String treeWorksheetXml(List<List<String>> rows, List<TreeRow> treeRows, SharedStrings sharedStrings) {
         return worksheetXml(rows, sharedStrings, (rowIndex, columnIndex) ->
-                cellStyle(rowIndex, columnIndex, rowIndex > 0 && treeRows.get(rowIndex - 1).depth() == 0));
+                        cellStyle(rowIndex, columnIndex, rowIndex > 0 && treeRows.get(rowIndex - 1).depth() == 0),
+                (rowIndex, columnIndex) -> false);
     }
 
     private static String summaryWorksheetXml(List<List<String>> rows, SharedStrings sharedStrings) {
-        return worksheetXml(rows, sharedStrings, SubMaterialExporter::summaryCellStyle);
+        return worksheetXml(
+                rows,
+                sharedStrings,
+                SubMaterialExporter::summaryCellStyle,
+                (rowIndex, columnIndex) -> rowIndex > 0 && columnIndex == 2);
     }
 
-    private static String worksheetXml(List<List<String>> rows, SharedStrings sharedStrings, CellStyleResolver styleResolver) {
+    private static String worksheetXml(List<List<String>> rows, SharedStrings sharedStrings, CellStyleResolver styleResolver, NumericCellResolver numericCellResolver) {
         int rowCount = Math.max(1, rows.size());
         int columnCount = rows.stream().mapToInt(List::size).max().orElse(1);
         String range = "A1:" + cellReference(columnCount - 1, rowCount);
@@ -247,10 +256,14 @@ public final class SubMaterialExporter {
             List<String> row = rows.get(rowIndex);
             for (int columnIndex = 0; columnIndex < row.size(); columnIndex++) {
                 int style = styleResolver.style(rowIndex, columnIndex);
-                int stringIndex = sharedStrings.index(row.get(columnIndex));
-                builder.append("<c r=\"").append(cellReference(columnIndex, rowNumber)).append("\" s=\"").append(style).append("\" t=\"s\"><v>")
-                        .append(stringIndex)
-                        .append("</v></c>");
+                String cellValue = row.get(columnIndex);
+                builder.append("<c r=\"").append(cellReference(columnIndex, rowNumber)).append("\" s=\"").append(style).append("\"");
+                if (numericCellResolver.isNumeric(rowIndex, columnIndex)) {
+                    builder.append("><v>").append(cellValue).append("</v></c>");
+                } else {
+                    int stringIndex = sharedStrings.index(cellValue);
+                    builder.append(" t=\"s\"><v>").append(stringIndex).append("</v></c>");
+                }
             }
             builder.append("</row>");
         }
@@ -484,6 +497,11 @@ public final class SubMaterialExporter {
         int style(int rowIndex, int columnIndex);
     }
 
+    @FunctionalInterface
+    private interface NumericCellResolver {
+        boolean isNumeric(int rowIndex, int columnIndex);
+    }
+
     private record ExportRows(List<TreeRow> treeRows, List<SummaryRow> summaryRows) {
     }
 
@@ -540,6 +558,7 @@ public final class SubMaterialExporter {
             return List.of(
                     this.name(),
                     CountFormatter.format(this.totalCount(), this.maxStackSize()),
+                    Long.toString(this.totalCount()),
                     CountFormatter.format(this.missingCount(), this.maxStackSize()),
                     CountFormatter.format(this.availableCount(), this.maxStackSize())
             );
