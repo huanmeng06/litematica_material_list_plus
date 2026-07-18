@@ -3,12 +3,14 @@ package io.github.huanmeng06.lmlp.gui;
 import fi.dy.masa.litematica.data.DataManager;
 import fi.dy.masa.litematica.gui.GuiSchematicSave;
 import fi.dy.masa.litematica.schematic.LitematicaSchematic;
+import fi.dy.masa.malilib.gui.GuiBase;
 import fi.dy.masa.malilib.gui.Message.MessageType;
 import fi.dy.masa.malilib.gui.button.IButtonActionListener;
 import fi.dy.masa.malilib.util.FileNameUtils;
 import io.github.huanmeng06.lmlp.preference.PreferredSchematicReplacement;
 import io.github.huanmeng06.lmlp.preference.PreferredSchematicReplacement.ReplacementChoice;
 
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -16,6 +18,7 @@ import java.util.List;
 public class GuiPreferredSchematicSave extends GuiSchematicSave {
     private final LitematicaSchematic sourceSchematic;
     private final List<ReplacementChoice> choices;
+    private final Path sourceFile;
     private final Path defaultDirectory;
     private final String initialFileName;
     private boolean initialFileNameApplied;
@@ -28,6 +31,7 @@ public class GuiPreferredSchematicSave extends GuiSchematicSave {
         super(sourceSchematic);
         this.sourceSchematic = sourceSchematic;
         this.choices = List.copyOf(choices);
+        this.sourceFile = sourceFile;
         this.defaultDirectory = sourceFile != null && sourceFile.getParent() != null
                 ? sourceFile.getParent()
                 : DataManager.getSchematicsBaseDirectory();
@@ -76,18 +80,39 @@ public class GuiPreferredSchematicSave extends GuiSchematicSave {
                 ? name
                 : name + LitematicaSchematic.FILE_EXTENSION;
         Path destination = directory.resolve(fileName);
-        if (Files.exists(destination)) {
+        boolean destinationExists = Files.exists(destination);
+        if (destinationExists && this.isSourceFile(destination)) {
+            this.addMessage(MessageType.ERROR, "lmlp.error.preferred_replacement.source_file", fileName);
+            return;
+        }
+        boolean overwrite = destinationExists && GuiBase.isShiftDown();
+        if (destinationExists && !overwrite) {
             this.addMessage(MessageType.ERROR, "lmlp.error.preferred_replacement.file_exists", fileName);
             return;
         }
 
         LitematicaSchematic copy = PreferredSchematicReplacement.createCopy(this.sourceSchematic, this.choices);
-        if (copy.writeToFile(directory, name, false)) {
+        if (copy.writeToFile(directory, name, overwrite)) {
             copy.getMetadata().clearModifiedSinceSaved();
             this.getListWidget().refreshEntries();
             this.addMessage(MessageType.SUCCESS, "litematica.message.schematic_saved_as", name);
         } else {
             this.addMessage(MessageType.ERROR, "lmlp.error.preferred_replacement.save_failed", fileName);
         }
+    }
+
+    private boolean isSourceFile(Path destination) {
+        if (this.sourceFile == null) {
+            return false;
+        }
+        try {
+            if (Files.exists(this.sourceFile) && Files.exists(destination)) {
+                return Files.isSameFile(this.sourceFile, destination);
+            }
+        } catch (IOException ignored) {
+            // Fall back to normalized absolute paths below.
+        }
+        return this.sourceFile.toAbsolutePath().normalize()
+                .equals(destination.toAbsolutePath().normalize());
     }
 }
