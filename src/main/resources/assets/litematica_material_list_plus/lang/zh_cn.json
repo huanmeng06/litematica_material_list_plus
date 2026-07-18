@@ -87,7 +87,7 @@
   "lmlp.gui.button.hover.material_list.preferred_replacement": "按材料偏好生成一份新的原理图副本。",
   "lmlp.gui.preferred_replacement.title": "材料偏好替换",
   "lmlp.gui.preferred_replacement.wood_group": "偏好木种",
-  "lmlp.gui.preferred_replacement.target": "目标木种：",
+  "lmlp.gui.preferred_replacement.target": "目标木种",
   "lmlp.gui.preferred_replacement.confirm": "确定",
   "lmlp.gui.preferred_replacement.cancel": "取消",
   "lmlp.gui.preferred_replacement.config_only": "在这里设置偏好木种；从材料列表进入时会显示当前原理图中的具体替换项。",

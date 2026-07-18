@@ -87,7 +87,7 @@
   "lmlp.gui.button.hover.material_list.preferred_replacement": "Create a new schematic copy using material preferences.",
   "lmlp.gui.preferred_replacement.title": "Preferred Material Replacement",
   "lmlp.gui.preferred_replacement.wood_group": "Preferred wood",
-  "lmlp.gui.preferred_replacement.target": "Target wood:",
+  "lmlp.gui.preferred_replacement.target": "Target wood",
   "lmlp.gui.preferred_replacement.confirm": "Confirm",
   "lmlp.gui.preferred_replacement.cancel": "Cancel",
   "lmlp.gui.preferred_replacement.config_only": "Set the preferred wood here. Open this form from a material list to see exact replacements.",
