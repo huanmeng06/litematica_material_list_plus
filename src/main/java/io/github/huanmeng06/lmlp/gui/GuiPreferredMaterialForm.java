@@ -235,9 +235,12 @@ public class GuiPreferredMaterialForm extends class_437 {
         List<PreferredSchematicReplacement.ReplacementChoice> choices = this.rows.stream()
                 .map(row -> row.row.choice(row.mode))
                 .toList();
-        LitematicaSchematic copy = PreferredSchematicReplacement.createCopy(this.schematic, choices);
         Path source = this.placement.getSchematicFile();
-        GuiPreferredSchematicSave saveGui = new GuiPreferredSchematicSave(copy, source, this.defaultSaveName(source));
+        GuiPreferredSchematicSave saveGui = new GuiPreferredSchematicSave(
+                this.schematic,
+                choices,
+                source,
+                this.defaultSaveName(source));
         GuiBase.openGui(saveGui.setParent(this));
     }
 

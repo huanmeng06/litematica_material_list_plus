@@ -6,17 +6,28 @@ import fi.dy.masa.litematica.schematic.LitematicaSchematic;
 import fi.dy.masa.malilib.gui.Message.MessageType;
 import fi.dy.masa.malilib.gui.button.IButtonActionListener;
 import fi.dy.masa.malilib.util.FileNameUtils;
+import io.github.huanmeng06.lmlp.preference.PreferredSchematicReplacement;
+import io.github.huanmeng06.lmlp.preference.PreferredSchematicReplacement.ReplacementChoice;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 
 public class GuiPreferredSchematicSave extends GuiSchematicSave {
+    private final LitematicaSchematic sourceSchematic;
+    private final List<ReplacementChoice> choices;
     private final Path defaultDirectory;
     private final String initialFileName;
     private boolean initialFileNameApplied;
 
-    public GuiPreferredSchematicSave(LitematicaSchematic schematic, Path sourceFile, String initialFileName) {
-        super(schematic);
+    public GuiPreferredSchematicSave(
+            LitematicaSchematic sourceSchematic,
+            List<ReplacementChoice> choices,
+            Path sourceFile,
+            String initialFileName) {
+        super(sourceSchematic);
+        this.sourceSchematic = sourceSchematic;
+        this.choices = List.copyOf(choices);
         this.defaultDirectory = sourceFile != null && sourceFile.getParent() != null
                 ? sourceFile.getParent()
                 : DataManager.getSchematicsBaseDirectory();
@@ -70,8 +81,9 @@ public class GuiPreferredSchematicSave extends GuiSchematicSave {
             return;
         }
 
-        if (this.schematic.writeToFile(directory, name, false)) {
-            this.schematic.getMetadata().clearModifiedSinceSaved();
+        LitematicaSchematic copy = PreferredSchematicReplacement.createCopy(this.sourceSchematic, this.choices);
+        if (copy.writeToFile(directory, name, false)) {
+            copy.getMetadata().clearModifiedSinceSaved();
             this.getListWidget().refreshEntries();
             this.addMessage(MessageType.SUCCESS, "litematica.message.schematic_saved_as", name);
         } else {
