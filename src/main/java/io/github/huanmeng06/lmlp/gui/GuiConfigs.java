@@ -2,7 +2,6 @@ package io.github.huanmeng06.lmlp.gui;
 
 import fi.dy.masa.malilib.config.IConfigBase;
 import fi.dy.masa.malilib.gui.GuiConfigsBase;
-import fi.dy.masa.malilib.gui.GuiBase;
 import fi.dy.masa.malilib.gui.button.ButtonBase;
 import fi.dy.masa.malilib.gui.button.ButtonGeneric;
 import fi.dy.masa.malilib.gui.button.IButtonActionListener;
@@ -39,9 +38,6 @@ public class GuiConfigs extends GuiConfigsBase {
         int y = 26;
         for (ConfigGuiTab tab : ConfigGuiTab.values()) {
             x += this.createButton(x, y, -1, tab);
-            if (tab == ConfigGuiTab.CONFIG_FORMS) {
-                x += this.createPreferredFormButton(x, y);
-            }
         }
         this.updateKeybindButtons();
     }
@@ -67,7 +63,10 @@ public class GuiConfigs extends GuiConfigsBase {
 
     @Override
     protected int getConfigWidth() {
-        if (currentTab == ConfigGuiTab.GENERIC || currentTab == ConfigGuiTab.HOTKEYS || currentTab == ConfigGuiTab.CONFIG_FORMS) {
+        if (currentTab == ConfigGuiTab.GENERIC
+                || currentTab == ConfigGuiTab.CONFIG_FORMS
+                || currentTab == ConfigGuiTab.PREFERENCE_FORM
+                || currentTab == ConfigGuiTab.HOTKEYS) {
             return 140;
         }
 
@@ -79,6 +78,7 @@ public class GuiConfigs extends GuiConfigsBase {
         Collection<? extends IConfigBase> configs = switch (currentTab) {
             case GENERIC -> Configs.Generic.OPTIONS;
             case CONFIG_FORMS -> Configs.ConfigForms.OPTIONS;
+            case PREFERENCE_FORM -> Configs.ConfigForms.PREFERENCE_OPTIONS;
             case HOTKEYS -> Hotkeys.HOTKEY_LIST;
         };
         return ConfigOptionWrapper.createFor(configs);
@@ -91,16 +91,10 @@ public class GuiConfigs extends GuiConfigsBase {
         return button.getWidth() + 2;
     }
 
-    private int createPreferredFormButton(int x, int y) {
-        String label = StringUtils.translate("lmlp.gui.button.config_gui.preferred_replacement_form");
-        ButtonGeneric button = new ButtonGeneric(x, y, -1, 20, label, new String[0]);
-        this.addButton(button, (clicked, mouseButton) -> GuiBase.openGui(GuiPreferredMaterialForm.forConfig(this)));
-        return button.getWidth() + 2;
-    }
-
     private enum ConfigGuiTab {
         GENERIC("lmlp.gui.button.config_gui.generic"),
         CONFIG_FORMS("lmlp.gui.button.config_gui.config_forms"),
+        PREFERENCE_FORM("lmlp.gui.button.config_gui.preferred_replacement_form"),
         HOTKEYS("lmlp.gui.button.config_gui.hotkeys");
 
         private final String translationKey;

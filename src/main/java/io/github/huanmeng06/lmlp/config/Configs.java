@@ -213,6 +213,11 @@ public class Configs implements IConfigHandler {
                 Generic.KEEP_AS_LEAF_ITEMS
         );
 
+        public static final List<IConfigBase> PREFERENCE_OPTIONS = ImmutableList.of(
+                PREFERRED_WOOD_ENABLED,
+                PREFERRED_WOOD_FAMILY
+        );
+
         public static final List<IConfigBase> PERSISTED_OPTIONS = ImmutableList.of(
                 PREFERRED_WOOD_ENABLED,
                 PREFERRED_WOOD_FAMILY,
