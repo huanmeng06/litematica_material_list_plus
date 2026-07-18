@@ -68,7 +68,7 @@
   "lmlp.gui.button.config_gui.generic": "一般",
   "lmlp.gui.button.config_gui.hotkeys": "快捷鍵",
   "lmlp.gui.button.config_gui.config_forms": "配置表單",
-  "lmlp.gui.button.config_gui.preferred_replacement_form": "材料偏好表單",
+  "lmlp.gui.button.config_gui.preferred_replacement_form": "偏好表單",
   "lmlp.gui.button.delete_cache": "刪除快取",
   "lmlp.gui.button.clear_cache": "清除快取",
   "lmlp.gui.button.offline_cache_not_found": "我找不到投影",

@@ -209,6 +209,11 @@ public class Configs implements IConfigHandler {
         );
 
         public static final List<IConfigBase> OPTIONS = ImmutableList.of(
+                Generic.RECIPE_STOP_ITEMS,
+                Generic.KEEP_AS_LEAF_ITEMS
+        );
+
+        public static final List<IConfigBase> PERSISTED_OPTIONS = ImmutableList.of(
                 PREFERRED_WOOD_ENABLED,
                 PREFERRED_WOOD_FAMILY,
                 Generic.RECIPE_STOP_ITEMS,
@@ -234,9 +239,9 @@ public class Configs implements IConfigHandler {
                 JsonObject root = element.getAsJsonObject();
                 ConfigUtils.readConfigBase(root, GENERIC, Generic.OPTIONS);
                 if (root.has(CONFIG_FORMS)) {
-                    ConfigUtils.readConfigBase(root, CONFIG_FORMS, ConfigForms.OPTIONS);
+                    ConfigUtils.readConfigBase(root, CONFIG_FORMS, ConfigForms.PERSISTED_OPTIONS);
                 } else {
-                    ConfigUtils.readConfigBase(root, GENERIC, ConfigForms.OPTIONS);
+                    ConfigUtils.readConfigBase(root, GENERIC, ConfigForms.PERSISTED_OPTIONS);
                 }
                 ConfigUtils.readConfigBase(root, HOTKEYS, Hotkeys.HOTKEY_LIST);
                 readPreferredRecipes(root);
@@ -256,7 +261,7 @@ public class Configs implements IConfigHandler {
         if ((dir.exists() && dir.isDirectory()) || dir.mkdirs()) {
             JsonObject root = new JsonObject();
             ConfigUtils.writeConfigBase(root, GENERIC, Generic.OPTIONS);
-            ConfigUtils.writeConfigBase(root, CONFIG_FORMS, ConfigForms.OPTIONS);
+            ConfigUtils.writeConfigBase(root, CONFIG_FORMS, ConfigForms.PERSISTED_OPTIONS);
             ConfigUtils.writeConfigBase(root, HOTKEYS, Hotkeys.HOTKEY_LIST);
             writePreferredRecipes(root);
             JsonUtils.writeJsonToFile(root, new File(dir, FILE_NAME));

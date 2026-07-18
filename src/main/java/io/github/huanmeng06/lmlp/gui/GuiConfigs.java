@@ -39,12 +39,9 @@ public class GuiConfigs extends GuiConfigsBase {
         int y = 26;
         for (ConfigGuiTab tab : ConfigGuiTab.values()) {
             x += this.createButton(x, y, -1, tab);
-        }
-        if (currentTab == ConfigGuiTab.CONFIG_FORMS) {
-            String label = StringUtils.translate("lmlp.gui.button.config_gui.preferred_replacement_form");
-            int width = this.getStringWidth(label) + 20;
-            ButtonGeneric button = new ButtonGeneric(this.field_22789 - width - 10, y, width, 20, label, new String[0]);
-            this.addButton(button, (clicked, mouseButton) -> GuiBase.openGui(GuiPreferredMaterialForm.forConfig(this)));
+            if (tab == ConfigGuiTab.CONFIG_FORMS) {
+                x += this.createPreferredFormButton(x, y);
+            }
         }
         this.updateKeybindButtons();
     }
@@ -91,6 +88,13 @@ public class GuiConfigs extends GuiConfigsBase {
         ButtonGeneric button = new ButtonGeneric(x, y, width, 20, tab.getDisplayName(), new String[0]);
         button.setEnabled(currentTab != tab);
         this.addButton(button, new ButtonListener(tab, this));
+        return button.getWidth() + 2;
+    }
+
+    private int createPreferredFormButton(int x, int y) {
+        String label = StringUtils.translate("lmlp.gui.button.config_gui.preferred_replacement_form");
+        ButtonGeneric button = new ButtonGeneric(x, y, -1, 20, label, new String[0]);
+        this.addButton(button, (clicked, mouseButton) -> GuiBase.openGui(GuiPreferredMaterialForm.forConfig(this)));
         return button.getWidth() + 2;
     }
 

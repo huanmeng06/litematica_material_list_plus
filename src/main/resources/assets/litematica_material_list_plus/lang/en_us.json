@@ -68,7 +68,7 @@
   "lmlp.gui.button.config_gui.generic": "Generic",
   "lmlp.gui.button.config_gui.hotkeys": "Hotkeys",
   "lmlp.gui.button.config_gui.config_forms": "Config Forms",
-  "lmlp.gui.button.config_gui.preferred_replacement_form": "Material Preferences",
+  "lmlp.gui.button.config_gui.preferred_replacement_form": "Preference Form",
   "lmlp.gui.button.delete_cache": "Delete cache",
   "lmlp.gui.button.clear_cache": "Clear cache",
   "lmlp.gui.button.offline_cache_not_found": "I can't find it",

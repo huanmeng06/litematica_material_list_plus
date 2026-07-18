@@ -4,6 +4,7 @@ import fi.dy.masa.litematica.materials.MaterialListBase;
 import fi.dy.masa.litematica.materials.MaterialListPlacement;
 import fi.dy.masa.litematica.schematic.LitematicaSchematic;
 import fi.dy.masa.litematica.schematic.placement.SchematicPlacement;
+import fi.dy.masa.malilib.config.IConfigBase;
 import fi.dy.masa.malilib.config.options.ConfigBoolean;
 import fi.dy.masa.malilib.config.options.ConfigOptionList;
 import fi.dy.masa.malilib.gui.GuiBase;
@@ -37,13 +38,13 @@ public class GuiPreferredMaterialForm extends class_437 {
     private static final int ROW_HEIGHT = 36;
     private static final int ROW_GAP = 4;
     private static final int MARGIN = 10;
-    private static final int GROUP_ROW_Y = 31;
+    private static final int GROUP_ROW_Y = 73;
     private static final int CONFIG_VALUE_WIDTH = 140;
     private static final int CONFIG_COLUMN_GAP = 10;
     private static final int CONFIG_CONTROL_GAP = 2;
     private static final int GROUP_ARROW_WIDTH = 20;
-    private static final int TARGET_ROW_Y = 55;
-    private static final int TOP = 81;
+    private static final int TARGET_ROW_Y = 97;
+    private static final int TOP = 123;
     private static final int BOTTOM = 42;
     private static final int ACTION_WIDTH = 92;
     private static final int WHEEL_PIXELS = 32;
@@ -381,17 +382,21 @@ public class GuiPreferredMaterialForm extends class_437 {
     }
 
     private int groupArrowX() {
-        return this.configValueX() + CONFIG_VALUE_WIDTH + CONFIG_CONTROL_GAP;
+        return this.groupResetX() + this.woodResetButton.getWidth() + CONFIG_CONTROL_GAP;
     }
 
     private int groupResetX() {
-        return this.groupArrowX() + GROUP_ARROW_WIDTH + CONFIG_CONTROL_GAP;
+        return this.configValueX() + CONFIG_VALUE_WIDTH + CONFIG_CONTROL_GAP;
     }
 
     private int configValueX() {
         int groupWidth = this.field_22793.method_1727(StringUtils.translate("lmlp.gui.preferred_replacement.wood_group"));
         int targetWidth = this.field_22793.method_1727(StringUtils.translate("lmlp.gui.preferred_replacement.target"));
-        return MARGIN + Math.max(groupWidth, targetWidth) + CONFIG_COLUMN_GAP;
+        int labelWidth = Math.max(groupWidth, targetWidth);
+        for (IConfigBase config : Configs.ConfigForms.OPTIONS) {
+            labelWidth = Math.max(labelWidth, this.field_22793.method_1727(config.getConfigGuiDisplayName()));
+        }
+        return MARGIN + labelWidth + CONFIG_COLUMN_GAP;
     }
 
     private boolean isGroupArrowHovered(int mouseX, int mouseY) {
