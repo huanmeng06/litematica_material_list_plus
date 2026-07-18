@@ -47,12 +47,14 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
     private static final int DETAIL_TOP = 126;
     private static final int DETAIL_BOTTOM_MARGIN = 42;
     private static final int DETAIL_MARGIN = 10;
-    private static final int DETAIL_ROW_HEIGHT = 36;
-    private static final int DETAIL_ROW_GAP = 4;
+    private static final int DETAIL_ROW_HEIGHT = 22;
+    private static final int DETAIL_ROW_GAP = 0;
     private static final int DETAIL_ACTION_WIDTH = 92;
     private static final int DETAIL_WHEEL_PIXELS = 32;
-    private static final int DETAIL_PANEL = 0xE0202020;
-    private static final int DETAIL_BORDER = 0xFF777777;
+    private static final int DETAIL_ROW_ODD = 0xA0101010;
+    private static final int DETAIL_ROW_EVEN = 0xA0303030;
+    private static final int DETAIL_ROW_HOVERED = 0xA0707070;
+    private static final int DETAIL_ICON_BACKGROUND = 0x20FFFFFF;
     private static final int ARROW_SLOT_WIDTH = 20;
     private static final String DETAIL_ANIMATION_KEY = "material_preferred_wood_details";
 
@@ -297,9 +299,10 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
             );
         } else {
             int y = DETAIL_TOP - this.detailScrollBar.getValue();
-            for (RowState row : this.rows) {
+            for (int index = 0; index < this.rows.size(); index++) {
+                RowState row = this.rows.get(index);
                 if (y + DETAIL_ROW_HEIGHT >= DETAIL_TOP && y < visibleBottom) {
-                    this.renderDetailRow(context, row, y, mouseX, mouseY);
+                    this.renderDetailRow(context, row, index, y, mouseX, mouseY);
                 }
                 y += DETAIL_ROW_HEIGHT + DETAIL_ROW_GAP;
             }
@@ -321,54 +324,86 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
         }
     }
 
-    private void renderDetailRow(GuiContext context, RowState row, int y, int mouseX, int mouseY) {
-        RenderUtils.drawOutlinedBox(
-                context,
-                DETAIL_MARGIN,
-                y,
-                this.field_22789 - DETAIL_MARGIN * 2 - 12,
-                DETAIL_ROW_HEIGHT,
-                DETAIL_PANEL,
-                DETAIL_BORDER
-        );
+    private void renderDetailRow(
+            GuiContext context,
+            RowState row,
+            int index,
+            int y,
+            int mouseX,
+            int mouseY) {
+        int rowLeft = DETAIL_MARGIN;
+        int rowRight = this.field_22789 - DETAIL_MARGIN - 12;
+        boolean hovered = mouseX >= rowLeft
+                && mouseX < rowRight
+                && mouseY >= y
+                && mouseY < y + DETAIL_ROW_HEIGHT;
+        int background = hovered
+                ? DETAIL_ROW_HOVERED
+                : (index & 1) == 0 ? DETAIL_ROW_EVEN : DETAIL_ROW_ODD;
+        RenderUtils.drawRect(context, rowLeft, y, rowRight - rowLeft, DETAIL_ROW_HEIGHT, background);
 
-        int iconY = y + 10;
+        int sourceIconX = rowLeft + 4;
+        int targetIconX = rowLeft + 24;
+        int iconY = y + 3;
         if (row.row.sourceBlock() != null) {
-            context.method_51427(new class_1799(row.row.sourceBlock()), DETAIL_MARGIN + 8, iconY);
+            RenderUtils.drawRect(context, sourceIconX, iconY, 16, 16, DETAIL_ICON_BACKGROUND);
+            context.method_51427(new class_1799(row.row.sourceBlock()), sourceIconX, iconY);
         }
         if (row.row.targetBlock() != null) {
-            context.method_51427(new class_1799(row.row.targetBlock()), DETAIL_MARGIN + 34, iconY);
+            RenderUtils.drawRect(context, targetIconX, iconY, 16, 16, DETAIL_ICON_BACKGROUND);
+            context.method_51427(new class_1799(row.row.targetBlock()), targetIconX, iconY);
         }
 
-        int textX = DETAIL_MARGIN + 58;
+        int textX = rowLeft + 46;
+        int buttonX = rowRight - DETAIL_ACTION_WIDTH - 4;
+        int availableTextWidth = Math.max(0, buttonX - 8 - textX);
+        int countX = textX + Math.round(availableTextWidth * 0.55F);
+        int statusX = textX + Math.round(availableTextWidth * 0.76F);
         String targetName = row.row.targetBlock() == null
                 ? StringUtils.translate("lmlp.gui.preferred_replacement.no_target")
                 : row.row.targetName();
+        String replacement = row.row.sourceName() + "  →  " + targetName;
+        replacement = this.truncateDetailText(replacement, Math.max(0, countX - textX - 8));
         context.method_51433(
                 this.field_22793,
-                row.row.sourceName() + "  →  " + targetName,
+                replacement,
                 textX,
                 y + 7,
                 0xFFFFFFFF,
                 false
         );
 
-        String detail = StringUtils.translate("lmlp.gui.preferred_replacement.count", row.row.count())
-                + "    "
-                + StringUtils.translate(row.row.exact()
+        String count = StringUtils.translate("lmlp.gui.preferred_replacement.count", row.row.count());
+        context.method_51433(this.field_22793, count, countX, y + 7, 0xFFFFFFFF, false);
+
+        String status = StringUtils.translate(row.row.exact()
                 ? "lmlp.gui.preferred_replacement.compatible"
                 : "lmlp.gui.preferred_replacement.incompatible");
         context.method_51433(
                 this.field_22793,
-                detail,
-                textX,
-                y + 21,
+                status,
+                statusX,
+                y + 7,
                 row.row.exact() ? 0xFF88DD88 : 0xFFFFAA55,
                 false
         );
 
-        row.button.setPosition(this.field_22789 - DETAIL_MARGIN - DETAIL_ACTION_WIDTH - 20, y + 8);
+        row.button.setPosition(buttonX, y + 1);
         row.button.render(context, mouseX, mouseY, row.button.isMouseOver());
+    }
+
+    private String truncateDetailText(String text, int maxWidth) {
+        if (maxWidth <= 0 || this.field_22793.method_1727(text) <= maxWidth) {
+            return maxWidth <= 0 ? "" : text;
+        }
+
+        String ellipsis = "…";
+        int ellipsisWidth = this.field_22793.method_1727(ellipsis);
+        int end = text.length();
+        while (end > 0 && this.field_22793.method_1727(text.substring(0, end)) + ellipsisWidth > maxWidth) {
+            end--;
+        }
+        return text.substring(0, end) + ellipsis;
     }
 
     private void renderCenteredDetailMessage(GuiContext context, String message, int y) {
