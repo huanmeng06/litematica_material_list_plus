@@ -343,35 +343,47 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
         RenderUtils.drawRect(context, rowLeft, y, rowRight - rowLeft, DETAIL_ROW_HEIGHT, background);
 
         int sourceIconX = rowLeft + 4;
-        int targetIconX = rowLeft + 24;
         int iconY = y + 3;
         if (row.row.sourceBlock() != null) {
             RenderUtils.drawRect(context, sourceIconX, iconY, 16, 16, DETAIL_ICON_BACKGROUND);
             context.method_51427(new class_1799(row.row.sourceBlock()), sourceIconX, iconY);
         }
-        if (row.row.targetBlock() != null) {
-            RenderUtils.drawRect(context, targetIconX, iconY, 16, 16, DETAIL_ICON_BACKGROUND);
-            context.method_51427(new class_1799(row.row.targetBlock()), targetIconX, iconY);
-        }
 
-        int textX = rowLeft + 46;
         int buttonX = rowRight - DETAIL_ACTION_WIDTH - 4;
-        int availableTextWidth = Math.max(0, buttonX - 8 - textX);
-        int countX = textX + Math.round(availableTextWidth * 0.55F);
-        int statusX = textX + Math.round(availableTextWidth * 0.76F);
+        int countX = rowLeft + Math.round((buttonX - rowLeft) * 0.57F);
+        int statusX = rowLeft + Math.round((buttonX - rowLeft) * 0.78F);
+        int sourceNameX = sourceIconX + 20;
+        int mappingRight = countX - 8;
+        int mappingWidth = Math.max(0, mappingRight - sourceNameX);
+        int sourceNameColumnWidth = this.detailSourceNameColumnWidth(Math.round(mappingWidth * 0.46F));
+        int arrowX = sourceNameX + sourceNameColumnWidth + 8;
+        String arrow = "→";
+        int targetIconX = arrowX + this.field_22793.method_1727(arrow) + 8;
+        int targetNameX = targetIconX + 20;
+
+        String sourceName = this.truncateDetailText(
+                row.row.sourceName(),
+                Math.max(0, arrowX - sourceNameX - 8)
+        );
         String targetName = row.row.targetBlock() == null
                 ? StringUtils.translate("lmlp.gui.preferred_replacement.no_target")
                 : row.row.targetName();
-        String replacement = row.row.sourceName() + "  →  " + targetName;
-        replacement = this.truncateDetailText(replacement, Math.max(0, countX - textX - 8));
+        targetName = this.truncateDetailText(targetName, Math.max(0, mappingRight - targetNameX));
+
         context.method_51433(
                 this.field_22793,
-                replacement,
-                textX,
+                sourceName,
+                sourceNameX,
                 y + 7,
                 0xFFFFFFFF,
                 false
         );
+        context.method_51433(this.field_22793, arrow, arrowX, y + 7, 0xFFFFFFFF, false);
+        if (row.row.targetBlock() != null) {
+            RenderUtils.drawRect(context, targetIconX, iconY, 16, 16, DETAIL_ICON_BACKGROUND);
+            context.method_51427(new class_1799(row.row.targetBlock()), targetIconX, iconY);
+        }
+        context.method_51433(this.field_22793, targetName, targetNameX, y + 7, 0xFFFFFFFF, false);
 
         String count = StringUtils.translate("lmlp.gui.preferred_replacement.count", row.row.count());
         context.method_51433(this.field_22793, count, countX, y + 7, 0xFFFFFFFF, false);
@@ -399,11 +411,22 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
 
         String ellipsis = "…";
         int ellipsisWidth = this.field_22793.method_1727(ellipsis);
+        if (maxWidth < ellipsisWidth) {
+            return "";
+        }
         int end = text.length();
         while (end > 0 && this.field_22793.method_1727(text.substring(0, end)) + ellipsisWidth > maxWidth) {
             end--;
         }
         return text.substring(0, end) + ellipsis;
+    }
+
+    private int detailSourceNameColumnWidth(int maxWidth) {
+        int contentWidth = this.rows.stream()
+                .mapToInt(row -> this.field_22793.method_1727(row.row.sourceName()))
+                .max()
+                .orElse(0);
+        return Math.max(0, Math.min(maxWidth, contentWidth));
     }
 
     private void renderCenteredDetailMessage(GuiContext context, String message, int y) {
