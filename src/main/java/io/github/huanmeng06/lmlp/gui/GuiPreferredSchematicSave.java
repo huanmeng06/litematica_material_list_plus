@@ -12,17 +12,29 @@ import java.nio.file.Path;
 
 public class GuiPreferredSchematicSave extends GuiSchematicSave {
     private final Path defaultDirectory;
+    private final String initialFileName;
+    private boolean initialFileNameApplied;
 
-    public GuiPreferredSchematicSave(LitematicaSchematic schematic, Path sourceFile) {
+    public GuiPreferredSchematicSave(LitematicaSchematic schematic, Path sourceFile, String initialFileName) {
         super(schematic);
         this.defaultDirectory = sourceFile != null && sourceFile.getParent() != null
                 ? sourceFile.getParent()
                 : DataManager.getSchematicsBaseDirectory();
+        this.initialFileName = initialFileName;
     }
 
     @Override
     public Path getDefaultDirectory() {
         return this.defaultDirectory;
+    }
+
+    @Override
+    public void initGui() {
+        super.initGui();
+        if (!this.initialFileNameApplied) {
+            this.setTextFieldText(this.initialFileName);
+            this.initialFileNameApplied = true;
+        }
     }
 
     @Override
