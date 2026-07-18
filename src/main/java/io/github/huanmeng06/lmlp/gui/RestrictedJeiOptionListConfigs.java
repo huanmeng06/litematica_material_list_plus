@@ -33,7 +33,7 @@ public final class RestrictedJeiOptionListConfigs {
         return new Definition(Configs.ConfigForms.PREFERRED_WOOD_FAMILY, List.copyOf(choices));
     }
 
-    private static String representativeItemId(WoodFamily family) {
+    static String representativeItemId(WoodFamily family) {
         return switch (family) {
             case BAMBOO -> "minecraft:bamboo_block";
             case CRIMSON -> "minecraft:crimson_stem";
