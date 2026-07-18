@@ -16,7 +16,7 @@ import net.minecraft.class_7923;
 
 /** Clips a standard MaLiLib config row while its owning preference group expands or collapses. */
 final class AnimatedPreferenceConfigOption extends WidgetConfigOption {
-    private static final int ICON_SIZE = 20;
+    private static final int ICON_SIZE = 18;
     private static final int ICON_BACKGROUND = 0xFF555555;
     private static final int ICON_BORDER = 0xFFAAAAAA;
 
@@ -74,7 +74,7 @@ final class AnimatedPreferenceConfigOption extends WidgetConfigOption {
 
         int resetWidth = this.textRenderer.method_1727(StringUtils.translate("malilib.gui.button.reset.caps")) + 10;
         int iconX = this.valueX + this.configWidth + 2 + resetWidth + 4;
-        int iconY = this.getY() + 1;
+        int iconY = this.getY() + 2;
         RenderUtils.drawOutlinedBox(
                 context,
                 iconX,
@@ -84,6 +84,6 @@ final class AnimatedPreferenceConfigOption extends WidgetConfigOption {
                 ICON_BACKGROUND,
                 ICON_BORDER
         );
-        context.method_51427(new class_1799(item), iconX + 2, iconY + 2);
+        context.method_51427(new class_1799(item), iconX + 1, iconY + 1);
     }
 }
