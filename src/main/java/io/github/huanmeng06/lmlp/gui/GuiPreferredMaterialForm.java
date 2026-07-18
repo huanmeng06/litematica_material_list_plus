@@ -33,7 +33,13 @@ public class GuiPreferredMaterialForm extends class_437 {
     private static final int ROW_HEIGHT = 36;
     private static final int ROW_GAP = 4;
     private static final int MARGIN = 18;
-    private static final int TOP = 62;
+    private static final int GROUP_ROW_Y = 31;
+    private static final int GROUP_TOGGLE_X = MARGIN + 112;
+    private static final int GROUP_TOGGLE_WIDTH = 76;
+    private static final int GROUP_ARROW_GAP = 4;
+    private static final int GROUP_ARROW_WIDTH = 20;
+    private static final int TARGET_ROW_Y = 57;
+    private static final int TOP = 86;
     private static final int BOTTOM = 42;
     private static final int ACTION_WIDTH = 92;
     private static final int WHEEL_PIXELS = 32;
@@ -42,11 +48,15 @@ public class GuiPreferredMaterialForm extends class_437 {
     private final SchematicPlacement placement;
     private final LitematicaSchematic schematic;
     private final GuiScrollBar scrollBar = new GuiScrollBar();
+    private final ExpandAnimationTracker groupAnimations = new ExpandAnimationTracker();
+    private final BooleanValueButton woodToggleButton;
     private final ButtonGeneric targetButton = new ButtonGeneric(0, 0, 150, 20, "");
     private final ButtonGeneric confirmButton = new ButtonGeneric(0, 0, 90, 20, "");
     private final ButtonGeneric cancelButton = new ButtonGeneric(0, 0, 90, 20, "");
     private final List<RowState> rows = new ArrayList<>();
     private WoodFamily targetFamily;
+    private boolean woodEnabled;
+    private boolean woodExpanded;
     private boolean draggingScrollbar;
     private double scrollRemainder;
 
@@ -56,6 +66,15 @@ public class GuiPreferredMaterialForm extends class_437 {
         this.placement = placement;
         this.schematic = placement == null ? null : placement.getSchematic();
         this.targetFamily = (WoodFamily) Configs.ConfigForms.PREFERRED_WOOD_FAMILY.getOptionListValue();
+        this.woodEnabled = Configs.ConfigForms.PREFERRED_WOOD_ENABLED.getBooleanValue();
+
+        this.woodToggleButton = new BooleanValueButton(
+                0,
+                0,
+                GROUP_TOGGLE_WIDTH,
+                this.woodEnabled);
+        this.woodToggleButton.setTextCentered(true);
+        this.woodToggleButton.setActionListener((button, mouseButton) -> this.toggleWoodEnabled());
 
         this.targetButton.setTextCentered(true);
         this.targetButton.setActionListener((button, mouseButton) -> this.cycleTarget(mouseButton == 0));
@@ -99,28 +118,46 @@ public class GuiPreferredMaterialForm extends class_437 {
 
         context.method_51433(this.field_22793, StringUtils.translate("lmlp.gui.preferred_replacement.title"),
                 MARGIN, 12, 0xFFFFFFFF, false);
-        context.method_51433(this.field_22793, StringUtils.translate("lmlp.gui.preferred_replacement.target"),
-                MARGIN, 38, 0xFFCCCCCC, false);
-        this.targetButton.render(context, mouseX, mouseY, this.targetButton.isMouseOver());
+        context.method_51433(this.field_22793, StringUtils.translate("lmlp.gui.preferred_replacement.wood_group"),
+                MARGIN, GROUP_ROW_Y + 6, 0xFFCCCCCC, false);
+        this.woodToggleButton.render(context, mouseX, mouseY, this.woodToggleButton.isMouseOver());
+        if (this.woodEnabled) {
+            ToggleArrowRenderer.render(
+                    context,
+                    this.groupArrowX(),
+                    GROUP_ARROW_WIDTH,
+                    GROUP_ROW_Y + 10,
+                    this.groupAnimations.progress("preferred_wood", this.woodExpanded),
+                    this.isGroupArrowHovered(mouseX, mouseY));
+            this.groupAnimations.prune();
+        }
+
+        if (this.woodEnabled && this.woodExpanded) {
+            context.method_51433(this.field_22793, StringUtils.translate("lmlp.gui.preferred_replacement.target"),
+                    MARGIN + 20, TARGET_ROW_Y + 6, 0xFFAAAAAA, false);
+            this.targetButton.render(context, mouseX, mouseY, this.targetButton.isMouseOver());
+        }
 
         int contentBottom = this.field_22790 - BOTTOM;
         context.method_44379(MARGIN, TOP, this.field_22789 - MARGIN, contentBottom);
-        if (this.schematic == null) {
-            this.renderCenteredMessage(context, StringUtils.translate("lmlp.gui.preferred_replacement.config_only"), TOP + 24);
-        } else if (this.rows.isEmpty()) {
-            this.renderCenteredMessage(context, StringUtils.translate("lmlp.gui.preferred_replacement.none"), TOP + 24);
-        } else {
-            int y = TOP - this.scrollBar.getValue();
-            for (RowState row : this.rows) {
-                if (y + ROW_HEIGHT >= TOP && y < contentBottom) {
-                    this.renderRow(context, row, y, mouseX, mouseY);
+        if (this.woodEnabled && this.woodExpanded) {
+            if (this.schematic == null) {
+                this.renderCenteredMessage(context, StringUtils.translate("lmlp.gui.preferred_replacement.config_only"), TOP + 24);
+            } else if (this.rows.isEmpty()) {
+                this.renderCenteredMessage(context, StringUtils.translate("lmlp.gui.preferred_replacement.none"), TOP + 24);
+            } else {
+                int y = TOP - this.scrollBar.getValue();
+                for (RowState row : this.rows) {
+                    if (y + ROW_HEIGHT >= TOP && y < contentBottom) {
+                        this.renderRow(context, row, y, mouseX, mouseY);
+                    }
+                    y += ROW_HEIGHT + ROW_GAP;
                 }
-                y += ROW_HEIGHT + ROW_GAP;
             }
         }
         context.method_44380();
 
-        if (this.scrollBar.getMaxValue() > 0) {
+        if (this.woodEnabled && this.woodExpanded && this.scrollBar.getMaxValue() > 0) {
             this.scrollBar.render(context, mouseX, mouseY, delta, this.field_22789 - 13, TOP, 8,
                     Math.max(1, contentBottom - TOP), this.contentHeight());
         }
@@ -132,22 +169,34 @@ public class GuiPreferredMaterialForm extends class_437 {
     public boolean method_25402(net.minecraft.class_11909 event, boolean doubleClick) {
         int mouseButton = event.comp_4800().comp_4801();
         if (mouseButton == 0 || mouseButton == 1) {
-            if (this.targetButton.onMouseClicked(event, doubleClick)
+            if (this.woodToggleButton.onMouseClicked(event, doubleClick)
                     || this.confirmButton.onMouseClicked(event, doubleClick)
                     || this.cancelButton.onMouseClicked(event, doubleClick)) {
                 return true;
             }
+            int mouseX = (int) event.comp_4798();
+            int mouseY = (int) event.comp_4799();
+            if (this.woodEnabled && this.isGroupArrowHovered(mouseX, mouseY)) {
+                this.toggleWoodExpanded();
+                return true;
+            }
+            if (this.woodEnabled && this.woodExpanded
+                    && this.targetButton.onMouseClicked(event, doubleClick)) {
+                return true;
+            }
             int y = TOP - this.scrollBar.getValue();
             int contentBottom = this.field_22790 - BOTTOM;
-            for (RowState row : this.rows) {
-                if (y + ROW_HEIGHT >= TOP && y < contentBottom
-                        && row.button.onMouseClicked(event, doubleClick)) {
-                    return true;
+            if (this.woodEnabled && this.woodExpanded) {
+                for (RowState row : this.rows) {
+                    if (y + ROW_HEIGHT >= TOP && y < contentBottom
+                            && row.button.onMouseClicked(event, doubleClick)) {
+                        return true;
+                    }
+                    y += ROW_HEIGHT + ROW_GAP;
                 }
-                y += ROW_HEIGHT + ROW_GAP;
             }
         }
-        if (mouseButton == 0 && this.scrollBar.wasMouseOver()) {
+        if (this.woodEnabled && this.woodExpanded && mouseButton == 0 && this.scrollBar.wasMouseOver()) {
             this.scrollBar.setIsDragging(true);
             this.draggingScrollbar = true;
             return true;
@@ -157,6 +206,9 @@ public class GuiPreferredMaterialForm extends class_437 {
 
     @Override
     public boolean method_25401(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
+        if (!this.woodEnabled || !this.woodExpanded) {
+            return super.method_25401(mouseX, mouseY, horizontalAmount, verticalAmount);
+        }
         double target = this.scrollRemainder - verticalAmount * WHEEL_PIXELS;
         int pixels = (int) target;
         this.scrollRemainder = target - pixels;
@@ -216,7 +268,7 @@ public class GuiPreferredMaterialForm extends class_437 {
 
     private void rebuildRows() {
         this.rows.clear();
-        if (this.schematic != null) {
+        if (this.woodEnabled && this.schematic != null) {
             for (ReplacementRow row : PreferredSchematicReplacement.scan(this.schematic, this.targetFamily)) {
                 this.rows.add(new RowState(row));
             }
@@ -225,9 +277,10 @@ public class GuiPreferredMaterialForm extends class_437 {
     }
 
     private void confirm() {
+        Configs.ConfigForms.PREFERRED_WOOD_ENABLED.setBooleanValue(this.woodEnabled);
         Configs.ConfigForms.PREFERRED_WOOD_FAMILY.setOptionListValue(this.targetFamily);
         Configs.saveToFile();
-        if (this.schematic == null) {
+        if (this.schematic == null || !this.woodEnabled) {
             this.method_25419();
             return;
         }
@@ -259,19 +312,51 @@ public class GuiPreferredMaterialForm extends class_437 {
     }
 
     private void updateButtonPositions() {
-        this.targetButton.setPosition(MARGIN + 78, 31);
+        this.woodToggleButton.setPosition(GROUP_TOGGLE_X, GROUP_ROW_Y);
+        this.targetButton.setPosition(MARGIN + 118, TARGET_ROW_Y);
         int y = this.field_22790 - 30;
         this.cancelButton.setPosition(this.field_22789 - MARGIN - 90, y);
         this.confirmButton.setPosition(this.field_22789 - MARGIN - 184, y);
     }
 
     private void updateScrollRange() {
+        if (!this.woodEnabled || !this.woodExpanded) {
+            this.scrollBar.setMaxValue(0);
+            this.scrollBar.setValue(0);
+            return;
+        }
         int viewport = Math.max(1, this.field_22790 - BOTTOM - TOP);
         this.scrollBar.setMaxValue(Math.max(0, this.contentHeight() - viewport));
     }
 
     private int contentHeight() {
         return this.rows.isEmpty() ? ROW_HEIGHT : this.rows.size() * (ROW_HEIGHT + ROW_GAP) - ROW_GAP;
+    }
+
+    private void toggleWoodEnabled() {
+        this.woodEnabled = !this.woodEnabled;
+        this.woodToggleButton.updateDisplayString(this.woodEnabled);
+        this.woodExpanded = false;
+        this.groupAnimations.clear();
+        this.scrollBar.setValue(0);
+        this.rebuildRows();
+    }
+
+    private void toggleWoodExpanded() {
+        float startProgress = this.groupAnimations.progress("preferred_wood", this.woodExpanded);
+        this.woodExpanded = !this.woodExpanded;
+        this.groupAnimations.start("preferred_wood", startProgress, this.woodExpanded ? 1.0F : 0.0F);
+        this.scrollBar.setValue(0);
+    }
+
+    private int groupArrowX() {
+        return GROUP_TOGGLE_X + GROUP_TOGGLE_WIDTH + GROUP_ARROW_GAP;
+    }
+
+    private boolean isGroupArrowHovered(int mouseX, int mouseY) {
+        int x = this.groupArrowX();
+        return mouseX >= x && mouseX < x + GROUP_ARROW_WIDTH
+                && mouseY >= GROUP_ROW_Y && mouseY < GROUP_ROW_Y + 20;
     }
 
     private static SchematicPlacement resolvePlacement(MaterialListBase materialList) {
@@ -282,6 +367,19 @@ public class GuiPreferredMaterialForm extends class_437 {
             return access.lmlp$getPlacement();
         }
         return null;
+    }
+
+    private static final class BooleanValueButton extends ButtonGeneric {
+        private BooleanValueButton(int x, int y, int width, boolean value) {
+            super(x, y, width, 20, "");
+            this.updateDisplayString(value);
+        }
+
+        private void updateDisplayString(boolean value) {
+            this.displayString = StringUtils.translate(value
+                    ? "malilib.gui.button.true"
+                    : "malilib.gui.button.false");
+        }
     }
 
     private final class RowState {

@@ -192,6 +192,14 @@ public class Configs implements IConfigHandler {
     }
 
     public static final class ConfigForms {
+        public static final ConfigBoolean PREFERRED_WOOD_ENABLED = new ConfigBoolean(
+                "preferredWoodEnabled",
+                false,
+                "lmlp.config.comment.preferred_wood_enabled",
+                "lmlp.config.name.preferred_wood_enabled",
+                "lmlp.config.name.preferred_wood_enabled"
+        );
+
         public static final ConfigOptionList PREFERRED_WOOD_FAMILY = new ConfigOptionList(
                 "preferredWoodFamily",
                 WoodFamily.OAK,
@@ -201,6 +209,7 @@ public class Configs implements IConfigHandler {
         );
 
         public static final List<IConfigBase> OPTIONS = ImmutableList.of(
+                PREFERRED_WOOD_ENABLED,
                 PREFERRED_WOOD_FAMILY,
                 Generic.RECIPE_STOP_ITEMS,
                 Generic.KEEP_AS_LEAF_ITEMS
