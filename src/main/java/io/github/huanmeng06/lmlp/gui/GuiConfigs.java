@@ -5,6 +5,7 @@ import fi.dy.masa.malilib.gui.GuiConfigsBase;
 import fi.dy.masa.malilib.gui.button.ButtonBase;
 import fi.dy.masa.malilib.gui.button.ButtonGeneric;
 import fi.dy.masa.malilib.gui.button.IButtonActionListener;
+import fi.dy.masa.malilib.gui.widgets.WidgetListConfigOptions;
 import fi.dy.masa.malilib.util.StringUtils;
 import io.github.huanmeng06.lmlp.LitematicaMaterialListPlus;
 import io.github.huanmeng06.lmlp.config.Configs;
@@ -51,9 +52,36 @@ public class GuiConfigs extends GuiConfigsBase {
 
     @Override
     public boolean onMouseClicked(class_11909 mouseClick, boolean doubleClick) {
+        boolean preferredWoodWasEnabled = Configs.ConfigForms.PREFERRED_WOOD_ENABLED.getBooleanValue();
         boolean handled = super.onMouseClicked(mouseClick, doubleClick);
+        boolean preferredWoodIsEnabled = Configs.ConfigForms.PREFERRED_WOOD_ENABLED.getBooleanValue();
+
+        if (currentTab == ConfigGuiTab.PREFERENCE_FORM
+                && preferredWoodWasEnabled != preferredWoodIsEnabled
+                && this.getListWidget() instanceof PreferenceWidgetListConfigOptions preferenceList) {
+            preferenceList.setGroupExpanded(Configs.ConfigForms.PREFERRED_WOOD_ENABLED, preferredWoodIsEnabled);
+        }
+
         this.updateKeybindButtons();
         return handled;
+    }
+
+    @Override
+    protected WidgetListConfigOptions createListWidget(int x, int y) {
+        if (currentTab == ConfigGuiTab.PREFERENCE_FORM) {
+            return new PreferenceWidgetListConfigOptions(
+                    x,
+                    y,
+                    this.getBrowserWidth(),
+                    this.getBrowserHeight(),
+                    this.getConfigWidth(),
+                    0.0F,
+                    this.useKeybindSearch(),
+                    this
+            );
+        }
+
+        return super.createListWidget(x, y);
     }
 
     @Override
