@@ -2,6 +2,7 @@ package io.github.huanmeng06.lmlp.gui;
 
 import fi.dy.masa.malilib.config.IConfigBase;
 import fi.dy.masa.malilib.gui.GuiConfigsBase;
+import fi.dy.masa.malilib.gui.GuiBase;
 import fi.dy.masa.malilib.gui.button.ButtonBase;
 import fi.dy.masa.malilib.gui.button.ButtonGeneric;
 import fi.dy.masa.malilib.gui.button.IButtonActionListener;
@@ -38,6 +39,12 @@ public class GuiConfigs extends GuiConfigsBase {
         int y = 26;
         for (ConfigGuiTab tab : ConfigGuiTab.values()) {
             x += this.createButton(x, y, -1, tab);
+        }
+        if (currentTab == ConfigGuiTab.CONFIG_FORMS) {
+            String label = StringUtils.translate("lmlp.gui.button.config_gui.preferred_replacement_form");
+            int width = this.getStringWidth(label) + 20;
+            ButtonGeneric button = new ButtonGeneric(this.field_22789 - width - 10, y, width, 20, label, new String[0]);
+            this.addButton(button, (clicked, mouseButton) -> GuiBase.openGui(GuiPreferredMaterialForm.forConfig(this)));
         }
         this.updateKeybindButtons();
     }
