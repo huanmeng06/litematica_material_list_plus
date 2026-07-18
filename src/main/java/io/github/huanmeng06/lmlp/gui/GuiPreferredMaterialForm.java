@@ -85,6 +85,10 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
         this.initialWoodEnabled = Configs.ConfigForms.PREFERRED_WOOD_ENABLED.getBooleanValue();
         this.initialWoodFamily = (WoodFamily) Configs.ConfigForms.PREFERRED_WOOD_FAMILY.getOptionListValue();
         this.rebuildRows();
+        if (this.rowsWoodEnabled) {
+            this.detailsExpanded = true;
+            this.detailAnimations.start(DETAIL_ANIMATION_KEY, 0.0F, 1.0F);
+        }
     }
 
     public static GuiPreferredMaterialForm forMaterialList(class_437 parent, MaterialListBase materialList) {
@@ -163,6 +167,9 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
                 this.detailsExpanded = false;
                 this.detailAnimations.clear();
                 this.detailScrollBar.setValue(0);
+            } else if (!preferredWoodWasEnabled) {
+                this.detailsExpanded = true;
+                this.detailAnimations.start(DETAIL_ANIMATION_KEY, 0.0F, 1.0F);
             }
             this.rebuildRows();
         }
