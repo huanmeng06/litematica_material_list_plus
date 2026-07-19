@@ -3,12 +3,15 @@ package io.github.huanmeng06.lmlp.gui;
 import fi.dy.masa.litematica.data.DataManager;
 import fi.dy.masa.litematica.gui.GuiSchematicSave;
 import fi.dy.masa.litematica.schematic.LitematicaSchematic;
+import fi.dy.masa.litematica.schematic.placement.SchematicPlacement;
 import fi.dy.masa.malilib.gui.GuiBase;
 import fi.dy.masa.malilib.gui.Message.MessageType;
 import fi.dy.masa.malilib.gui.button.IButtonActionListener;
 import fi.dy.masa.malilib.util.FileNameUtils;
 import io.github.huanmeng06.lmlp.preference.PreferredSchematicReplacement;
 import io.github.huanmeng06.lmlp.preference.PreferredSchematicReplacement.ReplacementChoice;
+import io.github.huanmeng06.lmlp.preference.PreferredSchematicPlacementApplication;
+import net.minecraft.class_437;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -21,13 +24,17 @@ public class GuiPreferredSchematicSave extends GuiSchematicSave {
     private final Path sourceFile;
     private final Path defaultDirectory;
     private final String initialFileName;
+    private final SchematicPlacement sourcePlacement;
+    private final class_437 returnGui;
     private boolean initialFileNameApplied;
 
     public GuiPreferredSchematicSave(
             LitematicaSchematic sourceSchematic,
             List<ReplacementChoice> choices,
             Path sourceFile,
-            String initialFileName) {
+            String initialFileName,
+            SchematicPlacement sourcePlacement,
+            class_437 returnGui) {
         super(sourceSchematic);
         this.sourceSchematic = sourceSchematic;
         this.choices = List.copyOf(choices);
@@ -36,6 +43,8 @@ public class GuiPreferredSchematicSave extends GuiSchematicSave {
                 ? sourceFile.getParent()
                 : DataManager.getSchematicsBaseDirectory();
         this.initialFileName = initialFileName;
+        this.sourcePlacement = sourcePlacement;
+        this.returnGui = returnGui;
     }
 
     @Override
@@ -96,6 +105,11 @@ public class GuiPreferredSchematicSave extends GuiSchematicSave {
             copy.getMetadata().clearModifiedSinceSaved();
             this.getListWidget().refreshEntries();
             this.addMessage(MessageType.SUCCESS, "litematica.message.schematic_saved_as", name);
+            LitematicaSchematic savedSchematic = PreferredSchematicPlacementApplication.savedSchematic(destination, copy);
+            GuiBase.openGui(new GuiApplyPreferredSchematicConfirm(
+                    this.sourcePlacement,
+                    savedSchematic,
+                    this.returnGui));
         } else {
             this.addMessage(MessageType.ERROR, "lmlp.error.preferred_replacement.save_failed", fileName);
         }

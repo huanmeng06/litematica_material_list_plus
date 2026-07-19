@@ -586,7 +586,9 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
                 this.schematic,
                 choices,
                 source,
-                this.defaultSaveName(source)
+                this.defaultSaveName(source),
+                this.placement,
+                this.materialListParent
         );
         this.closingConfirmed = true;
         GuiBase.openGui(saveGui.setParent(this));
