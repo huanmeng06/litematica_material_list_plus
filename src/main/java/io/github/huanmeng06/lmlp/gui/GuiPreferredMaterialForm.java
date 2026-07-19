@@ -154,7 +154,9 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
         int mouseX = (int) mouseClick.comp_4798();
         int mouseY = (int) mouseClick.comp_4799();
         int mouseButton = mouseClick.comp_4800().comp_4801();
-        if (mouseButton == 0 || mouseButton == 1) {
+        boolean overVisibleEntries = this.getListWidget() instanceof PreferenceWidgetListConfigOptions preferenceList
+                && preferenceList.isMouseOverVisibleEntries(mouseX, mouseY);
+        if (overVisibleEntries && (mouseButton == 0 || mouseButton == 1)) {
             for (PreferredMaterialCategory category : PreferredMaterialCategory.values()) {
                 if (this.isDetailArrowVisible(category)
                         && this.isDetailArrowHovered(category, mouseX, mouseY)) {
@@ -163,10 +165,12 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
                 }
             }
         }
-        if ((mouseButton == 0 || mouseButton == 1) && this.clickDetailRowButton(mouseClick, doubleClick)) {
+        if (overVisibleEntries
+                && (mouseButton == 0 || mouseButton == 1)
+                && this.clickDetailRowButton(mouseClick, doubleClick)) {
             return true;
         }
-        if (mouseButton == 0 && this.clickDetailTargetPicker(mouseX, mouseY)) {
+        if (overVisibleEntries && mouseButton == 0 && this.clickDetailTargetPicker(mouseX, mouseY)) {
             return true;
         }
 

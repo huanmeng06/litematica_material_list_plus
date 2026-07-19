@@ -82,6 +82,15 @@ final class PreferenceWidgetListConfigOptions extends WidgetListConfigOptions {
         this.refreshEntries();
     }
 
+    boolean isMouseOverVisibleEntries(int mouseX, int mouseY) {
+        int top = this.browserEntriesStartY + this.browserEntriesOffsetY;
+        int bottom = this.browserEntriesStartY + this.browserHeight - 8;
+        return mouseX >= this.browserEntriesStartX
+                && mouseX < this.browserEntriesStartX + this.browserEntryWidth
+                && mouseY >= top
+                && mouseY < bottom;
+    }
+
     @Override
     protected Collection<GuiConfigsBase.ConfigOptionWrapper> getAllEntries() {
         Collection<GuiConfigsBase.ConfigOptionWrapper> allEntries = super.getAllEntries();
