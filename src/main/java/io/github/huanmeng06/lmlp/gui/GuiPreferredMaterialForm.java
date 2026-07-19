@@ -7,7 +7,6 @@ import fi.dy.masa.litematica.schematic.placement.SchematicPlacement;
 import fi.dy.masa.malilib.config.IConfigBoolean;
 import fi.dy.masa.malilib.gui.GuiBase;
 import fi.dy.masa.malilib.gui.GuiConfigsBase;
-import fi.dy.masa.malilib.gui.GuiScrollBar;
 import fi.dy.masa.malilib.gui.button.ButtonGeneric;
 import fi.dy.masa.malilib.gui.widgets.WidgetListConfigOptions;
 import fi.dy.masa.malilib.render.GuiContext;
@@ -35,8 +34,12 @@ import org.lwjgl.glfw.GLFW;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.EnumMap;
+import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Material-list entry point for preference replacement.
@@ -51,13 +54,10 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
     private static final int ACTION_WIDTH = 90;
     private static final int ACTION_GAP = 4;
     private static final int BOTTOM_ACTION_SPACE = 34;
-    private static final int DETAIL_TOP = 126;
-    private static final int DETAIL_BOTTOM_MARGIN = 42;
     private static final int DETAIL_MARGIN = 10;
     private static final int DETAIL_ROW_HEIGHT = 22;
     private static final int DETAIL_ROW_GAP = 0;
     private static final int DETAIL_ACTION_WIDTH = 92;
-    private static final int DETAIL_WHEEL_PIXELS = 32;
     private static final int DETAIL_ROW_ODD = 0xA0101010;
     private static final int DETAIL_ROW_EVEN = 0xA0303030;
     private static final int DETAIL_ROW_HOVERED = 0xA0707070;
@@ -69,13 +69,13 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
     private final SchematicPlacement placement;
     private final LitematicaSchematic schematic;
     private final PreferenceSnapshot initialPreferences;
-    private final GuiScrollBar detailScrollBar = new GuiScrollBar();
     private final ExpandAnimationTracker detailAnimations = new ExpandAnimationTracker();
     private final List<RowState> rows = new ArrayList<>();
     private final EnumMap<PreferredMaterialCategory, Boolean> detailsExpanded =
             new EnumMap<>(PreferredMaterialCategory.class);
-    private boolean draggingDetailScrollbar;
-    private double detailScrollRemainder;
+    private final Map<PreferredMaterialCategory, ArrowBounds> arrowBounds =
+            new EnumMap<>(PreferredMaterialCategory.class);
+    private final Set<RowState> renderedRows = Collections.newSetFromMap(new IdentityHashMap<>());
     private PreferenceSnapshot rowsSnapshot;
     private boolean closingConfirmed;
 
@@ -160,11 +160,6 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
         if ((mouseButton == 0 || mouseButton == 1) && this.clickDetailRowButton(mouseClick, doubleClick)) {
             return true;
         }
-        if (mouseButton == 0 && this.isDetailsVisible() && this.detailScrollBar.wasMouseOver()) {
-            this.detailScrollBar.setIsDragging(true);
-            this.draggingDetailScrollbar = true;
-            return true;
-        }
 
         boolean handled = super.onMouseClicked(mouseClick, doubleClick);
         PreferenceSnapshot after = PreferenceSnapshot.current();
@@ -189,30 +184,6 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
 
         this.updateKeybindButtons();
         return handled;
-    }
-
-    @Override
-    public boolean onMouseScrolled(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
-        if (this.isDetailsVisible() && this.isMouseOverDetails((int) mouseX, (int) mouseY)) {
-            double target = this.detailScrollRemainder - verticalAmount * DETAIL_WHEEL_PIXELS;
-            int pixels = (int) target;
-            this.detailScrollRemainder = target - pixels;
-            this.detailScrollBar.offsetValue(pixels);
-            return true;
-        }
-        return super.onMouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount);
-    }
-
-    @Override
-    public boolean method_25403(class_11909 event, double deltaX, double deltaY) {
-        return this.draggingDetailScrollbar || super.method_25403(event, deltaX, deltaY);
-    }
-
-    @Override
-    public boolean method_25406(class_11909 event) {
-        this.draggingDetailScrollbar = false;
-        this.detailScrollBar.setIsDragging(false);
-        return super.method_25406(event);
     }
 
     @Override
@@ -261,79 +232,75 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
 
     @Override
     public void drawContents(GuiContext context, int mouseX, int mouseY, float partialTicks) {
-        super.drawContents(context, mouseX, mouseY, partialTicks);
-        this.renderDetailArrows(context, mouseX, mouseY);
-        this.renderReplacementDetails(context, mouseX, mouseY, partialTicks);
-    }
-
-    private void renderDetailArrows(GuiContext context, int mouseX, int mouseY) {
-        int arrowX = this.detailArrowX();
-        for (PreferredMaterialCategory category : PreferredMaterialCategory.values()) {
-            if (this.isDetailArrowVisible(category)) {
-                ToggleArrowRenderer.render(
-                        context,
-                        arrowX,
-                        ARROW_SLOT_WIDTH,
-                        this.preferenceToggleRowTop(category) + 11,
-                        this.detailProgress(category),
-                        this.isDetailArrowHovered(category, mouseX, mouseY)
-                );
-            }
+        if (this.detailAnimations.isActive() && this.getListWidget() != null) {
+            this.getListWidget().refreshEntries();
         }
+        this.arrowBounds.clear();
+        this.renderedRows.clear();
+        super.drawContents(context, mouseX, mouseY, partialTicks);
         this.detailAnimations.prune();
     }
 
-    private void renderReplacementDetails(GuiContext context, int mouseX, int mouseY, float partialTicks) {
-        float progress = this.detailProgress();
-        if (progress <= 0.001F) {
-            return;
+    int inlineDetailHeight(fi.dy.masa.malilib.config.IConfigBase config) {
+        PreferredMaterialCategory category = this.categoryForTarget(config);
+        if (category == null || !PreferenceSnapshot.current().enabled(category)) {
+            return 0;
         }
-
         this.rebuildRowsIfNeeded();
-        List<RowState> visibleRows = this.visibleRows();
-        int detailTop = this.detailTop();
-        int fullBottom = this.detailFullBottom();
-        int fullHeight = Math.max(0, fullBottom - detailTop);
-        int visibleHeight = Math.round(fullHeight * progress);
-        if (visibleHeight <= 0) {
+        List<RowState> categoryRows = this.rowsFor(category);
+        int fullHeight = categoryRows.isEmpty()
+                ? DETAIL_ROW_HEIGHT
+                : categoryRows.size() * (DETAIL_ROW_HEIGHT + DETAIL_ROW_GAP) - DETAIL_ROW_GAP;
+        return Math.round(fullHeight * this.detailProgress(category));
+    }
+
+    void renderInlinePreferenceContent(
+            fi.dy.masa.malilib.config.IConfigBase config,
+            GuiContext context,
+            int x,
+            int y,
+            int width,
+            int configVisibleHeight,
+            int mouseX,
+            int mouseY) {
+        PreferredMaterialCategory toggleCategory = this.categoryForToggle(config);
+        if (toggleCategory != null && PreferenceSnapshot.current().enabled(toggleCategory)) {
+            int arrowX = this.detailArrowX();
+            ArrowBounds bounds = new ArrowBounds(arrowX, y, ARROW_SLOT_WIDTH, DETAIL_ROW_HEIGHT);
+            this.arrowBounds.put(toggleCategory, bounds);
+            ToggleArrowRenderer.render(
+                    context,
+                    arrowX,
+                    ARROW_SLOT_WIDTH,
+                    y + 11,
+                    this.detailProgress(toggleCategory),
+                    bounds.contains(mouseX, mouseY));
             return;
         }
 
-        int visibleBottom = detailTop + visibleHeight;
-        this.updateDetailScrollRange(fullHeight, visibleRows);
-        context.method_44379(DETAIL_MARGIN, detailTop, this.field_22789 - DETAIL_MARGIN, visibleBottom);
+        PreferredMaterialCategory category = this.categoryForTarget(config);
+        int visibleHeight = this.inlineDetailHeight(config);
+        if (category == null || visibleHeight <= 0) {
+            return;
+        }
 
-        if (visibleRows.isEmpty()) {
+        int detailTop = y + configVisibleHeight;
+        int visibleBottom = detailTop + visibleHeight;
+        context.method_44379(DETAIL_MARGIN, detailTop, this.field_22789 - DETAIL_MARGIN, visibleBottom);
+        List<RowState> categoryRows = this.rowsFor(category);
+        if (categoryRows.isEmpty()) {
             this.renderCenteredDetailMessage(
                     context,
                     StringUtils.translate("lmlp.gui.preferred_replacement.none"),
-                    detailTop + 24
-            );
+                    detailTop + 7);
         } else {
-            int y = detailTop - this.detailScrollBar.getValue();
-            for (int index = 0; index < visibleRows.size(); index++) {
-                RowState row = visibleRows.get(index);
-                if (y + DETAIL_ROW_HEIGHT >= detailTop && y < visibleBottom) {
-                    this.renderDetailRow(context, row, index, y, mouseX, mouseY);
-                }
-                y += DETAIL_ROW_HEIGHT + DETAIL_ROW_GAP;
+            int rowY = detailTop;
+            for (int index = 0; index < categoryRows.size(); index++) {
+                this.renderDetailRow(context, categoryRows.get(index), index, rowY, mouseX, mouseY);
+                rowY += DETAIL_ROW_HEIGHT + DETAIL_ROW_GAP;
             }
         }
         context.method_44380();
-
-        if (this.detailScrollBar.getMaxValue() > 0 && visibleHeight > 24) {
-            this.detailScrollBar.render(
-                    context,
-                    mouseX,
-                    mouseY,
-                    partialTicks,
-                    this.field_22789 - 13,
-                    detailTop,
-                    8,
-                    visibleHeight,
-                    this.detailContentHeight(visibleRows)
-            );
-        }
     }
 
     private void renderDetailRow(
@@ -414,6 +381,7 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
 
         row.button.setPosition(buttonX, y + 1);
         row.button.render(context, mouseX, mouseY, row.button.isMouseOver());
+        this.renderedRows.add(row);
     }
 
     private String truncateDetailText(String text, int maxWidth) {
@@ -434,7 +402,7 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
     }
 
     private int detailSourceNameColumnWidth(int maxWidth) {
-        int contentWidth = this.visibleRows().stream()
+        int contentWidth = this.rows.stream()
                 .mapToInt(row -> this.field_22793.method_1727(row.row.sourceName()))
                 .max()
                 .orElse(0);
@@ -447,23 +415,11 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
     }
 
     private boolean clickDetailRowButton(class_11909 event, boolean doubleClick) {
-        if (!this.isDetailsVisible()) {
-            return false;
-        }
-
-        int mouseY = (int) event.comp_4799();
-        int visibleBottom = this.detailVisibleBottom();
-        int detailTop = this.detailTop();
-        if (mouseY < detailTop || mouseY >= visibleBottom) {
-            return false;
-        }
-        int y = detailTop - this.detailScrollBar.getValue();
-        for (RowState row : this.visibleRows()) {
-            if (y + DETAIL_ROW_HEIGHT >= detailTop && y < visibleBottom
+        for (RowState row : this.renderedRows) {
+            if (this.detailsExpanded.getOrDefault(row.row.category(), false)
                     && row.button.onMouseClicked(event, doubleClick)) {
                 return true;
             }
-            y += DETAIL_ROW_HEIGHT + DETAIL_ROW_GAP;
         }
         return false;
     }
@@ -477,17 +433,6 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
                 startProgress,
                 expanded ? 1.0F : 0.0F
         );
-        this.detailScrollBar.setValue(0);
-    }
-
-    private float detailProgress() {
-        float progress = 0.0F;
-        for (PreferredMaterialCategory category : PreferredMaterialCategory.values()) {
-            if (this.isDetailArrowVisible(category)) {
-                progress = Math.max(progress, this.detailProgress(category));
-            }
-        }
-        return progress;
     }
 
     private float detailProgress(PreferredMaterialCategory category) {
@@ -496,32 +441,13 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
                 this.detailsExpanded.getOrDefault(category, false));
     }
 
-    private boolean isDetailsVisible() {
-        return this.detailProgress() > 0.001F;
-    }
-
-    private boolean isMouseOverDetails(int mouseX, int mouseY) {
-        return mouseX >= DETAIL_MARGIN
-                && mouseX < this.field_22789 - DETAIL_MARGIN
-                && mouseY >= this.detailTop()
-                && mouseY < this.detailVisibleBottom();
-    }
-
     private boolean isDetailArrowVisible(PreferredMaterialCategory category) {
-        if (!PreferenceSnapshot.current().enabled(category) || this.getListWidget() == null) {
-            return false;
-        }
-        return this.getListWidget().getCurrentEntries().stream()
-                .anyMatch(wrapper -> wrapper.getConfig() == this.preferenceToggle(category));
+        return PreferenceSnapshot.current().enabled(category) && this.arrowBounds.containsKey(category);
     }
 
     private boolean isDetailArrowHovered(PreferredMaterialCategory category, int mouseX, int mouseY) {
-        int arrowX = this.detailArrowX();
-        int rowTop = this.preferenceToggleRowTop(category);
-        return mouseX >= arrowX
-                && mouseX < arrowX + ARROW_SLOT_WIDTH
-                && mouseY >= rowTop
-                && mouseY < rowTop + 22;
+        ArrowBounds bounds = this.arrowBounds.get(category);
+        return bounds != null && bounds.contains(mouseX, mouseY);
     }
 
     private int detailArrowX() {
@@ -535,44 +461,6 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
         int rowX = 12;
         int valueX = rowX + maxLabelWidth + 10;
         return valueX + CONFIG_WIDTH + 2 + resetWidth + 2;
-    }
-
-    private int preferenceToggleRowTop(PreferredMaterialCategory category) {
-        if (this.getListWidget() == null) {
-            return 77;
-        }
-        List<ConfigOptionWrapper> entries = this.getListWidget().getCurrentEntries();
-        for (int index = 0; index < entries.size(); index++) {
-            if (entries.get(index).getConfig() == this.preferenceToggle(category)) {
-                return 77 + index * 22;
-            }
-        }
-        return 77;
-    }
-
-    private int detailTop() {
-        int entryCount = this.getListWidget() == null ? 0 : this.getListWidget().getCurrentEntries().size();
-        return Math.max(DETAIL_TOP, 77 + entryCount * 22 + 5);
-    }
-
-    private int detailFullBottom() {
-        return Math.max(this.detailTop(), this.field_22790 - DETAIL_BOTTOM_MARGIN);
-    }
-
-    private int detailVisibleBottom() {
-        int detailTop = this.detailTop();
-        int fullHeight = this.detailFullBottom() - detailTop;
-        return detailTop + Math.round(fullHeight * this.detailProgress());
-    }
-
-    private void updateDetailScrollRange(int viewportHeight, List<RowState> visibleRows) {
-        this.detailScrollBar.setMaxValue(Math.max(0, this.detailContentHeight(visibleRows) - Math.max(1, viewportHeight)));
-    }
-
-    private int detailContentHeight(List<RowState> visibleRows) {
-        return visibleRows.isEmpty()
-                ? DETAIL_ROW_HEIGHT
-                : visibleRows.size() * (DETAIL_ROW_HEIGHT + DETAIL_ROW_GAP) - DETAIL_ROW_GAP;
     }
 
     private void rebuildRowsIfNeeded() {
@@ -589,12 +477,11 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
                 this.rows.add(new RowState(row));
             }
         }
-        this.detailScrollBar.setValue(0);
     }
 
-    private List<RowState> visibleRows() {
+    private List<RowState> rowsFor(PreferredMaterialCategory category) {
         return this.rows.stream()
-                .filter(row -> this.detailProgress(row.row.category()) > 0.001F)
+                .filter(row -> row.row.category() == category)
                 .toList();
     }
 
@@ -666,6 +553,31 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
         };
     }
 
+    private PreferredMaterialCategory categoryForToggle(fi.dy.masa.malilib.config.IConfigBase config) {
+        for (PreferredMaterialCategory category : PreferredMaterialCategory.values()) {
+            if (config == this.preferenceToggle(category)) {
+                return category;
+            }
+        }
+        return null;
+    }
+
+    private PreferredMaterialCategory categoryForTarget(fi.dy.masa.malilib.config.IConfigBase config) {
+        if (config == Configs.ConfigForms.PREFERRED_WOOD_FAMILY) {
+            return PreferredMaterialCategory.WOOD;
+        }
+        if (config == Configs.ConfigForms.PREFERRED_GLASS_MATERIAL) {
+            return PreferredMaterialCategory.GLASS;
+        }
+        if (config == Configs.ConfigForms.PREFERRED_CARPET_MATERIAL) {
+            return PreferredMaterialCategory.CARPET;
+        }
+        if (config == Configs.ConfigForms.PREFERRED_TERRACOTTA_MATERIAL) {
+            return PreferredMaterialCategory.TERRACOTTA;
+        }
+        return null;
+    }
+
     private String detailAnimationKey(PreferredMaterialCategory category) {
         return DETAIL_ANIMATION_KEY_PREFIX + category.name().toLowerCase(java.util.Locale.ROOT);
     }
@@ -732,6 +644,15 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
             Configs.ConfigForms.PREFERRED_CARPET_MATERIAL.setOptionListValue(this.carpet);
             Configs.ConfigForms.PREFERRED_TERRACOTTA_ENABLED.setBooleanValue(this.terracottaEnabled);
             Configs.ConfigForms.PREFERRED_TERRACOTTA_MATERIAL.setOptionListValue(this.terracotta);
+        }
+    }
+
+    private record ArrowBounds(int x, int y, int width, int height) {
+        private boolean contains(int mouseX, int mouseY) {
+            return mouseX >= this.x
+                    && mouseX < this.x + this.width
+                    && mouseY >= this.y
+                    && mouseY < this.y + this.height;
         }
     }
 

@@ -104,7 +104,11 @@ final class PreferenceWidgetListConfigOptions extends WidgetListConfigOptions {
             return super.getBrowserEntryHeightFor(wrapper);
         }
 
-        return this.visibleHeight(owner);
+        int height = this.visibleHeight(owner);
+        if (this.parent instanceof GuiPreferredMaterialForm form) {
+            height += form.inlineDetailHeight(wrapper.getConfig());
+        }
+        return height;
     }
 
     @Override
@@ -115,17 +119,24 @@ final class PreferenceWidgetListConfigOptions extends WidgetListConfigOptions {
             boolean isOdd,
             GuiConfigsBase.ConfigOptionWrapper wrapper) {
         PreferenceGroup owner = findGroupByChild(wrapper.getConfig());
-        if (owner == null) {
+        PreferenceGroup toggleGroup = findGroupByToggle(wrapper.getConfig());
+        boolean materialFormEntry = this.parent instanceof GuiPreferredMaterialForm
+                && (owner != null || toggleGroup != null);
+        if (owner == null && !materialFormEntry) {
             return super.createListEntryWidget(x, y, listIndex, isOdd, wrapper);
         }
 
-        int visibleHeight = this.visibleHeight(owner);
+        int visibleHeight = owner == null ? this.browserEntryHeight : this.visibleHeight(owner);
+        int detailHeight = owner != null && this.parent instanceof GuiPreferredMaterialForm form
+                ? form.inlineDetailHeight(wrapper.getConfig())
+                : 0;
         return new AnimatedPreferenceConfigOption(
                 x,
                 y,
                 this.browserEntryWidth,
                 this.browserEntryHeight,
                 visibleHeight,
+                detailHeight,
                 this.maxLabelWidth,
                 this.configWidth,
                 wrapper,

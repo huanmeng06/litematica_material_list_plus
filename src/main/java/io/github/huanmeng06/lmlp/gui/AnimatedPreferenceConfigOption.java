@@ -20,8 +20,10 @@ final class AnimatedPreferenceConfigOption extends WidgetConfigOption {
     private static final int ICON_BORDER = 0xFFAAAAAA;
 
     private final int fullHeight;
+    private final int configVisibleHeight;
     private final int valueX;
     private final int configWidth;
+    private final IKeybindConfigGui host;
 
     AnimatedPreferenceConfigOption(
             int x,
@@ -29,6 +31,7 @@ final class AnimatedPreferenceConfigOption extends WidgetConfigOption {
             int width,
             int fullHeight,
             int visibleHeight,
+            int detailHeight,
             int maxLabelWidth,
             int configWidth,
             GuiConfigsBase.ConfigOptionWrapper wrapper,
@@ -37,26 +40,46 @@ final class AnimatedPreferenceConfigOption extends WidgetConfigOption {
             WidgetListConfigOptionsBase<?, ?> parentList) {
         super(x, y, width, fullHeight, maxLabelWidth, configWidth, wrapper, listIndex, host, parentList);
         this.fullHeight = fullHeight;
+        this.configVisibleHeight = visibleHeight;
         this.valueX = x + maxLabelWidth + 10;
         this.configWidth = configWidth;
-        this.setHeight(visibleHeight);
+        this.host = host;
+        this.setHeight(visibleHeight + detailHeight);
     }
 
     @Override
     public boolean isMouseOver(int mouseX, int mouseY) {
-        return this.getHeight() >= this.fullHeight && super.isMouseOver(mouseX, mouseY);
+        return this.configVisibleHeight >= this.fullHeight
+                && mouseY < this.getY() + this.fullHeight
+                && super.isMouseOver(mouseX, mouseY);
     }
 
     @Override
     public void render(GuiContext context, int mouseX, int mouseY, boolean selected) {
-        if (this.getHeight() <= 0) {
+        if (this.getHeight() <= 0 || this.configVisibleHeight <= 0) {
             return;
         }
 
-        context.method_44379(this.getX(), this.getY(), this.getX() + this.getWidth(), this.getY() + this.getHeight());
+        context.method_44379(
+                this.getX(),
+                this.getY(),
+                this.getX() + this.getWidth(),
+                this.getY() + this.configVisibleHeight);
         super.render(context, mouseX, mouseY, selected);
         this.renderSelectedMaterialIcon(context);
         context.method_44380();
+
+        if (this.host instanceof GuiPreferredMaterialForm form) {
+            form.renderInlinePreferenceContent(
+                    this.wrapper.getConfig(),
+                    context,
+                    this.getX(),
+                    this.getY(),
+                    this.getWidth(),
+                    this.configVisibleHeight,
+                    mouseX,
+                    mouseY);
+        }
     }
 
     private void renderSelectedMaterialIcon(GuiContext context) {
