@@ -56,6 +56,7 @@ public final class PreferredSchematicPlacementApplication {
             return null;
         }
 
+        replacement.setName(preferredPlacementName(source.getName()));
         replacement.setEnabled(source.isEnabled());
         replacement.setRenderSchematic(source.isRenderingEnabled());
         replacement.setShouldBeSaved(source.shouldBeSaved());
@@ -93,6 +94,11 @@ public final class PreferredSchematicPlacementApplication {
             replacement.toggleLocked();
         }
         return replacement;
+    }
+
+    private static String preferredPlacementName(String sourceName) {
+        String name = sourceName == null ? "" : sourceName;
+        return name.endsWith("_preferred") ? name : name + "_preferred";
     }
 
     private static void replaceLoadedSchematic(LitematicaSchematic savedSchematic) {
