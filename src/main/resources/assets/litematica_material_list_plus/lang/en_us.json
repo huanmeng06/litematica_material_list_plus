@@ -139,6 +139,7 @@
   "lmlp.config.name.preferred_glazed_terracotta_material": "Target glazed terracotta",
   "lmlp.config.comment.preferred_glazed_terracotta_material": "Only replaces other glazed terracotta and preserves its facing.",
   "lmlp.stone_family.stone": "Stone",
+  "lmlp.stone_family.smooth_stone": "Smooth Stone",
   "lmlp.stone_family.granite": "Granite",
   "lmlp.stone_family.diorite": "Diorite",
   "lmlp.stone_family.andesite": "Andesite",

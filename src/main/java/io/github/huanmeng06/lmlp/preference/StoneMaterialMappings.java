@@ -18,6 +18,7 @@ public final class StoneMaterialMappings {
 
     static {
         registerStone();
+        registerSmoothStone();
         registerGranite();
         registerDiorite();
         registerAndesite();
@@ -93,6 +94,16 @@ public final class StoneMaterialMappings {
                 "granite_wall",
                 "polished_granite_stairs",
                 "polished_granite_slab");
+    }
+
+    private static void registerSmoothStone() {
+        Palette palette = palette(StoneMaterialFamily.SMOOTH_STONE);
+        target(palette, Role.RAW_BLOCK, "smooth_stone");
+        target(palette, Role.POLISHED_BLOCK, "smooth_stone");
+        target(palette, Role.RAW_SLAB, "smooth_stone_slab");
+        target(palette, Role.POLISHED_SLAB, "smooth_stone_slab");
+        fallback(palette, Shape.BLOCK, "smooth_stone");
+        fallback(palette, Shape.SLAB, "smooth_stone_slab");
     }
 
     private static void registerDiorite() {
@@ -243,6 +254,10 @@ public final class StoneMaterialMappings {
         String id = minecraft(path);
         palette.byRole.put(role, id);
         SOURCES.put(id, new SourceProduct(role, role.shape));
+    }
+
+    private static void target(Palette palette, Role role, String path) {
+        palette.byRole.put(role, minecraft(path));
     }
 
     private static void sourceOnly(Role role, String path) {

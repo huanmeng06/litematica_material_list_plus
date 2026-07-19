@@ -139,6 +139,7 @@
   "lmlp.config.name.preferred_glazed_terracotta_material": "目标带釉陶瓦",
   "lmlp.config.comment.preferred_glazed_terracotta_material": "只会替换其他带釉陶瓦，并保留原有朝向。",
   "lmlp.stone_family.stone": "石头",
+  "lmlp.stone_family.smooth_stone": "平滑石头",
   "lmlp.stone_family.granite": "花岗岩",
   "lmlp.stone_family.diorite": "闪长岩",
   "lmlp.stone_family.andesite": "安山岩",
