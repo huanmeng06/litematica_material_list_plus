@@ -202,6 +202,11 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
     @Override
     public boolean onKeyTyped(class_11908 keyInput) {
         if (keyInput.comp_4795() == GLFW.GLFW_KEY_ESCAPE) {
+            if (this.getListWidget() != null
+                    && this.getListWidget().getSearchBarWidget() != null
+                    && this.getListWidget().getSearchBarWidget().isSearchOpen()) {
+                return super.onKeyTyped(keyInput);
+            }
             this.cancel();
             return true;
         }
