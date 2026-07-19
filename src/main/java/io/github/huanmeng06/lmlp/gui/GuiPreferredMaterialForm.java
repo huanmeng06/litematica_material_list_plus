@@ -19,6 +19,7 @@ import io.github.huanmeng06.lmlp.config.CarpetMaterial;
 import io.github.huanmeng06.lmlp.config.Configs;
 import io.github.huanmeng06.lmlp.config.GlassMaterial;
 import io.github.huanmeng06.lmlp.config.GlazedTerracottaMaterial;
+import io.github.huanmeng06.lmlp.config.StoneMaterialFamily;
 import io.github.huanmeng06.lmlp.config.TerracottaMaterial;
 import io.github.huanmeng06.lmlp.config.WoodFamily;
 import io.github.huanmeng06.lmlp.preference.PreferredSchematicReplacement;
@@ -26,7 +27,11 @@ import io.github.huanmeng06.lmlp.preference.PreferredSchematicReplacement.Prefer
 import io.github.huanmeng06.lmlp.preference.PreferredSchematicReplacement.ReplacementMode;
 import io.github.huanmeng06.lmlp.preference.PreferredSchematicReplacement.ReplacementRow;
 import io.github.huanmeng06.lmlp.preference.PreferredSchematicReplacement.Targets;
+import io.github.huanmeng06.lmlp.gui.textlist.GuiItemIdStringListEdit;
 import net.minecraft.class_1799;
+import net.minecraft.class_2248;
+import net.minecraft.class_2960;
+import net.minecraft.class_7923;
 import net.minecraft.class_11908;
 import net.minecraft.class_11909;
 import net.minecraft.class_437;
@@ -159,6 +164,9 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
             }
         }
         if ((mouseButton == 0 || mouseButton == 1) && this.clickDetailRowButton(mouseClick, doubleClick)) {
+            return true;
+        }
+        if (mouseButton == 0 && this.clickDetailTargetPicker(mouseX, mouseY)) {
             return true;
         }
 
@@ -345,9 +353,9 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
                 row.row.sourceName(),
                 Math.max(0, arrowX - sourceNameX - 8)
         );
-        String targetName = row.row.targetBlock() == null
-                ? StringUtils.translate("lmlp.gui.preferred_replacement.no_target")
-                : row.row.targetName();
+        String targetName = row.targetBlock() == null
+                ? StringUtils.translate("lmlp.gui.preferred_replacement.choose_alternative")
+                : row.targetName();
         targetName = this.truncateDetailText(targetName, Math.max(0, mappingRight - targetNameX));
 
         context.method_51433(
@@ -359,24 +367,44 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
                 false
         );
         context.method_51433(this.field_22793, arrow, arrowX, y + 7, 0xFFFFFFFF, false);
-        if (row.row.targetBlock() != null) {
-            RenderUtils.drawRect(context, targetIconX, iconY, 16, 16, DETAIL_ICON_BACKGROUND);
-            context.method_51427(new class_1799(row.row.targetBlock()), targetIconX, iconY);
+        boolean targetHovered = !row.row.allowedTargetIds().isEmpty()
+                && mouseX >= targetIconX - 2
+                && mouseX < mappingRight
+                && mouseY >= y
+                && mouseY < y + DETAIL_ROW_HEIGHT;
+        row.targetBounds = new ArrowBounds(
+                targetIconX - 2,
+                y,
+                Math.max(18, mappingRight - targetIconX + 2),
+                DETAIL_ROW_HEIGHT);
+        if (row.targetBlock() != null) {
+            RenderUtils.drawRect(
+                    context,
+                    targetIconX,
+                    iconY,
+                    16,
+                    16,
+                    targetHovered ? 0x60FFFF88 : DETAIL_ICON_BACKGROUND);
+            context.method_51427(new class_1799(row.targetBlock()), targetIconX, iconY);
         }
-        context.method_51433(this.field_22793, targetName, targetNameX, y + 7, 0xFFFFFFFF, false);
+        context.method_51433(
+                this.field_22793,
+                targetName,
+                targetNameX,
+                y + 7,
+                targetHovered ? 0xFFFFFF88 : 0xFFFFFFFF,
+                false);
 
         String count = StringUtils.translate("lmlp.gui.preferred_replacement.count", row.row.count());
         context.method_51433(this.field_22793, count, countX, y + 7, 0xFFFFFFFF, false);
 
-        String status = StringUtils.translate(row.row.exact()
-                ? "lmlp.gui.preferred_replacement.compatible"
-                : "lmlp.gui.preferred_replacement.incompatible");
+        String status = StringUtils.translate(row.statusKey());
         context.method_51433(
                 this.field_22793,
                 status,
                 statusX,
                 y + 7,
-                row.row.exact() ? 0xFF88DD88 : 0xFFFFAA55,
+                row.statusColor(),
                 false
         );
 
@@ -419,6 +447,23 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
         for (RowState row : this.renderedRows) {
             if (this.detailsExpanded.getOrDefault(row.row.category(), false)
                     && row.button.onMouseClicked(event, doubleClick)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean clickDetailTargetPicker(int mouseX, int mouseY) {
+        for (RowState row : this.renderedRows) {
+            if (row.row.category() == PreferredMaterialCategory.STONE
+                    && row.targetBounds != null
+                    && row.targetBounds.contains(mouseX, mouseY)
+                    && !row.row.allowedTargetIds().isEmpty()) {
+                GuiItemIdStringListEdit picker = GuiItemIdStringListEdit.createRestrictedPicker(
+                        row.row.allowedTargetIds(),
+                        row::selectTarget,
+                        this);
+                GuiBase.openGui(picker);
                 return true;
             }
         }
@@ -506,7 +551,7 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
 
         this.rebuildRowsIfNeeded();
         List<PreferredSchematicReplacement.ReplacementChoice> choices = this.rows.stream()
-                .map(row -> row.row.choice(row.mode))
+                .map(RowState::choice)
                 .toList();
 
         Path source = this.placement.getSchematicFile();
@@ -548,6 +593,7 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
     private IConfigBoolean preferenceToggle(PreferredMaterialCategory category) {
         return switch (category) {
             case WOOD -> Configs.ConfigForms.PREFERRED_WOOD_ENABLED;
+            case STONE -> Configs.ConfigForms.PREFERRED_STONE_ENABLED;
             case GLASS -> Configs.ConfigForms.PREFERRED_GLASS_ENABLED;
             case CARPET -> Configs.ConfigForms.PREFERRED_CARPET_ENABLED;
             case TERRACOTTA -> Configs.ConfigForms.PREFERRED_TERRACOTTA_ENABLED;
@@ -567,6 +613,9 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
     private PreferredMaterialCategory categoryForTarget(fi.dy.masa.malilib.config.IConfigBase config) {
         if (config == Configs.ConfigForms.PREFERRED_WOOD_FAMILY) {
             return PreferredMaterialCategory.WOOD;
+        }
+        if (config == Configs.ConfigForms.PREFERRED_STONE_FAMILY) {
+            return PreferredMaterialCategory.STONE;
         }
         if (config == Configs.ConfigForms.PREFERRED_GLASS_MATERIAL) {
             return PreferredMaterialCategory.GLASS;
@@ -600,6 +649,8 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
     private record PreferenceSnapshot(
             boolean woodEnabled,
             WoodFamily wood,
+            boolean stoneEnabled,
+            StoneMaterialFamily stone,
             boolean glassEnabled,
             GlassMaterial glass,
             boolean carpetEnabled,
@@ -613,6 +664,8 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
             return new PreferenceSnapshot(
                     Configs.ConfigForms.PREFERRED_WOOD_ENABLED.getBooleanValue(),
                     (WoodFamily) Configs.ConfigForms.PREFERRED_WOOD_FAMILY.getOptionListValue(),
+                    Configs.ConfigForms.PREFERRED_STONE_ENABLED.getBooleanValue(),
+                    (StoneMaterialFamily) Configs.ConfigForms.PREFERRED_STONE_FAMILY.getOptionListValue(),
                     Configs.ConfigForms.PREFERRED_GLASS_ENABLED.getBooleanValue(),
                     (GlassMaterial) Configs.ConfigForms.PREFERRED_GLASS_MATERIAL.getOptionListValue(),
                     Configs.ConfigForms.PREFERRED_CARPET_ENABLED.getBooleanValue(),
@@ -626,6 +679,7 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
         private boolean enabled(PreferredMaterialCategory category) {
             return switch (category) {
                 case WOOD -> this.woodEnabled;
+                case STONE -> this.stoneEnabled;
                 case GLASS -> this.glassEnabled;
                 case CARPET -> this.carpetEnabled;
                 case TERRACOTTA -> this.terracottaEnabled;
@@ -635,6 +689,7 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
 
         private boolean anyEnabled() {
             return this.woodEnabled
+                    || this.stoneEnabled
                     || this.glassEnabled
                     || this.carpetEnabled
                     || this.terracottaEnabled
@@ -644,6 +699,7 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
         private Targets targets() {
             return new Targets(
                     this.woodEnabled ? this.wood : null,
+                    this.stoneEnabled ? this.stone : null,
                     this.glassEnabled ? this.glass : null,
                     this.carpetEnabled ? this.carpet : null,
                     this.terracottaEnabled ? this.terracotta : null,
@@ -653,6 +709,8 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
         private void restore() {
             Configs.ConfigForms.PREFERRED_WOOD_ENABLED.setBooleanValue(this.woodEnabled);
             Configs.ConfigForms.PREFERRED_WOOD_FAMILY.setOptionListValue(this.wood);
+            Configs.ConfigForms.PREFERRED_STONE_ENABLED.setBooleanValue(this.stoneEnabled);
+            Configs.ConfigForms.PREFERRED_STONE_FAMILY.setOptionListValue(this.stone);
             Configs.ConfigForms.PREFERRED_GLASS_ENABLED.setBooleanValue(this.glassEnabled);
             Configs.ConfigForms.PREFERRED_GLASS_MATERIAL.setOptionListValue(this.glass);
             Configs.ConfigForms.PREFERRED_CARPET_ENABLED.setBooleanValue(this.carpetEnabled);
@@ -676,20 +734,86 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
     private final class RowState {
         private final ReplacementRow row;
         private final ButtonGeneric button = new ButtonGeneric(0, 0, DETAIL_ACTION_WIDTH, 20, "");
+        private String targetId;
+        private class_2248 targetBlock;
+        private String targetName;
+        private boolean targetExact;
+        private boolean customTarget;
+        private ArrowBounds targetBounds;
         private ReplacementMode mode;
 
         private RowState(ReplacementRow row) {
             this.row = row;
-            this.mode = row.exact() ? ReplacementMode.REPLACE : ReplacementMode.SKIP;
+            this.targetId = row.targetId();
+            this.targetBlock = row.targetBlock();
+            this.targetName = row.targetName();
+            this.targetExact = row.exact();
+            this.mode = this.targetBlock != null && this.targetExact
+                    ? ReplacementMode.REPLACE
+                    : ReplacementMode.SKIP;
             this.button.setTextCentered(true);
             this.button.setActionListener((button, mouseButton) -> this.cycle());
             this.updateButton();
         }
 
+        private class_2248 targetBlock() {
+            return this.targetBlock;
+        }
+
+        private String targetName() {
+            return this.targetName;
+        }
+
+        private void selectTarget(String itemId) {
+            class_2248 selected = class_7923.field_41175
+                    .method_17966(class_2960.method_60654(itemId))
+                    .orElse(null);
+            if (selected == null) {
+                return;
+            }
+            this.targetId = itemId;
+            this.targetBlock = selected;
+            this.targetName = selected.method_9518().getString();
+            this.targetExact = PreferredSchematicReplacement.isExactReplacement(this.row.sourceBlock(), selected);
+            this.customTarget = true;
+            this.mode = this.targetExact ? ReplacementMode.REPLACE : ReplacementMode.SKIP;
+            this.updateButton();
+        }
+
+        private PreferredSchematicReplacement.ReplacementChoice choice() {
+            return new PreferredSchematicReplacement.ReplacementChoice(
+                    this.row.sourceId(),
+                    this.targetId,
+                    this.targetBlock,
+                    this.mode);
+        }
+
+        private String statusKey() {
+            if (this.targetBlock == null) {
+                return "lmlp.gui.preferred_replacement.missing_shape";
+            }
+            if (!this.targetExact) {
+                return "lmlp.gui.preferred_replacement.incompatible";
+            }
+            if (this.customTarget) {
+                return "lmlp.gui.preferred_replacement.custom_alternative";
+            }
+            if (!this.row.roleExact()) {
+                return "lmlp.gui.preferred_replacement.same_shape";
+            }
+            return "lmlp.gui.preferred_replacement.compatible";
+        }
+
+        private int statusColor() {
+            return this.targetBlock != null && this.targetExact && this.row.roleExact() && !this.customTarget
+                    ? 0xFF88DD88
+                    : 0xFFFFAA55;
+        }
+
         private void cycle() {
-            if (this.row.targetBlock() == null) {
+            if (this.targetBlock == null) {
                 this.mode = ReplacementMode.SKIP;
-            } else if (this.row.exact()) {
+            } else if (this.targetExact) {
                 this.mode = this.mode == ReplacementMode.REPLACE
                         ? ReplacementMode.SKIP
                         : ReplacementMode.REPLACE;

@@ -208,6 +208,22 @@ public class Configs implements IConfigHandler {
                 "lmlp.config.name.preferred_wood_family"
         );
 
+        public static final ConfigBoolean PREFERRED_STONE_ENABLED = new ConfigBoolean(
+                "preferredStoneEnabled",
+                false,
+                "lmlp.config.comment.preferred_stone_enabled",
+                "lmlp.config.name.preferred_stone_enabled",
+                "lmlp.config.name.preferred_stone_enabled"
+        );
+
+        public static final ConfigOptionList PREFERRED_STONE_FAMILY = new ConfigOptionList(
+                "preferredStoneFamily",
+                StoneMaterialFamily.STONE,
+                "lmlp.config.comment.preferred_stone_family",
+                "lmlp.config.name.preferred_stone_family",
+                "lmlp.config.name.preferred_stone_family"
+        );
+
         public static final ConfigBoolean PREFERRED_GLASS_ENABLED = new ConfigBoolean(
                 "preferredGlassEnabled",
                 false,
@@ -280,6 +296,8 @@ public class Configs implements IConfigHandler {
         public static final List<IConfigBase> PREFERENCE_OPTIONS = ImmutableList.of(
                 PREFERRED_WOOD_ENABLED,
                 PREFERRED_WOOD_FAMILY,
+                PREFERRED_STONE_ENABLED,
+                PREFERRED_STONE_FAMILY,
                 PREFERRED_GLASS_ENABLED,
                 PREFERRED_GLASS_MATERIAL,
                 PREFERRED_CARPET_ENABLED,
@@ -293,6 +311,8 @@ public class Configs implements IConfigHandler {
         public static final List<IConfigBase> PERSISTED_OPTIONS = ImmutableList.of(
                 PREFERRED_WOOD_ENABLED,
                 PREFERRED_WOOD_FAMILY,
+                PREFERRED_STONE_ENABLED,
+                PREFERRED_STONE_FAMILY,
                 PREFERRED_GLASS_ENABLED,
                 PREFERRED_GLASS_MATERIAL,
                 PREFERRED_CARPET_ENABLED,

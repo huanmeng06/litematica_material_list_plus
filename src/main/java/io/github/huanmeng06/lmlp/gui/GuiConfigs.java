@@ -53,12 +53,14 @@ public class GuiConfigs extends GuiConfigsBase {
     @Override
     public boolean onMouseClicked(class_11909 mouseClick, boolean doubleClick) {
         boolean preferredWoodWasEnabled = Configs.ConfigForms.PREFERRED_WOOD_ENABLED.getBooleanValue();
+        boolean preferredStoneWasEnabled = Configs.ConfigForms.PREFERRED_STONE_ENABLED.getBooleanValue();
         boolean preferredGlassWasEnabled = Configs.ConfigForms.PREFERRED_GLASS_ENABLED.getBooleanValue();
         boolean preferredCarpetWasEnabled = Configs.ConfigForms.PREFERRED_CARPET_ENABLED.getBooleanValue();
         boolean preferredTerracottaWasEnabled = Configs.ConfigForms.PREFERRED_TERRACOTTA_ENABLED.getBooleanValue();
         boolean preferredGlazedTerracottaWasEnabled = Configs.ConfigForms.PREFERRED_GLAZED_TERRACOTTA_ENABLED.getBooleanValue();
         boolean handled = super.onMouseClicked(mouseClick, doubleClick);
         boolean preferredWoodIsEnabled = Configs.ConfigForms.PREFERRED_WOOD_ENABLED.getBooleanValue();
+        boolean preferredStoneIsEnabled = Configs.ConfigForms.PREFERRED_STONE_ENABLED.getBooleanValue();
         boolean preferredGlassIsEnabled = Configs.ConfigForms.PREFERRED_GLASS_ENABLED.getBooleanValue();
         boolean preferredCarpetIsEnabled = Configs.ConfigForms.PREFERRED_CARPET_ENABLED.getBooleanValue();
         boolean preferredTerracottaIsEnabled = Configs.ConfigForms.PREFERRED_TERRACOTTA_ENABLED.getBooleanValue();
@@ -68,6 +70,9 @@ public class GuiConfigs extends GuiConfigsBase {
                 && this.getListWidget() instanceof PreferenceWidgetListConfigOptions preferenceList) {
             if (preferredWoodWasEnabled != preferredWoodIsEnabled) {
                 preferenceList.setGroupExpanded(Configs.ConfigForms.PREFERRED_WOOD_ENABLED, preferredWoodIsEnabled);
+            }
+            if (preferredStoneWasEnabled != preferredStoneIsEnabled) {
+                preferenceList.setGroupExpanded(Configs.ConfigForms.PREFERRED_STONE_ENABLED, preferredStoneIsEnabled);
             }
             if (preferredGlassWasEnabled != preferredGlassIsEnabled) {
                 preferenceList.setGroupExpanded(Configs.ConfigForms.PREFERRED_GLASS_ENABLED, preferredGlassIsEnabled);

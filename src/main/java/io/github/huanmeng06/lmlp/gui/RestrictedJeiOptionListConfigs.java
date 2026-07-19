@@ -6,6 +6,7 @@ import io.github.huanmeng06.lmlp.config.Configs;
 import io.github.huanmeng06.lmlp.config.CarpetMaterial;
 import io.github.huanmeng06.lmlp.config.GlassMaterial;
 import io.github.huanmeng06.lmlp.config.GlazedTerracottaMaterial;
+import io.github.huanmeng06.lmlp.config.StoneMaterialFamily;
 import io.github.huanmeng06.lmlp.config.TerracottaMaterial;
 import io.github.huanmeng06.lmlp.config.WoodFamily;
 
@@ -15,12 +16,14 @@ import java.util.List;
 /** Defines the exact JEI item whitelist and resulting value for picker-backed option lists. */
 public final class RestrictedJeiOptionListConfigs {
     private static final Definition PREFERRED_WOOD = createPreferredWoodDefinition();
+    private static final Definition PREFERRED_STONE = createPreferredStoneDefinition();
     private static final Definition PREFERRED_GLASS = createPreferredGlassDefinition();
     private static final Definition PREFERRED_CARPET = createPreferredCarpetDefinition();
     private static final Definition PREFERRED_TERRACOTTA = createPreferredTerracottaDefinition();
     private static final Definition PREFERRED_GLAZED_TERRACOTTA = createPreferredGlazedTerracottaDefinition();
     private static final List<Definition> DEFINITIONS = List.of(
             PREFERRED_WOOD,
+            PREFERRED_STONE,
             PREFERRED_GLASS,
             PREFERRED_CARPET,
             PREFERRED_TERRACOTTA,
@@ -53,6 +56,14 @@ public final class RestrictedJeiOptionListConfigs {
             choices.add(new Choice(material.blockId(), material));
         }
         return new Definition(Configs.ConfigForms.PREFERRED_GLASS_MATERIAL, List.copyOf(choices));
+    }
+
+    private static Definition createPreferredStoneDefinition() {
+        List<Choice> choices = new ArrayList<>();
+        for (StoneMaterialFamily family : StoneMaterialFamily.values()) {
+            choices.add(new Choice(family.representativeBlockId(), family));
+        }
+        return new Definition(Configs.ConfigForms.PREFERRED_STONE_FAMILY, List.copyOf(choices));
     }
 
     private static Definition createPreferredCarpetDefinition() {

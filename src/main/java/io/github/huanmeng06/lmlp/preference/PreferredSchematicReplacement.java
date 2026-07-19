@@ -6,6 +6,7 @@ import fi.dy.masa.litematica.util.FileType;
 import io.github.huanmeng06.lmlp.config.CarpetMaterial;
 import io.github.huanmeng06.lmlp.config.GlassMaterial;
 import io.github.huanmeng06.lmlp.config.GlazedTerracottaMaterial;
+import io.github.huanmeng06.lmlp.config.StoneMaterialFamily;
 import io.github.huanmeng06.lmlp.config.TerracottaMaterial;
 import io.github.huanmeng06.lmlp.config.WoodFamily;
 import net.minecraft.class_2248;
@@ -44,10 +45,17 @@ public final class PreferredSchematicReplacement {
                         if (target == null || sourceId.equals(target.blockId())) {
                             continue;
                         }
-                        String key = sourceId + "\u0000" + target.blockId();
+                        String targetId = target.blockId() == null ? "" : target.blockId();
+                        String key = sourceId + "\u0000" + targetId;
                         MutableRow row = rows.computeIfAbsent(
                                 key,
-                                ignored -> createRow(target.category(), sourceId, target.blockId(), state));
+                                ignored -> createRow(
+                                        target.category(),
+                                        sourceId,
+                                        target.blockId(),
+                                        target.roleExact(),
+                                        target.allowedTargetIds(),
+                                        state));
                         row.count++;
                         if (row.targetBlock != null && !isExactStateMapping(state, row.targetBlock.method_9564())) {
                             row.exact = false;
@@ -112,11 +120,21 @@ public final class PreferredSchematicReplacement {
             PreferredMaterialCategory category,
             String sourceId,
             String targetId,
+            boolean roleExact,
+            List<String> allowedTargetIds,
             class_2680 sampleState) {
         class_2248 source = sampleState.method_26204();
         class_2248 target = block(targetId);
         boolean exact = target != null && isExactStateMapping(sampleState, target.method_9564());
-        return new MutableRow(category, sourceId, targetId, source, target, exact);
+        return new MutableRow(
+                category,
+                sourceId,
+                targetId,
+                source,
+                target,
+                exact,
+                roleExact,
+                List.copyOf(allowedTargetIds));
     }
 
     private static class_2680 mapState(class_2680 source, class_2680 target, boolean force) {
@@ -150,6 +168,12 @@ public final class PreferredSchematicReplacement {
     private static boolean isExactStateMapping(class_2680 source, class_2680 target) {
         return mapState(source, target, false) != null
                 && source.method_28501().size() == target.method_28501().size();
+    }
+
+    public static boolean isExactReplacement(class_2248 source, class_2248 target) {
+        return source != null
+                && target != null
+                && isExactStateMapping(source.method_9564(), target.method_9564());
     }
 
     @SuppressWarnings({"rawtypes", "unchecked"})
@@ -192,7 +216,9 @@ public final class PreferredSchematicReplacement {
             String sourceName,
             String targetName,
             int count,
-            boolean exact
+            boolean exact,
+            boolean roleExact,
+            List<String> allowedTargetIds
     ) {
         public ReplacementChoice choice(ReplacementMode mode) {
             return new ReplacementChoice(this.sourceId, this.targetId, this.targetBlock, mode);
@@ -208,6 +234,8 @@ public final class PreferredSchematicReplacement {
         private final String targetId;
         private final class_2248 sourceBlock;
         private final class_2248 targetBlock;
+        private final boolean roleExact;
+        private final List<String> allowedTargetIds;
         private boolean exact;
         private int count;
 
@@ -217,25 +245,31 @@ public final class PreferredSchematicReplacement {
                 String targetId,
                 class_2248 sourceBlock,
                 class_2248 targetBlock,
-                boolean exact) {
+                boolean exact,
+                boolean roleExact,
+                List<String> allowedTargetIds) {
             this.category = category;
             this.sourceId = sourceId;
             this.targetId = targetId;
             this.sourceBlock = sourceBlock;
             this.targetBlock = targetBlock;
             this.exact = exact;
+            this.roleExact = roleExact;
+            this.allowedTargetIds = allowedTargetIds;
         }
 
         private ReplacementRow freeze() {
             String sourceName = this.sourceBlock == null ? this.sourceId : this.sourceBlock.method_9518().getString();
             String targetName = this.targetBlock == null ? "" : this.targetBlock.method_9518().getString();
             return new ReplacementRow(this.category, this.sourceId, this.targetId, this.sourceBlock, this.targetBlock,
-                    sourceName, targetName, this.count, this.exact && this.targetBlock != null);
+                    sourceName, targetName, this.count, this.exact && this.targetBlock != null,
+                    this.roleExact, this.allowedTargetIds);
         }
     }
 
     public enum PreferredMaterialCategory {
         WOOD,
+        STONE,
         GLASS,
         CARPET,
         TERRACOTTA,
@@ -244,6 +278,7 @@ public final class PreferredSchematicReplacement {
 
     public record Targets(
             WoodFamily wood,
+            StoneMaterialFamily stone,
             GlassMaterial glass,
             CarpetMaterial carpet,
             TerracottaMaterial terracotta,
@@ -253,17 +288,28 @@ public final class PreferredSchematicReplacement {
             if (this.wood != null) {
                 WoodBlockFamilies.ReplacementTarget woodTarget = WoodBlockFamilies.targetFor(sourceId, this.wood);
                 if (woodTarget != null) {
-                    return new ReplacementTarget(PreferredMaterialCategory.WOOD, woodTarget.blockId());
+                    return ReplacementTarget.exact(PreferredMaterialCategory.WOOD, woodTarget.blockId());
+                }
+            }
+
+            if (this.stone != null) {
+                StoneMaterialMappings.Match match = StoneMaterialMappings.match(sourceId, this.stone);
+                if (match != null) {
+                    return new ReplacementTarget(
+                            PreferredMaterialCategory.STONE,
+                            match.targetId(),
+                            match.exactRole(),
+                            match.allowedTargetIds());
                 }
             }
 
             if (this.glass != null) {
                 for (GlassMaterial material : GlassMaterial.values()) {
                     if (sourceId.equals(material.blockId())) {
-                        return new ReplacementTarget(PreferredMaterialCategory.GLASS, this.glass.blockId());
+                        return ReplacementTarget.exact(PreferredMaterialCategory.GLASS, this.glass.blockId());
                     }
                     if (sourceId.equals(material.paneId())) {
-                        return new ReplacementTarget(PreferredMaterialCategory.GLASS, this.glass.paneId());
+                        return ReplacementTarget.exact(PreferredMaterialCategory.GLASS, this.glass.paneId());
                     }
                 }
             }
@@ -271,7 +317,7 @@ public final class PreferredSchematicReplacement {
             if (this.carpet != null) {
                 for (CarpetMaterial material : CarpetMaterial.values()) {
                     if (sourceId.equals(material.blockId())) {
-                        return new ReplacementTarget(PreferredMaterialCategory.CARPET, this.carpet.blockId());
+                        return ReplacementTarget.exact(PreferredMaterialCategory.CARPET, this.carpet.blockId());
                     }
                 }
             }
@@ -279,7 +325,7 @@ public final class PreferredSchematicReplacement {
             if (this.terracotta != null) {
                 for (TerracottaMaterial material : TerracottaMaterial.values()) {
                     if (sourceId.equals(material.blockId())) {
-                        return new ReplacementTarget(PreferredMaterialCategory.TERRACOTTA, this.terracotta.blockId());
+                        return ReplacementTarget.exact(PreferredMaterialCategory.TERRACOTTA, this.terracotta.blockId());
                     }
                 }
             }
@@ -287,7 +333,7 @@ public final class PreferredSchematicReplacement {
             if (this.glazedTerracotta != null) {
                 for (GlazedTerracottaMaterial material : GlazedTerracottaMaterial.values()) {
                     if (sourceId.equals(material.blockId())) {
-                        return new ReplacementTarget(
+                        return ReplacementTarget.exact(
                                 PreferredMaterialCategory.GLAZED_TERRACOTTA,
                                 this.glazedTerracotta.blockId());
                     }
@@ -297,6 +343,13 @@ public final class PreferredSchematicReplacement {
         }
     }
 
-    private record ReplacementTarget(PreferredMaterialCategory category, String blockId) {
+    private record ReplacementTarget(
+            PreferredMaterialCategory category,
+            String blockId,
+            boolean roleExact,
+            List<String> allowedTargetIds) {
+        private static ReplacementTarget exact(PreferredMaterialCategory category, String blockId) {
+            return new ReplacementTarget(category, blockId, true, List.of());
+        }
     }
 }
