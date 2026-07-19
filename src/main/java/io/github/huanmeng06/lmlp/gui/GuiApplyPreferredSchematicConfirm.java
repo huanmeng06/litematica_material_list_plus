@@ -52,7 +52,21 @@ final class GuiApplyPreferredSchematicConfirm extends GuiConfirmAction {
                 width,
                 20,
                 color + StringUtils.translate(key) + GuiBase.TXT_RST);
-        this.addButton(button, this.createActionListener(type));
+        this.addButton(button, (clickedButton, mouseButton) -> {
+            if (type == ButtonType.OK) {
+                boolean applied = this.listener.onActionConfirmed();
+                if (applied) {
+                    // The preferred placement is now selected. Open a fresh material-list GUI so
+                    // the old placement's list does not remain visible behind this confirmation.
+                    MaterialListOpener.open();
+                    return;
+                }
+            } else {
+                this.listener.onActionCancelled();
+            }
+
+            GuiBase.openGui(this.getParent());
+        });
     }
 
     private static IConfirmationListener listener(
