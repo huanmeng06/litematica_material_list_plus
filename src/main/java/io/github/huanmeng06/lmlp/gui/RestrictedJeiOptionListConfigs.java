@@ -5,6 +5,7 @@ import fi.dy.masa.malilib.config.IConfigOptionListEntry;
 import io.github.huanmeng06.lmlp.config.Configs;
 import io.github.huanmeng06.lmlp.config.CarpetMaterial;
 import io.github.huanmeng06.lmlp.config.GlassMaterial;
+import io.github.huanmeng06.lmlp.config.GlazedTerracottaMaterial;
 import io.github.huanmeng06.lmlp.config.TerracottaMaterial;
 import io.github.huanmeng06.lmlp.config.WoodFamily;
 
@@ -17,11 +18,13 @@ public final class RestrictedJeiOptionListConfigs {
     private static final Definition PREFERRED_GLASS = createPreferredGlassDefinition();
     private static final Definition PREFERRED_CARPET = createPreferredCarpetDefinition();
     private static final Definition PREFERRED_TERRACOTTA = createPreferredTerracottaDefinition();
+    private static final Definition PREFERRED_GLAZED_TERRACOTTA = createPreferredGlazedTerracottaDefinition();
     private static final List<Definition> DEFINITIONS = List.of(
             PREFERRED_WOOD,
             PREFERRED_GLASS,
             PREFERRED_CARPET,
-            PREFERRED_TERRACOTTA
+            PREFERRED_TERRACOTTA,
+            PREFERRED_GLAZED_TERRACOTTA
     );
 
     private RestrictedJeiOptionListConfigs() {
@@ -66,6 +69,14 @@ public final class RestrictedJeiOptionListConfigs {
             choices.add(new Choice(material.blockId(), material));
         }
         return new Definition(Configs.ConfigForms.PREFERRED_TERRACOTTA_MATERIAL, List.copyOf(choices));
+    }
+
+    private static Definition createPreferredGlazedTerracottaDefinition() {
+        List<Choice> choices = new ArrayList<>();
+        for (GlazedTerracottaMaterial material : GlazedTerracottaMaterial.values()) {
+            choices.add(new Choice(material.blockId(), material));
+        }
+        return new Definition(Configs.ConfigForms.PREFERRED_GLAZED_TERRACOTTA_MATERIAL, List.copyOf(choices));
     }
 
     static String representativeItemId(WoodFamily family) {

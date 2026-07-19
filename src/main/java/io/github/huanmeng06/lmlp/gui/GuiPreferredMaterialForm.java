@@ -18,6 +18,7 @@ import io.github.huanmeng06.lmlp.cache.ChunkMissingMaterialList;
 import io.github.huanmeng06.lmlp.config.CarpetMaterial;
 import io.github.huanmeng06.lmlp.config.Configs;
 import io.github.huanmeng06.lmlp.config.GlassMaterial;
+import io.github.huanmeng06.lmlp.config.GlazedTerracottaMaterial;
 import io.github.huanmeng06.lmlp.config.TerracottaMaterial;
 import io.github.huanmeng06.lmlp.config.WoodFamily;
 import io.github.huanmeng06.lmlp.preference.PreferredSchematicReplacement;
@@ -550,6 +551,7 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
             case GLASS -> Configs.ConfigForms.PREFERRED_GLASS_ENABLED;
             case CARPET -> Configs.ConfigForms.PREFERRED_CARPET_ENABLED;
             case TERRACOTTA -> Configs.ConfigForms.PREFERRED_TERRACOTTA_ENABLED;
+            case GLAZED_TERRACOTTA -> Configs.ConfigForms.PREFERRED_GLAZED_TERRACOTTA_ENABLED;
         };
     }
 
@@ -574,6 +576,9 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
         }
         if (config == Configs.ConfigForms.PREFERRED_TERRACOTTA_MATERIAL) {
             return PreferredMaterialCategory.TERRACOTTA;
+        }
+        if (config == Configs.ConfigForms.PREFERRED_GLAZED_TERRACOTTA_MATERIAL) {
+            return PreferredMaterialCategory.GLAZED_TERRACOTTA;
         }
         return null;
     }
@@ -600,7 +605,9 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
             boolean carpetEnabled,
             CarpetMaterial carpet,
             boolean terracottaEnabled,
-            TerracottaMaterial terracotta) {
+            TerracottaMaterial terracotta,
+            boolean glazedTerracottaEnabled,
+            GlazedTerracottaMaterial glazedTerracotta) {
 
         private static PreferenceSnapshot current() {
             return new PreferenceSnapshot(
@@ -611,7 +618,9 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
                     Configs.ConfigForms.PREFERRED_CARPET_ENABLED.getBooleanValue(),
                     (CarpetMaterial) Configs.ConfigForms.PREFERRED_CARPET_MATERIAL.getOptionListValue(),
                     Configs.ConfigForms.PREFERRED_TERRACOTTA_ENABLED.getBooleanValue(),
-                    (TerracottaMaterial) Configs.ConfigForms.PREFERRED_TERRACOTTA_MATERIAL.getOptionListValue());
+                    (TerracottaMaterial) Configs.ConfigForms.PREFERRED_TERRACOTTA_MATERIAL.getOptionListValue(),
+                    Configs.ConfigForms.PREFERRED_GLAZED_TERRACOTTA_ENABLED.getBooleanValue(),
+                    (GlazedTerracottaMaterial) Configs.ConfigForms.PREFERRED_GLAZED_TERRACOTTA_MATERIAL.getOptionListValue());
         }
 
         private boolean enabled(PreferredMaterialCategory category) {
@@ -620,11 +629,16 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
                 case GLASS -> this.glassEnabled;
                 case CARPET -> this.carpetEnabled;
                 case TERRACOTTA -> this.terracottaEnabled;
+                case GLAZED_TERRACOTTA -> this.glazedTerracottaEnabled;
             };
         }
 
         private boolean anyEnabled() {
-            return this.woodEnabled || this.glassEnabled || this.carpetEnabled || this.terracottaEnabled;
+            return this.woodEnabled
+                    || this.glassEnabled
+                    || this.carpetEnabled
+                    || this.terracottaEnabled
+                    || this.glazedTerracottaEnabled;
         }
 
         private Targets targets() {
@@ -632,7 +646,8 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
                     this.woodEnabled ? this.wood : null,
                     this.glassEnabled ? this.glass : null,
                     this.carpetEnabled ? this.carpet : null,
-                    this.terracottaEnabled ? this.terracotta : null);
+                    this.terracottaEnabled ? this.terracotta : null,
+                    this.glazedTerracottaEnabled ? this.glazedTerracotta : null);
         }
 
         private void restore() {
@@ -644,6 +659,8 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
             Configs.ConfigForms.PREFERRED_CARPET_MATERIAL.setOptionListValue(this.carpet);
             Configs.ConfigForms.PREFERRED_TERRACOTTA_ENABLED.setBooleanValue(this.terracottaEnabled);
             Configs.ConfigForms.PREFERRED_TERRACOTTA_MATERIAL.setOptionListValue(this.terracotta);
+            Configs.ConfigForms.PREFERRED_GLAZED_TERRACOTTA_ENABLED.setBooleanValue(this.glazedTerracottaEnabled);
+            Configs.ConfigForms.PREFERRED_GLAZED_TERRACOTTA_MATERIAL.setOptionListValue(this.glazedTerracotta);
         }
     }
 

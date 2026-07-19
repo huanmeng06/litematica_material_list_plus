@@ -256,6 +256,22 @@ public class Configs implements IConfigHandler {
                 "lmlp.config.name.preferred_terracotta_material"
         );
 
+        public static final ConfigBoolean PREFERRED_GLAZED_TERRACOTTA_ENABLED = new ConfigBoolean(
+                "preferredGlazedTerracottaEnabled",
+                false,
+                "lmlp.config.comment.preferred_glazed_terracotta_enabled",
+                "lmlp.config.name.preferred_glazed_terracotta_enabled",
+                "lmlp.config.name.preferred_glazed_terracotta_enabled"
+        );
+
+        public static final ConfigOptionList PREFERRED_GLAZED_TERRACOTTA_MATERIAL = new ConfigOptionList(
+                "preferredGlazedTerracottaMaterial",
+                GlazedTerracottaMaterial.WHITE,
+                "lmlp.config.comment.preferred_glazed_terracotta_material",
+                "lmlp.config.name.preferred_glazed_terracotta_material",
+                "lmlp.config.name.preferred_glazed_terracotta_material"
+        );
+
         public static final List<IConfigBase> OPTIONS = ImmutableList.of(
                 Generic.RECIPE_STOP_ITEMS,
                 Generic.KEEP_AS_LEAF_ITEMS
@@ -269,7 +285,9 @@ public class Configs implements IConfigHandler {
                 PREFERRED_CARPET_ENABLED,
                 PREFERRED_CARPET_MATERIAL,
                 PREFERRED_TERRACOTTA_ENABLED,
-                PREFERRED_TERRACOTTA_MATERIAL
+                PREFERRED_TERRACOTTA_MATERIAL,
+                PREFERRED_GLAZED_TERRACOTTA_ENABLED,
+                PREFERRED_GLAZED_TERRACOTTA_MATERIAL
         );
 
         public static final List<IConfigBase> PERSISTED_OPTIONS = ImmutableList.of(
@@ -281,6 +299,8 @@ public class Configs implements IConfigHandler {
                 PREFERRED_CARPET_MATERIAL,
                 PREFERRED_TERRACOTTA_ENABLED,
                 PREFERRED_TERRACOTTA_MATERIAL,
+                PREFERRED_GLAZED_TERRACOTTA_ENABLED,
+                PREFERRED_GLAZED_TERRACOTTA_MATERIAL,
                 Generic.RECIPE_STOP_ITEMS,
                 Generic.KEEP_AS_LEAF_ITEMS
         );

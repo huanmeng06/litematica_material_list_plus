@@ -56,11 +56,13 @@ public class GuiConfigs extends GuiConfigsBase {
         boolean preferredGlassWasEnabled = Configs.ConfigForms.PREFERRED_GLASS_ENABLED.getBooleanValue();
         boolean preferredCarpetWasEnabled = Configs.ConfigForms.PREFERRED_CARPET_ENABLED.getBooleanValue();
         boolean preferredTerracottaWasEnabled = Configs.ConfigForms.PREFERRED_TERRACOTTA_ENABLED.getBooleanValue();
+        boolean preferredGlazedTerracottaWasEnabled = Configs.ConfigForms.PREFERRED_GLAZED_TERRACOTTA_ENABLED.getBooleanValue();
         boolean handled = super.onMouseClicked(mouseClick, doubleClick);
         boolean preferredWoodIsEnabled = Configs.ConfigForms.PREFERRED_WOOD_ENABLED.getBooleanValue();
         boolean preferredGlassIsEnabled = Configs.ConfigForms.PREFERRED_GLASS_ENABLED.getBooleanValue();
         boolean preferredCarpetIsEnabled = Configs.ConfigForms.PREFERRED_CARPET_ENABLED.getBooleanValue();
         boolean preferredTerracottaIsEnabled = Configs.ConfigForms.PREFERRED_TERRACOTTA_ENABLED.getBooleanValue();
+        boolean preferredGlazedTerracottaIsEnabled = Configs.ConfigForms.PREFERRED_GLAZED_TERRACOTTA_ENABLED.getBooleanValue();
 
         if (currentTab == ConfigGuiTab.PREFERENCE_FORM
                 && this.getListWidget() instanceof PreferenceWidgetListConfigOptions preferenceList) {
@@ -75,6 +77,11 @@ public class GuiConfigs extends GuiConfigsBase {
             }
             if (preferredTerracottaWasEnabled != preferredTerracottaIsEnabled) {
                 preferenceList.setGroupExpanded(Configs.ConfigForms.PREFERRED_TERRACOTTA_ENABLED, preferredTerracottaIsEnabled);
+            }
+            if (preferredGlazedTerracottaWasEnabled != preferredGlazedTerracottaIsEnabled) {
+                preferenceList.setGroupExpanded(
+                        Configs.ConfigForms.PREFERRED_GLAZED_TERRACOTTA_ENABLED,
+                        preferredGlazedTerracottaIsEnabled);
             }
         }
 

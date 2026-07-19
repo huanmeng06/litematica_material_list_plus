@@ -5,6 +5,7 @@ import fi.dy.masa.litematica.schematic.container.LitematicaBlockStateContainer;
 import fi.dy.masa.litematica.util.FileType;
 import io.github.huanmeng06.lmlp.config.CarpetMaterial;
 import io.github.huanmeng06.lmlp.config.GlassMaterial;
+import io.github.huanmeng06.lmlp.config.GlazedTerracottaMaterial;
 import io.github.huanmeng06.lmlp.config.TerracottaMaterial;
 import io.github.huanmeng06.lmlp.config.WoodFamily;
 import net.minecraft.class_2248;
@@ -237,14 +238,16 @@ public final class PreferredSchematicReplacement {
         WOOD,
         GLASS,
         CARPET,
-        TERRACOTTA
+        TERRACOTTA,
+        GLAZED_TERRACOTTA
     }
 
     public record Targets(
             WoodFamily wood,
             GlassMaterial glass,
             CarpetMaterial carpet,
-            TerracottaMaterial terracotta) {
+            TerracottaMaterial terracotta,
+            GlazedTerracottaMaterial glazedTerracotta) {
 
         private ReplacementTarget targetFor(String sourceId) {
             if (this.wood != null) {
@@ -277,6 +280,16 @@ public final class PreferredSchematicReplacement {
                 for (TerracottaMaterial material : TerracottaMaterial.values()) {
                     if (sourceId.equals(material.blockId())) {
                         return new ReplacementTarget(PreferredMaterialCategory.TERRACOTTA, this.terracotta.blockId());
+                    }
+                }
+            }
+
+            if (this.glazedTerracotta != null) {
+                for (GlazedTerracottaMaterial material : GlazedTerracottaMaterial.values()) {
+                    if (sourceId.equals(material.blockId())) {
+                        return new ReplacementTarget(
+                                PreferredMaterialCategory.GLAZED_TERRACOTTA,
+                                this.glazedTerracotta.blockId());
                     }
                 }
             }

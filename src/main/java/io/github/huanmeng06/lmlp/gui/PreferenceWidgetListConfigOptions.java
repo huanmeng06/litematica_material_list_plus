@@ -41,6 +41,11 @@ final class PreferenceWidgetListConfigOptions extends WidgetListConfigOptions {
                     "preferred_terracotta",
                     Configs.ConfigForms.PREFERRED_TERRACOTTA_ENABLED,
                     List.of(Configs.ConfigForms.PREFERRED_TERRACOTTA_MATERIAL)
+            ),
+            new PreferenceGroup(
+                    "preferred_glazed_terracotta",
+                    Configs.ConfigForms.PREFERRED_GLAZED_TERRACOTTA_ENABLED,
+                    List.of(Configs.ConfigForms.PREFERRED_GLAZED_TERRACOTTA_MATERIAL)
             )
     );
 
