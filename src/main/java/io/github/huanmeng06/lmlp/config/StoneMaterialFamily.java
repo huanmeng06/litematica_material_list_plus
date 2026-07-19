@@ -50,6 +50,6 @@ public enum StoneMaterialFamily implements IConfigOptionListEntry {
                 return family;
             }
         }
-        return STONE;
+        return SMOOTH_STONE;
     }
 }

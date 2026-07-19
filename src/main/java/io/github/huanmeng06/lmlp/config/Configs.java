@@ -218,7 +218,7 @@ public class Configs implements IConfigHandler {
 
         public static final ConfigOptionList PREFERRED_STONE_FAMILY = new ConfigOptionList(
                 "preferredStoneFamily",
-                StoneMaterialFamily.STONE,
+                StoneMaterialFamily.SMOOTH_STONE,
                 "lmlp.config.comment.preferred_stone_family",
                 "lmlp.config.name.preferred_stone_family",
                 "lmlp.config.name.preferred_stone_family"

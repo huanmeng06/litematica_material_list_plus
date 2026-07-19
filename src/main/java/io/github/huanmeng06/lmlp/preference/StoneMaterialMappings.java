@@ -41,7 +41,10 @@ public final class StoneMaterialMappings {
 
         Palette palette = PALETTES.get(family);
         String exactTarget = palette.byRole.get(source.role());
-        String target = exactTarget != null ? exactTarget : palette.fallbackByShape.get(source.shape());
+        String familyFallback = palette.fallbackByShape.get(source.shape());
+        String target = exactTarget != null
+                ? exactTarget
+                : familyFallback != null ? familyFallback : missingShapeFallback(source.shape());
         return new Match(target, exactTarget != null, allowedTargets(source.shape()));
     }
 
@@ -52,6 +55,14 @@ public final class StoneMaterialMappings {
 
     private static List<String> allowedTargets(Shape shape) {
         return ALLOWED_BY_SHAPE.getOrDefault(shape, List.of());
+    }
+
+    private static String missingShapeFallback(Shape shape) {
+        return switch (shape) {
+            case STAIRS -> minecraft("stone_brick_stairs");
+            case WALL -> minecraft("stone_brick_wall");
+            default -> null;
+        };
     }
 
     private static void registerStone() {
