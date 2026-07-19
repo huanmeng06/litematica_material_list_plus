@@ -3,6 +3,9 @@ package io.github.huanmeng06.lmlp.gui;
 import fi.dy.masa.malilib.config.IConfigOptionList;
 import fi.dy.masa.malilib.config.IConfigOptionListEntry;
 import io.github.huanmeng06.lmlp.config.Configs;
+import io.github.huanmeng06.lmlp.config.CarpetMaterial;
+import io.github.huanmeng06.lmlp.config.GlassMaterial;
+import io.github.huanmeng06.lmlp.config.TerracottaMaterial;
 import io.github.huanmeng06.lmlp.config.WoodFamily;
 
 import java.util.ArrayList;
@@ -11,7 +14,15 @@ import java.util.List;
 /** Defines the exact JEI item whitelist and resulting value for picker-backed option lists. */
 public final class RestrictedJeiOptionListConfigs {
     private static final Definition PREFERRED_WOOD = createPreferredWoodDefinition();
-    private static final List<Definition> DEFINITIONS = List.of(PREFERRED_WOOD);
+    private static final Definition PREFERRED_GLASS = createPreferredGlassDefinition();
+    private static final Definition PREFERRED_CARPET = createPreferredCarpetDefinition();
+    private static final Definition PREFERRED_TERRACOTTA = createPreferredTerracottaDefinition();
+    private static final List<Definition> DEFINITIONS = List.of(
+            PREFERRED_WOOD,
+            PREFERRED_GLASS,
+            PREFERRED_CARPET,
+            PREFERRED_TERRACOTTA
+    );
 
     private RestrictedJeiOptionListConfigs() {
     }
@@ -31,6 +42,30 @@ public final class RestrictedJeiOptionListConfigs {
             choices.add(new Choice(representativeItemId(family), family));
         }
         return new Definition(Configs.ConfigForms.PREFERRED_WOOD_FAMILY, List.copyOf(choices));
+    }
+
+    private static Definition createPreferredGlassDefinition() {
+        List<Choice> choices = new ArrayList<>();
+        for (GlassMaterial material : GlassMaterial.values()) {
+            choices.add(new Choice(material.blockId(), material));
+        }
+        return new Definition(Configs.ConfigForms.PREFERRED_GLASS_MATERIAL, List.copyOf(choices));
+    }
+
+    private static Definition createPreferredCarpetDefinition() {
+        List<Choice> choices = new ArrayList<>();
+        for (CarpetMaterial material : CarpetMaterial.values()) {
+            choices.add(new Choice(material.blockId(), material));
+        }
+        return new Definition(Configs.ConfigForms.PREFERRED_CARPET_MATERIAL, List.copyOf(choices));
+    }
+
+    private static Definition createPreferredTerracottaDefinition() {
+        List<Choice> choices = new ArrayList<>();
+        for (TerracottaMaterial material : TerracottaMaterial.values()) {
+            choices.add(new Choice(material.blockId(), material));
+        }
+        return new Definition(Configs.ConfigForms.PREFERRED_TERRACOTTA_MATERIAL, List.copyOf(choices));
     }
 
     static String representativeItemId(WoodFamily family) {
@@ -55,6 +90,16 @@ public final class RestrictedJeiOptionListConfigs {
                 }
             }
             return false;
+        }
+
+        public String selectedItemId() {
+            IConfigOptionListEntry selected = this.config.getOptionListValue();
+            for (Choice choice : this.choices) {
+                if (choice.value().equals(selected)) {
+                    return choice.itemId();
+                }
+            }
+            return this.choices.isEmpty() ? "" : this.choices.get(0).itemId();
         }
     }
 

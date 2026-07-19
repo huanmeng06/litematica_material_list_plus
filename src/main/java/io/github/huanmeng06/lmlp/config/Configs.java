@@ -208,6 +208,54 @@ public class Configs implements IConfigHandler {
                 "lmlp.config.name.preferred_wood_family"
         );
 
+        public static final ConfigBoolean PREFERRED_GLASS_ENABLED = new ConfigBoolean(
+                "preferredGlassEnabled",
+                false,
+                "lmlp.config.comment.preferred_glass_enabled",
+                "lmlp.config.name.preferred_glass_enabled",
+                "lmlp.config.name.preferred_glass_enabled"
+        );
+
+        public static final ConfigOptionList PREFERRED_GLASS_MATERIAL = new ConfigOptionList(
+                "preferredGlassMaterial",
+                GlassMaterial.CLEAR,
+                "lmlp.config.comment.preferred_glass_material",
+                "lmlp.config.name.preferred_glass_material",
+                "lmlp.config.name.preferred_glass_material"
+        );
+
+        public static final ConfigBoolean PREFERRED_CARPET_ENABLED = new ConfigBoolean(
+                "preferredCarpetEnabled",
+                false,
+                "lmlp.config.comment.preferred_carpet_enabled",
+                "lmlp.config.name.preferred_carpet_enabled",
+                "lmlp.config.name.preferred_carpet_enabled"
+        );
+
+        public static final ConfigOptionList PREFERRED_CARPET_MATERIAL = new ConfigOptionList(
+                "preferredCarpetMaterial",
+                CarpetMaterial.WHITE,
+                "lmlp.config.comment.preferred_carpet_material",
+                "lmlp.config.name.preferred_carpet_material",
+                "lmlp.config.name.preferred_carpet_material"
+        );
+
+        public static final ConfigBoolean PREFERRED_TERRACOTTA_ENABLED = new ConfigBoolean(
+                "preferredTerracottaEnabled",
+                false,
+                "lmlp.config.comment.preferred_terracotta_enabled",
+                "lmlp.config.name.preferred_terracotta_enabled",
+                "lmlp.config.name.preferred_terracotta_enabled"
+        );
+
+        public static final ConfigOptionList PREFERRED_TERRACOTTA_MATERIAL = new ConfigOptionList(
+                "preferredTerracottaMaterial",
+                TerracottaMaterial.PLAIN,
+                "lmlp.config.comment.preferred_terracotta_material",
+                "lmlp.config.name.preferred_terracotta_material",
+                "lmlp.config.name.preferred_terracotta_material"
+        );
+
         public static final List<IConfigBase> OPTIONS = ImmutableList.of(
                 Generic.RECIPE_STOP_ITEMS,
                 Generic.KEEP_AS_LEAF_ITEMS
@@ -215,12 +263,24 @@ public class Configs implements IConfigHandler {
 
         public static final List<IConfigBase> PREFERENCE_OPTIONS = ImmutableList.of(
                 PREFERRED_WOOD_ENABLED,
-                PREFERRED_WOOD_FAMILY
+                PREFERRED_WOOD_FAMILY,
+                PREFERRED_GLASS_ENABLED,
+                PREFERRED_GLASS_MATERIAL,
+                PREFERRED_CARPET_ENABLED,
+                PREFERRED_CARPET_MATERIAL,
+                PREFERRED_TERRACOTTA_ENABLED,
+                PREFERRED_TERRACOTTA_MATERIAL
         );
 
         public static final List<IConfigBase> PERSISTED_OPTIONS = ImmutableList.of(
                 PREFERRED_WOOD_ENABLED,
                 PREFERRED_WOOD_FAMILY,
+                PREFERRED_GLASS_ENABLED,
+                PREFERRED_GLASS_MATERIAL,
+                PREFERRED_CARPET_ENABLED,
+                PREFERRED_CARPET_MATERIAL,
+                PREFERRED_TERRACOTTA_ENABLED,
+                PREFERRED_TERRACOTTA_MATERIAL,
                 Generic.RECIPE_STOP_ITEMS,
                 Generic.KEEP_AS_LEAF_ITEMS
         );

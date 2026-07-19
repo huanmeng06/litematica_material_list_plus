@@ -26,6 +26,21 @@ final class PreferenceWidgetListConfigOptions extends WidgetListConfigOptions {
                     "preferred_wood",
                     Configs.ConfigForms.PREFERRED_WOOD_ENABLED,
                     List.of(Configs.ConfigForms.PREFERRED_WOOD_FAMILY)
+            ),
+            new PreferenceGroup(
+                    "preferred_glass",
+                    Configs.ConfigForms.PREFERRED_GLASS_ENABLED,
+                    List.of(Configs.ConfigForms.PREFERRED_GLASS_MATERIAL)
+            ),
+            new PreferenceGroup(
+                    "preferred_carpet",
+                    Configs.ConfigForms.PREFERRED_CARPET_ENABLED,
+                    List.of(Configs.ConfigForms.PREFERRED_CARPET_MATERIAL)
+            ),
+            new PreferenceGroup(
+                    "preferred_terracotta",
+                    Configs.ConfigForms.PREFERRED_TERRACOTTA_ENABLED,
+                    List.of(Configs.ConfigForms.PREFERRED_TERRACOTTA_MATERIAL)
             )
     );
 

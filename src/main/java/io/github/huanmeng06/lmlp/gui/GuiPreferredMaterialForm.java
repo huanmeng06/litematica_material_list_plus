@@ -4,6 +4,7 @@ import fi.dy.masa.litematica.materials.MaterialListBase;
 import fi.dy.masa.litematica.materials.MaterialListPlacement;
 import fi.dy.masa.litematica.schematic.LitematicaSchematic;
 import fi.dy.masa.litematica.schematic.placement.SchematicPlacement;
+import fi.dy.masa.malilib.config.IConfigBoolean;
 import fi.dy.masa.malilib.gui.GuiBase;
 import fi.dy.masa.malilib.gui.GuiConfigsBase;
 import fi.dy.masa.malilib.gui.GuiScrollBar;
@@ -15,11 +16,16 @@ import fi.dy.masa.malilib.util.StringUtils;
 import io.github.huanmeng06.lmlp.LitematicaMaterialListPlus;
 import io.github.huanmeng06.lmlp.access.MaterialListPlacementAccess;
 import io.github.huanmeng06.lmlp.cache.ChunkMissingMaterialList;
+import io.github.huanmeng06.lmlp.config.CarpetMaterial;
 import io.github.huanmeng06.lmlp.config.Configs;
+import io.github.huanmeng06.lmlp.config.GlassMaterial;
+import io.github.huanmeng06.lmlp.config.TerracottaMaterial;
 import io.github.huanmeng06.lmlp.config.WoodFamily;
 import io.github.huanmeng06.lmlp.preference.PreferredSchematicReplacement;
+import io.github.huanmeng06.lmlp.preference.PreferredSchematicReplacement.PreferredMaterialCategory;
 import io.github.huanmeng06.lmlp.preference.PreferredSchematicReplacement.ReplacementMode;
 import io.github.huanmeng06.lmlp.preference.PreferredSchematicReplacement.ReplacementRow;
+import io.github.huanmeng06.lmlp.preference.PreferredSchematicReplacement.Targets;
 import net.minecraft.class_1799;
 import net.minecraft.class_11908;
 import net.minecraft.class_11909;
@@ -29,6 +35,7 @@ import org.lwjgl.glfw.GLFW;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.EnumMap;
 import java.util.List;
 
 /**
@@ -56,21 +63,20 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
     private static final int DETAIL_ROW_HOVERED = 0xA0707070;
     private static final int DETAIL_ICON_BACKGROUND = 0x20FFFFFF;
     private static final int ARROW_SLOT_WIDTH = 20;
-    private static final String DETAIL_ANIMATION_KEY = "material_preferred_wood_details";
+    private static final String DETAIL_ANIMATION_KEY_PREFIX = "material_preferred_details_";
 
     private final class_437 materialListParent;
     private final SchematicPlacement placement;
     private final LitematicaSchematic schematic;
-    private final boolean initialWoodEnabled;
-    private final WoodFamily initialWoodFamily;
+    private final PreferenceSnapshot initialPreferences;
     private final GuiScrollBar detailScrollBar = new GuiScrollBar();
     private final ExpandAnimationTracker detailAnimations = new ExpandAnimationTracker();
     private final List<RowState> rows = new ArrayList<>();
-    private boolean detailsExpanded;
+    private final EnumMap<PreferredMaterialCategory, Boolean> detailsExpanded =
+            new EnumMap<>(PreferredMaterialCategory.class);
     private boolean draggingDetailScrollbar;
     private double detailScrollRemainder;
-    private boolean rowsWoodEnabled;
-    private WoodFamily rowsWoodFamily;
+    private PreferenceSnapshot rowsSnapshot;
     private boolean closingConfirmed;
 
     private GuiPreferredMaterialForm(class_437 parent, SchematicPlacement placement) {
@@ -84,12 +90,14 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
         this.materialListParent = parent;
         this.placement = placement;
         this.schematic = placement == null ? null : placement.getSchematic();
-        this.initialWoodEnabled = Configs.ConfigForms.PREFERRED_WOOD_ENABLED.getBooleanValue();
-        this.initialWoodFamily = (WoodFamily) Configs.ConfigForms.PREFERRED_WOOD_FAMILY.getOptionListValue();
+        this.initialPreferences = PreferenceSnapshot.current();
         this.rebuildRows();
-        if (this.rowsWoodEnabled) {
-            this.detailsExpanded = true;
-            this.detailAnimations.start(DETAIL_ANIMATION_KEY, 0.0F, 1.0F);
+        for (PreferredMaterialCategory category : PreferredMaterialCategory.values()) {
+            boolean enabled = this.initialPreferences.enabled(category);
+            this.detailsExpanded.put(category, enabled);
+            if (enabled) {
+                this.detailAnimations.start(this.detailAnimationKey(category), 0.0F, 1.0F);
+            }
         }
     }
 
@@ -135,17 +143,19 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
 
     @Override
     public boolean onMouseClicked(class_11909 mouseClick, boolean doubleClick) {
-        boolean preferredWoodWasEnabled = Configs.ConfigForms.PREFERRED_WOOD_ENABLED.getBooleanValue();
-        WoodFamily preferredWoodWas = this.currentWoodFamily();
+        PreferenceSnapshot before = PreferenceSnapshot.current();
 
         int mouseX = (int) mouseClick.comp_4798();
         int mouseY = (int) mouseClick.comp_4799();
         int mouseButton = mouseClick.comp_4800().comp_4801();
-        if ((mouseButton == 0 || mouseButton == 1)
-                && this.isDetailArrowVisible()
-                && this.isDetailArrowHovered(mouseX, mouseY)) {
-            this.toggleDetailsExpanded();
-            return true;
+        if (mouseButton == 0 || mouseButton == 1) {
+            for (PreferredMaterialCategory category : PreferredMaterialCategory.values()) {
+                if (this.isDetailArrowVisible(category)
+                        && this.isDetailArrowHovered(category, mouseX, mouseY)) {
+                    this.toggleDetailsExpanded(category);
+                    return true;
+                }
+            }
         }
         if ((mouseButton == 0 || mouseButton == 1) && this.clickDetailRowButton(mouseClick, doubleClick)) {
             return true;
@@ -157,22 +167,23 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
         }
 
         boolean handled = super.onMouseClicked(mouseClick, doubleClick);
-        boolean preferredWoodIsEnabled = Configs.ConfigForms.PREFERRED_WOOD_ENABLED.getBooleanValue();
-        WoodFamily preferredWoodIs = this.currentWoodFamily();
+        PreferenceSnapshot after = PreferenceSnapshot.current();
 
-        if (preferredWoodWasEnabled != preferredWoodIsEnabled
-                && this.getListWidget() instanceof PreferenceWidgetListConfigOptions preferenceList) {
-            preferenceList.setGroupExpanded(Configs.ConfigForms.PREFERRED_WOOD_ENABLED, preferredWoodIsEnabled);
-        }
-        if (preferredWoodWasEnabled != preferredWoodIsEnabled || preferredWoodWas != preferredWoodIs) {
-            if (!preferredWoodIsEnabled) {
-                this.detailsExpanded = false;
-                this.detailAnimations.clear();
-                this.detailScrollBar.setValue(0);
-            } else if (!preferredWoodWasEnabled) {
-                this.detailsExpanded = true;
-                this.detailAnimations.start(DETAIL_ANIMATION_KEY, 0.0F, 1.0F);
+        for (PreferredMaterialCategory category : PreferredMaterialCategory.values()) {
+            boolean wasEnabled = before.enabled(category);
+            boolean isEnabled = after.enabled(category);
+            if (wasEnabled != isEnabled) {
+                if (this.getListWidget() instanceof PreferenceWidgetListConfigOptions preferenceList) {
+                    preferenceList.setGroupExpanded(this.preferenceToggle(category), isEnabled);
+                }
+                this.detailsExpanded.put(category, isEnabled);
+                this.detailAnimations.start(
+                        this.detailAnimationKey(category),
+                        wasEnabled ? 1.0F : 0.0F,
+                        isEnabled ? 1.0F : 0.0F);
             }
+        }
+        if (!before.equals(after)) {
             this.rebuildRows();
         }
 
@@ -251,57 +262,58 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
     @Override
     public void drawContents(GuiContext context, int mouseX, int mouseY, float partialTicks) {
         super.drawContents(context, mouseX, mouseY, partialTicks);
-        this.renderDetailArrow(context, mouseX, mouseY);
+        this.renderDetailArrows(context, mouseX, mouseY);
         this.renderReplacementDetails(context, mouseX, mouseY, partialTicks);
     }
 
-    private void renderDetailArrow(GuiContext context, int mouseX, int mouseY) {
-        if (!this.isDetailArrowVisible()) {
-            this.detailAnimations.prune();
-            return;
-        }
-
+    private void renderDetailArrows(GuiContext context, int mouseX, int mouseY) {
         int arrowX = this.detailArrowX();
-        ToggleArrowRenderer.render(
-                context,
-                arrowX,
-                ARROW_SLOT_WIDTH,
-                this.preferenceToggleRowTop() + 11,
-                this.detailProgress(),
-                this.isDetailArrowHovered(mouseX, mouseY)
-        );
+        for (PreferredMaterialCategory category : PreferredMaterialCategory.values()) {
+            if (this.isDetailArrowVisible(category)) {
+                ToggleArrowRenderer.render(
+                        context,
+                        arrowX,
+                        ARROW_SLOT_WIDTH,
+                        this.preferenceToggleRowTop(category) + 11,
+                        this.detailProgress(category),
+                        this.isDetailArrowHovered(category, mouseX, mouseY)
+                );
+            }
+        }
         this.detailAnimations.prune();
     }
 
     private void renderReplacementDetails(GuiContext context, int mouseX, int mouseY, float partialTicks) {
         float progress = this.detailProgress();
-        if (!this.isDetailArrowVisible() || progress <= 0.001F) {
+        if (progress <= 0.001F) {
             return;
         }
 
         this.rebuildRowsIfNeeded();
+        List<RowState> visibleRows = this.visibleRows();
+        int detailTop = this.detailTop();
         int fullBottom = this.detailFullBottom();
-        int fullHeight = Math.max(0, fullBottom - DETAIL_TOP);
+        int fullHeight = Math.max(0, fullBottom - detailTop);
         int visibleHeight = Math.round(fullHeight * progress);
         if (visibleHeight <= 0) {
             return;
         }
 
-        int visibleBottom = DETAIL_TOP + visibleHeight;
-        this.updateDetailScrollRange(fullHeight);
-        context.method_44379(DETAIL_MARGIN, DETAIL_TOP, this.field_22789 - DETAIL_MARGIN, visibleBottom);
+        int visibleBottom = detailTop + visibleHeight;
+        this.updateDetailScrollRange(fullHeight, visibleRows);
+        context.method_44379(DETAIL_MARGIN, detailTop, this.field_22789 - DETAIL_MARGIN, visibleBottom);
 
-        if (this.rows.isEmpty()) {
+        if (visibleRows.isEmpty()) {
             this.renderCenteredDetailMessage(
                     context,
                     StringUtils.translate("lmlp.gui.preferred_replacement.none"),
-                    DETAIL_TOP + 24
+                    detailTop + 24
             );
         } else {
-            int y = DETAIL_TOP - this.detailScrollBar.getValue();
-            for (int index = 0; index < this.rows.size(); index++) {
-                RowState row = this.rows.get(index);
-                if (y + DETAIL_ROW_HEIGHT >= DETAIL_TOP && y < visibleBottom) {
+            int y = detailTop - this.detailScrollBar.getValue();
+            for (int index = 0; index < visibleRows.size(); index++) {
+                RowState row = visibleRows.get(index);
+                if (y + DETAIL_ROW_HEIGHT >= detailTop && y < visibleBottom) {
                     this.renderDetailRow(context, row, index, y, mouseX, mouseY);
                 }
                 y += DETAIL_ROW_HEIGHT + DETAIL_ROW_GAP;
@@ -316,10 +328,10 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
                     mouseY,
                     partialTicks,
                     this.field_22789 - 13,
-                    DETAIL_TOP,
+                    detailTop,
                     8,
                     visibleHeight,
-                    this.detailContentHeight()
+                    this.detailContentHeight(visibleRows)
             );
         }
     }
@@ -422,7 +434,7 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
     }
 
     private int detailSourceNameColumnWidth(int maxWidth) {
-        int contentWidth = this.rows.stream()
+        int contentWidth = this.visibleRows().stream()
                 .mapToInt(row -> this.field_22793.method_1727(row.row.sourceName()))
                 .max()
                 .orElse(0);
@@ -441,12 +453,13 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
 
         int mouseY = (int) event.comp_4799();
         int visibleBottom = this.detailVisibleBottom();
-        if (mouseY < DETAIL_TOP || mouseY >= visibleBottom) {
+        int detailTop = this.detailTop();
+        if (mouseY < detailTop || mouseY >= visibleBottom) {
             return false;
         }
-        int y = DETAIL_TOP - this.detailScrollBar.getValue();
-        for (RowState row : this.rows) {
-            if (y + DETAIL_ROW_HEIGHT >= DETAIL_TOP && y < visibleBottom
+        int y = detailTop - this.detailScrollBar.getValue();
+        for (RowState row : this.visibleRows()) {
+            if (y + DETAIL_ROW_HEIGHT >= detailTop && y < visibleBottom
                     && row.button.onMouseClicked(event, doubleClick)) {
                 return true;
             }
@@ -455,43 +468,56 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
         return false;
     }
 
-    private void toggleDetailsExpanded() {
-        float startProgress = this.detailProgress();
-        this.detailsExpanded = !this.detailsExpanded;
+    private void toggleDetailsExpanded(PreferredMaterialCategory category) {
+        float startProgress = this.detailProgress(category);
+        boolean expanded = !this.detailsExpanded.getOrDefault(category, false);
+        this.detailsExpanded.put(category, expanded);
         this.detailAnimations.start(
-                DETAIL_ANIMATION_KEY,
+                this.detailAnimationKey(category),
                 startProgress,
-                this.detailsExpanded ? 1.0F : 0.0F
+                expanded ? 1.0F : 0.0F
         );
         this.detailScrollBar.setValue(0);
     }
 
     private float detailProgress() {
-        return this.detailAnimations.progress(DETAIL_ANIMATION_KEY, this.detailsExpanded);
+        float progress = 0.0F;
+        for (PreferredMaterialCategory category : PreferredMaterialCategory.values()) {
+            if (this.isDetailArrowVisible(category)) {
+                progress = Math.max(progress, this.detailProgress(category));
+            }
+        }
+        return progress;
+    }
+
+    private float detailProgress(PreferredMaterialCategory category) {
+        return this.detailAnimations.progress(
+                this.detailAnimationKey(category),
+                this.detailsExpanded.getOrDefault(category, false));
     }
 
     private boolean isDetailsVisible() {
-        return this.isDetailArrowVisible() && this.detailProgress() > 0.001F;
+        return this.detailProgress() > 0.001F;
     }
 
     private boolean isMouseOverDetails(int mouseX, int mouseY) {
         return mouseX >= DETAIL_MARGIN
                 && mouseX < this.field_22789 - DETAIL_MARGIN
-                && mouseY >= DETAIL_TOP
+                && mouseY >= this.detailTop()
                 && mouseY < this.detailVisibleBottom();
     }
 
-    private boolean isDetailArrowVisible() {
-        if (!Configs.ConfigForms.PREFERRED_WOOD_ENABLED.getBooleanValue() || this.getListWidget() == null) {
+    private boolean isDetailArrowVisible(PreferredMaterialCategory category) {
+        if (!PreferenceSnapshot.current().enabled(category) || this.getListWidget() == null) {
             return false;
         }
         return this.getListWidget().getCurrentEntries().stream()
-                .anyMatch(wrapper -> wrapper.getConfig() == Configs.ConfigForms.PREFERRED_WOOD_ENABLED);
+                .anyMatch(wrapper -> wrapper.getConfig() == this.preferenceToggle(category));
     }
 
-    private boolean isDetailArrowHovered(int mouseX, int mouseY) {
+    private boolean isDetailArrowHovered(PreferredMaterialCategory category, int mouseX, int mouseY) {
         int arrowX = this.detailArrowX();
-        int rowTop = this.preferenceToggleRowTop();
+        int rowTop = this.preferenceToggleRowTop(category);
         return mouseX >= arrowX
                 && mouseX < arrowX + ARROW_SLOT_WIDTH
                 && mouseY >= rowTop
@@ -511,51 +537,65 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
         return valueX + CONFIG_WIDTH + 2 + resetWidth + 2;
     }
 
-    private int preferenceToggleRowTop() {
+    private int preferenceToggleRowTop(PreferredMaterialCategory category) {
+        if (this.getListWidget() == null) {
+            return 77;
+        }
+        List<ConfigOptionWrapper> entries = this.getListWidget().getCurrentEntries();
+        for (int index = 0; index < entries.size(); index++) {
+            if (entries.get(index).getConfig() == this.preferenceToggle(category)) {
+                return 77 + index * 22;
+            }
+        }
         return 77;
     }
 
+    private int detailTop() {
+        int entryCount = this.getListWidget() == null ? 0 : this.getListWidget().getCurrentEntries().size();
+        return Math.max(DETAIL_TOP, 77 + entryCount * 22 + 5);
+    }
+
     private int detailFullBottom() {
-        return Math.max(DETAIL_TOP, this.field_22790 - DETAIL_BOTTOM_MARGIN);
+        return Math.max(this.detailTop(), this.field_22790 - DETAIL_BOTTOM_MARGIN);
     }
 
     private int detailVisibleBottom() {
-        int fullHeight = this.detailFullBottom() - DETAIL_TOP;
-        return DETAIL_TOP + Math.round(fullHeight * this.detailProgress());
+        int detailTop = this.detailTop();
+        int fullHeight = this.detailFullBottom() - detailTop;
+        return detailTop + Math.round(fullHeight * this.detailProgress());
     }
 
-    private void updateDetailScrollRange(int viewportHeight) {
-        this.detailScrollBar.setMaxValue(Math.max(0, this.detailContentHeight() - Math.max(1, viewportHeight)));
+    private void updateDetailScrollRange(int viewportHeight, List<RowState> visibleRows) {
+        this.detailScrollBar.setMaxValue(Math.max(0, this.detailContentHeight(visibleRows) - Math.max(1, viewportHeight)));
     }
 
-    private int detailContentHeight() {
-        return this.rows.isEmpty()
+    private int detailContentHeight(List<RowState> visibleRows) {
+        return visibleRows.isEmpty()
                 ? DETAIL_ROW_HEIGHT
-                : this.rows.size() * (DETAIL_ROW_HEIGHT + DETAIL_ROW_GAP) - DETAIL_ROW_GAP;
+                : visibleRows.size() * (DETAIL_ROW_HEIGHT + DETAIL_ROW_GAP) - DETAIL_ROW_GAP;
     }
 
     private void rebuildRowsIfNeeded() {
-        boolean enabled = Configs.ConfigForms.PREFERRED_WOOD_ENABLED.getBooleanValue();
-        WoodFamily family = this.currentWoodFamily();
-        if (this.rowsWoodEnabled != enabled || this.rowsWoodFamily != family) {
+        if (!PreferenceSnapshot.current().equals(this.rowsSnapshot)) {
             this.rebuildRows();
         }
     }
 
     private void rebuildRows() {
         this.rows.clear();
-        this.rowsWoodEnabled = Configs.ConfigForms.PREFERRED_WOOD_ENABLED.getBooleanValue();
-        this.rowsWoodFamily = this.currentWoodFamily();
-        if (this.rowsWoodEnabled && this.schematic != null) {
-            for (ReplacementRow row : PreferredSchematicReplacement.scan(this.schematic, this.rowsWoodFamily)) {
+        this.rowsSnapshot = PreferenceSnapshot.current();
+        if (this.rowsSnapshot.anyEnabled() && this.schematic != null) {
+            for (ReplacementRow row : PreferredSchematicReplacement.scan(this.schematic, this.rowsSnapshot.targets())) {
                 this.rows.add(new RowState(row));
             }
         }
         this.detailScrollBar.setValue(0);
     }
 
-    private WoodFamily currentWoodFamily() {
-        return (WoodFamily) Configs.ConfigForms.PREFERRED_WOOD_FAMILY.getOptionListValue();
+    private List<RowState> visibleRows() {
+        return this.rows.stream()
+                .filter(row -> this.detailProgress(row.row.category()) > 0.001F)
+                .toList();
     }
 
     @Override
@@ -570,7 +610,7 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
         this.getListWidget().applyPendingModifications();
         Configs.saveToFile();
 
-        if (this.schematic == null || !Configs.ConfigForms.PREFERRED_WOOD_ENABLED.getBooleanValue()) {
+        if (this.schematic == null || !PreferenceSnapshot.current().anyEnabled()) {
             this.closingConfirmed = true;
             this.field_22787.method_1507(this.materialListParent);
             return;
@@ -603,8 +643,7 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
     }
 
     private void restoreInitialPreferences() {
-        Configs.ConfigForms.PREFERRED_WOOD_ENABLED.setBooleanValue(this.initialWoodEnabled);
-        Configs.ConfigForms.PREFERRED_WOOD_FAMILY.setOptionListValue(this.initialWoodFamily);
+        this.initialPreferences.restore();
         Configs.saveToFile();
     }
 
@@ -618,6 +657,19 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
         return name + "_preferred";
     }
 
+    private IConfigBoolean preferenceToggle(PreferredMaterialCategory category) {
+        return switch (category) {
+            case WOOD -> Configs.ConfigForms.PREFERRED_WOOD_ENABLED;
+            case GLASS -> Configs.ConfigForms.PREFERRED_GLASS_ENABLED;
+            case CARPET -> Configs.ConfigForms.PREFERRED_CARPET_ENABLED;
+            case TERRACOTTA -> Configs.ConfigForms.PREFERRED_TERRACOTTA_ENABLED;
+        };
+    }
+
+    private String detailAnimationKey(PreferredMaterialCategory category) {
+        return DETAIL_ANIMATION_KEY_PREFIX + category.name().toLowerCase(java.util.Locale.ROOT);
+    }
+
     private static SchematicPlacement resolvePlacement(MaterialListBase materialList) {
         if (materialList instanceof ChunkMissingMaterialList list) {
             return list.placement();
@@ -626,6 +678,61 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
             return access.lmlp$getPlacement();
         }
         return null;
+    }
+
+    private record PreferenceSnapshot(
+            boolean woodEnabled,
+            WoodFamily wood,
+            boolean glassEnabled,
+            GlassMaterial glass,
+            boolean carpetEnabled,
+            CarpetMaterial carpet,
+            boolean terracottaEnabled,
+            TerracottaMaterial terracotta) {
+
+        private static PreferenceSnapshot current() {
+            return new PreferenceSnapshot(
+                    Configs.ConfigForms.PREFERRED_WOOD_ENABLED.getBooleanValue(),
+                    (WoodFamily) Configs.ConfigForms.PREFERRED_WOOD_FAMILY.getOptionListValue(),
+                    Configs.ConfigForms.PREFERRED_GLASS_ENABLED.getBooleanValue(),
+                    (GlassMaterial) Configs.ConfigForms.PREFERRED_GLASS_MATERIAL.getOptionListValue(),
+                    Configs.ConfigForms.PREFERRED_CARPET_ENABLED.getBooleanValue(),
+                    (CarpetMaterial) Configs.ConfigForms.PREFERRED_CARPET_MATERIAL.getOptionListValue(),
+                    Configs.ConfigForms.PREFERRED_TERRACOTTA_ENABLED.getBooleanValue(),
+                    (TerracottaMaterial) Configs.ConfigForms.PREFERRED_TERRACOTTA_MATERIAL.getOptionListValue());
+        }
+
+        private boolean enabled(PreferredMaterialCategory category) {
+            return switch (category) {
+                case WOOD -> this.woodEnabled;
+                case GLASS -> this.glassEnabled;
+                case CARPET -> this.carpetEnabled;
+                case TERRACOTTA -> this.terracottaEnabled;
+            };
+        }
+
+        private boolean anyEnabled() {
+            return this.woodEnabled || this.glassEnabled || this.carpetEnabled || this.terracottaEnabled;
+        }
+
+        private Targets targets() {
+            return new Targets(
+                    this.woodEnabled ? this.wood : null,
+                    this.glassEnabled ? this.glass : null,
+                    this.carpetEnabled ? this.carpet : null,
+                    this.terracottaEnabled ? this.terracotta : null);
+        }
+
+        private void restore() {
+            Configs.ConfigForms.PREFERRED_WOOD_ENABLED.setBooleanValue(this.woodEnabled);
+            Configs.ConfigForms.PREFERRED_WOOD_FAMILY.setOptionListValue(this.wood);
+            Configs.ConfigForms.PREFERRED_GLASS_ENABLED.setBooleanValue(this.glassEnabled);
+            Configs.ConfigForms.PREFERRED_GLASS_MATERIAL.setOptionListValue(this.glass);
+            Configs.ConfigForms.PREFERRED_CARPET_ENABLED.setBooleanValue(this.carpetEnabled);
+            Configs.ConfigForms.PREFERRED_CARPET_MATERIAL.setOptionListValue(this.carpet);
+            Configs.ConfigForms.PREFERRED_TERRACOTTA_ENABLED.setBooleanValue(this.terracottaEnabled);
+            Configs.ConfigForms.PREFERRED_TERRACOTTA_MATERIAL.setOptionListValue(this.terracotta);
+        }
     }
 
     private final class RowState {

@@ -7,8 +7,7 @@ import fi.dy.masa.malilib.gui.widgets.WidgetListConfigOptionsBase;
 import fi.dy.masa.malilib.render.GuiContext;
 import fi.dy.masa.malilib.render.RenderUtils;
 import fi.dy.masa.malilib.util.StringUtils;
-import io.github.huanmeng06.lmlp.config.Configs;
-import io.github.huanmeng06.lmlp.config.WoodFamily;
+import fi.dy.masa.malilib.config.IConfigOptionList;
 import net.minecraft.class_1792;
 import net.minecraft.class_1799;
 import net.minecraft.class_2960;
@@ -56,17 +55,20 @@ final class AnimatedPreferenceConfigOption extends WidgetConfigOption {
 
         context.method_44379(this.getX(), this.getY(), this.getX() + this.getWidth(), this.getY() + this.getHeight());
         super.render(context, mouseX, mouseY, selected);
-        this.renderSelectedWoodIcon(context);
+        this.renderSelectedMaterialIcon(context);
         context.method_44380();
     }
 
-    private void renderSelectedWoodIcon(GuiContext context) {
-        if (this.wrapper.getConfig() != Configs.ConfigForms.PREFERRED_WOOD_FAMILY) {
+    private void renderSelectedMaterialIcon(GuiContext context) {
+        if (!(this.wrapper.getConfig() instanceof IConfigOptionList optionList)) {
             return;
         }
 
-        WoodFamily family = (WoodFamily) Configs.ConfigForms.PREFERRED_WOOD_FAMILY.getOptionListValue();
-        class_2960 itemId = class_2960.method_60654(RestrictedJeiOptionListConfigs.representativeItemId(family));
+        RestrictedJeiOptionListConfigs.Definition definition = RestrictedJeiOptionListConfigs.find(optionList);
+        if (definition == null || definition.selectedItemId().isEmpty()) {
+            return;
+        }
+        class_2960 itemId = class_2960.method_60654(definition.selectedItemId());
         class_1792 item = class_7923.field_41178.method_17966(itemId).orElse(null);
         if (item == null) {
             return;
