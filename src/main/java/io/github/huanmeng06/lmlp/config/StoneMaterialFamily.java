@@ -5,6 +5,7 @@ import fi.dy.masa.malilib.util.StringUtils;
 
 public enum StoneMaterialFamily implements IConfigOptionListEntry {
     STONE("stone", "minecraft:stone"),
+    COBBLESTONE("cobblestone", "minecraft:cobblestone"),
     SMOOTH_STONE("smooth_stone", "minecraft:smooth_stone"),
     GRANITE("granite", "minecraft:granite"),
     DIORITE("diorite", "minecraft:diorite"),

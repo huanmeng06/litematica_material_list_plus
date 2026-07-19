@@ -139,6 +139,7 @@
   "lmlp.config.name.preferred_glazed_terracotta_material": "目標帶釉陶瓦",
   "lmlp.config.comment.preferred_glazed_terracotta_material": "只會替換其他帶釉陶瓦，並保留原有朝向。",
   "lmlp.stone_family.stone": "石頭",
+  "lmlp.stone_family.cobblestone": "圓石",
   "lmlp.stone_family.smooth_stone": "平滑石頭",
   "lmlp.stone_family.granite": "花崗岩",
   "lmlp.stone_family.diorite": "閃長岩",

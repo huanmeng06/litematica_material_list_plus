@@ -18,6 +18,7 @@ public final class StoneMaterialMappings {
 
     static {
         registerStone();
+        registerCobblestone();
         registerSmoothStone();
         registerGranite();
         registerDiorite();
@@ -94,6 +95,22 @@ public final class StoneMaterialMappings {
                 "granite_wall",
                 "polished_granite_stairs",
                 "polished_granite_slab");
+    }
+
+    private static void registerCobblestone() {
+        Palette palette = palette(StoneMaterialFamily.COBBLESTONE);
+        target(palette, Role.RAW_BLOCK, "cobblestone");
+        target(palette, Role.RAW_STAIRS, "cobblestone_stairs");
+        target(palette, Role.RAW_SLAB, "cobblestone_slab");
+        target(palette, Role.RAW_WALL, "cobblestone_wall");
+        target(palette, Role.COBBLED_BLOCK, "cobblestone");
+        target(palette, Role.COBBLED_STAIRS, "cobblestone_stairs");
+        target(palette, Role.COBBLED_SLAB, "cobblestone_slab");
+        target(palette, Role.COBBLED_WALL, "cobblestone_wall");
+        fallback(palette, Shape.BLOCK, "cobblestone");
+        fallback(palette, Shape.STAIRS, "cobblestone_stairs");
+        fallback(palette, Shape.SLAB, "cobblestone_slab");
+        fallback(palette, Shape.WALL, "cobblestone_wall");
     }
 
     private static void registerSmoothStone() {
