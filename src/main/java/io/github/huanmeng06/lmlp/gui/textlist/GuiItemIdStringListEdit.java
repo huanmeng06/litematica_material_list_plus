@@ -24,11 +24,14 @@ import org.lwjgl.glfw.GLFW;
 
 import java.text.Collator;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
+import java.util.function.Consumer;
 
 public class GuiItemIdStringListEdit extends GuiListBase<String, WidgetItemIdStringListEditEntry, WidgetListItemIdStringListEdit> {
     private static final int PANEL_MARGIN_X = 42;
@@ -50,6 +53,8 @@ public class GuiItemIdStringListEdit extends GuiListBase<String, WidgetItemIdStr
     private final IConfigStringList config;
     private final IConfigGui configGui;
     private final IDialogHandler dialogHandler;
+    private final Set<String> candidateWhitelist;
+    private final Consumer<String> directSelectionHandler;
     private final List<String> editorEntries = new ArrayList<>();
     private final GuiScrollBar pickerScrollBar = new GuiScrollBar();
     private final ButtonGeneric pickerCloseButton = new ButtonGeneric(0, 0, 92, 20, "");
@@ -76,12 +81,28 @@ public class GuiItemIdStringListEdit extends GuiListBase<String, WidgetItemIdStr
     private double pickerScrollRemainder;
 
     public GuiItemIdStringListEdit(IConfigStringList config, IConfigGui configGui, IDialogHandler dialogHandler, class_437 parent) {
+        this(config, configGui, dialogHandler, parent, null, null);
+    }
+
+    private GuiItemIdStringListEdit(
+            IConfigStringList config,
+            IConfigGui configGui,
+            IDialogHandler dialogHandler,
+            class_437 parent,
+            Collection<String> candidateWhitelist,
+            Consumer<String> directSelectionHandler) {
         super(0, 0);
         this.config = config;
         this.configGui = configGui;
         this.dialogHandler = dialogHandler;
-        this.editorEntries.addAll(config.getStrings());
-        this.title = StringUtils.translate("malilib.gui.title.string_list_edit", config.getName());
+        this.candidateWhitelist = candidateWhitelist == null ? null : Set.copyOf(candidateWhitelist);
+        this.directSelectionHandler = directSelectionHandler;
+        if (config != null) {
+            this.editorEntries.addAll(config.getStrings());
+            this.title = StringUtils.translate("malilib.gui.title.string_list_edit", config.getName());
+        } else {
+            this.title = StringUtils.translate("lmlp.gui.item_id_picker.title");
+        }
         this.pickerCloseButton.setDisplayString(StringUtils.translate("lmlp.gui.button.item_id_picker.close"));
         this.pickerCloseButton.setTextCentered(true);
         this.pickerCloseButton.setActionListener((button, mouseButton) -> this.closeItemPicker());
@@ -91,9 +112,28 @@ public class GuiItemIdStringListEdit extends GuiListBase<String, WidgetItemIdStr
         this.backButton.setDisplayString(StringUtils.translate("lmlp.gui.button.item_id_picker.close"));
         this.backButton.setTextCentered(true);
         this.backButton.setActionListener((button, mouseButton) -> this.closeEditor());
+        if (directSelectionHandler != null) {
+            this.pickerOpen = true;
+            this.pickerSearchFocused = true;
+        }
         if (dialogHandler == null) {
             this.setParent(parent);
         }
+    }
+
+    /** Opens the same JEI picker used by item-ID list fields, restricted to the supplied IDs. */
+    public static GuiItemIdStringListEdit createRestrictedPicker(
+            Collection<String> allowedItemIds,
+            Consumer<String> selectionHandler,
+            class_437 parent) {
+        return new GuiItemIdStringListEdit(
+                null,
+                null,
+                null,
+                parent,
+                allowedItemIds,
+                selectionHandler
+        );
     }
 
     public IConfigStringList getConfig() {
@@ -128,6 +168,10 @@ public class GuiItemIdStringListEdit extends GuiListBase<String, WidgetItemIdStr
         this.setWidthAndHeight();
         this.reCreateListWidget();
         super.initGui();
+        if (this.pickerOpen && this.allCandidates.isEmpty()) {
+            this.reloadCandidates();
+            this.updateFilteredCandidates();
+        }
     }
 
     @Override
@@ -154,7 +198,9 @@ public class GuiItemIdStringListEdit extends GuiListBase<String, WidgetItemIdStr
 
     @Override
     public void method_25432() {
-        this.saveEditorEntries();
+        if (this.directSelectionHandler == null) {
+            this.saveEditorEntries();
+        }
         super.method_25432();
     }
 
@@ -337,6 +383,11 @@ public class GuiItemIdStringListEdit extends GuiListBase<String, WidgetItemIdStr
     }
 
     private void closeEditor() {
+        if (this.directSelectionHandler != null) {
+            this.closeGui(true);
+            return;
+        }
+
         this.saveEditorEntries();
         if (this.dialogHandler != null) {
             this.dialogHandler.closeDialog();
@@ -346,6 +397,10 @@ public class GuiItemIdStringListEdit extends GuiListBase<String, WidgetItemIdStr
     }
 
     private void saveEditorEntries() {
+        if (this.config == null || this.configGui == null) {
+            return;
+        }
+
         WidgetListItemIdStringListEdit list = this.getListWidget();
         if (list != null) {
             list.applyPendingModifications();
@@ -356,6 +411,11 @@ public class GuiItemIdStringListEdit extends GuiListBase<String, WidgetItemIdStr
     }
 
     private void closeItemPicker() {
+        if (this.directSelectionHandler != null) {
+            this.closeGui(true);
+            return;
+        }
+
         this.pickerOpen = false;
         this.pickerTarget = null;
         this.pickerSearchFocused = false;
@@ -379,6 +439,9 @@ public class GuiItemIdStringListEdit extends GuiListBase<String, WidgetItemIdStr
                 continue;
             }
             String id = ItemStackTexts.id(stack);
+            if (this.candidateWhitelist != null && !this.candidateWhitelist.contains(id)) {
+                continue;
+            }
             String name = ItemStackTexts.name(stack);
             byId.putIfAbsent(id, new Candidate(
                     stack.method_7972(),
@@ -502,10 +565,18 @@ public class GuiItemIdStringListEdit extends GuiListBase<String, WidgetItemIdStr
         searchField.method_25365(false);
 
         int index = this.pickerIndexAt(layout, mouseX, mouseY);
-        if (index >= 0 && this.pickerTarget != null) {
-            this.pickerTarget.setSelectedItemId(this.filteredCandidates.get(index).id());
-            this.closeItemPicker();
-            return true;
+        if (index >= 0) {
+            String selectedId = this.filteredCandidates.get(index).id();
+            if (this.directSelectionHandler != null) {
+                this.directSelectionHandler.accept(selectedId);
+                this.closeGui(true);
+                return true;
+            }
+            if (this.pickerTarget != null) {
+                this.pickerTarget.setSelectedItemId(selectedId);
+                this.closeItemPicker();
+                return true;
+            }
         }
 
         if (this.pickerScrollBar.wasMouseOver()) {
