@@ -58,6 +58,7 @@ public abstract class WidgetListBaseMixin implements WidgetListBoundsAccess {
     private long lmlp$lastLayoutMinimalSubMaterialRevision = Long.MIN_VALUE;
     private String lmlp$lastMaterialDataSignature = "";
     private double lmlp$scrollRemainder;
+    private boolean lmlp$pinScrollToBottom;
     // Frame-scoped memo of per-entry scroll-target heights. An entry's target
     // height is constant within a single frame (it depends on expansion state /
     // panel width, which only change via input that also re-lays the list), so
@@ -235,6 +236,7 @@ public abstract class WidgetListBaseMixin implements WidgetListBoundsAccess {
         }
 
         if (pixels != 0) {
+            this.lmlp$pinScrollToBottom = false;
             this.scrollBar.offsetValue(pixels);
             this.lastScrollbarPosition = this.scrollBar.getValue();
             this.reCreateListEntryWidgets();
@@ -257,6 +259,9 @@ public abstract class WidgetListBaseMixin implements WidgetListBoundsAccess {
         int scrollbarX = this.posX + this.browserWidth - 9;
         int scrollbarY = this.browserEntriesStartY + this.browserEntriesOffsetY;
         this.scrollBar.setMaxValue(this.lmlp$getPixelScrollbarMaxValue(0));
+        if (this.lmlp$pinScrollToBottom) {
+            this.scrollBar.setValue(this.lmlp$getPixelScrollbarMaxValue(0));
+        }
         this.scrollBar.render(drawContext, mouseX, mouseY, partialTicks, scrollbarX, scrollbarY, 8, this.lmlp$getListViewportHeight(), contentHeight);
 
         if (this.scrollBar.getValue() != this.lastScrollbarPosition) {
@@ -400,6 +405,7 @@ public abstract class WidgetListBaseMixin implements WidgetListBoundsAccess {
     @Overwrite
     protected void offsetSelectionOrScrollbar(int amount, boolean moveSelection) {
         if (!moveSelection) {
+            this.lmlp$pinScrollToBottom = false;
             this.scrollBar.offsetValue(amount * WHEEL_SCROLL_PIXELS / 3);
             this.reCreateListEntryWidgets();
             return;
@@ -416,6 +422,7 @@ public abstract class WidgetListBaseMixin implements WidgetListBoundsAccess {
         }
 
         int nextIndex = Math.max(0, Math.min(size - 1, selectedIndex + amount));
+        this.lmlp$pinScrollToBottom = false;
         this.setLastSelectedEntry(this.listContents.get(nextIndex), nextIndex);
         this.lmlp$scrollEntryIndexIntoView(nextIndex, 0);
         this.reCreateListEntryWidgets();
@@ -447,8 +454,14 @@ public abstract class WidgetListBaseMixin implements WidgetListBoundsAccess {
             return;
         }
 
+        this.lmlp$pinScrollToBottom = targetIndex == this.listContents.size() - 1;
+        this.lmlp$frameEntryHeights.clear();
         int previousScroll = this.scrollBar.getValue();
-        this.lmlp$scrollEntryIndexIntoView(targetIndex, bottomPadding);
+        if (this.lmlp$pinScrollToBottom) {
+            this.scrollBar.setValue(this.lmlp$getPixelScrollbarMaxValue(0));
+        } else {
+            this.lmlp$scrollEntryIndexIntoView(targetIndex, bottomPadding);
+        }
         if (this.scrollBar.getValue() != previousScroll) {
             this.reCreateListEntryWidgets();
         }
