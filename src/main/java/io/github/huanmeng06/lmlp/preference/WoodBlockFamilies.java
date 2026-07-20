@@ -2,8 +2,10 @@ package io.github.huanmeng06.lmlp.preference;
 
 import io.github.huanmeng06.lmlp.config.WoodFamily;
 
+import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 final class WoodBlockFamilies {
@@ -38,7 +40,30 @@ final class WoodBlockFamilies {
             return null;
         }
         String targetId = IDS_BY_FAMILY.get(targetFamily).get(kind);
-        return new ReplacementTarget(kind, targetId);
+        return new ReplacementTarget(kind, targetId, displayItemId(targetFamily, kind, targetId));
+    }
+
+    static List<ReplacementTarget> targetsForSource(String sourceId) {
+        BlockKind kind = KINDS_BY_ID.get(sourceId);
+        if (kind == null) {
+            return List.of();
+        }
+        List<ReplacementTarget> targets = new ArrayList<>();
+        for (WoodFamily family : WoodFamily.values()) {
+            String targetId = IDS_BY_FAMILY.get(family).get(kind);
+            if (targetId != null) {
+                targets.add(new ReplacementTarget(kind, targetId, displayItemId(family, kind, targetId)));
+            }
+        }
+        return List.copyOf(targets);
+    }
+
+    private static String displayItemId(WoodFamily family, BlockKind kind, String blockId) {
+        return switch (kind) {
+            case WALL_SIGN -> IDS_BY_FAMILY.get(family).get(BlockKind.SIGN);
+            case WALL_HANGING_SIGN -> IDS_BY_FAMILY.get(family).get(BlockKind.HANGING_SIGN);
+            default -> blockId;
+        };
     }
 
     private static void registerRegular(WoodFamily family) {
@@ -120,6 +145,6 @@ final class WoodBlockFamilies {
         MOSAIC_STAIRS
     }
 
-    record ReplacementTarget(BlockKind kind, String blockId) {
+    record ReplacementTarget(BlockKind kind, String blockId, String itemId) {
     }
 }

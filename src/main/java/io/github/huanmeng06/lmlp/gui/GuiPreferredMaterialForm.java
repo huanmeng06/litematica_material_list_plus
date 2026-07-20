@@ -24,6 +24,7 @@ import io.github.huanmeng06.lmlp.config.TerracottaMaterial;
 import io.github.huanmeng06.lmlp.config.WoodFamily;
 import io.github.huanmeng06.lmlp.preference.PreferredSchematicReplacement;
 import io.github.huanmeng06.lmlp.preference.PreferredSchematicReplacement.PreferredMaterialCategory;
+import io.github.huanmeng06.lmlp.preference.PreferredSchematicReplacement.ReplacementCandidate;
 import io.github.huanmeng06.lmlp.preference.PreferredSchematicReplacement.ReplacementMode;
 import io.github.huanmeng06.lmlp.preference.PreferredSchematicReplacement.ReplacementRow;
 import io.github.huanmeng06.lmlp.preference.PreferredSchematicReplacement.Targets;
@@ -381,7 +382,7 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
                 false
         );
         context.method_51433(this.field_22793, arrow, arrowX, y + 7, 0xFFFFFFFF, false);
-        boolean targetHovered = !row.row.allowedTargetIds().isEmpty()
+        boolean targetHovered = !row.row.allowedTargets().isEmpty()
                 && mouseX >= targetIconX - 2
                 && mouseX < mappingRight
                 && mouseY >= y
@@ -469,13 +470,12 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
 
     private boolean clickDetailTargetPicker(int mouseX, int mouseY) {
         for (RowState row : this.renderedRows) {
-            if (row.row.category() == PreferredMaterialCategory.STONE
-                    && row.targetBounds != null
+            if (row.targetBounds != null
                     && row.targetBounds.contains(mouseX, mouseY)
-                    && !row.row.allowedTargetIds().isEmpty()) {
+                    && !row.row.allowedTargets().isEmpty()) {
                 GuiItemIdStringListEdit picker = GuiItemIdStringListEdit.createRestrictedPicker(
-                        row.row.allowedTargetIds(),
-                        row::selectTarget,
+                        row.row.allowedTargets().stream().map(ReplacementCandidate::itemId).toList(),
+                        row::selectTargetItem,
                         this);
                 GuiBase.openGui(picker);
                 return true;
@@ -646,6 +646,22 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
         return null;
     }
 
+    boolean hasCustomTargetsForConfig(fi.dy.masa.malilib.config.IConfigBase config) {
+        PreferredMaterialCategory category = this.categoryForTarget(config);
+        return category != null && this.rows.stream()
+                .anyMatch(row -> row.row.category() == category && row.customTarget);
+    }
+
+    void resetCustomTargetsForConfig(fi.dy.masa.malilib.config.IConfigBase config) {
+        PreferredMaterialCategory category = this.categoryForTarget(config);
+        if (category == null) {
+            return;
+        }
+        this.rows.stream()
+                .filter(row -> row.row.category() == category)
+                .forEach(RowState::resetTarget);
+    }
+
     private String detailAnimationKey(PreferredMaterialCategory category) {
         return DETAIL_ANIMATION_KEY_PREFIX + category.name().toLowerCase(java.util.Locale.ROOT);
     }
@@ -748,6 +764,11 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
     private final class RowState {
         private final ReplacementRow row;
         private final ButtonGeneric button = new ButtonGeneric(0, 0, DETAIL_ACTION_WIDTH, 20, "");
+        private final String automaticTargetId;
+        private final class_2248 automaticTargetBlock;
+        private final String automaticTargetName;
+        private final boolean automaticTargetExact;
+        private final ReplacementMode automaticMode;
         private String targetId;
         private class_2248 targetBlock;
         private String targetName;
@@ -758,13 +779,18 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
 
         private RowState(ReplacementRow row) {
             this.row = row;
+            this.automaticTargetId = row.targetId();
+            this.automaticTargetBlock = row.targetBlock();
+            this.automaticTargetName = row.targetName();
+            this.automaticTargetExact = row.exact();
+            this.automaticMode = this.automaticTargetBlock != null && this.automaticTargetExact
+                    ? ReplacementMode.REPLACE
+                    : ReplacementMode.SKIP;
             this.targetId = row.targetId();
             this.targetBlock = row.targetBlock();
             this.targetName = row.targetName();
             this.targetExact = row.exact();
-            this.mode = this.targetBlock != null && this.targetExact
-                    ? ReplacementMode.REPLACE
-                    : ReplacementMode.SKIP;
+            this.mode = this.automaticMode;
             this.button.setTextCentered(true);
             this.button.setActionListener((button, mouseButton) -> this.cycle());
             this.updateButton();
@@ -778,19 +804,43 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
             return this.targetName;
         }
 
-        private void selectTarget(String itemId) {
+        private void selectTargetItem(String itemId) {
+            String selectedTargetId = this.row.allowedTargets().stream()
+                    .filter(candidate -> candidate.itemId().equals(itemId))
+                    .map(ReplacementCandidate::targetId)
+                    .findFirst()
+                    .orElse(null);
+            if (selectedTargetId == null) {
+                return;
+            }
+            this.selectTarget(selectedTargetId);
+        }
+
+        private void selectTarget(String targetId) {
             class_2248 selected = class_7923.field_41175
-                    .method_17966(class_2960.method_60654(itemId))
+                    .method_17966(class_2960.method_60654(targetId))
                     .orElse(null);
             if (selected == null) {
                 return;
             }
-            this.targetId = itemId;
+            this.targetId = targetId;
             this.targetBlock = selected;
             this.targetName = selected.method_9518().getString();
             this.targetExact = PreferredSchematicReplacement.isExactReplacement(this.row.sourceBlock(), selected);
-            this.customTarget = true;
-            this.mode = this.targetExact ? ReplacementMode.REPLACE : ReplacementMode.SKIP;
+            this.customTarget = !targetId.equals(this.automaticTargetId);
+            this.mode = this.customTarget
+                    ? this.targetExact ? ReplacementMode.REPLACE : ReplacementMode.SKIP
+                    : this.automaticMode;
+            this.updateButton();
+        }
+
+        private void resetTarget() {
+            this.targetId = this.automaticTargetId;
+            this.targetBlock = this.automaticTargetBlock;
+            this.targetName = this.automaticTargetName;
+            this.targetExact = this.automaticTargetExact;
+            this.customTarget = false;
+            this.mode = this.automaticMode;
             this.updateButton();
         }
 

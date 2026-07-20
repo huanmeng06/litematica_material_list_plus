@@ -1,17 +1,20 @@
 package io.github.huanmeng06.lmlp.gui;
 
+import fi.dy.masa.malilib.config.IConfigOptionList;
+import fi.dy.masa.malilib.config.IConfigResettable;
 import fi.dy.masa.malilib.gui.GuiConfigsBase;
+import fi.dy.masa.malilib.gui.button.ButtonGeneric;
 import fi.dy.masa.malilib.gui.interfaces.IKeybindConfigGui;
 import fi.dy.masa.malilib.gui.widgets.WidgetConfigOption;
 import fi.dy.masa.malilib.gui.widgets.WidgetListConfigOptionsBase;
 import fi.dy.masa.malilib.render.GuiContext;
 import fi.dy.masa.malilib.render.RenderUtils;
 import fi.dy.masa.malilib.util.StringUtils;
-import fi.dy.masa.malilib.config.IConfigOptionList;
 import net.minecraft.class_1792;
 import net.minecraft.class_1799;
 import net.minecraft.class_2960;
 import net.minecraft.class_7923;
+import net.minecraft.class_11909;
 
 /** Clips a standard MaLiLib config row while its owning preference group expands or collapses. */
 final class AnimatedPreferenceConfigOption extends WidgetConfigOption {
@@ -24,6 +27,8 @@ final class AnimatedPreferenceConfigOption extends WidgetConfigOption {
     private final int valueX;
     private final int configWidth;
     private final IKeybindConfigGui host;
+    private ButtonGeneric resetButton;
+    private IConfigResettable resetConfig;
 
     AnimatedPreferenceConfigOption(
             int x,
@@ -48,6 +53,25 @@ final class AnimatedPreferenceConfigOption extends WidgetConfigOption {
     }
 
     @Override
+    protected ButtonGeneric createResetButton(int x, int y, IConfigResettable config) {
+        ButtonGeneric button = super.createResetButton(x, y, config);
+        this.resetButton = button;
+        this.resetConfig = config;
+        return button;
+    }
+
+    @Override
+    protected boolean onMouseClickedImpl(class_11909 mouseClick, boolean doubleClick) {
+        boolean resetHovered = this.resetButton != null
+                && this.resetButton.isMouseOver((int) mouseClick.comp_4798(), (int) mouseClick.comp_4799());
+        boolean handled = super.onMouseClickedImpl(mouseClick, doubleClick);
+        if (handled && resetHovered && this.host instanceof GuiPreferredMaterialForm form) {
+            form.resetCustomTargetsForConfig(this.wrapper.getConfig());
+        }
+        return handled;
+    }
+
+    @Override
     public boolean isMouseOver(int mouseX, int mouseY) {
         return this.configVisibleHeight >= this.fullHeight
                 && mouseY < this.getY() + this.fullHeight
@@ -56,6 +80,12 @@ final class AnimatedPreferenceConfigOption extends WidgetConfigOption {
 
     @Override
     public void render(GuiContext context, int mouseX, int mouseY, boolean selected) {
+        if (this.resetButton != null
+                && this.resetConfig != null
+                && this.host instanceof GuiPreferredMaterialForm form) {
+            this.resetButton.setEnabled(
+                    this.resetConfig.isModified() || form.hasCustomTargetsForConfig(this.wrapper.getConfig()));
+        }
         if (this.getHeight() <= 0 || this.configVisibleHeight <= 0) {
             return;
         }
