@@ -2,7 +2,10 @@ package io.github.huanmeng06.lmlp.gui;
 
 import fi.dy.masa.malilib.config.IConfigOptionList;
 import fi.dy.masa.malilib.config.IConfigResettable;
+import fi.dy.masa.malilib.config.gui.ConfigOptionChangeListenerButton;
+import fi.dy.masa.malilib.config.gui.ConfigOptionListenerResetConfig;
 import fi.dy.masa.malilib.gui.GuiConfigsBase;
+import fi.dy.masa.malilib.gui.button.ButtonBase;
 import fi.dy.masa.malilib.gui.button.ButtonGeneric;
 import fi.dy.masa.malilib.gui.interfaces.IKeybindConfigGui;
 import fi.dy.masa.malilib.gui.widgets.WidgetConfigOption;
@@ -14,7 +17,6 @@ import net.minecraft.class_1792;
 import net.minecraft.class_1799;
 import net.minecraft.class_2960;
 import net.minecraft.class_7923;
-import net.minecraft.class_11909;
 
 /** Clips a standard MaLiLib config row while its owning preference group expands or collapses. */
 final class AnimatedPreferenceConfigOption extends WidgetConfigOption {
@@ -61,14 +63,29 @@ final class AnimatedPreferenceConfigOption extends WidgetConfigOption {
     }
 
     @Override
-    protected boolean onMouseClickedImpl(class_11909 mouseClick, boolean doubleClick) {
-        boolean resetHovered = this.resetButton != null
-                && this.resetButton.isMouseOver((int) mouseClick.comp_4798(), (int) mouseClick.comp_4799());
-        boolean handled = super.onMouseClickedImpl(mouseClick, doubleClick);
-        if (handled && resetHovered && this.host instanceof GuiPreferredMaterialForm form) {
-            form.resetCustomTargetsForConfig(this.wrapper.getConfig());
-        }
-        return handled;
+    protected void addConfigButtonEntry(
+            int resetX,
+            int y,
+            IConfigResettable config,
+            ButtonBase valueButton) {
+        ButtonGeneric reset = this.createResetButton(resetX, y, config);
+        ConfigOptionChangeListenerButton valueListener =
+                new ConfigOptionChangeListenerButton(config, reset, null);
+        ConfigOptionListenerResetConfig nativeResetListener = new ConfigOptionListenerResetConfig(
+                config,
+                new ConfigOptionListenerResetConfig.ConfigResetterButton(valueButton),
+                reset,
+                null);
+
+        this.addButton(valueButton, valueListener);
+        this.addButton(reset, (button, mouseButton) -> {
+            nativeResetListener.actionPerformedWithButton(button, mouseButton);
+            if (this.host instanceof GuiPreferredMaterialForm form) {
+                form.resetCustomTargetsForConfig(this.wrapper.getConfig());
+                reset.setEnabled(
+                        config.isModified() || form.hasCustomTargetsForConfig(this.wrapper.getConfig()));
+            }
+        });
     }
 
     @Override
