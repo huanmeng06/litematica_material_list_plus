@@ -20,6 +20,7 @@ import io.github.huanmeng06.lmlp.gui.ItemTooltipRenderer;
 import io.github.huanmeng06.lmlp.material.ItemStackTexts;
 import io.github.huanmeng06.lmlp.gui.MinimalSubMaterialListView;
 import io.github.huanmeng06.lmlp.gui.MinimalSourceInlineRenderer;
+import io.github.huanmeng06.lmlp.gui.MaterialListSortState;
 import io.github.huanmeng06.lmlp.gui.RecipeDetailScreen;
 import io.github.huanmeng06.lmlp.gui.RecipeInlineRenderer;
 import io.github.huanmeng06.lmlp.material.CountFormatter;
@@ -33,6 +34,9 @@ import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Overwrite;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.util.List;
 
@@ -59,7 +63,9 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
     private static final int COUNT_COLUMN_SAFETY_PADDING = 32;
     private static int lmlpMaxTotalDigits;
     private static int lmlpMaxMissingDigits;
+    private static int lmlpMaxCompatibleDigits;
     private static int lmlpMaxAvailableDigits;
+    private static int lmlpMaxCompatibleLength;
     @Shadow
     private static int maxNameLength;
     @Shadow
@@ -98,27 +104,50 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         super(x, y, width, height, entry, listIndex);
     }
 
+    @Inject(method = "<init>", at = @At("TAIL"))
+    private void lmlp$setColumnCount(
+            int x,
+            int y,
+            int width,
+            int height,
+            boolean isOdd,
+            MaterialListBase materialList,
+            MaterialListEntry entry,
+            int listIndex,
+            WidgetListMaterialList listWidget,
+            CallbackInfo ci) {
+        this.columnCount = MinimalSubMaterialListView.isActive(materialList) ? 5 : 4;
+    }
+
     /**
      * @author Huan_meeng
      * @reason Recalculate material list columns using grouped total and missing count text.
      */
     @Overwrite
     public static void setMaxNameLength(List<MaterialListEntry> entries, int multiplier) {
+        boolean minimalView = entries.stream().anyMatch(MinimalSubMaterialListView::isMinimalEntry);
         maxNameLength = StringUtils.getStringWidth(GuiBase.TXT_BOLD + StringUtils.translate("litematica.gui.label.material_list.title.item") + GuiBase.TXT_RST);
         maxCountLength1 = StringUtils.getStringWidth(GuiBase.TXT_BOLD + StringUtils.translate("litematica.gui.label.material_list.title.total") + GuiBase.TXT_RST);
         maxCountLength2 = StringUtils.getStringWidth(GuiBase.TXT_BOLD + StringUtils.translate("litematica.gui.label.material_list.title.missing") + GuiBase.TXT_RST);
-        maxCountLength3 = StringUtils.getStringWidth(GuiBase.TXT_BOLD + StringUtils.translate("litematica.gui.label.material_list.title.available") + GuiBase.TXT_RST);
+        lmlpMaxCompatibleLength = minimalView
+                ? StringUtils.getStringWidth(GuiBase.TXT_BOLD + StringUtils.translate("lmlp.gui.material_list.title.compatible") + GuiBase.TXT_RST)
+                : 0;
+        maxCountLength3 = StringUtils.getStringWidth(GuiBase.TXT_BOLD + StringUtils.translate(
+                minimalView ? "lmlp.gui.material_list.title.allocated" : "litematica.gui.label.material_list.title.available") + GuiBase.TXT_RST);
         lmlpMaxTotalDigits = 1;
         lmlpMaxMissingDigits = 1;
+        lmlpMaxCompatibleDigits = 1;
         lmlpMaxAvailableDigits = 1;
 
         for (MaterialListEntry entry : entries) {
             int entryMultiplier = MinimalSubMaterialListView.isMinimalEntry(entry) ? 1 : multiplier;
             int total = entry.getCountTotal() * entryMultiplier;
             int missing = MinimalSubMaterialListView.netMissing(entry, multiplier);
+            int compatible = MinimalSubMaterialListView.compatibleCount(entry);
             int available = entry.getCountAvailable();
             lmlpMaxTotalDigits = Math.max(lmlpMaxTotalDigits, Integer.toString(total).length());
             lmlpMaxMissingDigits = Math.max(lmlpMaxMissingDigits, Integer.toString(missing).length());
+            lmlpMaxCompatibleDigits = Math.max(lmlpMaxCompatibleDigits, Integer.toString(compatible).length());
             lmlpMaxAvailableDigits = Math.max(lmlpMaxAvailableDigits, Integer.toString(available).length());
         }
 
@@ -126,6 +155,7 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
             int entryMultiplier = MinimalSubMaterialListView.isMinimalEntry(entry) ? 1 : multiplier;
             int total = entry.getCountTotal() * entryMultiplier;
             int missing = MinimalSubMaterialListView.netMissing(entry, multiplier);
+            int compatible = MinimalSubMaterialListView.compatibleCount(entry);
             int available = entry.getCountAvailable();
             String name = MinimalSubMaterialListView.widestDisplayName(entry);
 
@@ -133,6 +163,7 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
             for (class_1799 stack : MinimalSubMaterialListView.displayStacks(entry)) {
                 maxCountLength1 = Math.max(maxCountLength1, StringUtils.getStringWidth(CountFormatter.formatAligned(stack, total, lmlpMaxTotalDigits)));
                 maxCountLength2 = Math.max(maxCountLength2, StringUtils.getStringWidth(CountFormatter.formatAligned(stack, missing, lmlpMaxMissingDigits)));
+                lmlpMaxCompatibleLength = Math.max(lmlpMaxCompatibleLength, StringUtils.getStringWidth(CountFormatter.formatAligned(stack, compatible, lmlpMaxCompatibleDigits)));
                 maxCountLength3 = Math.max(maxCountLength3, StringUtils.getStringWidth(CountFormatter.formatAligned(stack, available, lmlpMaxAvailableDigits)));
             }
         }
@@ -141,7 +172,21 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
                 maxNameLength,
                 maxCountLength1 + COUNT_COLUMN_SAFETY_PADDING,
                 maxCountLength2 + COUNT_COLUMN_SAFETY_PADDING,
+                minimalView ? lmlpMaxCompatibleLength + COUNT_COLUMN_SAFETY_PADDING : 0,
                 maxCountLength3 + COUNT_COLUMN_SAFETY_PADDING);
+    }
+
+    @Overwrite
+    protected int getCurrentSortColumn() {
+        if (MaterialListSortState.isCompatibleSort(this.materialList)) {
+            return 3;
+        }
+
+        int column = this.materialList.getSortCriteria().ordinal();
+        return MinimalSubMaterialListView.isActive(this.materialList)
+                && column == MaterialListBase.SortCriteria.COUNT_AVAILABLE.ordinal()
+                ? 4
+                : column;
     }
 
     /**
@@ -152,6 +197,8 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
     protected int getColumnPosX(int column) {
         boolean totalVisible = MaterialListColumnLayout.isTotalVisible();
         boolean missingVisible = MaterialListColumnLayout.isMissingVisible();
+        boolean minimalView = MinimalSubMaterialListView.isActive(this.materialList);
+        boolean compatibleVisible = minimalView && MaterialListColumnLayout.isCompatibleVisible();
         boolean availableVisible = MaterialListColumnLayout.isAvailableVisible();
 
         int xItem = this.x + 4;
@@ -171,9 +218,18 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
             cursor += MaterialListColumnLayout.missingWidth();
         }
 
+        int xCompatible = cursor;
+        if (compatibleVisible) {
+            cursor += (totalVisible || missingVisible) ? MaterialListColumnLayout.countColumnGap() : MaterialListColumnLayout.nameToTotalGap();
+            xCompatible = cursor;
+            cursor += MaterialListColumnLayout.compatibleWidth();
+        }
+
         int xAvailable = cursor;
         if (availableVisible) {
-            cursor += (totalVisible || missingVisible) ? MaterialListColumnLayout.countColumnGap() : MaterialListColumnLayout.nameToTotalGap();
+            cursor += (totalVisible || missingVisible || compatibleVisible)
+                    ? MaterialListColumnLayout.countColumnGap()
+                    : MaterialListColumnLayout.nameToTotalGap();
             xAvailable = cursor;
             cursor += MaterialListColumnLayout.availableWidth();
         }
@@ -192,8 +248,11 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         if (!availableVisible) {
             xAvailable = xEnd;
         }
+        if (!compatibleVisible) {
+            xCompatible = xAvailable;
+        }
         if (!missingVisible) {
-            xMissing = xAvailable;
+            xMissing = xCompatible;
         }
         if (!totalVisible) {
             xTotal = xMissing;
@@ -203,8 +262,9 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
             case 0 -> xItem;
             case 1 -> xTotal;
             case 2 -> xMissing;
-            case 3 -> xAvailable;
-            case 4 -> xEnd;
+            case 3 -> minimalView ? xCompatible : xAvailable;
+            case 4 -> minimalView ? xAvailable : xEnd;
+            case 5 -> xEnd;
             default -> xItem;
         };
     }
@@ -224,11 +284,36 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
             }
 
             int column = this.getMouseOverColumn(mouseX, mouseY);
+            boolean minimalView = MinimalSubMaterialListView.isActive(this.materialList);
             switch (column) {
-                case 0 -> this.materialList.setSortCriteria(MaterialListBase.SortCriteria.NAME);
-                case 1 -> this.materialList.setSortCriteria(MaterialListBase.SortCriteria.COUNT_TOTAL);
-                case 2 -> this.materialList.setSortCriteria(MaterialListBase.SortCriteria.COUNT_MISSING);
-                case 3 -> this.materialList.setSortCriteria(MaterialListBase.SortCriteria.COUNT_AVAILABLE);
+                case 0 -> {
+                    MaterialListSortState.setCompatibleSort(this.materialList, false);
+                    this.materialList.setSortCriteria(MaterialListBase.SortCriteria.NAME);
+                }
+                case 1 -> {
+                    MaterialListSortState.setCompatibleSort(this.materialList, false);
+                    this.materialList.setSortCriteria(MaterialListBase.SortCriteria.COUNT_TOTAL);
+                }
+                case 2 -> {
+                    MaterialListSortState.setCompatibleSort(this.materialList, false);
+                    this.materialList.setSortCriteria(MaterialListBase.SortCriteria.COUNT_MISSING);
+                }
+                case 3 -> {
+                    if (minimalView) {
+                        MaterialListSortState.setCompatibleSort(this.materialList, true);
+                        this.materialList.setSortCriteria(MaterialListBase.SortCriteria.COUNT_AVAILABLE);
+                    } else {
+                        MaterialListSortState.setCompatibleSort(this.materialList, false);
+                        this.materialList.setSortCriteria(MaterialListBase.SortCriteria.COUNT_AVAILABLE);
+                    }
+                }
+                case 4 -> {
+                    if (!minimalView) {
+                        return false;
+                    }
+                    MaterialListSortState.setCompatibleSort(this.materialList, false);
+                    this.materialList.setSortCriteria(MaterialListBase.SortCriteria.COUNT_AVAILABLE);
+                }
                 default -> {
                     return false;
                 }
@@ -327,7 +412,9 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         int xItem = this.getColumnPosX(0);
         int xTotal = this.getColumnPosX(1);
         int xMissing = this.getColumnPosX(2);
-        int xAvailable = this.getColumnPosX(3);
+        boolean minimalSubMaterialView = MinimalSubMaterialListView.isActive(this.materialList);
+        int xCompatible = minimalSubMaterialView ? this.getColumnPosX(3) : 0;
+        int xAvailable = this.getColumnPosX(minimalSubMaterialView ? 4 : 3);
         int yText = this.y + 7;
 
         if (this.header1 != null) {
@@ -339,8 +426,19 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
                 if (MaterialListColumnLayout.isMissingVisible()) {
                     this.drawString(drawContext, xMissing, yText, -1, this.header3);
                 }
+                if (minimalSubMaterialView && MaterialListColumnLayout.isCompatibleVisible()) {
+                    this.drawString(
+                            drawContext,
+                            xCompatible,
+                            yText,
+                            -1,
+                            GuiBase.TXT_BOLD + StringUtils.translate("lmlp.gui.material_list.title.compatible") + GuiBase.TXT_RST);
+                }
                 if (MaterialListColumnLayout.isAvailableVisible()) {
-                    this.drawString(drawContext, xAvailable, yText, -1, this.header4);
+                    String availableHeader = minimalSubMaterialView
+                            ? GuiBase.TXT_BOLD + StringUtils.translate("lmlp.gui.material_list.title.allocated") + GuiBase.TXT_RST
+                            : this.header4;
+                    this.drawString(drawContext, xAvailable, yText, -1, availableHeader);
                 }
                 this.renderColumnHeader(drawContext, mouseX, mouseY, Icons.ARROW_DOWN, Icons.ARROW_UP);
             }
@@ -357,8 +455,8 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         int total = MinimalSubMaterialListView.total(this.entry, this.materialList);
         int rawMissing = MinimalSubMaterialListView.missing(this.entry, this.materialList);
         int missing = MinimalSubMaterialListView.netMissing(this.entry, this.materialList);
+        int compatible = MinimalSubMaterialListView.compatibleCount(this.entry);
         int available = this.entry.getCountAvailable();
-        boolean minimalSubMaterialView = MinimalSubMaterialListView.isActive(this.materialList);
 
         int iconX = xItem;
         String renderedName = this.truncateToWidth(name, this.lmlp$nameTextLimit());
@@ -372,6 +470,9 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         }
         if (MaterialListColumnLayout.isMissingVisible()) {
             this.drawString(drawContext, xMissing, yText, -1, netMissingColor(missing) + CountFormatter.formatAligned(stack, missing, lmlpMaxMissingDigits));
+        }
+        if (minimalSubMaterialView && MaterialListColumnLayout.isCompatibleVisible()) {
+            this.drawString(drawContext, xCompatible, yText, -1, CountFormatter.formatAligned(stack, compatible, lmlpMaxCompatibleDigits));
         }
         if (MaterialListColumnLayout.isAvailableVisible()) {
             this.drawString(drawContext, xAvailable, yText, -1, availableColor(available, rawMissing) + CountFormatter.formatAligned(stack, available, lmlpMaxAvailableDigits));
@@ -1094,7 +1195,6 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         }
 
         access.lmlp$scrollEntryIntoView(this.entry, EXPANDED_PANEL_BOTTOM_PADDING);
-        this.listWidget.refreshEntries();
     }
 
     private int minimalSourcePanelWidth() {

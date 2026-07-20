@@ -10,6 +10,7 @@
     "GuiMaterialListButtonListenerMixin",
     "GuiMaterialListMixin",
     "GuiBaseHoverAccess",
+    "ConfigButtonOptionListMixin",
     "ConfigButtonStringListMixin",
     "GuiListBaseMixin",
     "GuiSchematicLoadedListMixin",
