@@ -19,6 +19,7 @@ import io.github.huanmeng06.lmlp.cache.ChunkMissingMaterialListCache;
 import io.github.huanmeng06.lmlp.gui.GuiConfigs;
 import io.github.huanmeng06.lmlp.gui.KnownPlacementRows;
 import io.github.huanmeng06.lmlp.gui.KnownPlacementRows.ReadStatus;
+import io.github.huanmeng06.lmlp.gui.MaterialListDefaultSort;
 import io.github.huanmeng06.lmlp.export.SubMaterialExporter;
 import io.github.huanmeng06.lmlp.gui.MinimalSubMaterialListView;
 import io.github.huanmeng06.lmlp.gui.GuiPreferredMaterialForm;
@@ -69,6 +70,7 @@ public abstract class GuiMaterialListMixin extends GuiListBase {
 
     @Inject(method = "<init>", at = @At("TAIL"))
     private void lmlp$refreshForCurrentStateOnEntry(MaterialListBase materialList, CallbackInfo ci) {
+        MaterialListDefaultSort.apply(this.materialList);
         if (ChunkMissingMaterialListCache.refreshForCurrentState(this.materialList, false) && this.mc.field_1724 != null) {
             MaterialListUtils.updateAvailableCounts(this.materialList.getMaterialsAll(), this.mc.field_1724);
         }

@@ -57,6 +57,7 @@ public final class MaterialListOpener {
             return true;
         }
 
+        MaterialListDefaultSort.apply(materialList);
         GuiMaterialList gui = getHandledScreenGui(parent, materialList);
         class_437 screen = handledScreenOverlay == null ? gui : handledScreenOverlay;
         HandledScreenMaterialListBridge.preserveOnce(parent);
