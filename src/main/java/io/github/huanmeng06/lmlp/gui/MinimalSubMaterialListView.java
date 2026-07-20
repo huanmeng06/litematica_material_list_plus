@@ -482,6 +482,11 @@ public final class MinimalSubMaterialListView {
         return isMinimalEntry(entry) ? Math.max(0, entry.getCountMissing() - entry.getCountAvailable()) : MaterialCounts.netMissing(entry, multiplier);
     }
 
+    public static int compatibleCount(MaterialListEntry entry) {
+        DisplayData display = displayData(entry);
+        return display == null ? entry.getCountAvailable() : display.compatibleCount();
+    }
+
     private static DisplayData displayData(MaterialListEntry entry) {
         DisplayData display = ENTRY_DISPLAYS.get(entry);
         return display == null ? ENTRY_DISPLAY_KEYS.get(entryKey(entry)) : display;
@@ -1414,7 +1419,9 @@ public final class MinimalSubMaterialListView {
                     .comparingInt((Accumulator material) -> material.candidates.size())
                     .thenComparing(material -> material.name));
             Map<Accumulator, Integer> allocatedInventory = new IdentityHashMap<>();
+            Map<Accumulator, Integer> compatibleInventory = new IdentityHashMap<>();
             for (Accumulator material : allocationOrder) {
+                compatibleInventory.put(material, this.inventory.countAny(material.candidateIcons()));
                 allocatedInventory.put(material, material.allocateRemainingInventory(remainingInventory));
             }
             for (Accumulator material : this.materials.values()) {
@@ -1424,7 +1431,11 @@ public final class MinimalSubMaterialListView {
                         allocatedInventory.getOrDefault(material, 0));
                 MaterialListEntry entry = new MaterialListEntry(material.stack.method_7972(), total, total, 0, available);
                 entries.add(entry);
-                DisplayData display = new DisplayData(material.name, material.candidates(), material.sources());
+                DisplayData display = new DisplayData(
+                        material.name,
+                        material.candidates(),
+                        material.sources(),
+                        compatibleInventory.getOrDefault(material, 0));
                 displays.put(entry, display);
                 ENTRY_DISPLAY_KEYS.put(entryKey(entry), display);
             }
@@ -1441,7 +1452,11 @@ public final class MinimalSubMaterialListView {
     private record Cache(String signature, List<MaterialListEntry> entries) {
     }
 
-    private record DisplayData(String name, List<Candidate> candidates, List<SourceContribution> sources) {
+    private record DisplayData(
+            String name,
+            List<Candidate> candidates,
+            List<SourceContribution> sources,
+            int compatibleCount) {
         private String displayName() {
             String stableName = this.stableName();
             return this.candidates.size() > 1 ? emphasizeVariable(stableName) : emphasizeAny(stableName);
