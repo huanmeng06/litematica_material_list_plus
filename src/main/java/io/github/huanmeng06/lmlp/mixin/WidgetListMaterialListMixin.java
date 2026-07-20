@@ -6,6 +6,7 @@ import fi.dy.masa.litematica.materials.MaterialListBase;
 import fi.dy.masa.litematica.materials.MaterialListEntry;
 import io.github.huanmeng06.lmlp.access.WidgetMaterialListAccess;
 import io.github.huanmeng06.lmlp.gui.IgnoredMaterialRegistry;
+import io.github.huanmeng06.lmlp.gui.MaterialListSortState;
 import io.github.huanmeng06.lmlp.gui.MinimalSubMaterialListView;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -65,7 +66,7 @@ public abstract class WidgetListMaterialListMixin implements WidgetMaterialListA
     private void lmlp$fixNetMissingSortComparator(CallbackInfoReturnable<Comparator<MaterialListEntry>> cir) {
         MaterialListBase materialList = this.gui.getMaterialList();
         if (MinimalSubMaterialListView.isActive(materialList)
-                && WidgetMaterialListEntryMixin.isCompatibleSort(materialList)) {
+                && MaterialListSortState.isCompatibleSort(materialList)) {
             boolean reverse = materialList.getSortInReverse();
             cir.setReturnValue((a, b) -> {
                 int compatibleA = MinimalSubMaterialListView.compatibleCount(a);
