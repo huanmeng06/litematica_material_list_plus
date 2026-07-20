@@ -33,6 +33,9 @@ import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Overwrite;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.util.List;
 
@@ -100,6 +103,21 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         super(x, y, width, height, entry, listIndex);
     }
 
+    @Inject(method = "<init>", at = @At("TAIL"))
+    private void lmlp$setColumnCount(
+            int x,
+            int y,
+            int width,
+            int height,
+            boolean isOdd,
+            MaterialListBase materialList,
+            MaterialListEntry entry,
+            int listIndex,
+            WidgetListMaterialList listWidget,
+            CallbackInfo ci) {
+        this.columnCount = MinimalSubMaterialListView.isActive(materialList) ? 5 : 4;
+    }
+
     /**
      * @author Huan_meeng
      * @reason Recalculate material list columns using grouped total and missing count text.
@@ -155,11 +173,6 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
                 maxCountLength2 + COUNT_COLUMN_SAFETY_PADDING,
                 minimalView ? lmlpMaxCompatibleLength + COUNT_COLUMN_SAFETY_PADDING : 0,
                 maxCountLength3 + COUNT_COLUMN_SAFETY_PADDING);
-    }
-
-    @Overwrite
-    protected int getColumnCount() {
-        return MinimalSubMaterialListView.isActive(this.materialList) ? 5 : 4;
     }
 
     @Overwrite
