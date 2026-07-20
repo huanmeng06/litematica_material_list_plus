@@ -68,6 +68,8 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
     private static final int DETAIL_ROW_EVEN = 0xA0303030;
     private static final int DETAIL_ROW_HOVERED = 0xA0707070;
     private static final int DETAIL_ICON_BACKGROUND = 0x20FFFFFF;
+    private static final int STATUS_COLOR_COMPATIBLE = 0xFF55FF55;
+    private static final int STATUS_COLOR_ATTENTION = 0xFFFFAA00;
     private static final int ARROW_SLOT_WIDTH = 20;
     private static final String DETAIL_ANIMATION_KEY_PREFIX = "material_preferred_details_";
 
@@ -818,8 +820,8 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
 
         private int statusColor() {
             return this.targetBlock != null && this.targetExact && this.row.roleExact() && !this.customTarget
-                    ? 0xFF88DD88
-                    : 0xFFFFAA55;
+                    ? STATUS_COLOR_COMPATIBLE
+                    : STATUS_COLOR_ATTENTION;
         }
 
         private void cycle() {
