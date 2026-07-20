@@ -193,6 +193,9 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
         }
         if (!before.equals(after)) {
             this.rebuildRows();
+            if (this.getListWidget() != null) {
+                this.getListWidget().refreshEntries();
+            }
         }
 
         this.updateKeybindButtons();
