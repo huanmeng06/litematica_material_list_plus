@@ -234,7 +234,7 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
 
     @Override
     protected boolean useKeybindSearch() {
-        return true;
+        return false;
     }
 
     @Override

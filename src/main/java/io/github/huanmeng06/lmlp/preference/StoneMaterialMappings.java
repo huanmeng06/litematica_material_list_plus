@@ -45,7 +45,10 @@ public final class StoneMaterialMappings {
         String target = exactTarget != null
                 ? exactTarget
                 : familyFallback != null ? familyFallback : missingShapeFallback(source.shape());
-        return new Match(target, exactTarget != null, allowedTargets(source.shape()));
+        // A family fallback still belongs to the selected family and keeps the same shape;
+        // only the cross-family fallback (for example stone-brick stairs for smooth stone)
+        // should be presented as a same-shape substitute.
+        return new Match(target, exactTarget != null || familyFallback != null, allowedTargets(source.shape()));
     }
 
     public static List<String> allowedTargetsForSource(String sourceId) {
