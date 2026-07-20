@@ -482,6 +482,11 @@ public final class MinimalSubMaterialListView {
         return isMinimalEntry(entry) ? Math.max(0, entry.getCountMissing() - entry.getCountAvailable()) : MaterialCounts.netMissing(entry, multiplier);
     }
 
+    public static int compatibleCount(MaterialListEntry entry) {
+        DisplayData display = displayData(entry);
+        return display == null ? entry.getCountAvailable() : display.compatibleCount();
+    }
+
     private static DisplayData displayData(MaterialListEntry entry) {
         DisplayData display = ENTRY_DISPLAYS.get(entry);
         return display == null ? ENTRY_DISPLAY_KEYS.get(entryKey(entry)) : display;
@@ -1169,8 +1174,8 @@ public final class MinimalSubMaterialListView {
         return clampToInt((long) count * Math.max(1, scale));
     }
 
-    private static int resolvedAvailable(long preparedCount, int directAvailable) {
-        long available = Math.max(0L, preparedCount) + Math.max(0, directAvailable);
+    private static int resolvedAvailable(long preparedCount, int allocatedInventory) {
+        long available = Math.max(0L, preparedCount) + Math.max(0, allocatedInventory);
         return clampToInt(available);
     }
 
@@ -1224,6 +1229,43 @@ public final class MinimalSubMaterialListView {
                 icons.add(candidate.icon().copy());
             }
             return List.copyOf(icons);
+        }
+
+        private List<String> candidateIds() {
+            return List.copyOf(this.candidates.keySet());
+        }
+
+        private void reservePreparedInventory(Map<String, Integer> remainingInventory) {
+            for (SourceAccumulator source : this.sources.values()) {
+                if (this.candidates.containsKey(source.origin.id())) {
+                    int reserved = clampToInt(Math.min(
+                            Math.max(0L, source.preparedCount),
+                            Math.max(0, source.origin.preparedInventoryCount())));
+                    consumeInventory(remainingInventory, source.origin.id(), reserved);
+                }
+            }
+        }
+
+        private int allocateRemainingInventory(Map<String, Integer> remainingInventory) {
+            long allocated = 0L;
+            long capacity = Math.max(0L, this.totalCount - this.preparedCount);
+            for (String candidateId : this.candidateIds()) {
+                if (allocated >= capacity) {
+                    break;
+                }
+                allocated += consumeInventory(
+                        remainingInventory,
+                        candidateId,
+                        clampToInt(capacity - allocated));
+            }
+            return clampToInt(allocated);
+        }
+
+        private static int consumeInventory(Map<String, Integer> remainingInventory, String itemId, int requested) {
+            int available = Math.max(0, remainingInventory.getOrDefault(itemId, 0));
+            int consumed = Math.min(available, Math.max(0, requested));
+            remainingInventory.put(itemId, available - consumed);
+            return consumed;
         }
 
         private List<SourceContribution> sources() {
@@ -1320,9 +1362,18 @@ public final class MinimalSubMaterialListView {
                         ItemStack stack = entry.getStack();
                         int baseTotal = entry.getCountTotal();
                         int total = scaledCount(baseTotal, this.multiplier);
-                        int missing = MaterialCounts.netMissing(entry, this.multiplier);
+                        int sourceAvailable = this.inventory.count(stack);
+                        int rawMissing = this.multiplier > 1 ? total : entry.getCountMissing();
+                        int missing = Math.max(0, rawMissing - sourceAvailable);
                         int prepared = Math.max(0, total - Math.min(total, missing));
-                        SourceOrigin source = new SourceOrigin(ItemStackTexts.id(stack), stack.copy(), ItemStackTexts.name(stack), total, missing);
+                        int preparedInventory = Math.min(Math.max(0, sourceAvailable), Math.max(0, rawMissing));
+                        SourceOrigin source = new SourceOrigin(
+                                ItemStackTexts.id(stack),
+                                stack.copy(),
+                                ItemStackTexts.name(stack),
+                                total,
+                                missing,
+                                preparedInventory);
                         collectLeaves(stack, List.of(stack), List.of(ItemStackTexts.name(stack)), ItemStackTexts.name(stack), source, baseTotal, this.multiplier, false, 0, new HashSet<>(), delta);
                         collectPreparedLeaves(stack, List.of(stack), List.of(ItemStackTexts.name(stack)), ItemStackTexts.name(stack), source, baseTotal, prepared, delta);
                     } catch (RecipeResolvers.BudgetExceededException exception) {
@@ -1354,12 +1405,37 @@ public final class MinimalSubMaterialListView {
             String placementKey = IgnoredMaterialRegistry.placementKey(materialList);
             List<MaterialListEntry> entries = new ArrayList<>(this.materials.size());
             Map<MaterialListEntry, DisplayData> displays = new IdentityHashMap<>();
+            Map<String, Integer> remainingInventory = new LinkedHashMap<>();
+            for (Accumulator material : this.materials.values()) {
+                for (ItemStack candidate : material.candidateIcons()) {
+                    remainingInventory.putIfAbsent(ItemStackTexts.id(candidate), this.inventory.count(candidate));
+                }
+            }
+            for (Accumulator material : this.materials.values()) {
+                material.reservePreparedInventory(remainingInventory);
+            }
+            List<Accumulator> allocationOrder = new ArrayList<>(this.materials.values());
+            allocationOrder.sort(Comparator
+                    .comparingInt((Accumulator material) -> material.candidates.size())
+                    .thenComparing(material -> material.name));
+            Map<Accumulator, Integer> allocatedInventory = new IdentityHashMap<>();
+            Map<Accumulator, Integer> compatibleInventory = new IdentityHashMap<>();
+            for (Accumulator material : allocationOrder) {
+                compatibleInventory.put(material, this.inventory.countAny(material.candidateIcons()));
+                allocatedInventory.put(material, material.allocateRemainingInventory(remainingInventory));
+            }
             for (Accumulator material : this.materials.values()) {
                 int total = clampToInt(material.totalCount);
-                int available = resolvedAvailable(material.preparedCount, this.inventory.countAny(material.candidateIcons()));
+                int available = resolvedAvailable(
+                        material.preparedCount,
+                        allocatedInventory.getOrDefault(material, 0));
                 MaterialListEntry entry = new MaterialListEntry(material.stack.copy(), total, total, 0, available);
                 entries.add(entry);
-                DisplayData display = new DisplayData(material.name, material.candidates(), material.sources());
+                DisplayData display = new DisplayData(
+                        material.name,
+                        material.candidates(),
+                        material.sources(),
+                        compatibleInventory.getOrDefault(material, 0));
                 displays.put(entry, display);
                 ENTRY_DISPLAY_KEYS.put(entryKey(entry), display);
             }
@@ -1376,7 +1452,11 @@ public final class MinimalSubMaterialListView {
     private record Cache(String signature, List<MaterialListEntry> entries) {
     }
 
-    private record DisplayData(String name, List<Candidate> candidates, List<SourceContribution> sources) {
+    private record DisplayData(
+            String name,
+            List<Candidate> candidates,
+            List<SourceContribution> sources,
+            int compatibleCount) {
         private String displayName() {
             String stableName = this.stableName();
             return this.candidates.size() > 1 ? emphasizeVariable(stableName) : emphasizeAny(stableName);
@@ -1457,7 +1537,13 @@ public final class MinimalSubMaterialListView {
     private record Candidate(ItemStack icon, String name) {
     }
 
-    private record SourceOrigin(String id, ItemStack icon, String name, int totalCount, int missingCount) {
+    private record SourceOrigin(
+            String id,
+            ItemStack icon,
+            String name,
+            int totalCount,
+            int missingCount,
+            int preparedInventoryCount) {
     }
 
     private record CandidateSet(List<ItemStack> icons, List<String> names) {

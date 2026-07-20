@@ -131,6 +131,10 @@ public final class AlternativeItemDisplay {
             return coalCharcoalName;
         }
 
+        if (isSoulFireBasePair(icons)) {
+            return StringUtils.translate("lmlp.label.recipe.any.soul_sand_soil");
+        }
+
         if (isPurpurPair(icons)) {
             return StringUtils.translate("lmlp.label.recipe.any.purpur");
         }
@@ -160,7 +164,30 @@ public final class AlternativeItemDisplay {
             }
         }
 
-        return coal.isEmpty() || charcoal.isEmpty() ? "" : charcoal + "/" + coal;
+        return coal.isEmpty() || charcoal.isEmpty()
+                ? ""
+                : StringUtils.translate("lmlp.label.recipe.any.coal");
+    }
+
+    private static boolean isSoulFireBasePair(List<ItemStack> icons) {
+        if (icons.size() != 2) {
+            return false;
+        }
+
+        boolean hasSoulSand = false;
+        boolean hasSoulSoil = false;
+        for (ItemStack icon : icons) {
+            String id = ItemStackTexts.id(icon);
+            if (id.equals("minecraft:soul_sand")) {
+                hasSoulSand = true;
+            } else if (id.equals("minecraft:soul_soil")) {
+                hasSoulSoil = true;
+            } else {
+                return false;
+            }
+        }
+
+        return hasSoulSand && hasSoulSoil;
     }
 
     private static boolean isSandPair(List<ItemStack> icons) {

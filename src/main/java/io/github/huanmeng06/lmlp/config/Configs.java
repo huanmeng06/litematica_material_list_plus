@@ -192,7 +192,135 @@ public class Configs implements IConfigHandler {
     }
 
     public static final class ConfigForms {
+        public static final ConfigBoolean PREFERRED_WOOD_ENABLED = new ConfigBoolean(
+                "preferredWoodEnabled",
+                false,
+                "lmlp.config.comment.preferred_wood_enabled",
+                "lmlp.config.name.preferred_wood_enabled",
+                "lmlp.config.name.preferred_wood_enabled"
+        );
+
+        public static final ConfigOptionList PREFERRED_WOOD_FAMILY = new ConfigOptionList(
+                "preferredWoodFamily",
+                WoodFamily.OAK,
+                "lmlp.config.comment.preferred_wood_family",
+                "lmlp.config.name.preferred_wood_family",
+                "lmlp.config.name.preferred_wood_family"
+        );
+
+        public static final ConfigBoolean PREFERRED_STONE_ENABLED = new ConfigBoolean(
+                "preferredStoneEnabled",
+                false,
+                "lmlp.config.comment.preferred_stone_enabled",
+                "lmlp.config.name.preferred_stone_enabled",
+                "lmlp.config.name.preferred_stone_enabled"
+        );
+
+        public static final ConfigOptionList PREFERRED_STONE_FAMILY = new ConfigOptionList(
+                "preferredStoneFamily",
+                StoneMaterialFamily.SMOOTH_STONE,
+                "lmlp.config.comment.preferred_stone_family",
+                "lmlp.config.name.preferred_stone_family",
+                "lmlp.config.name.preferred_stone_family"
+        );
+
+        public static final ConfigBoolean PREFERRED_GLASS_ENABLED = new ConfigBoolean(
+                "preferredGlassEnabled",
+                false,
+                "lmlp.config.comment.preferred_glass_enabled",
+                "lmlp.config.name.preferred_glass_enabled",
+                "lmlp.config.name.preferred_glass_enabled"
+        );
+
+        public static final ConfigOptionList PREFERRED_GLASS_MATERIAL = new ConfigOptionList(
+                "preferredGlassMaterial",
+                GlassMaterial.CLEAR,
+                "lmlp.config.comment.preferred_glass_material",
+                "lmlp.config.name.preferred_glass_material",
+                "lmlp.config.name.preferred_glass_material"
+        );
+
+        public static final ConfigBoolean PREFERRED_CARPET_ENABLED = new ConfigBoolean(
+                "preferredCarpetEnabled",
+                false,
+                "lmlp.config.comment.preferred_carpet_enabled",
+                "lmlp.config.name.preferred_carpet_enabled",
+                "lmlp.config.name.preferred_carpet_enabled"
+        );
+
+        public static final ConfigOptionList PREFERRED_CARPET_MATERIAL = new ConfigOptionList(
+                "preferredCarpetMaterial",
+                CarpetMaterial.WHITE,
+                "lmlp.config.comment.preferred_carpet_material",
+                "lmlp.config.name.preferred_carpet_material",
+                "lmlp.config.name.preferred_carpet_material"
+        );
+
+        public static final ConfigBoolean PREFERRED_TERRACOTTA_ENABLED = new ConfigBoolean(
+                "preferredTerracottaEnabled",
+                false,
+                "lmlp.config.comment.preferred_terracotta_enabled",
+                "lmlp.config.name.preferred_terracotta_enabled",
+                "lmlp.config.name.preferred_terracotta_enabled"
+        );
+
+        public static final ConfigOptionList PREFERRED_TERRACOTTA_MATERIAL = new ConfigOptionList(
+                "preferredTerracottaMaterial",
+                TerracottaMaterial.PLAIN,
+                "lmlp.config.comment.preferred_terracotta_material",
+                "lmlp.config.name.preferred_terracotta_material",
+                "lmlp.config.name.preferred_terracotta_material"
+        );
+
+        public static final ConfigBoolean PREFERRED_GLAZED_TERRACOTTA_ENABLED = new ConfigBoolean(
+                "preferredGlazedTerracottaEnabled",
+                false,
+                "lmlp.config.comment.preferred_glazed_terracotta_enabled",
+                "lmlp.config.name.preferred_glazed_terracotta_enabled",
+                "lmlp.config.name.preferred_glazed_terracotta_enabled"
+        );
+
+        public static final ConfigOptionList PREFERRED_GLAZED_TERRACOTTA_MATERIAL = new ConfigOptionList(
+                "preferredGlazedTerracottaMaterial",
+                GlazedTerracottaMaterial.WHITE,
+                "lmlp.config.comment.preferred_glazed_terracotta_material",
+                "lmlp.config.name.preferred_glazed_terracotta_material",
+                "lmlp.config.name.preferred_glazed_terracotta_material"
+        );
+
         public static final List<IConfigBase> OPTIONS = ImmutableList.of(
+                Generic.RECIPE_STOP_ITEMS,
+                Generic.KEEP_AS_LEAF_ITEMS
+        );
+
+        public static final List<IConfigBase> PREFERENCE_OPTIONS = ImmutableList.of(
+                PREFERRED_WOOD_ENABLED,
+                PREFERRED_WOOD_FAMILY,
+                PREFERRED_STONE_ENABLED,
+                PREFERRED_STONE_FAMILY,
+                PREFERRED_GLASS_ENABLED,
+                PREFERRED_GLASS_MATERIAL,
+                PREFERRED_CARPET_ENABLED,
+                PREFERRED_CARPET_MATERIAL,
+                PREFERRED_TERRACOTTA_ENABLED,
+                PREFERRED_TERRACOTTA_MATERIAL,
+                PREFERRED_GLAZED_TERRACOTTA_ENABLED,
+                PREFERRED_GLAZED_TERRACOTTA_MATERIAL
+        );
+
+        public static final List<IConfigBase> PERSISTED_OPTIONS = ImmutableList.of(
+                PREFERRED_WOOD_ENABLED,
+                PREFERRED_WOOD_FAMILY,
+                PREFERRED_STONE_ENABLED,
+                PREFERRED_STONE_FAMILY,
+                PREFERRED_GLASS_ENABLED,
+                PREFERRED_GLASS_MATERIAL,
+                PREFERRED_CARPET_ENABLED,
+                PREFERRED_CARPET_MATERIAL,
+                PREFERRED_TERRACOTTA_ENABLED,
+                PREFERRED_TERRACOTTA_MATERIAL,
+                PREFERRED_GLAZED_TERRACOTTA_ENABLED,
+                PREFERRED_GLAZED_TERRACOTTA_MATERIAL,
                 Generic.RECIPE_STOP_ITEMS,
                 Generic.KEEP_AS_LEAF_ITEMS
         );
@@ -216,9 +344,9 @@ public class Configs implements IConfigHandler {
                 JsonObject root = element.getAsJsonObject();
                 ConfigUtils.readConfigBase(root, GENERIC, Generic.OPTIONS);
                 if (root.has(CONFIG_FORMS)) {
-                    ConfigUtils.readConfigBase(root, CONFIG_FORMS, ConfigForms.OPTIONS);
+                    ConfigUtils.readConfigBase(root, CONFIG_FORMS, ConfigForms.PERSISTED_OPTIONS);
                 } else {
-                    ConfigUtils.readConfigBase(root, GENERIC, ConfigForms.OPTIONS);
+                    ConfigUtils.readConfigBase(root, GENERIC, ConfigForms.PERSISTED_OPTIONS);
                 }
                 ConfigUtils.readConfigBase(root, HOTKEYS, Hotkeys.HOTKEY_LIST);
                 readPreferredRecipes(root);
@@ -238,7 +366,7 @@ public class Configs implements IConfigHandler {
         if ((dir.exists() && dir.isDirectory()) || dir.mkdirs()) {
             JsonObject root = new JsonObject();
             ConfigUtils.writeConfigBase(root, GENERIC, Generic.OPTIONS);
-            ConfigUtils.writeConfigBase(root, CONFIG_FORMS, ConfigForms.OPTIONS);
+            ConfigUtils.writeConfigBase(root, CONFIG_FORMS, ConfigForms.PERSISTED_OPTIONS);
             ConfigUtils.writeConfigBase(root, HOTKEYS, Hotkeys.HOTKEY_LIST);
             writePreferredRecipes(root);
             JsonUtils.writeJsonToFile(root, new File(dir, FILE_NAME).toPath());
