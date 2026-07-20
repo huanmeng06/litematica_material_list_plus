@@ -488,6 +488,11 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
         float startProgress = this.detailProgress(category);
         boolean expanded = !this.detailsExpanded.getOrDefault(category, false);
         this.detailsExpanded.put(category, expanded);
+        if (expanded
+                && category == PreferredMaterialCategory.GLAZED_TERRACOTTA
+                && this.getListWidget() instanceof PreferenceWidgetListConfigOptions preferenceList) {
+            preferenceList.pinScrollToBottom();
+        }
         this.detailAnimations.start(
                 this.detailAnimationKey(category),
                 startProgress,

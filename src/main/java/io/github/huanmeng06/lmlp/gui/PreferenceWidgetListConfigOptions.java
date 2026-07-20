@@ -55,6 +55,7 @@ final class PreferenceWidgetListConfigOptions extends WidgetListConfigOptions {
     );
 
     private final ExpandAnimationTracker animations = new ExpandAnimationTracker();
+    private boolean pinScrollToBottom;
 
     PreferenceWidgetListConfigOptions(
             int x,
@@ -79,6 +80,14 @@ final class PreferenceWidgetListConfigOptions extends WidgetListConfigOptions {
 
         // Rebuilding animated rows must not erase MaLiLib's modified-state bookkeeping.
         this.markConfigsModified();
+        if (expanded && isLastGroup(group)) {
+            this.pinScrollToBottom();
+        }
+        this.refreshEntries();
+    }
+
+    void pinScrollToBottom() {
+        this.pinScrollToBottom = true;
         this.refreshEntries();
     }
 
@@ -89,6 +98,14 @@ final class PreferenceWidgetListConfigOptions extends WidgetListConfigOptions {
                 && mouseX < this.browserEntriesStartX + this.browserEntryWidth
                 && mouseY >= top
                 && mouseY < bottom;
+    }
+
+    @Override
+    public boolean onMouseScrolled(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
+        if (verticalAmount != 0.0D) {
+            this.pinScrollToBottom = false;
+        }
+        return super.onMouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount);
     }
 
     @Override
@@ -173,6 +190,15 @@ final class PreferenceWidgetListConfigOptions extends WidgetListConfigOptions {
 
         super.drawContents(context, mouseX, mouseY, partialTicks);
 
+        if (this.pinScrollToBottom) {
+            int previousScroll = this.scrollBar.getValue();
+            this.scrollBar.setValue(this.scrollBar.getMaxValue());
+            if (this.scrollBar.getValue() != previousScroll) {
+                this.lastScrollbarPosition = this.scrollBar.getValue();
+                this.reCreateListEntryWidgets();
+            }
+        }
+
         if (this.animations.isActive()) {
             this.animations.prune();
             if (!this.animations.isActive()) {
@@ -197,6 +223,10 @@ final class PreferenceWidgetListConfigOptions extends WidgetListConfigOptions {
             }
         }
         return null;
+    }
+
+    private static boolean isLastGroup(PreferenceGroup group) {
+        return group == GROUPS.get(GROUPS.size() - 1);
     }
 
     static boolean isGroupToggle(IConfigBase config) {
