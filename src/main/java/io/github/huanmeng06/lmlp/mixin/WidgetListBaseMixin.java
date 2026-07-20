@@ -444,12 +444,39 @@ public abstract class WidgetListBaseMixin implements WidgetListBoundsAccess {
             return;
         }
 
-        int targetIndex = this.listContents.indexOf(entry);
+        int targetIndex = this.lmlp$findEntryIndex(entry);
         if (targetIndex < 0) {
             return;
         }
 
+        int previousScroll = this.scrollBar.getValue();
         this.lmlp$scrollEntryIndexIntoView(targetIndex, bottomPadding);
+        if (this.scrollBar.getValue() != previousScroll) {
+            this.reCreateListEntryWidgets();
+        }
+    }
+
+    private int lmlp$findEntryIndex(Object entry) {
+        int size = this.listContents.size();
+        for (int index = 0; index < size; index++) {
+            if (this.listContents.get(index) == entry) {
+                return index;
+            }
+        }
+
+        if (entry instanceof MaterialListEntry materialEntry && MinimalSubMaterialListView.isMinimalEntry(materialEntry)) {
+            String stableKey = MinimalSubMaterialListView.debugStableKey(materialEntry);
+            for (int index = 0; index < size; index++) {
+                Object candidate = this.listContents.get(index);
+                if (candidate instanceof MaterialListEntry candidateEntry
+                        && MinimalSubMaterialListView.isMinimalEntry(candidateEntry)
+                        && stableKey.equals(MinimalSubMaterialListView.debugStableKey(candidateEntry))) {
+                    return index;
+                }
+            }
+        }
+
+        return this.listContents.indexOf(entry);
     }
 
     private void lmlp$reCreateListEntryWidgetsByPixels() {

@@ -7,14 +7,17 @@ public final class MaterialListColumnLayout {
     private static int nameWidth = 1;
     private static int totalWidth = 1;
     private static int missingWidth = 1;
+    private static int compatibleWidth = 1;
     private static int availableWidth = 1;
     private static int startNameWidth = 1;
     private static int startTotalWidth = 1;
     private static int startMissingWidth = 1;
+    private static int startCompatibleWidth = 1;
     private static int startAvailableWidth = 1;
     private static int targetNameWidth = 1;
     private static int targetTotalWidth = 1;
     private static int targetMissingWidth = 1;
+    private static int targetCompatibleWidth = 1;
     private static int targetAvailableWidth = 1;
     private static long animationStartMs;
     private static boolean initialized;
@@ -22,28 +25,35 @@ public final class MaterialListColumnLayout {
     private static boolean animateShrinkForNextUpdate = true;
 
     // Rows can't scroll horizontally, so when the window is narrower than the
-    // full 4-column layout needs, lower-priority columns are dropped entirely
-    // instead of compressing every column down to nothing: available drops
-    // first, then total; missing (and name) always stay.
+    // full layout needs, lower-priority columns are dropped entirely instead
+    // of compressing every column down to nothing: compatible drops first,
+    // then allocated/available, then total; missing (and name) always stay.
     private static final int MIN_NAME_WIDTH = 60;
     private static int availableEntryWidth = Integer.MAX_VALUE;
     private static boolean totalVisible = true;
     private static boolean missingVisible = true;
+    private static boolean compatibleEnabled;
+    private static boolean compatibleVisible;
     private static boolean availableVisible = true;
     private static int nameClamp;
 
     private MaterialListColumnLayout() {
     }
 
-    public static void updateRequiredEntryWidth(int requiredNameWidth, int requiredTotalWidth, int requiredMissingWidth, int requiredAvailableWidth) {
+    public static void updateRequiredEntryWidth(int requiredNameWidth, int requiredTotalWidth, int requiredMissingWidth,
+            int requiredCompatibleWidth, int requiredAvailableWidth) {
         boolean animateShrink = animateShrinkForNextUpdate;
         animateShrinkForNextUpdate = true;
-        updateRequiredEntryWidth(requiredNameWidth, requiredTotalWidth, requiredMissingWidth, requiredAvailableWidth, animateShrink);
+        updateRequiredEntryWidth(requiredNameWidth, requiredTotalWidth, requiredMissingWidth,
+                requiredCompatibleWidth, requiredAvailableWidth, animateShrink);
     }
 
-    public static void updateRequiredEntryWidth(int requiredNameWidth, int requiredTotalWidth, int requiredMissingWidth, int requiredAvailableWidth, boolean animateShrink) {
+    public static void updateRequiredEntryWidth(int requiredNameWidth, int requiredTotalWidth, int requiredMissingWidth,
+            int requiredCompatibleWidth, int requiredAvailableWidth, boolean animateShrink) {
+        compatibleEnabled = requiredCompatibleWidth > 0;
         if (!initialized) {
-            setImmediate(requiredNameWidth, requiredTotalWidth, requiredMissingWidth, requiredAvailableWidth);
+            setImmediate(requiredNameWidth, requiredTotalWidth, requiredMissingWidth,
+                    Math.max(1, requiredCompatibleWidth), requiredAvailableWidth);
             initialized = true;
             return;
         }
@@ -51,12 +61,14 @@ public final class MaterialListColumnLayout {
         if (requiredNameWidth == targetNameWidth
                 && requiredTotalWidth == targetTotalWidth
                 && requiredMissingWidth == targetMissingWidth
+                && Math.max(1, requiredCompatibleWidth) == targetCompatibleWidth
                 && requiredAvailableWidth == targetAvailableWidth) {
             return;
         }
 
         if (!animateShrink) {
-            setImmediate(requiredNameWidth, requiredTotalWidth, requiredMissingWidth, requiredAvailableWidth);
+            setImmediate(requiredNameWidth, requiredTotalWidth, requiredMissingWidth,
+                    Math.max(1, requiredCompatibleWidth), requiredAvailableWidth);
             return;
         }
 
@@ -65,17 +77,20 @@ public final class MaterialListColumnLayout {
         int currentNameWidth = Math.max(nameWidth, requiredNameWidth);
         int currentTotalWidth = Math.max(totalWidth, requiredTotalWidth);
         int currentMissingWidth = Math.max(missingWidth, requiredMissingWidth);
+        int currentCompatibleWidth = Math.max(compatibleWidth, Math.max(1, requiredCompatibleWidth));
         int currentAvailableWidth = Math.max(availableWidth, requiredAvailableWidth);
-        setWidths(currentNameWidth, currentTotalWidth, currentMissingWidth, currentAvailableWidth);
+        setWidths(currentNameWidth, currentTotalWidth, currentMissingWidth, currentCompatibleWidth, currentAvailableWidth);
 
         targetNameWidth = requiredNameWidth;
         targetTotalWidth = requiredTotalWidth;
         targetMissingWidth = requiredMissingWidth;
+        targetCompatibleWidth = Math.max(1, requiredCompatibleWidth);
         targetAvailableWidth = requiredAvailableWidth;
 
         if (currentNameWidth == requiredNameWidth
                 && currentTotalWidth == requiredTotalWidth
                 && currentMissingWidth == requiredMissingWidth
+                && currentCompatibleWidth == targetCompatibleWidth
                 && currentAvailableWidth == requiredAvailableWidth) {
             animating = false;
             return;
@@ -84,6 +99,7 @@ public final class MaterialListColumnLayout {
         startNameWidth = currentNameWidth;
         startTotalWidth = currentTotalWidth;
         startMissingWidth = currentMissingWidth;
+        startCompatibleWidth = currentCompatibleWidth;
         startAvailableWidth = currentAvailableWidth;
         animationStartMs = System.currentTimeMillis();
         animating = true;
@@ -111,6 +127,12 @@ public final class MaterialListColumnLayout {
         return availableVisible;
     }
 
+    public static boolean isCompatibleVisible() {
+        advanceAnimation();
+        recomputeVisibility();
+        return compatibleVisible;
+    }
+
     public static int requiredEntryWidth() {
         advanceAnimation();
         recomputeVisibility();
@@ -119,15 +141,18 @@ public final class MaterialListColumnLayout {
 
     private static int rowWidth(int nameColumnWidth) {
         int width = 4 + nameColumnWidth;
-        boolean any = totalVisible || missingVisible || availableVisible;
+        boolean any = totalVisible || missingVisible || compatibleVisible || availableVisible;
         if (totalVisible) {
             width += NAME_TO_TOTAL_GAP + totalWidth;
         }
         if (missingVisible) {
             width += (totalVisible ? COUNT_COLUMN_GAP : NAME_TO_TOTAL_GAP) + missingWidth;
         }
+        if (compatibleVisible) {
+            width += ((totalVisible || missingVisible) ? COUNT_COLUMN_GAP : NAME_TO_TOTAL_GAP) + compatibleWidth;
+        }
         if (availableVisible) {
-            width += ((totalVisible || missingVisible) ? COUNT_COLUMN_GAP : NAME_TO_TOTAL_GAP) + availableWidth;
+            width += ((totalVisible || missingVisible || compatibleVisible) ? COUNT_COLUMN_GAP : NAME_TO_TOTAL_GAP) + availableWidth;
         }
         if (any) {
             width += COUNT_COLUMN_GAP;
@@ -135,8 +160,8 @@ public final class MaterialListColumnLayout {
         return width;
     }
 
-    // Decides which of the total/missing/available columns fit in the
-    // available width, dropping available first, then total; missing is
+    // Decides which count columns fit in the available width, dropping
+    // compatible first, then allocated/available, then total; missing is
     // never dropped. Recomputed lazily whenever a getter is read, using
     // whatever the (possibly still-animating) content widths currently are.
     // Whatever overflow remains after hiding becomes the name-column clamp:
@@ -147,6 +172,7 @@ public final class MaterialListColumnLayout {
         if (availableEntryWidth == Integer.MAX_VALUE) {
             totalVisible = true;
             missingVisible = true;
+            compatibleVisible = compatibleEnabled;
             availableVisible = true;
             nameClamp = 0;
             return;
@@ -158,7 +184,14 @@ public final class MaterialListColumnLayout {
         // and clipping the right-anchored ignore button.
         missingVisible = true;
         totalVisible = true;
+        compatibleVisible = compatibleEnabled;
         availableVisible = true;
+        if (rowWidth(nameWidth) <= availableEntryWidth) {
+            nameClamp = 0;
+            return;
+        }
+
+        compatibleVisible = false;
         if (rowWidth(nameWidth) <= availableEntryWidth) {
             nameClamp = 0;
             return;
@@ -194,6 +227,11 @@ public final class MaterialListColumnLayout {
         return missingWidth;
     }
 
+    public static int compatibleWidth() {
+        advanceAnimation();
+        return compatibleWidth;
+    }
+
     public static int availableWidth() {
         advanceAnimation();
         return availableWidth;
@@ -216,22 +254,25 @@ public final class MaterialListColumnLayout {
         return COUNT_COLUMN_GAP;
     }
 
-    private static void setWidths(int nameWidth, int totalWidth, int missingWidth, int availableWidth) {
+    private static void setWidths(int nameWidth, int totalWidth, int missingWidth, int compatibleWidth, int availableWidth) {
         MaterialListColumnLayout.nameWidth = nameWidth;
         MaterialListColumnLayout.totalWidth = totalWidth;
         MaterialListColumnLayout.missingWidth = missingWidth;
+        MaterialListColumnLayout.compatibleWidth = compatibleWidth;
         MaterialListColumnLayout.availableWidth = availableWidth;
     }
 
-    private static void setImmediate(int nameWidth, int totalWidth, int missingWidth, int availableWidth) {
-        setWidths(nameWidth, totalWidth, missingWidth, availableWidth);
+    private static void setImmediate(int nameWidth, int totalWidth, int missingWidth, int compatibleWidth, int availableWidth) {
+        setWidths(nameWidth, totalWidth, missingWidth, compatibleWidth, availableWidth);
         startNameWidth = nameWidth;
         startTotalWidth = totalWidth;
         startMissingWidth = missingWidth;
+        startCompatibleWidth = compatibleWidth;
         startAvailableWidth = availableWidth;
         targetNameWidth = nameWidth;
         targetTotalWidth = totalWidth;
         targetMissingWidth = missingWidth;
+        targetCompatibleWidth = compatibleWidth;
         targetAvailableWidth = availableWidth;
         animating = false;
     }
@@ -243,7 +284,8 @@ public final class MaterialListColumnLayout {
 
         long elapsedMs = System.currentTimeMillis() - animationStartMs;
         if (elapsedMs >= ANIMATION_DURATION_MS) {
-            setWidths(targetNameWidth, targetTotalWidth, targetMissingWidth, targetAvailableWidth);
+            setWidths(targetNameWidth, targetTotalWidth, targetMissingWidth,
+                    targetCompatibleWidth, targetAvailableWidth);
             animating = false;
             return;
         }
@@ -254,6 +296,7 @@ public final class MaterialListColumnLayout {
                 animatedWidth(startNameWidth, targetNameWidth, eased),
                 animatedWidth(startTotalWidth, targetTotalWidth, eased),
                 animatedWidth(startMissingWidth, targetMissingWidth, eased),
+                animatedWidth(startCompatibleWidth, targetCompatibleWidth, eased),
                 animatedWidth(startAvailableWidth, targetAvailableWidth, eased));
     }
 
