@@ -63,6 +63,14 @@ final class AnimatedPreferenceConfigOption extends WidgetConfigOption {
     }
 
     @Override
+    protected void addLabel(int x, int y, int width, int height, int color, String... labels) {
+        int titleColor = PreferenceWidgetListConfigOptions.isGroupToggle(this.wrapper.getConfig())
+                ? 0xFFFFAA00
+                : color;
+        super.addLabel(x, y, width, height, titleColor, labels);
+    }
+
+    @Override
     protected void addConfigButtonEntry(
             int resetX,
             int y,

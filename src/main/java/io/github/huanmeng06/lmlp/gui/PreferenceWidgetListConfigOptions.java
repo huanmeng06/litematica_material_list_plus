@@ -199,6 +199,10 @@ final class PreferenceWidgetListConfigOptions extends WidgetListConfigOptions {
         return null;
     }
 
+    static boolean isGroupToggle(IConfigBase config) {
+        return findGroupByToggle(config) != null;
+    }
+
     private static GuiConfigsBase.ConfigOptionWrapper findWrapper(
             Collection<GuiConfigsBase.ConfigOptionWrapper> wrappers,
             IConfigBase config) {
