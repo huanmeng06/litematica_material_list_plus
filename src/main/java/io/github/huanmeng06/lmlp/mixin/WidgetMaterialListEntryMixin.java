@@ -37,10 +37,15 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.WeakHashMap;
 
 @Mixin(value = WidgetMaterialListEntry.class, remap = false)
 public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortable<MaterialListEntry> implements MinimalChoiceTooltipAccess {
+    private static final Map<MaterialListBase, Boolean> COMPATIBLE_SORTS =
+            Collections.synchronizedMap(new WeakHashMap<>());
     private static final int EXPANDED_PANEL_BOTTOM_PADDING = 8;
     private static final int HOVER_TOOLTIP_MARGIN = 8;
     private static final int HOVER_TOOLTIP_CURSOR_OFFSET = 12;
@@ -177,11 +182,27 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
 
     @Overwrite
     protected int getCurrentSortColumn() {
+        if (isCompatibleSort(this.materialList)) {
+            return 3;
+        }
+
         int column = this.materialList.getSortCriteria().ordinal();
         return MinimalSubMaterialListView.isActive(this.materialList)
                 && column == MaterialListBase.SortCriteria.COUNT_AVAILABLE.ordinal()
                 ? 4
                 : column;
+    }
+
+    public static boolean isCompatibleSort(MaterialListBase materialList) {
+        return materialList != null && COMPATIBLE_SORTS.containsKey(materialList);
+    }
+
+    private static void setCompatibleSort(MaterialListBase materialList, boolean enabled) {
+        if (enabled) {
+            COMPATIBLE_SORTS.put(materialList, Boolean.TRUE);
+        } else {
+            COMPATIBLE_SORTS.remove(materialList);
+        }
     }
 
     /**
@@ -281,19 +302,32 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
             int column = this.getMouseOverColumn(mouseX, mouseY);
             boolean minimalView = MinimalSubMaterialListView.isActive(this.materialList);
             switch (column) {
-                case 0 -> this.materialList.setSortCriteria(MaterialListBase.SortCriteria.NAME);
-                case 1 -> this.materialList.setSortCriteria(MaterialListBase.SortCriteria.COUNT_TOTAL);
-                case 2 -> this.materialList.setSortCriteria(MaterialListBase.SortCriteria.COUNT_MISSING);
+                case 0 -> {
+                    setCompatibleSort(this.materialList, false);
+                    this.materialList.setSortCriteria(MaterialListBase.SortCriteria.NAME);
+                }
+                case 1 -> {
+                    setCompatibleSort(this.materialList, false);
+                    this.materialList.setSortCriteria(MaterialListBase.SortCriteria.COUNT_TOTAL);
+                }
+                case 2 -> {
+                    setCompatibleSort(this.materialList, false);
+                    this.materialList.setSortCriteria(MaterialListBase.SortCriteria.COUNT_MISSING);
+                }
                 case 3 -> {
                     if (minimalView) {
-                        return false;
+                        setCompatibleSort(this.materialList, true);
+                        this.materialList.setSortCriteria(MaterialListBase.SortCriteria.COUNT_AVAILABLE);
+                    } else {
+                        setCompatibleSort(this.materialList, false);
+                        this.materialList.setSortCriteria(MaterialListBase.SortCriteria.COUNT_AVAILABLE);
                     }
-                    this.materialList.setSortCriteria(MaterialListBase.SortCriteria.COUNT_AVAILABLE);
                 }
                 case 4 -> {
                     if (!minimalView) {
                         return false;
                     }
+                    setCompatibleSort(this.materialList, false);
                     this.materialList.setSortCriteria(MaterialListBase.SortCriteria.COUNT_AVAILABLE);
                 }
                 default -> {
