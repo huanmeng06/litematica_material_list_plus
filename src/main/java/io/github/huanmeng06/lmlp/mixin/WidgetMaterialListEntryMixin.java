@@ -717,9 +717,10 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
 
         int maxPanelWidth = Math.max(120, this.mc.method_22683().method_4486() - HOVER_TOOLTIP_MARGIN * 2);
         int maxContentWidth = Math.max(80, maxPanelWidth - HOVER_TOOLTIP_PADDING * 2);
+        int titleWidth = HOVER_TOOLTIP_ICON_SIZE + HOVER_TOOLTIP_ICON_GAP + this.getStringWidth(data.name());
         int contentWidth = Math.min(maxContentWidth, Math.max(
                 labelWidth + ALLOCATION_TOOLTIP_VALUE_GAP + valueWidth,
-                this.getStringWidth(data.name())));
+                titleWidth));
         int labelRegionWidth = Math.max(20, contentWidth - ALLOCATION_TOOLTIP_VALUE_GAP - valueWidth);
         int panelWidth = contentWidth + HOVER_TOOLTIP_PADDING * 2;
         int panelHeight = HOVER_TOOLTIP_PADDING * 2 + HOVER_TOOLTIP_LINE_HEIGHT
@@ -731,8 +732,12 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
 
         drawContext.method_51448().pushMatrix();
         lmlp$drawTooltipBox(drawContext, bounds.x(), bounds.y(), panelWidth, panelHeight, 0xF0000000, 0xFF999999);
-        String title = this.truncateToWidth(data.name(), contentWidth);
-        this.drawString(drawContext, contentX, y, 0xFFFFFFFF, GuiBase.TXT_BOLD + title + GuiBase.TXT_RST);
+        String title = this.truncateToWidth(data.name(), Math.max(20, contentWidth - HOVER_TOOLTIP_ICON_SIZE - HOVER_TOOLTIP_ICON_GAP));
+        drawContext.method_25294(contentX, y - 4, contentX + HOVER_TOOLTIP_ICON_SIZE,
+                y - 4 + HOVER_TOOLTIP_ICON_SIZE, 0x20FFFFFF);
+        drawContext.method_51427(stack, contentX, y - 4);
+        this.drawString(drawContext, contentX + HOVER_TOOLTIP_ICON_SIZE + HOVER_TOOLTIP_ICON_GAP,
+                y, 0xFFFFFFFF, GuiBase.TXT_BOLD + title + GuiBase.TXT_RST);
         y += HOVER_TOOLTIP_LINE_HEIGHT + HOVER_TOOLTIP_HEADER_GAP;
         for (AllocationTooltipLine line : lines) {
             int indent = line.depth() == 0 ? 0 : line.depth() == 1 ? ALLOCATION_TOOLTIP_INDENT : ALLOCATION_TOOLTIP_DEEP_INDENT;
