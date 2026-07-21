@@ -9,6 +9,7 @@ import io.github.huanmeng06.lmlp.config.GlazedTerracottaMaterial;
 import io.github.huanmeng06.lmlp.config.StoneMaterialFamily;
 import io.github.huanmeng06.lmlp.config.TerracottaMaterial;
 import io.github.huanmeng06.lmlp.config.WoodFamily;
+import io.github.huanmeng06.lmlp.config.WoolMaterial;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -18,6 +19,7 @@ public final class RestrictedJeiOptionListConfigs {
     private static final Definition PREFERRED_WOOD = createPreferredWoodDefinition();
     private static final Definition PREFERRED_STONE = createPreferredStoneDefinition();
     private static final Definition PREFERRED_GLASS = createPreferredGlassDefinition();
+    private static final Definition PREFERRED_WOOL = createPreferredWoolDefinition();
     private static final Definition PREFERRED_CARPET = createPreferredCarpetDefinition();
     private static final Definition PREFERRED_TERRACOTTA = createPreferredTerracottaDefinition();
     private static final Definition PREFERRED_GLAZED_TERRACOTTA = createPreferredGlazedTerracottaDefinition();
@@ -25,6 +27,7 @@ public final class RestrictedJeiOptionListConfigs {
             PREFERRED_WOOD,
             PREFERRED_STONE,
             PREFERRED_GLASS,
+            PREFERRED_WOOL,
             PREFERRED_CARPET,
             PREFERRED_TERRACOTTA,
             PREFERRED_GLAZED_TERRACOTTA
@@ -72,6 +75,14 @@ public final class RestrictedJeiOptionListConfigs {
             choices.add(new Choice(material.blockId(), material));
         }
         return new Definition(Configs.ConfigForms.PREFERRED_CARPET_MATERIAL, List.copyOf(choices));
+    }
+
+    private static Definition createPreferredWoolDefinition() {
+        List<Choice> choices = new ArrayList<>();
+        for (WoolMaterial material : WoolMaterial.values()) {
+            choices.add(new Choice(material.blockId(), material));
+        }
+        return new Definition(Configs.ConfigForms.PREFERRED_WOOL_MATERIAL, List.copyOf(choices));
     }
 
     private static Definition createPreferredTerracottaDefinition() {

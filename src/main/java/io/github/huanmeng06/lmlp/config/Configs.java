@@ -240,6 +240,22 @@ public class Configs implements IConfigHandler {
                 "lmlp.config.name.preferred_glass_material"
         );
 
+        public static final ConfigBoolean PREFERRED_WOOL_ENABLED = new ConfigBoolean(
+                "preferredWoolEnabled",
+                false,
+                "lmlp.config.comment.preferred_wool_enabled",
+                "lmlp.config.name.preferred_wool_enabled",
+                "lmlp.config.name.preferred_wool_enabled"
+        );
+
+        public static final ConfigOptionList PREFERRED_WOOL_MATERIAL = new ConfigOptionList(
+                "preferredWoolMaterial",
+                WoolMaterial.WHITE,
+                "lmlp.config.comment.preferred_wool_material",
+                "lmlp.config.name.preferred_wool_material",
+                "lmlp.config.name.preferred_wool_material"
+        );
+
         public static final ConfigBoolean PREFERRED_CARPET_ENABLED = new ConfigBoolean(
                 "preferredCarpetEnabled",
                 false,
@@ -300,6 +316,8 @@ public class Configs implements IConfigHandler {
                 PREFERRED_STONE_FAMILY,
                 PREFERRED_GLASS_ENABLED,
                 PREFERRED_GLASS_MATERIAL,
+                PREFERRED_WOOL_ENABLED,
+                PREFERRED_WOOL_MATERIAL,
                 PREFERRED_CARPET_ENABLED,
                 PREFERRED_CARPET_MATERIAL,
                 PREFERRED_TERRACOTTA_ENABLED,
@@ -315,6 +333,8 @@ public class Configs implements IConfigHandler {
                 PREFERRED_STONE_FAMILY,
                 PREFERRED_GLASS_ENABLED,
                 PREFERRED_GLASS_MATERIAL,
+                PREFERRED_WOOL_ENABLED,
+                PREFERRED_WOOL_MATERIAL,
                 PREFERRED_CARPET_ENABLED,
                 PREFERRED_CARPET_MATERIAL,
                 PREFERRED_TERRACOTTA_ENABLED,

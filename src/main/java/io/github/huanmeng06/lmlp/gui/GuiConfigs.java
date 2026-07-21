@@ -55,6 +55,7 @@ public class GuiConfigs extends GuiConfigsBase {
         boolean preferredWoodWasEnabled = Configs.ConfigForms.PREFERRED_WOOD_ENABLED.getBooleanValue();
         boolean preferredStoneWasEnabled = Configs.ConfigForms.PREFERRED_STONE_ENABLED.getBooleanValue();
         boolean preferredGlassWasEnabled = Configs.ConfigForms.PREFERRED_GLASS_ENABLED.getBooleanValue();
+        boolean preferredWoolWasEnabled = Configs.ConfigForms.PREFERRED_WOOL_ENABLED.getBooleanValue();
         boolean preferredCarpetWasEnabled = Configs.ConfigForms.PREFERRED_CARPET_ENABLED.getBooleanValue();
         boolean preferredTerracottaWasEnabled = Configs.ConfigForms.PREFERRED_TERRACOTTA_ENABLED.getBooleanValue();
         boolean preferredGlazedTerracottaWasEnabled = Configs.ConfigForms.PREFERRED_GLAZED_TERRACOTTA_ENABLED.getBooleanValue();
@@ -62,6 +63,7 @@ public class GuiConfigs extends GuiConfigsBase {
         boolean preferredWoodIsEnabled = Configs.ConfigForms.PREFERRED_WOOD_ENABLED.getBooleanValue();
         boolean preferredStoneIsEnabled = Configs.ConfigForms.PREFERRED_STONE_ENABLED.getBooleanValue();
         boolean preferredGlassIsEnabled = Configs.ConfigForms.PREFERRED_GLASS_ENABLED.getBooleanValue();
+        boolean preferredWoolIsEnabled = Configs.ConfigForms.PREFERRED_WOOL_ENABLED.getBooleanValue();
         boolean preferredCarpetIsEnabled = Configs.ConfigForms.PREFERRED_CARPET_ENABLED.getBooleanValue();
         boolean preferredTerracottaIsEnabled = Configs.ConfigForms.PREFERRED_TERRACOTTA_ENABLED.getBooleanValue();
         boolean preferredGlazedTerracottaIsEnabled = Configs.ConfigForms.PREFERRED_GLAZED_TERRACOTTA_ENABLED.getBooleanValue();
@@ -76,6 +78,9 @@ public class GuiConfigs extends GuiConfigsBase {
             }
             if (preferredGlassWasEnabled != preferredGlassIsEnabled) {
                 preferenceList.setGroupExpanded(Configs.ConfigForms.PREFERRED_GLASS_ENABLED, preferredGlassIsEnabled);
+            }
+            if (preferredWoolWasEnabled != preferredWoolIsEnabled) {
+                preferenceList.setGroupExpanded(Configs.ConfigForms.PREFERRED_WOOL_ENABLED, preferredWoolIsEnabled);
             }
             if (preferredCarpetWasEnabled != preferredCarpetIsEnabled) {
                 preferenceList.setGroupExpanded(Configs.ConfigForms.PREFERRED_CARPET_ENABLED, preferredCarpetIsEnabled);

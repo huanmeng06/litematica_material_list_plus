@@ -9,6 +9,7 @@ import io.github.huanmeng06.lmlp.config.GlazedTerracottaMaterial;
 import io.github.huanmeng06.lmlp.config.StoneMaterialFamily;
 import io.github.huanmeng06.lmlp.config.TerracottaMaterial;
 import io.github.huanmeng06.lmlp.config.WoodFamily;
+import io.github.huanmeng06.lmlp.config.WoolMaterial;
 import net.minecraft.class_2248;
 import net.minecraft.class_2382;
 import net.minecraft.class_2680;
@@ -271,6 +272,7 @@ public final class PreferredSchematicReplacement {
         WOOD,
         STONE,
         GLASS,
+        WOOL,
         CARPET,
         TERRACOTTA,
         GLAZED_TERRACOTTA
@@ -280,6 +282,7 @@ public final class PreferredSchematicReplacement {
             WoodFamily wood,
             StoneMaterialFamily stone,
             GlassMaterial glass,
+            WoolMaterial wool,
             CarpetMaterial carpet,
             TerracottaMaterial terracotta,
             GlazedTerracottaMaterial glazedTerracotta) {
@@ -338,6 +341,19 @@ public final class PreferredSchematicReplacement {
                                 this.carpet.blockId(),
                                 directCandidates(java.util.Arrays.stream(CarpetMaterial.values())
                                         .map(CarpetMaterial::blockId)
+                                        .toList()));
+                    }
+                }
+            }
+
+            if (this.wool != null) {
+                for (WoolMaterial material : WoolMaterial.values()) {
+                    if (sourceId.equals(material.blockId())) {
+                        return ReplacementTarget.exact(
+                                PreferredMaterialCategory.WOOL,
+                                this.wool.blockId(),
+                                directCandidates(java.util.Arrays.stream(WoolMaterial.values())
+                                        .map(WoolMaterial::blockId)
                                         .toList()));
                     }
                 }
