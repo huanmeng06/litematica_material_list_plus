@@ -130,7 +130,7 @@
   "lmlp.config.comment.preferred_wool_enabled": "是否在「替換為偏好」中啟用羊毛顏色替換。",
   "lmlp.config.name.preferred_wool_material": "目標羊毛",
   "lmlp.config.comment.preferred_wool_material": "「替換為偏好」產生原理圖副本時使用的目標羊毛顏色。",
-  "lmlp.config.name.preferred_carpet_enabled": "替換地氈顏色",
+  "lmlp.config.name.preferred_carpet_enabled": "替換地氈",
   "lmlp.config.comment.preferred_carpet_enabled": "是否在「替換為偏好」中啟用地氈顏色替換。",
   "lmlp.config.name.preferred_carpet_material": "目標地氈",
   "lmlp.config.comment.preferred_carpet_material": "「替換為偏好」產生原理圖副本時使用的目標地氈。",

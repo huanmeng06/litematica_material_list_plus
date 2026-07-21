@@ -130,7 +130,7 @@
   "lmlp.config.comment.preferred_wool_enabled": "Whether wool color replacement is enabled in Replace with preferences.",
   "lmlp.config.name.preferred_wool_material": "Target wool",
   "lmlp.config.comment.preferred_wool_material": "Target wool color used when Replace with preferences creates a schematic copy.",
-  "lmlp.config.name.preferred_carpet_enabled": "Replace carpet color",
+  "lmlp.config.name.preferred_carpet_enabled": "Replace carpet",
   "lmlp.config.comment.preferred_carpet_enabled": "Whether carpet color replacement is enabled in Replace with preferences.",
   "lmlp.config.name.preferred_carpet_material": "Target carpet",
   "lmlp.config.comment.preferred_carpet_material": "Target carpet used when Replace with preferences creates a schematic copy.",
