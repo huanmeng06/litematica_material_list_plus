@@ -64,6 +64,8 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
     private static final int ALLOCATION_TOOLTIP_VALUE_GAP = 28;
     private static final int ALLOCATION_TOOLTIP_INDENT = 12;
     private static final int ALLOCATION_TOOLTIP_DEEP_INDENT = 24;
+    private static final String ALLOCATION_DETAIL_MARKER = GuiBase.TXT_GOLD
+            + GuiBase.TXT_BOLD + " *" + GuiBase.TXT_RST;
     private static int lmlpMaxTotalDigits;
     private static int lmlpMaxMissingDigits;
     private static int lmlpMaxAvailableDigits;
@@ -677,7 +679,7 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
 
     private static String lmlp$missingText(MaterialListEntry entry, class_1799 stack, int missing) {
         String text = CountFormatter.formatAligned(stack, missing, lmlpMaxMissingDigits);
-        return MinimalSubMaterialListView.hasAllocationTooltip(entry) ? text + "*" : text;
+        return MinimalSubMaterialListView.hasAllocationTooltip(entry) ? text + ALLOCATION_DETAIL_MARKER : text;
     }
 
     private boolean lmlp$renderAllocationTooltip(GuiContext drawContext, int mouseX, int mouseY) {
