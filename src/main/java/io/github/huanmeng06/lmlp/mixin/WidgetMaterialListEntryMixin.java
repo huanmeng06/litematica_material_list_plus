@@ -157,7 +157,7 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
             maxNameLength = Math.max(maxNameLength, StringUtils.getStringWidth(name));
             for (class_1799 stack : MinimalSubMaterialListView.displayStacks(entry)) {
                 maxCountLength1 = Math.max(maxCountLength1, StringUtils.getStringWidth(CountFormatter.formatAligned(stack, total, lmlpMaxTotalDigits)));
-                maxCountLength2 = Math.max(maxCountLength2, StringUtils.getStringWidth(CountFormatter.formatAligned(stack, missing, lmlpMaxMissingDigits)));
+                maxCountLength2 = Math.max(maxCountLength2, StringUtils.getStringWidth(lmlp$missingText(entry, stack, missing)));
                 maxCountLength3 = Math.max(maxCountLength3, StringUtils.getStringWidth(CountFormatter.formatAligned(stack, available, lmlpMaxAvailableDigits)));
             }
         }
@@ -451,7 +451,7 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
             this.drawString(drawContext, xTotal, yText, -1, CountFormatter.formatAligned(stack, total, lmlpMaxTotalDigits));
         }
         if (MaterialListColumnLayout.isMissingVisible()) {
-            this.drawString(drawContext, xMissing, yText, -1, netMissingColor(missing) + CountFormatter.formatAligned(stack, missing, lmlpMaxMissingDigits));
+            this.drawString(drawContext, xMissing, yText, -1, netMissingColor(missing) + lmlp$missingText(this.entry, stack, missing));
         }
         if (MaterialListColumnLayout.isAvailableVisible()) {
             this.drawString(drawContext, xAvailable, yText, -1, availableColor(available, rawMissing) + CountFormatter.formatAligned(stack, available, lmlpMaxAvailableDigits));
@@ -660,19 +660,24 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
     }
 
     private boolean lmlp$isAllocationTooltipHovered(int mouseX, int mouseY) {
-        if (MinimalSubMaterialListView.allocationTooltip(this.entry) == null
+        if (!MinimalSubMaterialListView.hasAllocationTooltip(this.entry)
                 || !MaterialListColumnLayout.isMissingVisible()) {
             return false;
         }
 
         class_1799 stack = MinimalSubMaterialListView.displayStack(this.entry);
         int missing = MinimalSubMaterialListView.netMissing(this.entry, this.materialList);
-        String text = CountFormatter.formatAligned(stack, missing, lmlpMaxMissingDigits);
+        String text = lmlp$missingText(this.entry, stack, missing);
         int x = this.getColumnPosX(2);
         return mouseX >= x
                 && mouseX < x + this.getStringWidth(text)
                 && mouseY >= this.y + 2
                 && mouseY < this.y + Math.min(this.height, 22);
+    }
+
+    private static String lmlp$missingText(MaterialListEntry entry, class_1799 stack, int missing) {
+        String text = CountFormatter.formatAligned(stack, missing, lmlpMaxMissingDigits);
+        return MinimalSubMaterialListView.hasAllocationTooltip(entry) ? text + "*" : text;
     }
 
     private boolean lmlp$renderAllocationTooltip(GuiContext drawContext, int mouseX, int mouseY) {

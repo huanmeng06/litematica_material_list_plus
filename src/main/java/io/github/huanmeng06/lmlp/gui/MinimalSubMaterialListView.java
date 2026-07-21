@@ -491,6 +491,11 @@ public final class MinimalSubMaterialListView {
         return display == null ? entry.getCountAvailable() : display.compatibleCount();
     }
 
+    public static boolean hasAllocationTooltip(MaterialListEntry entry) {
+        DisplayData display = displayData(entry);
+        return display != null && display.ambiguousAllocation();
+    }
+
     public static AllocationTooltip allocationTooltip(MaterialListEntry entry) {
         DisplayData display = displayData(entry);
         if (display == null || !display.ambiguousAllocation()) {
