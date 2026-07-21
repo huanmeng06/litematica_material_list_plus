@@ -723,22 +723,23 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
                 titleWidth));
         int labelRegionWidth = Math.max(20, contentWidth - ALLOCATION_TOOLTIP_VALUE_GAP - valueWidth);
         int panelWidth = contentWidth + HOVER_TOOLTIP_PADDING * 2;
-        int panelHeight = HOVER_TOOLTIP_PADDING * 2 + HOVER_TOOLTIP_LINE_HEIGHT
+        int headerHeight = Math.max(HOVER_TOOLTIP_ICON_SIZE, HOVER_TOOLTIP_LINE_HEIGHT);
+        int panelHeight = HOVER_TOOLTIP_PADDING * 2 + headerHeight
                 + HOVER_TOOLTIP_HEADER_GAP + lines.size() * HOVER_TOOLTIP_LINE_HEIGHT;
         PanelBounds bounds = this.hoverTooltipBounds(mouseX, mouseY, panelWidth, panelHeight);
         int contentX = bounds.x() + HOVER_TOOLTIP_PADDING;
         int valueRight = contentX + contentWidth;
-        int y = bounds.y() + HOVER_TOOLTIP_PADDING;
+        int headerY = bounds.y() + HOVER_TOOLTIP_PADDING + 4;
+        int y = headerY + headerHeight + HOVER_TOOLTIP_HEADER_GAP;
 
         drawContext.method_51448().pushMatrix();
         lmlp$drawTooltipBox(drawContext, bounds.x(), bounds.y(), panelWidth, panelHeight, 0xF0000000, 0xFF999999);
         String title = this.truncateToWidth(data.name(), Math.max(20, contentWidth - HOVER_TOOLTIP_ICON_SIZE - HOVER_TOOLTIP_ICON_GAP));
-        drawContext.method_25294(contentX, y - 4, contentX + HOVER_TOOLTIP_ICON_SIZE,
-                y - 4 + HOVER_TOOLTIP_ICON_SIZE, 0x20FFFFFF);
-        drawContext.method_51427(stack, contentX, y - 4);
+        drawContext.method_25294(contentX, headerY - 4, contentX + HOVER_TOOLTIP_ICON_SIZE,
+                headerY - 4 + HOVER_TOOLTIP_ICON_SIZE, 0x20FFFFFF);
+        drawContext.method_51427(stack, contentX, headerY - 4);
         this.drawString(drawContext, contentX + HOVER_TOOLTIP_ICON_SIZE + HOVER_TOOLTIP_ICON_GAP,
-                y, 0xFFFFFFFF, GuiBase.TXT_BOLD + title + GuiBase.TXT_RST);
-        y += HOVER_TOOLTIP_LINE_HEIGHT + HOVER_TOOLTIP_HEADER_GAP;
+                headerY, 0xFFFFFFFF, GuiBase.TXT_BOLD + title + GuiBase.TXT_RST);
         for (AllocationTooltipLine line : lines) {
             int indent = line.depth() == 0 ? 0 : line.depth() == 1 ? ALLOCATION_TOOLTIP_INDENT : ALLOCATION_TOOLTIP_DEEP_INDENT;
             String label = this.truncateToWidth(line.label(), Math.max(20, labelRegionWidth - indent));
