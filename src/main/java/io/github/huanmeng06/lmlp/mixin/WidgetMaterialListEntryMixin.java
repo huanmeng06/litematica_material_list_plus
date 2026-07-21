@@ -686,25 +686,26 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         }
 
         List<AllocationTooltipLine> lines = new java.util.ArrayList<>();
-        lines.add(new AllocationTooltipLine(StringUtils.translate("lmlp.gui.material_list.tooltip.total"), data.total(), 0));
-        lines.add(new AllocationTooltipLine(StringUtils.translate("lmlp.gui.material_list.tooltip.credited"), data.credited(), 0));
+        class_1799 stack = MinimalSubMaterialListView.displayStack(this.entry);
+        lines.add(new AllocationTooltipLine(StringUtils.translate("lmlp.gui.material_list.tooltip.total"), CountFormatter.format(stack, data.total()), 0));
+        lines.add(new AllocationTooltipLine(StringUtils.translate("lmlp.gui.material_list.tooltip.credited"), CountFormatter.format(stack, data.credited()), 0));
         lines.add(new AllocationTooltipLine(StringUtils.translate(data.choiceGroup()
                 ? "lmlp.gui.material_list.tooltip.inventory_candidates"
-                : "lmlp.gui.material_list.tooltip.inventory_owned"), data.inventory(), 1));
+                : "lmlp.gui.material_list.tooltip.inventory_owned"), CountFormatter.format(stack, data.inventory()), 1));
         if (data.choiceGroup()) {
             for (MinimalSubMaterialListView.AllocatedCandidate candidate : data.allocatedCandidates()) {
-                lines.add(new AllocationTooltipLine(candidate.name(), candidate.count(), 2));
+                lines.add(new AllocationTooltipLine(candidate.name(), CountFormatter.format(stack, candidate.count()), 2));
             }
         }
-        lines.add(new AllocationTooltipLine(StringUtils.translate("lmlp.gui.material_list.tooltip.prepared"), data.prepared(), 1));
-        lines.add(new AllocationTooltipLine(StringUtils.translate("lmlp.gui.material_list.tooltip.missing"), data.missing(), 0));
+        lines.add(new AllocationTooltipLine(StringUtils.translate("lmlp.gui.material_list.tooltip.prepared"), CountFormatter.format(stack, data.prepared()), 1));
+        lines.add(new AllocationTooltipLine(StringUtils.translate("lmlp.gui.material_list.tooltip.missing"), CountFormatter.format(stack, data.missing()), 0));
 
         int labelWidth = 0;
         int valueWidth = 0;
         for (AllocationTooltipLine line : lines) {
             int indent = line.depth() == 0 ? 0 : line.depth() == 1 ? ALLOCATION_TOOLTIP_INDENT : ALLOCATION_TOOLTIP_DEEP_INDENT;
             labelWidth = Math.max(labelWidth, indent + this.getStringWidth(line.label()));
-            valueWidth = Math.max(valueWidth, this.getStringWidth(Integer.toString(line.value())));
+            valueWidth = Math.max(valueWidth, this.getStringWidth(line.value()));
         }
 
         int maxPanelWidth = Math.max(120, this.mc.method_22683().method_4486() - HOVER_TOOLTIP_MARGIN * 2);
@@ -729,7 +730,7 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         for (AllocationTooltipLine line : lines) {
             int indent = line.depth() == 0 ? 0 : line.depth() == 1 ? ALLOCATION_TOOLTIP_INDENT : ALLOCATION_TOOLTIP_DEEP_INDENT;
             String label = this.truncateToWidth(line.label(), Math.max(20, labelRegionWidth - indent));
-            String value = Integer.toString(line.value());
+            String value = line.value();
             int color = line.depth() == 0 ? 0xFFFFFFFF : 0xFFB0B0B0;
             this.drawString(drawContext, contentX + indent, y, color, label);
             this.drawString(drawContext, valueRight - this.getStringWidth(value), y, color, value);
@@ -1326,6 +1327,6 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
     private record ChoiceTooltipTarget(class_1799 icon, String name, List<MinimalSubMaterialListView.TooltipCandidate> candidates) {
     }
 
-    private record AllocationTooltipLine(String label, int value, int depth) {
+    private record AllocationTooltipLine(String label, String value, int depth) {
     }
 }
