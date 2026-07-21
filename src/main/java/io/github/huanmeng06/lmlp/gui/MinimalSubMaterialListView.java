@@ -82,6 +82,10 @@ public final class MinimalSubMaterialListView {
     public static void setActive(MaterialListBase materialList, boolean active) {
         if (active) {
             MaterialListPlusState.suspendForMinimalView(materialList);
+            MaterialListSortState.setCompatibleSort(materialList, false);
+            if (materialList.getSortCriteria() == MaterialListBase.SortCriteria.COUNT_AVAILABLE) {
+                materialList.setSortCriteria(MaterialListBase.SortCriteria.COUNT_MISSING);
+            }
             ACTIVE_LISTS.put(materialList, true);
             prepare(materialList);
         } else {
@@ -485,6 +489,25 @@ public final class MinimalSubMaterialListView {
     public static int compatibleCount(MaterialListEntry entry) {
         DisplayData display = displayData(entry);
         return display == null ? entry.getCountAvailable() : display.compatibleCount();
+    }
+
+    public static AllocationTooltip allocationTooltip(MaterialListEntry entry) {
+        DisplayData display = displayData(entry);
+        if (display == null || !display.ambiguousAllocation()) {
+            return null;
+        }
+
+        int total = Math.max(0, entry.getCountTotal());
+        int credited = Math.max(0, entry.getCountAvailable());
+        return new AllocationTooltip(
+                display.stableName(),
+                total,
+                credited,
+                Math.max(0, display.allocatedInventory()),
+                Math.max(0, display.preparedCount()),
+                Math.max(0, total - credited),
+                display.candidates().size() > 1,
+                display.allocatedCandidates());
     }
 
     private static DisplayData displayData(MaterialListEntry entry) {
@@ -1235,30 +1258,48 @@ public final class MinimalSubMaterialListView {
             return List.copyOf(this.candidates.keySet());
         }
 
-        private void reservePreparedInventory(Map<String, Integer> remainingInventory) {
+        private AllocationResult reservePreparedInventory(Map<String, Integer> remainingInventory) {
+            int totalReserved = 0;
+            List<AllocatedCandidate> reservedCandidates = new ArrayList<>();
             for (SourceAccumulator source : this.sources.values()) {
                 if (this.candidates.containsKey(source.origin.id())) {
                     int reserved = clampToInt(Math.min(
                             Math.max(0L, source.preparedCount),
                             Math.max(0, source.origin.preparedInventoryCount())));
-                    consumeInventory(remainingInventory, source.origin.id(), reserved);
+                    int consumed = consumeInventory(remainingInventory, source.origin.id(), reserved);
+                    totalReserved += consumed;
+                    if (consumed > 0) {
+                        Candidate candidate = this.candidates.get(source.origin.id());
+                        reservedCandidates.add(new AllocatedCandidate(
+                                candidate == null ? source.origin.name() : candidate.name(),
+                                consumed));
+                    }
                 }
             }
+            return new AllocationResult(totalReserved, List.copyOf(reservedCandidates));
         }
 
-        private int allocateRemainingInventory(Map<String, Integer> remainingInventory) {
+        private AllocationResult allocateRemainingInventory(Map<String, Integer> remainingInventory) {
             long allocated = 0L;
+            List<AllocatedCandidate> allocatedCandidates = new ArrayList<>();
             long capacity = Math.max(0L, this.totalCount - this.preparedCount);
             for (String candidateId : this.candidateIds()) {
                 if (allocated >= capacity) {
                     break;
                 }
-                allocated += consumeInventory(
+                int consumed = consumeInventory(
                         remainingInventory,
                         candidateId,
                         clampToInt(capacity - allocated));
+                allocated += consumed;
+                if (consumed > 0) {
+                    Candidate candidate = this.candidates.get(candidateId);
+                    allocatedCandidates.add(new AllocatedCandidate(
+                            candidate == null ? candidateId : candidate.name(),
+                            consumed));
+                }
             }
-            return clampToInt(allocated);
+            return new AllocationResult(clampToInt(allocated), List.copyOf(allocatedCandidates));
         }
 
         private static int consumeInventory(Map<String, Integer> remainingInventory, String itemId, int requested) {
@@ -1411,31 +1452,41 @@ public final class MinimalSubMaterialListView {
                     remainingInventory.putIfAbsent(ItemStackTexts.id(candidate), this.inventory.count(candidate));
                 }
             }
-            for (Accumulator material : this.materials.values()) {
-                material.reservePreparedInventory(remainingInventory);
-            }
             List<Accumulator> allocationOrder = new ArrayList<>(this.materials.values());
             allocationOrder.sort(Comparator
                     .comparingInt((Accumulator material) -> material.candidates.size())
                     .thenComparing(material -> material.name));
-            Map<Accumulator, Integer> allocatedInventory = new IdentityHashMap<>();
+            // Reserve and allocate exact items before broader candidate groups.
+            // This keeps a concrete requirement from losing its own inventory to
+            // an overlapping "any item" row.
+            Map<Accumulator, AllocationResult> preparedReservations = new IdentityHashMap<>();
+            Map<Accumulator, AllocationResult> remainingAllocations = new IdentityHashMap<>();
             Map<Accumulator, Integer> compatibleInventory = new IdentityHashMap<>();
             for (Accumulator material : allocationOrder) {
+                preparedReservations.put(material, material.reservePreparedInventory(remainingInventory));
                 compatibleInventory.put(material, this.inventory.countAny(material.candidateIcons()));
-                allocatedInventory.put(material, material.allocateRemainingInventory(remainingInventory));
+                remainingAllocations.put(material, material.allocateRemainingInventory(remainingInventory));
             }
+            Set<Accumulator> ambiguousMaterials = ambiguousMaterials(allocationOrder);
             for (Accumulator material : this.materials.values()) {
                 int total = clampToInt(material.totalCount);
+                AllocationResult reservation = preparedReservations.getOrDefault(material, AllocationResult.EMPTY);
+                AllocationResult allocation = remainingAllocations.getOrDefault(material, AllocationResult.EMPTY);
+                AllocationResult inventoryCredit = reservation.plus(allocation);
                 int available = resolvedAvailable(
                         material.preparedCount,
-                        allocatedInventory.getOrDefault(material, 0));
+                        allocation.count());
                 MaterialListEntry entry = new MaterialListEntry(material.stack.method_7972(), total, total, 0, available);
                 entries.add(entry);
                 DisplayData display = new DisplayData(
                         material.name,
                         material.candidates(),
                         material.sources(),
-                        compatibleInventory.getOrDefault(material, 0));
+                        compatibleInventory.getOrDefault(material, 0),
+                        inventoryCredit.count(),
+                        clampToInt(Math.max(0L, material.preparedCount - reservation.count())),
+                        inventoryCredit.candidates(),
+                        ambiguousMaterials.contains(material));
                 displays.put(entry, display);
                 ENTRY_DISPLAY_KEYS.put(entryKey(entry), display);
             }
@@ -1447,6 +1498,21 @@ public final class MinimalSubMaterialListView {
                         placementKey, entries.size());
             }
         }
+
+        private static Set<Accumulator> ambiguousMaterials(List<Accumulator> materials) {
+            Set<Accumulator> ambiguous = java.util.Collections.newSetFromMap(new IdentityHashMap<>());
+            for (int first = 0; first < materials.size(); first++) {
+                Set<String> firstIds = materials.get(first).candidates.keySet();
+                for (int second = first + 1; second < materials.size(); second++) {
+                    Set<String> secondIds = materials.get(second).candidates.keySet();
+                    if (firstIds.stream().anyMatch(secondIds::contains)) {
+                        ambiguous.add(materials.get(first));
+                        ambiguous.add(materials.get(second));
+                    }
+                }
+            }
+            return ambiguous;
+        }
     }
 
     private record Cache(String signature, List<MaterialListEntry> entries) {
@@ -1456,7 +1522,11 @@ public final class MinimalSubMaterialListView {
             String name,
             List<Candidate> candidates,
             List<SourceContribution> sources,
-            int compatibleCount) {
+            int compatibleCount,
+            int allocatedInventory,
+            int preparedCount,
+            List<AllocatedCandidate> allocatedCandidates,
+            boolean ambiguousAllocation) {
         private String displayName() {
             String stableName = this.stableName();
             return this.candidates.size() > 1 ? emphasizeVariable(stableName) : emphasizeAny(stableName);
@@ -1550,6 +1620,41 @@ public final class MinimalSubMaterialListView {
     }
 
     public record TooltipCandidate(class_1799 icon, String name) {
+    }
+
+    public record AllocatedCandidate(String name, int count) {
+    }
+
+    public record AllocationTooltip(
+            String name,
+            int total,
+            int credited,
+            int inventory,
+            int prepared,
+            int missing,
+            boolean choiceGroup,
+            List<AllocatedCandidate> allocatedCandidates) {
+    }
+
+    private record AllocationResult(int count, List<AllocatedCandidate> candidates) {
+        private static final AllocationResult EMPTY = new AllocationResult(0, List.of());
+
+        private AllocationResult plus(AllocationResult other) {
+            if (this.count == 0) {
+                return other;
+            }
+            if (other.count == 0) {
+                return this;
+            }
+
+            Map<String, Integer> counts = new LinkedHashMap<>();
+            this.candidates.forEach(candidate -> counts.merge(candidate.name(), candidate.count(), Integer::sum));
+            other.candidates.forEach(candidate -> counts.merge(candidate.name(), candidate.count(), Integer::sum));
+            List<AllocatedCandidate> merged = counts.entrySet().stream()
+                    .map(entry -> new AllocatedCandidate(entry.getKey(), entry.getValue()))
+                    .toList();
+            return new AllocationResult(clampToInt((long) this.count + other.count), merged);
+        }
     }
 
     public record RequirementContribution(class_1799 icon, List<class_1799> icons, List<String> candidateNames, String name, int totalCount, int missingCount, int maxStackSize, UpstreamRequirement upstream) {
