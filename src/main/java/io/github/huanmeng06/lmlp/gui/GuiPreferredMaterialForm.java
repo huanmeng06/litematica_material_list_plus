@@ -61,6 +61,7 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
     private static final int CONFIG_WIDTH = 140;
     private static final int ACTION_WIDTH = 90;
     private static final int ACTION_GAP = 4;
+    private static final int BULK_ACTION_GAP = 2;
     private static final int BOTTOM_ACTION_SPACE = 34;
     private static final int DETAIL_MARGIN = 10;
     private static final int DETAIL_ROW_HEIGHT = 22;
@@ -124,6 +125,22 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
         this.clearOptions();
         super.initGui();
 
+        int bulkX = 10;
+        bulkX += this.createBulkActionButton(
+                bulkX,
+                "lmlp.gui.preferred_replacement.enable_all",
+                () -> this.setAllPreferencesEnabled(true));
+        bulkX += BULK_ACTION_GAP;
+        bulkX += this.createBulkActionButton(
+                bulkX,
+                "lmlp.gui.preferred_replacement.disable_all",
+                () -> this.setAllPreferencesEnabled(false));
+        bulkX += BULK_ACTION_GAP;
+        this.createBulkActionButton(
+                bulkX,
+                "lmlp.gui.preferred_replacement.reset_all_targets",
+                this::resetAllTargets);
+
         int y = this.field_22790 - 30;
         int cancelX = this.field_22789 - 10 - ACTION_WIDTH;
         int confirmX = cancelX - ACTION_GAP - ACTION_WIDTH;
@@ -149,6 +166,36 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
         this.addButton(cancel, (button, mouseButton) -> this.cancel());
         this.updateKeybindButtons();
         this.rebuildRowsIfNeeded();
+    }
+
+    private int createBulkActionButton(int x, String translationKey, Runnable action) {
+        ButtonGeneric button = new ButtonGeneric(
+                x,
+                26,
+                -1,
+                20,
+                StringUtils.translate(translationKey)
+        );
+        button.setTextCentered(true);
+        this.addButton(button, (clickedButton, mouseButton) -> action.run());
+        return button.getWidth();
+    }
+
+    private void setAllPreferencesEnabled(boolean enabled) {
+        for (PreferredMaterialCategory category : PreferredMaterialCategory.values()) {
+            this.preferenceToggle(category).setBooleanValue(enabled);
+        }
+    }
+
+    private void resetAllTargets() {
+        Configs.ConfigForms.PREFERRED_WOOD_FAMILY.resetToDefault();
+        Configs.ConfigForms.PREFERRED_STONE_FAMILY.resetToDefault();
+        Configs.ConfigForms.PREFERRED_GLASS_MATERIAL.resetToDefault();
+        Configs.ConfigForms.PREFERRED_WOOL_MATERIAL.resetToDefault();
+        Configs.ConfigForms.PREFERRED_CARPET_MATERIAL.resetToDefault();
+        Configs.ConfigForms.PREFERRED_TERRACOTTA_MATERIAL.resetToDefault();
+        Configs.ConfigForms.PREFERRED_GLAZED_TERRACOTTA_MATERIAL.resetToDefault();
+        this.rows.forEach(RowState::resetTarget);
     }
 
     @Override
