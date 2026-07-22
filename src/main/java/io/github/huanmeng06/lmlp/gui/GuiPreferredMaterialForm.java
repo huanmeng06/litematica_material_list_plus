@@ -466,7 +466,7 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
             context.method_51427(new class_1799(row.row.sourceBlock()), sourceIconX, iconY);
         }
 
-        int actionWidth = this.resetButtonWidth();
+        int actionWidth = Math.max(this.resetButtonWidth(), row.buttonWidth());
         int buttonX = rowRight - actionWidth - 4;
         int countX = rowLeft + Math.round((buttonX - rowLeft) * 0.57F);
         int statusX = rowLeft + Math.round((buttonX - rowLeft) * 0.78F);
@@ -1092,12 +1092,20 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
         }
 
         private void updateButton() {
-            String key = switch (this.mode) {
+            this.button.setDisplayString(StringUtils.translate(this.modeTranslationKey()));
+        }
+
+        private int buttonWidth() {
+            return GuiPreferredMaterialForm.this.field_22793.method_1727(
+                    StringUtils.translate(this.modeTranslationKey())) + 10;
+        }
+
+        private String modeTranslationKey() {
+            return switch (this.mode) {
                 case REPLACE -> "lmlp.gui.preferred_replacement.mode.replace";
                 case SKIP -> "lmlp.gui.preferred_replacement.mode.skip";
                 case FORCE -> "lmlp.gui.preferred_replacement.mode.force";
             };
-            this.button.setDisplayString(StringUtils.translate(key));
         }
     }
 }
