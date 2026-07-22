@@ -87,6 +87,9 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
     private final Map<PreferredMaterialCategory, ArrowBounds> arrowBounds =
             new EnumMap<>(PreferredMaterialCategory.class);
     private final Set<RowState> renderedRows = Collections.newSetFromMap(new IdentityHashMap<>());
+    private ButtonGeneric enableAllButton;
+    private ButtonGeneric disableAllButton;
+    private ButtonGeneric resetAllTargetsButton;
     private PreferenceSnapshot rowsSnapshot;
     private boolean closingConfirmed;
 
@@ -126,17 +129,19 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
         super.initGui();
 
         int bulkX = 10;
-        bulkX += this.createBulkActionButton(
+        this.enableAllButton = this.createBulkActionButton(
                 bulkX,
                 "lmlp.gui.preferred_replacement.enable_all",
                 () -> this.setAllPreferencesEnabled(true));
+        bulkX += this.enableAllButton.getWidth();
         bulkX += BULK_ACTION_GAP;
-        bulkX += this.createBulkActionButton(
+        this.disableAllButton = this.createBulkActionButton(
                 bulkX,
                 "lmlp.gui.preferred_replacement.disable_all",
                 () -> this.setAllPreferencesEnabled(false));
+        bulkX += this.disableAllButton.getWidth();
         bulkX += BULK_ACTION_GAP;
-        this.createBulkActionButton(
+        this.resetAllTargetsButton = this.createBulkActionButton(
                 bulkX,
                 "lmlp.gui.preferred_replacement.reset_all_targets",
                 this::resetAllTargets);
@@ -166,9 +171,10 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
         this.addButton(cancel, (button, mouseButton) -> this.cancel());
         this.updateKeybindButtons();
         this.rebuildRowsIfNeeded();
+        this.updateBulkActionButtons();
     }
 
-    private int createBulkActionButton(int x, String translationKey, Runnable action) {
+    private ButtonGeneric createBulkActionButton(int x, String translationKey, Runnable action) {
         ButtonGeneric button = new ButtonGeneric(
                 x,
                 26,
@@ -178,7 +184,7 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
         );
         button.setTextCentered(true);
         this.addButton(button, (clickedButton, mouseButton) -> action.run());
-        return button.getWidth();
+        return button;
     }
 
     private void setAllPreferencesEnabled(boolean enabled) {
@@ -196,6 +202,45 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
         Configs.ConfigForms.PREFERRED_TERRACOTTA_MATERIAL.resetToDefault();
         Configs.ConfigForms.PREFERRED_GLAZED_TERRACOTTA_MATERIAL.resetToDefault();
         this.rows.forEach(RowState::resetTarget);
+    }
+
+    private void updateBulkActionButtons() {
+        PreferenceSnapshot preferences = PreferenceSnapshot.current();
+        boolean allEnabled = true;
+        boolean anyEnabled = false;
+        for (PreferredMaterialCategory category : PreferredMaterialCategory.values()) {
+            boolean enabled = preferences.enabled(category);
+            allEnabled &= enabled;
+            anyEnabled |= enabled;
+        }
+
+        if (this.enableAllButton != null) {
+            this.enableAllButton.setEnabled(!allEnabled);
+        }
+        if (this.disableAllButton != null) {
+            this.disableAllButton.setEnabled(anyEnabled);
+        }
+        if (this.resetAllTargetsButton != null) {
+            this.resetAllTargetsButton.setEnabled(!this.areAllTargetsDefault());
+        }
+    }
+
+    private boolean areAllTargetsDefault() {
+        return Configs.ConfigForms.PREFERRED_WOOD_FAMILY.getOptionListValue()
+                        == Configs.ConfigForms.PREFERRED_WOOD_FAMILY.getDefaultOptionListValue()
+                && Configs.ConfigForms.PREFERRED_STONE_FAMILY.getOptionListValue()
+                        == Configs.ConfigForms.PREFERRED_STONE_FAMILY.getDefaultOptionListValue()
+                && Configs.ConfigForms.PREFERRED_GLASS_MATERIAL.getOptionListValue()
+                        == Configs.ConfigForms.PREFERRED_GLASS_MATERIAL.getDefaultOptionListValue()
+                && Configs.ConfigForms.PREFERRED_WOOL_MATERIAL.getOptionListValue()
+                        == Configs.ConfigForms.PREFERRED_WOOL_MATERIAL.getDefaultOptionListValue()
+                && Configs.ConfigForms.PREFERRED_CARPET_MATERIAL.getOptionListValue()
+                        == Configs.ConfigForms.PREFERRED_CARPET_MATERIAL.getDefaultOptionListValue()
+                && Configs.ConfigForms.PREFERRED_TERRACOTTA_MATERIAL.getOptionListValue()
+                        == Configs.ConfigForms.PREFERRED_TERRACOTTA_MATERIAL.getDefaultOptionListValue()
+                && Configs.ConfigForms.PREFERRED_GLAZED_TERRACOTTA_MATERIAL.getOptionListValue()
+                        == Configs.ConfigForms.PREFERRED_GLAZED_TERRACOTTA_MATERIAL.getDefaultOptionListValue()
+                && this.rows.stream().noneMatch(row -> row.customTarget);
     }
 
     @Override
@@ -250,6 +295,7 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
         }
 
         this.updateKeybindButtons();
+        this.updateBulkActionButtons();
         return handled;
     }
 
@@ -304,6 +350,7 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
 
     @Override
     public void drawContents(GuiContext context, int mouseX, int mouseY, float partialTicks) {
+        this.updateBulkActionButtons();
         if (this.detailAnimations.isActive() && this.getListWidget() != null) {
             this.getListWidget().refreshEntries();
         }
