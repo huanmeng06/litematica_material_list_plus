@@ -2,11 +2,16 @@ package io.github.huanmeng06.lmlp.gui;
 
 import fi.dy.masa.malilib.config.IConfigOptionList;
 import fi.dy.masa.malilib.config.IConfigOptionListEntry;
+import io.github.huanmeng06.lmlp.config.BedMaterial;
+import io.github.huanmeng06.lmlp.config.CandleMaterial;
+import io.github.huanmeng06.lmlp.config.ConcreteMaterial;
+import io.github.huanmeng06.lmlp.config.ConcretePowderMaterial;
 import io.github.huanmeng06.lmlp.config.Configs;
 import io.github.huanmeng06.lmlp.config.CarpetMaterial;
 import io.github.huanmeng06.lmlp.config.GlassMaterial;
 import io.github.huanmeng06.lmlp.config.GlazedTerracottaMaterial;
 import io.github.huanmeng06.lmlp.config.StoneMaterialFamily;
+import io.github.huanmeng06.lmlp.config.ShulkerBoxMaterial;
 import io.github.huanmeng06.lmlp.config.TerracottaMaterial;
 import io.github.huanmeng06.lmlp.config.WoodFamily;
 import io.github.huanmeng06.lmlp.config.WoolMaterial;
@@ -23,6 +28,11 @@ public final class RestrictedJeiOptionListConfigs {
     private static final Definition PREFERRED_CARPET = createPreferredCarpetDefinition();
     private static final Definition PREFERRED_TERRACOTTA = createPreferredTerracottaDefinition();
     private static final Definition PREFERRED_GLAZED_TERRACOTTA = createPreferredGlazedTerracottaDefinition();
+    private static final Definition PREFERRED_CONCRETE = createPreferredConcreteDefinition();
+    private static final Definition PREFERRED_CONCRETE_POWDER = createPreferredConcretePowderDefinition();
+    private static final Definition PREFERRED_BED = createPreferredBedDefinition();
+    private static final Definition PREFERRED_CANDLE = createPreferredCandleDefinition();
+    private static final Definition PREFERRED_SHULKER_BOX = createPreferredShulkerBoxDefinition();
     private static final List<Definition> DEFINITIONS = List.of(
             PREFERRED_WOOD,
             PREFERRED_STONE,
@@ -30,7 +40,12 @@ public final class RestrictedJeiOptionListConfigs {
             PREFERRED_WOOL,
             PREFERRED_CARPET,
             PREFERRED_TERRACOTTA,
-            PREFERRED_GLAZED_TERRACOTTA
+            PREFERRED_GLAZED_TERRACOTTA,
+            PREFERRED_CONCRETE,
+            PREFERRED_CONCRETE_POWDER,
+            PREFERRED_BED,
+            PREFERRED_CANDLE,
+            PREFERRED_SHULKER_BOX
     );
 
     private RestrictedJeiOptionListConfigs() {
@@ -99,6 +114,46 @@ public final class RestrictedJeiOptionListConfigs {
             choices.add(new Choice(material.blockId(), material));
         }
         return new Definition(Configs.ConfigForms.PREFERRED_GLAZED_TERRACOTTA_MATERIAL, List.copyOf(choices));
+    }
+
+    private static Definition createPreferredConcreteDefinition() {
+        List<Choice> choices = new ArrayList<>();
+        for (ConcreteMaterial material : ConcreteMaterial.values()) {
+            choices.add(new Choice(material.blockId(), material));
+        }
+        return new Definition(Configs.ConfigForms.PREFERRED_CONCRETE_MATERIAL, List.copyOf(choices));
+    }
+
+    private static Definition createPreferredConcretePowderDefinition() {
+        List<Choice> choices = new ArrayList<>();
+        for (ConcretePowderMaterial material : ConcretePowderMaterial.values()) {
+            choices.add(new Choice(material.blockId(), material));
+        }
+        return new Definition(Configs.ConfigForms.PREFERRED_CONCRETE_POWDER_MATERIAL, List.copyOf(choices));
+    }
+
+    private static Definition createPreferredBedDefinition() {
+        List<Choice> choices = new ArrayList<>();
+        for (BedMaterial material : BedMaterial.values()) {
+            choices.add(new Choice(material.blockId(), material));
+        }
+        return new Definition(Configs.ConfigForms.PREFERRED_BED_MATERIAL, List.copyOf(choices));
+    }
+
+    private static Definition createPreferredCandleDefinition() {
+        List<Choice> choices = new ArrayList<>();
+        for (CandleMaterial material : CandleMaterial.values()) {
+            choices.add(new Choice(material.blockId(), material));
+        }
+        return new Definition(Configs.ConfigForms.PREFERRED_CANDLE_MATERIAL, List.copyOf(choices));
+    }
+
+    private static Definition createPreferredShulkerBoxDefinition() {
+        List<Choice> choices = new ArrayList<>();
+        for (ShulkerBoxMaterial material : ShulkerBoxMaterial.values()) {
+            choices.add(new Choice(material.blockId(), material));
+        }
+        return new Definition(Configs.ConfigForms.PREFERRED_SHULKER_BOX_MATERIAL, List.copyOf(choices));
     }
 
     static String representativeItemId(WoodFamily family) {

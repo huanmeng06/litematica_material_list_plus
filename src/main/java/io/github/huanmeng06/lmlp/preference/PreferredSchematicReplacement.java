@@ -3,10 +3,15 @@ package io.github.huanmeng06.lmlp.preference;
 import fi.dy.masa.litematica.schematic.LitematicaSchematic;
 import fi.dy.masa.litematica.schematic.container.LitematicaBlockStateContainer;
 import fi.dy.masa.litematica.util.FileType;
+import io.github.huanmeng06.lmlp.config.BedMaterial;
+import io.github.huanmeng06.lmlp.config.CandleMaterial;
 import io.github.huanmeng06.lmlp.config.CarpetMaterial;
+import io.github.huanmeng06.lmlp.config.ConcreteMaterial;
+import io.github.huanmeng06.lmlp.config.ConcretePowderMaterial;
 import io.github.huanmeng06.lmlp.config.GlassMaterial;
 import io.github.huanmeng06.lmlp.config.GlazedTerracottaMaterial;
 import io.github.huanmeng06.lmlp.config.StoneMaterialFamily;
+import io.github.huanmeng06.lmlp.config.ShulkerBoxMaterial;
 import io.github.huanmeng06.lmlp.config.TerracottaMaterial;
 import io.github.huanmeng06.lmlp.config.WoodFamily;
 import io.github.huanmeng06.lmlp.config.WoolMaterial;
@@ -26,6 +31,22 @@ import java.util.List;
 import java.util.Map;
 
 public final class PreferredSchematicReplacement {
+    private static final List<String> CONCRETE_IDS = java.util.Arrays.stream(ConcreteMaterial.values())
+            .map(ConcreteMaterial::blockId)
+            .toList();
+    private static final List<String> CONCRETE_POWDER_IDS = java.util.Arrays.stream(ConcretePowderMaterial.values())
+            .map(ConcretePowderMaterial::blockId)
+            .toList();
+    private static final List<String> BED_IDS = java.util.Arrays.stream(BedMaterial.values())
+            .map(BedMaterial::blockId)
+            .toList();
+    private static final List<String> CANDLE_IDS = java.util.Arrays.stream(CandleMaterial.values())
+            .map(CandleMaterial::blockId)
+            .toList();
+    private static final List<String> SHULKER_BOX_IDS = java.util.Arrays.stream(ShulkerBoxMaterial.values())
+            .map(ShulkerBoxMaterial::blockId)
+            .toList();
+
     private PreferredSchematicReplacement() {
     }
 
@@ -275,7 +296,12 @@ public final class PreferredSchematicReplacement {
         WOOL,
         CARPET,
         TERRACOTTA,
-        GLAZED_TERRACOTTA
+        GLAZED_TERRACOTTA,
+        CONCRETE,
+        CONCRETE_POWDER,
+        BED,
+        CANDLE,
+        SHULKER_BOX
     }
 
     public record Targets(
@@ -285,7 +311,12 @@ public final class PreferredSchematicReplacement {
             WoolMaterial wool,
             CarpetMaterial carpet,
             TerracottaMaterial terracotta,
-            GlazedTerracottaMaterial glazedTerracotta) {
+            GlazedTerracottaMaterial glazedTerracotta,
+            ConcreteMaterial concrete,
+            ConcretePowderMaterial concretePowder,
+            BedMaterial bed,
+            CandleMaterial candle,
+            ShulkerBoxMaterial shulkerBox) {
 
         private ReplacementTarget targetFor(String sourceId) {
             if (this.wood != null) {
@@ -384,6 +415,61 @@ public final class PreferredSchematicReplacement {
                     }
                 }
             }
+
+            if (this.concrete != null) {
+                ReplacementTarget target = directTargetFor(
+                        PreferredMaterialCategory.CONCRETE,
+                        sourceId,
+                        this.concrete.blockId(),
+                        CONCRETE_IDS);
+                if (target != null) {
+                    return target;
+                }
+            }
+
+            if (this.concretePowder != null) {
+                ReplacementTarget target = directTargetFor(
+                        PreferredMaterialCategory.CONCRETE_POWDER,
+                        sourceId,
+                        this.concretePowder.blockId(),
+                        CONCRETE_POWDER_IDS);
+                if (target != null) {
+                    return target;
+                }
+            }
+
+            if (this.bed != null) {
+                ReplacementTarget target = directTargetFor(
+                        PreferredMaterialCategory.BED,
+                        sourceId,
+                        this.bed.blockId(),
+                        BED_IDS);
+                if (target != null) {
+                    return target;
+                }
+            }
+
+            if (this.candle != null) {
+                ReplacementTarget target = directTargetFor(
+                        PreferredMaterialCategory.CANDLE,
+                        sourceId,
+                        this.candle.blockId(),
+                        CANDLE_IDS);
+                if (target != null) {
+                    return target;
+                }
+            }
+
+            if (this.shulkerBox != null) {
+                ReplacementTarget target = directTargetFor(
+                        PreferredMaterialCategory.SHULKER_BOX,
+                        sourceId,
+                        this.shulkerBox.blockId(),
+                        SHULKER_BOX_IDS);
+                if (target != null) {
+                    return target;
+                }
+            }
             return null;
         }
     }
@@ -402,6 +488,16 @@ public final class PreferredSchematicReplacement {
     }
 
     public record ReplacementCandidate(String itemId, String targetId) {
+    }
+
+    private static ReplacementTarget directTargetFor(
+            PreferredMaterialCategory category,
+            String sourceId,
+            String targetId,
+            List<String> allowedIds) {
+        return allowedIds.contains(sourceId)
+                ? ReplacementTarget.exact(category, targetId, directCandidates(allowedIds))
+                : null;
     }
 
     private static List<ReplacementCandidate> directCandidates(Collection<String> ids) {

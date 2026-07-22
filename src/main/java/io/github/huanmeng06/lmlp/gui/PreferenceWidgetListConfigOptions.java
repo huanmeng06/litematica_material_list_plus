@@ -56,6 +56,31 @@ final class PreferenceWidgetListConfigOptions extends WidgetListConfigOptions {
                     "preferred_glazed_terracotta",
                     Configs.ConfigForms.PREFERRED_GLAZED_TERRACOTTA_ENABLED,
                     List.of(Configs.ConfigForms.PREFERRED_GLAZED_TERRACOTTA_MATERIAL)
+            ),
+            new PreferenceGroup(
+                    "preferred_concrete",
+                    Configs.ConfigForms.PREFERRED_CONCRETE_ENABLED,
+                    List.of(Configs.ConfigForms.PREFERRED_CONCRETE_MATERIAL)
+            ),
+            new PreferenceGroup(
+                    "preferred_concrete_powder",
+                    Configs.ConfigForms.PREFERRED_CONCRETE_POWDER_ENABLED,
+                    List.of(Configs.ConfigForms.PREFERRED_CONCRETE_POWDER_MATERIAL)
+            ),
+            new PreferenceGroup(
+                    "preferred_bed",
+                    Configs.ConfigForms.PREFERRED_BED_ENABLED,
+                    List.of(Configs.ConfigForms.PREFERRED_BED_MATERIAL)
+            ),
+            new PreferenceGroup(
+                    "preferred_candle",
+                    Configs.ConfigForms.PREFERRED_CANDLE_ENABLED,
+                    List.of(Configs.ConfigForms.PREFERRED_CANDLE_MATERIAL)
+            ),
+            new PreferenceGroup(
+                    "preferred_shulker_box",
+                    Configs.ConfigForms.PREFERRED_SHULKER_BOX_ENABLED,
+                    List.of(Configs.ConfigForms.PREFERRED_SHULKER_BOX_MATERIAL)
             )
     );
 
