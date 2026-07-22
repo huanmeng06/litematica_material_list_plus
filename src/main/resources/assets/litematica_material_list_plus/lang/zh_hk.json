@@ -115,7 +115,6 @@
   "lmlp.gui.preferred_replacement.mode.force": "強制替換",
   "lmlp.error.preferred_replacement.no_schematic": "目前材料列表沒有可編輯的已載入原理圖。",
   "lmlp.error.preferred_replacement.file_exists": "檔案 %s 已存在；按住 Shift 點擊儲存可覆蓋該副本。",
-  "lmlp.error.preferred_replacement.source_file": "不能覆蓋本次替換所使用的原始投影檔案：%s",
   "lmlp.error.preferred_replacement.save_failed": "無法儲存新的原理圖檔案：%s",
   "lmlp.config.name.preferred_wood_enabled": "偏好木種",
   "lmlp.config.comment.preferred_wood_enabled": "是否在「替換為偏好」中啟用木種替換。",

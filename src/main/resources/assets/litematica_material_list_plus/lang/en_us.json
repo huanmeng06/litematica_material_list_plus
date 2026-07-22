@@ -115,7 +115,6 @@
   "lmlp.gui.preferred_replacement.mode.force": "Force replace",
   "lmlp.error.preferred_replacement.no_schematic": "The current material list has no editable loaded schematic.",
   "lmlp.error.preferred_replacement.file_exists": "The file %s already exists. Hold Shift while clicking Save to overwrite this copy.",
-  "lmlp.error.preferred_replacement.source_file": "The source schematic used for this replacement cannot be overwritten: %s",
   "lmlp.error.preferred_replacement.save_failed": "Could not save the new schematic file: %s",
   "lmlp.config.name.preferred_wood_enabled": "Preferred wood",
   "lmlp.config.comment.preferred_wood_enabled": "Whether wood-family replacement is enabled in Replace with preferences.",
