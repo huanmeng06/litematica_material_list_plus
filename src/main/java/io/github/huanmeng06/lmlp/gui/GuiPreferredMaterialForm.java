@@ -430,7 +430,9 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
             this.renderEmptyDetailRow(
                     context,
                     StringUtils.translate("lmlp.gui.preferred_replacement.none"),
-                    detailTop);
+                    detailTop,
+                    mouseX,
+                    mouseY);
         } else {
             int rowY = detailTop;
             for (int index = 0; index < categoryRows.size(); index++) {
@@ -569,11 +571,21 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
         return Math.max(0, Math.min(maxWidth, contentWidth));
     }
 
-    private void renderEmptyDetailRow(GuiContext context, String message, int y) {
+    private void renderEmptyDetailRow(GuiContext context, String message, int y, int mouseX, int mouseY) {
         int rowLeft = DETAIL_MARGIN;
         int rowRight = this.field_22789 - DETAIL_MARGIN - 12;
         int rowWidth = rowRight - rowLeft;
-        RenderUtils.drawRect(context, rowLeft, y, rowWidth, DETAIL_ROW_HEIGHT, DETAIL_ROW_EVEN);
+        boolean hovered = mouseX >= rowLeft
+                && mouseX < rowRight
+                && mouseY >= y
+                && mouseY < y + DETAIL_ROW_HEIGHT;
+        RenderUtils.drawRect(
+                context,
+                rowLeft,
+                y,
+                rowWidth,
+                DETAIL_ROW_HEIGHT,
+                hovered ? DETAIL_ROW_HOVERED : DETAIL_ROW_EVEN);
 
         String text = this.truncateDetailText(message, Math.max(0, rowWidth - 8));
         int textX = rowLeft + Math.max(4, (rowWidth - this.field_22793.method_1727(text)) / 2);
