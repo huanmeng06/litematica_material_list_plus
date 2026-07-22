@@ -71,7 +71,6 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
     private static final int DETAIL_MARGIN = 10;
     private static final int DETAIL_ROW_HEIGHT = 22;
     private static final int DETAIL_ROW_GAP = 0;
-    private static final int DETAIL_ACTION_WIDTH = 92;
     private static final int DETAIL_ROW_ODD = 0xA0101010;
     private static final int DETAIL_ROW_EVEN = 0xA0303030;
     private static final int DETAIL_ROW_HOVERED = 0xA0707070;
@@ -467,7 +466,8 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
             context.method_51427(new class_1799(row.row.sourceBlock()), sourceIconX, iconY);
         }
 
-        int buttonX = rowRight - DETAIL_ACTION_WIDTH - 4;
+        int actionWidth = this.resetButtonWidth();
+        int buttonX = rowRight - actionWidth - 4;
         int countX = rowLeft + Math.round((buttonX - rowLeft) * 0.57F);
         int statusX = rowLeft + Math.round((buttonX - rowLeft) * 0.78F);
         int sourceNameX = sourceIconX + 20;
@@ -539,6 +539,7 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
         );
 
         row.button.setPosition(buttonX, y + 1);
+        row.button.setWidth(actionWidth);
         row.button.render(context, mouseX, mouseY, row.button.isMouseOver());
         this.renderedRows.add(row);
     }
@@ -636,11 +637,14 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
                 .mapToInt(wrapper -> this.field_22793.method_1727(wrapper.getConfig().getConfigGuiDisplayName()))
                 .max()
                 .orElse(0);
-        String reset = StringUtils.translate("malilib.gui.button.reset.caps");
-        int resetWidth = this.field_22793.method_1727(reset) + 10;
         int rowX = 12;
         int valueX = rowX + maxLabelWidth + 10;
-        return valueX + CONFIG_WIDTH + 2 + resetWidth + 2;
+        return valueX + CONFIG_WIDTH + 2 + this.resetButtonWidth() + 2;
+    }
+
+    private int resetButtonWidth() {
+        String reset = StringUtils.translate("malilib.gui.button.reset.caps");
+        return this.field_22793.method_1727(reset) + 10;
     }
 
     private void rebuildRowsIfNeeded() {
@@ -961,7 +965,7 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
 
     private final class RowState {
         private final ReplacementRow row;
-        private final ButtonGeneric button = new ButtonGeneric(0, 0, DETAIL_ACTION_WIDTH, 20, "");
+        private final ButtonGeneric button = new ButtonGeneric(0, 0, 1, 20, "");
         private final String automaticTargetId;
         private final class_2248 automaticTargetBlock;
         private final String automaticTargetName;
