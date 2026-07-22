@@ -427,10 +427,10 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
         context.method_44379(DETAIL_MARGIN, detailTop, this.field_22789 - DETAIL_MARGIN, visibleBottom);
         List<RowState> categoryRows = this.rowsFor(category);
         if (categoryRows.isEmpty()) {
-            this.renderCenteredDetailMessage(
+            this.renderEmptyDetailRow(
                     context,
                     StringUtils.translate("lmlp.gui.preferred_replacement.none"),
-                    detailTop + 7);
+                    detailTop);
         } else {
             int rowY = detailTop;
             for (int index = 0; index < categoryRows.size(); index++) {
@@ -569,9 +569,15 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
         return Math.max(0, Math.min(maxWidth, contentWidth));
     }
 
-    private void renderCenteredDetailMessage(GuiContext context, String message, int y) {
-        int x = Math.max(DETAIL_MARGIN, (this.field_22789 - this.field_22793.method_1727(message)) / 2);
-        context.method_51433(this.field_22793, message, x, y, 0xFFFFCC66, false);
+    private void renderEmptyDetailRow(GuiContext context, String message, int y) {
+        int rowLeft = DETAIL_MARGIN;
+        int rowRight = this.field_22789 - DETAIL_MARGIN - 12;
+        int rowWidth = rowRight - rowLeft;
+        RenderUtils.drawRect(context, rowLeft, y, rowWidth, DETAIL_ROW_HEIGHT, DETAIL_ROW_EVEN);
+
+        String text = this.truncateDetailText(message, Math.max(0, rowWidth - 8));
+        int textX = rowLeft + Math.max(4, (rowWidth - this.field_22793.method_1727(text)) / 2);
+        context.method_51433(this.field_22793, text, textX, y + 7, 0xFFFFCC66, false);
     }
 
     private boolean clickDetailRowButton(class_11909 event, boolean doubleClick) {
