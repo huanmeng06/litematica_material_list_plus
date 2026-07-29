@@ -509,6 +509,7 @@ public final class MinimalSubMaterialListView {
                 total,
                 credited,
                 Math.max(0, display.allocatedInventory()),
+                Math.max(0, display.intermediatePreparedCount()),
                 Math.max(0, display.preparedCount()),
                 Math.max(0, total - credited),
                 display.candidates().size() > 1,
@@ -540,7 +541,7 @@ public final class MinimalSubMaterialListView {
         expandedSourceKey = "";
     }
 
-    private static void collectLeaves(class_1799 stack, List<class_1799> icons, List<String> names, String name, SourceOrigin source, int count, int scale, boolean prepared, int depth, Set<String> seenItems, Map<String, Accumulator> materials, IntermediateInventoryBudget inventoryBudget) {
+    private static void collectLeaves(class_1799 stack, List<class_1799> icons, List<String> names, String name, SourceOrigin source, int count, int scale, boolean prepared, boolean intermediatePrepared, int depth, Set<String> seenItems, Map<String, Accumulator> materials, IntermediateInventoryBudget inventoryBudget) {
         class_1799 icon = stack.method_7972();
         String itemId = ItemStackTexts.id(icon);
         if (count <= 0 || scale <= 0) {
@@ -551,12 +552,12 @@ public final class MinimalSubMaterialListView {
         // JEI integrations may expose stripping/cutting recipes whose axe slot
         // would otherwise be treated as another consumed material.
         if (isLogLike(itemPath(icon))) {
-            addLeaf(icon, icons, names, name, source, scaledCount(count, scale), prepared, materials);
+            addLeaf(icon, icons, names, name, source, scaledCount(count, scale), prepared, intermediatePrepared, materials);
             return;
         }
 
         if (depth >= MAX_RECIPE_DEPTH || seenItems.contains(itemId) || Configs.shouldStopRecipeDecomposition(itemId) || keepAsLeaf(itemId)) {
-            addLeaf(icon, icons, names, name, source, scaledCount(count, scale), prepared, materials);
+            addLeaf(icon, icons, names, name, source, scaledCount(count, scale), prepared, intermediatePrepared, materials);
             return;
         }
 
@@ -564,7 +565,7 @@ public final class MinimalSubMaterialListView {
         childSeenItems.add(itemId);
         List<RecipeSummary> summaries = RecipeResolvers.findRecipes(icon, count, count);
         if (summaries.isEmpty() || summaries.get(0).ingredients().isEmpty()) {
-            addLeaf(icon, icons, names, name, source, scaledCount(count, scale), prepared, materials);
+            addLeaf(icon, icons, names, name, source, scaledCount(count, scale), prepared, intermediatePrepared, materials);
             return;
         }
 
@@ -572,7 +573,7 @@ public final class MinimalSubMaterialListView {
         // Waiting until the recursive seenItems guard would preserve the
         // rounded overproduction instead of the original demand.
         if (RecipeResolvers.leadsBackTo(itemId, summaries.get(0), MAX_RECIPE_DEPTH - depth)) {
-            addLeaf(icon, icons, names, name, source, scaledCount(count, scale), prepared, materials);
+            addLeaf(icon, icons, names, name, source, scaledCount(count, scale), prepared, intermediatePrepared, materials);
             return;
         }
 
@@ -592,6 +593,7 @@ public final class MinimalSubMaterialListView {
                         source,
                         credited,
                         1,
+                        true,
                         true,
                         depth,
                         seenItems,
@@ -619,6 +621,7 @@ public final class MinimalSubMaterialListView {
                             source,
                             scaledCount(ingredient.countTotal(), scale),
                             prepared,
+                            intermediatePrepared,
                             materials);
                     continue;
                 }
@@ -634,6 +637,7 @@ public final class MinimalSubMaterialListView {
                             source,
                             scaledCount(ingredient.countTotal(), scale),
                             prepared,
+                            intermediatePrepared,
                             materials);
                     continue;
                 }
@@ -649,6 +653,7 @@ public final class MinimalSubMaterialListView {
                             ingredient.countTotal(),
                             scale,
                             prepared,
+                            intermediatePrepared,
                             depth + 1,
                             childSeenItems,
                             materials,
@@ -670,6 +675,7 @@ public final class MinimalSubMaterialListView {
                             source,
                             scale,
                             prepared,
+                            intermediatePrepared,
                             depth + 1,
                             childSeenItems,
                             materials,
@@ -686,6 +692,7 @@ public final class MinimalSubMaterialListView {
                         source,
                         scaledCount(ingredient.countTotal(), scale),
                         prepared,
+                        intermediatePrepared,
                         materials);
                 continue;
             }
@@ -699,6 +706,7 @@ public final class MinimalSubMaterialListView {
                     ingredient.countTotal(),
                     scale,
                     prepared,
+                    intermediatePrepared,
                     depth + 1,
                     childSeenItems,
                     materials,
@@ -712,28 +720,28 @@ public final class MinimalSubMaterialListView {
     // accumulator instead of building nodes. All candidates in a wood group share
     // the same recipe yield ratio, so the representative's per-slot counts are
     // authoritative (same assumption as the tree engine).
-    private static void collectChoiceGroupLeaves(List<class_1799> icons, List<String> names, String name, int count, SourceOrigin source, int scale, boolean prepared, int depth, Set<String> seenItems, Map<String, Accumulator> materials, IntermediateInventoryBudget inventoryBudget) {
+    private static void collectChoiceGroupLeaves(List<class_1799> icons, List<String> names, String name, int count, SourceOrigin source, int scale, boolean prepared, boolean intermediatePrepared, int depth, Set<String> seenItems, Map<String, Accumulator> materials, IntermediateInventoryBudget inventoryBudget) {
         if (count <= 0 || scale <= 0 || icons.isEmpty()) {
             return;
         }
 
         class_1799 representative = icons.get(0);
         if (allIconsMatch(icons, MinimalSubMaterialListView::isLogLike)) {
-            addLeaf(representative, icons, names, name, source, scaledCount(count, scale), prepared, materials);
+            addLeaf(representative, icons, names, name, source, scaledCount(count, scale), prepared, intermediatePrepared, materials);
             return;
         }
 
         String representativeId = ItemStackTexts.id(representative);
         if (depth >= MAX_RECIPE_DEPTH || seenItems.contains(representativeId)
                 || Configs.shouldStopRecipeDecomposition(representativeId) || keepGroupAsLeaf(icons)) {
-            addLeaf(representative, icons, names, name, source, scaledCount(count, scale), prepared, materials);
+            addLeaf(representative, icons, names, name, source, scaledCount(count, scale), prepared, intermediatePrepared, materials);
             return;
         }
 
         List<RecipeSummary> representativeSummaries = RecipeResolvers.findRecipes(representative, count, count);
         if (representativeSummaries.isEmpty() || representativeSummaries.get(0).ingredients().isEmpty()
                 || !isChoiceGroupDecomposable(icons)) {
-            addLeaf(representative, icons, names, name, source, scaledCount(count, scale), prepared, materials);
+            addLeaf(representative, icons, names, name, source, scaledCount(count, scale), prepared, intermediatePrepared, materials);
             return;
         }
 
@@ -747,6 +755,7 @@ public final class MinimalSubMaterialListView {
                         credited,
                         source,
                         1,
+                        true,
                         true,
                         depth,
                         seenItems,
@@ -792,9 +801,9 @@ public final class MinimalSubMaterialListView {
             String childName = childIsGroup ? groupDisplayName(childIcons, childFallback) : childFallback;
 
             if (childIsGroup) {
-                collectChoiceGroupLeaves(childIcons, childNames, childName, representativeChild.countTotal(), source, scale, prepared, depth + 1, childSeenItems, materials, inventoryBudget);
+                collectChoiceGroupLeaves(childIcons, childNames, childName, representativeChild.countTotal(), source, scale, prepared, intermediatePrepared, depth + 1, childSeenItems, materials, inventoryBudget);
             } else {
-                collectLeaves(childIcons.get(0), childIcons, childNames, childName, source, representativeChild.countTotal(), scale, prepared, depth + 1, childSeenItems, materials, inventoryBudget);
+                collectLeaves(childIcons.get(0), childIcons, childNames, childName, source, representativeChild.countTotal(), scale, prepared, intermediatePrepared, depth + 1, childSeenItems, materials, inventoryBudget);
             }
         }
     }
@@ -855,21 +864,21 @@ public final class MinimalSubMaterialListView {
         }
 
         if (baseCount <= 0) {
-            collectLeaves(stack, icons, names, name, source, preparedCount, 1, true, 0, new HashSet<>(), materials, inventoryBudget);
+            collectLeaves(stack, icons, names, name, source, preparedCount, 1, true, false, 0, new HashSet<>(), materials, inventoryBudget);
             return;
         }
 
         int fullCopies = preparedCount / baseCount;
         int remainder = preparedCount % baseCount;
         if (fullCopies > 0) {
-            collectLeaves(stack, icons, names, name, source, baseCount, fullCopies, true, 0, new HashSet<>(), materials, inventoryBudget);
+            collectLeaves(stack, icons, names, name, source, baseCount, fullCopies, true, false, 0, new HashSet<>(), materials, inventoryBudget);
         }
         if (remainder > 0) {
-            collectLeaves(stack, icons, names, name, source, remainder, 1, true, 0, new HashSet<>(), materials, inventoryBudget);
+            collectLeaves(stack, icons, names, name, source, remainder, 1, true, false, 0, new HashSet<>(), materials, inventoryBudget);
         }
     }
 
-    private static void addLeaf(class_1799 stack, List<class_1799> icons, List<String> names, String name, SourceOrigin source, int count, boolean prepared, Map<String, Accumulator> materials) {
+    private static void addLeaf(class_1799 stack, List<class_1799> icons, List<String> names, String name, SourceOrigin source, int count, boolean prepared, boolean intermediatePrepared, Map<String, Accumulator> materials) {
         CandidateSet candidates = expandRegisteredLogCandidates(
                 refineWoodCandidatesForSource(source, icons.isEmpty() ? List.of(stack) : icons, names));
         String displayNameFallback = candidates.names().size() == 1 ? candidates.names().get(0) : name;
@@ -877,7 +886,7 @@ public final class MinimalSubMaterialListView {
         String key = groupKey(displayStack, candidates.icons(), displayNameFallback);
         String displayName = groupDisplayName(candidates.icons(), displayNameFallback);
         materials.computeIfAbsent(key, ignored -> new Accumulator(displayStack, displayName))
-                .add(count, prepared, candidates.icons(), candidates.names(), source);
+                .add(count, prepared, intermediatePrepared, candidates.icons(), candidates.names(), source);
     }
 
     private static boolean shouldDecomposeRefinedChoice(CandidateSet candidates) {
@@ -1335,6 +1344,7 @@ public final class MinimalSubMaterialListView {
         private final Map<String, SourceAccumulator> sources = new LinkedHashMap<>();
         private long totalCount;
         private long preparedCount;
+        private long intermediatePreparedCount;
 
         private Accumulator(class_1799 stack, String name) {
             this.stack = stack.method_7972();
@@ -1342,9 +1352,12 @@ public final class MinimalSubMaterialListView {
             this.candidates.put(ItemStackTexts.id(stack), new Candidate(stack.method_7972(), ItemStackTexts.name(stack)));
         }
 
-        private void add(int count, boolean prepared, List<class_1799> icons, List<String> names, SourceOrigin source) {
+        private void add(int count, boolean prepared, boolean intermediatePrepared, List<class_1799> icons, List<String> names, SourceOrigin source) {
             if (prepared) {
                 this.preparedCount += count;
+                if (intermediatePrepared) {
+                    this.intermediatePreparedCount += count;
+                }
             } else {
                 this.totalCount += count;
             }
@@ -1362,6 +1375,7 @@ public final class MinimalSubMaterialListView {
         private void mergeFrom(Accumulator other) {
             this.totalCount += other.totalCount;
             this.preparedCount += other.preparedCount;
+            this.intermediatePreparedCount += other.intermediatePreparedCount;
             other.candidates.forEach(this.candidates::putIfAbsent);
             other.sources.forEach((key, source) -> this.sources
                     .computeIfAbsent(key, ignored -> new SourceAccumulator(source.origin))
@@ -1544,7 +1558,7 @@ public final class MinimalSubMaterialListView {
                                 total,
                                 missing,
                                 preparedInventory);
-                        collectLeaves(stack, List.of(stack), List.of(ItemStackTexts.name(stack)), ItemStackTexts.name(stack), source, baseTotal, this.multiplier, false, 0, new HashSet<>(), delta, this.intermediateInventory);
+                        collectLeaves(stack, List.of(stack), List.of(ItemStackTexts.name(stack)), ItemStackTexts.name(stack), source, baseTotal, this.multiplier, false, false, 0, new HashSet<>(), delta, this.intermediateInventory);
                         collectPreparedLeaves(stack, List.of(stack), List.of(ItemStackTexts.name(stack)), ItemStackTexts.name(stack), source, baseTotal, prepared, delta, this.intermediateInventory);
                     } catch (RecipeResolvers.BudgetExceededException exception) {
                         this.intermediateInventory.restore(inventoryCheckpoint);
@@ -1616,7 +1630,12 @@ public final class MinimalSubMaterialListView {
                         material.sources(),
                         compatibleInventory.getOrDefault(material, 0),
                         inventoryCredit.count(),
-                        clampToInt(Math.max(0L, material.preparedCount - reservation.count())),
+                        clampToInt(Math.max(0L, material.intermediatePreparedCount)),
+                        clampToInt(Math.max(
+                                0L,
+                                material.preparedCount
+                                        - material.intermediatePreparedCount
+                                        - reservation.count())),
                         inventoryCredit.candidates(),
                         ambiguousMaterials.contains(material));
                 displays.put(entry, display);
@@ -1656,6 +1675,7 @@ public final class MinimalSubMaterialListView {
             List<SourceContribution> sources,
             int compatibleCount,
             int allocatedInventory,
+            int intermediatePreparedCount,
             int preparedCount,
             List<AllocatedCandidate> allocatedCandidates,
             boolean ambiguousAllocation) {
@@ -1762,6 +1782,7 @@ public final class MinimalSubMaterialListView {
             int total,
             int credited,
             int inventory,
+            int intermediate,
             int prepared,
             int missing,
             boolean choiceGroup,

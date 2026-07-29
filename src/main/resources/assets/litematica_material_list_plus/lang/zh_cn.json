@@ -356,6 +356,7 @@
   "lmlp.gui.material_list.tooltip.credited": "已抵扣",
   "lmlp.gui.material_list.tooltip.inventory_owned": "背包已有",
   "lmlp.gui.material_list.tooltip.inventory_candidates": "背包材料抵扣",
+  "lmlp.gui.material_list.tooltip.intermediate": "半成品抵扣",
   "lmlp.gui.material_list.tooltip.prepared": "已有制品抵扣",
   "lmlp.gui.material_list.tooltip.missing": "仍然缺少",
   "lmlp.gui.item_id_picker.sort": "排序",

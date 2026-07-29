@@ -713,6 +713,7 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
                 lines.add(new AllocationTooltipLine(candidate.name(), CountFormatter.format(stack, candidate.count()), 2));
             }
         }
+        lines.add(new AllocationTooltipLine(StringUtils.translate("lmlp.gui.material_list.tooltip.intermediate"), CountFormatter.format(stack, data.intermediate()), 1));
         lines.add(new AllocationTooltipLine(StringUtils.translate("lmlp.gui.material_list.tooltip.prepared"), CountFormatter.format(stack, data.prepared()), 1));
         lines.add(new AllocationTooltipLine(StringUtils.translate("lmlp.gui.material_list.tooltip.missing"), CountFormatter.format(stack, data.missing()), 0));
 
