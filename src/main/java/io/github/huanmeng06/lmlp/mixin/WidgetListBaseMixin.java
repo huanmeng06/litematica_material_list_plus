@@ -297,7 +297,6 @@ public abstract class WidgetListBaseMixin implements WidgetListBoundsAccess {
         }
 
         ((GuiBaseHoverAccess) this).lmlp$setHoveredWidget(hovered);
-        this.lmlp$renderPanelTooltipAfterList(drawContext, mouseX, mouseY);
     }
 
     @Inject(method = "getBrowserEntryHeightFor", at = @At("HEAD"), cancellable = true)
