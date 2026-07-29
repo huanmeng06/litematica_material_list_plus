@@ -107,6 +107,7 @@ public final class PreferredSchematicReplacement {
             if (container == null) {
                 continue;
             }
+            List<PendingReplacement> replacements = new ArrayList<>();
             Vec3i size = container.getSize();
             for (int y = 0; y < size.getY(); y++) {
                 for (int z = 0; z < size.getZ(); z++) {
@@ -118,10 +119,26 @@ public final class PreferredSchematicReplacement {
                         }
                         BlockState mapped = mapState(state, choice.targetBlock().defaultBlockState(), choice.mode() == ReplacementMode.FORCE);
                         if (mapped != null) {
-                            container.set(x, y, z, mapped);
+                            replacements.add(new PendingReplacement(x, y, z, mapped));
                         }
                     }
                 }
+            }
+            List<BlockState> paletteStates = new ArrayList<>(container.getPalette().fromMapping());
+            for (PendingReplacement replacement : replacements) {
+                if (!paletteStates.contains(replacement.state())) {
+                    paletteStates.add(replacement.state());
+                }
+            }
+            if (!container.getPalette().setMapping(paletteStates)) {
+                throw new IllegalStateException("Unable to expand preferred schematic palette");
+            }
+            for (PendingReplacement replacement : replacements) {
+                container.set(
+                        replacement.x(),
+                        replacement.y(),
+                        replacement.z(),
+                        replacement.state());
             }
             copy.getScheduledBlockTicksForRegion(region).replaceAll((position, tick) -> {
                 ReplacementChoice choice = bySourceId.get(blockId(tick.type()));
@@ -248,6 +265,9 @@ public final class PreferredSchematicReplacement {
     }
 
     public record ReplacementChoice(String sourceId, String targetId, Block targetBlock, ReplacementMode mode) {
+    }
+
+    private record PendingReplacement(int x, int y, int z, BlockState state) {
     }
 
     private static final class MutableRow {
