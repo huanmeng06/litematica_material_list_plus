@@ -7,6 +7,7 @@ import fi.dy.masa.litematica.schematic.LitematicaSchematic;
 import fi.dy.masa.litematica.schematic.placement.SchematicPlacement;
 import fi.dy.masa.litematica.schematic.placement.SchematicPlacementManager;
 import fi.dy.masa.litematica.schematic.placement.SubRegionPlacement;
+import fi.dy.masa.litematica.util.PositionUtils;
 import fi.dy.masa.malilib.util.PositionUtils.CoordinateType;
 
 import java.nio.file.Path;
@@ -26,14 +27,25 @@ public final class PreferredSchematicPlacementApplication {
             return false;
         }
 
-        SchematicPlacement replacement = copyPlacement(source, savedSchematic);
-        if (replacement == null) {
+        LitematicaSchematic sourceSchematic = source.getSchematic();
+        LitematicaSchematic reloadedSourceSchematic = reloadFromOriginalPath(sourceSchematic);
+        if (reloadedSourceSchematic == null) {
             return false;
         }
 
+        SchematicPlacement replacement = copyPlacement(
+                source, savedSchematic, preferredPlacementName(source.getName()), source.isEnabled());
+        SchematicPlacement restoredSource = copyPlacement(
+                source, reloadedSourceSchematic, source.getName(), false);
+        if (replacement == null || restoredSource == null) {
+            return false;
+        }
+
+        manager.removeSchematicPlacement(source, true);
+        replaceOrAddReloadedSource(sourceSchematic, reloadedSourceSchematic, manager);
+        manager.addSchematicPlacement(restoredSource, false);
         replaceLoadedSchematic(savedSchematic);
         manager.addSchematicPlacement(replacement, false);
-        source.setEnabled(false);
         manager.setSelectedSchematicPlacement(replacement);
         return true;
     }
@@ -41,12 +53,14 @@ public final class PreferredSchematicPlacementApplication {
     /** Copies every placement and sub-region state through the legacy public placement API. */
     private static SchematicPlacement copyPlacement(
             SchematicPlacement source,
-            LitematicaSchematic savedSchematic) {
+            LitematicaSchematic savedSchematic,
+            String name,
+            boolean enabled) {
         SchematicPlacement replacement = SchematicPlacement.createFor(
                 savedSchematic,
                 source.getOrigin(),
-                preferredPlacementName(source.getName()),
-                source.isEnabled(),
+                name,
+                enabled,
                 source.shouldBeSaved());
         if (replacement == null) {
             return null;
@@ -54,7 +68,7 @@ public final class PreferredSchematicPlacementApplication {
 
         replacement.setRotation(source.getRotation(), null);
         replacement.setMirror(source.getMirror(), null);
-        replacement.setEnabled(source.isEnabled());
+        replacement.setEnabled(enabled);
         replacement.setRenderSchematic(source.isRenderingEnabled());
         replacement.setShouldBeSaved(source.shouldBeSaved());
         replacement.setSchematicVerifierType(source.getSchematicVerifierType());
@@ -81,7 +95,14 @@ public final class PreferredSchematicPlacementApplication {
             if (replacementRegion == null) {
                 return null;
             }
-            replacement.moveSubRegionTo(sourceRegion.getName(), sourceRegion.getPos(), null);
+            replacement.moveSubRegionTo(
+                    sourceRegion.getName(),
+                    PositionUtils.getTransformedBlockPos(
+                                    sourceRegion.getPos(),
+                                    source.getMirror(),
+                                    source.getRotation())
+                            .method_10081(source.getOrigin()),
+                    null);
             replacement.setSubRegionRotation(sourceRegion.getName(), sourceRegion.getRotation(), null);
             replacement.setSubRegionMirror(sourceRegion.getName(), sourceRegion.getMirror(), null);
             if (replacementRegion.isEnabled() != sourceRegion.isEnabled()) {
@@ -100,6 +121,31 @@ public final class PreferredSchematicPlacementApplication {
             replacement.toggleLocked();
         }
         return replacement;
+    }
+
+    private static LitematicaSchematic reloadFromOriginalPath(LitematicaSchematic sourceSchematic) {
+        Path sourceFile = sourceSchematic == null || sourceSchematic.getFile() == null
+                ? null
+                : normalize(sourceSchematic.getFile().toPath());
+        if (sourceFile == null || sourceFile.getParent() == null || sourceFile.getFileName() == null) {
+            return null;
+        }
+        return LitematicaSchematic.createFromFile(
+                sourceFile.getParent().toFile(),
+                sourceFile.getFileName().toString());
+    }
+
+    private static void replaceOrAddReloadedSource(
+            LitematicaSchematic oldSchematic,
+            LitematicaSchematic reloadedSchematic,
+            SchematicPlacementManager manager) {
+        SchematicHolder holder = SchematicHolder.getInstance();
+        if (oldSchematic != null && manager.getAllPlacementsOfSchematic(oldSchematic).isEmpty()) {
+            holder.removeSchematic(oldSchematic);
+            holder.addSchematic(reloadedSchematic, false);
+        } else {
+            holder.addSchematic(reloadedSchematic, true);
+        }
     }
 
     private static String preferredPlacementName(String sourceName) {
