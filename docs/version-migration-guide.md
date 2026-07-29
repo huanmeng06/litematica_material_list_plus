@@ -211,11 +211,47 @@ Litematica 0.22.x 起，部分路径 API 从 `File` 转为 `Path`。核心逻辑
 
 旧 intermediary 版本中，`ClientWorld.method_8393(chunkX, chunkZ)` 用于区块加载判断，`World.method_27983()` 用于取得维度 key。移植到官方命名版本时要保留这两项语义，而不是保留方法名。
 
-### 4.6 资源、语言和打包
+### 4.6 MaLiLib 配置翻译键
+
+MaLiLib 的配置名称翻译机制在旧版本和新版本之间不同。配置能够编译、语言 JSON 中存在对应键，并不代表配置页面会实际读取该键。
+
+| Minecraft | MaLiLib | 配置名称解析方式 |
+| --- | --- | --- |
+| `1.20.1` | `0.16.3` | `IConfigBase.getConfigGuiDisplayName()` 固定查找 `config.name.<内部名称小写>` |
+| `1.20.4` | `0.18.4-alpha.1` | 同上 |
+| `1.20.6` | `0.19.2` | 同上 |
+| `1.21.1+` | `0.21.10+` | 支持独立的 translated name；当前配置使用五参数构造器传入翻译键 |
+
+旧版 `ConfigBoolean` 和 `ConfigOptionList` 的四参数构造器虽然可以接收 pretty name，但 `getConfigGuiDisplayName()` 仍会优先按内部配置名拼接旧式键。例如内部名称 `preferredWoodEnabled` 实际查找：
+
+```text
+config.name.preferredwoodenabled
+config.comment.preferredwoodenabled
+```
+
+因此，把 `lmlp.config.name.preferred_wood_enabled` 作为四参数构造器的 pretty name 传入，不能保证旧版配置页面显示该翻译。v1.9.1 首次移植偏好表单时，`1.20.1`、`1.20.4` 和 `1.20.6` 均受此差异影响：木材、石材、玻璃等新增偏好标题会直接显示 `preferredWoodEnabled` 一类内部名称，悬浮说明也可能显示原始翻译键。`1.21.1`、`1.21.10`、`1.21.11` 和 `26.1.2` 不受影响。
+
+向三个旧版本移植新配置项时，必须选择一种兼容方式：
+
+1. 在简体中文、繁体中文和英文中同步补充 `config.name.<内部名称小写>` 与 `config.comment.<内部名称小写>` 旧式别名；或
+2. 使用仅限旧分支的兼容配置类，明确覆盖 `getConfigGuiDisplayName()` 和 `getComment()`，再调用 LMLP 自己的翻译键。
+
+不要通过修改内部配置名称来迁就显示文本，否则会改变 JSON 中的持久化键并破坏已有配置。也不要只检查 `lmlp.config.name.*` 是否存在；必须按目标 MaLiLib 的真实查找路径验收。
+
+确认目标 API 时可直接检查依赖 JAR：
+
+```bash
+javap -classpath <malilib.jar> -c -p fi.dy.masa.malilib.config.IConfigBase
+javap -classpath <malilib.jar> -p fi.dy.masa.malilib.config.options.ConfigBoolean
+javap -classpath <malilib.jar> -p fi.dy.masa.malilib.config.options.ConfigOptionList
+```
+
+### 4.7 资源、语言和打包
 
 - `fabric.mod.json`、Mixin JSON 和三份语言 JSON 必须解析成功。
 - JAR 根目录必须包含 `fabric.mod.json`、Mixin 配置和 `assets/`。
 - 新增语言键要同步简体中文、繁体中文和英文。
+- 新增 MaLiLib 配置项时，要同时检查目标版本实际使用的是旧式 `config.name.*`，还是新版 translated name。
 - 实例中只允许一个启用的 LMLP JAR。
 - 从 REI 保留的按钮素材必须继续保留在 `THIRD_PARTY_NOTICES.md` 中；实际文件名变更时许可说明也要同步。
 
@@ -227,6 +263,7 @@ Litematica 0.22.x 起，部分路径 API 从 `File` 转为 `Path`。核心逻辑
 - Identifier 构造器可直接使用。
 - DrawContext 使用旧贴图签名，不存在高版本 render pipeline 参数。
 - MaLiLib 和 Screen 滚轮是单轴参数。
+- MaLiLib 0.16.3 的配置标题和说明使用旧式 `config.name.<内部名称小写>` / `config.comment.<内部名称小写>` 查找。
 - 若绕过 Gradle 手工编译，class path 需要包含 Fabric API 处理后的子模块；只放聚合 JAR 可能缺类。
 - Windows `javac @argfile` 必须使用无 BOM UTF-8、正斜杠路径，并正确引用含空格路径。
 - 手工打包必须同时包含 classes 和 resources，否则 Fabric Loader 不会识别模组。
@@ -236,6 +273,7 @@ Litematica 0.22.x 起，部分路径 API 从 `File` 转为 `Path`。核心逻辑
 
 - Loom 使用 Java 21，成品仍是 Java 17 / major 61。
 - Identifier 构造器仍可用。
+- MaLiLib 0.18.4-alpha.1 仍使用旧式配置名称和说明翻译键。
 - 不要带入 1.21.4+ 的 DrawContext render layer 参数。
 - 原点渲染沿用旧世界渲染事件与 no-depth overlay 路径。
 
@@ -244,6 +282,7 @@ Litematica 0.22.x 起，部分路径 API 从 `File` 转为 `Path`。核心逻辑
 - Java 21 / major 65。
 - Identifier 构造器仍可用。
 - MaLiLib 滚轮已是横向/纵向双轴。
+- MaLiLib 0.19.2 仍使用旧式配置名称和说明翻译键；不要误按 1.21.1 的五参数配置 API 移植。
 - JEI 18 是最早完成 REI → JEI 迁移的基准实现，但不能把 JEI 18 方法签名直接复制到高版本。
 
 ### 5.4 Minecraft 1.21.1
@@ -468,6 +507,7 @@ Catalyst 标签必须显示配方所需工作站，悬停有物品 Tooltip 与�
 | --- | --- |
 | `build.gradle` / `gradle.properties` | Java release、依赖、映射、资源展开 |
 | `fabric.mod.json` | Minecraft、Litematica、MaLiLib、JEI 依赖与入口 |
+| `config/Configs.java` 与三份语言 JSON | MaLiLib 新旧配置翻译键、持久化内部名称 |
 | `gui/ToggleArrowRenderer.java` | Identifier、贴图和 GUI pipeline |
 | `gui/RecipeDetailScreen.java` | DrawContext、scissor、Tooltip、bridge 工厂和输入 |
 | `recipe/jei/*` | 目标 JEI API、runtime、layout、transfer |
@@ -510,6 +550,7 @@ Catalyst 标签必须显示配方所需工作站，悬停有物品 Tooltip 与�
 - [ ] 日志显示正确的 LMLP 版本、Minecraft、Git Commit 和 clean build。
 - [ ] 材料列表、配置、偏好表单和物品选择器可打开。
 - [ ] 简体中文、繁体中文和英文无缺词、溢出或错位。
+- [ ] 配置标题与悬浮说明没有显示 `preferredWoodEnabled`、`lmlp.config.*` 等内部名称或翻译键。
 
 ### 材料列表与缓存
 
@@ -580,6 +621,17 @@ Catalyst 标签必须显示配方所需工作站，悬停有物品 Tooltip 与�
 - JAR 内 Git Commit；
 - 部署文件 SHA-256；
 - 目标 class 是否确实进入 JAR。
+
+### 旧版配置页面显示 `preferredWoodEnabled`
+
+这是 MaLiLib `0.16.3`～`0.19.2` 的旧式配置翻译键差异，不是语言 JSON 完全缺失。检查：
+
+1. 目标版本是否为 `1.20.1`、`1.20.4` 或 `1.20.6`；
+2. 是否只添加了 `lmlp.config.name.*`，却没有提供旧式 `config.name.<内部名称小写>`；
+3. 配置说明是否同样缺少 `config.comment.<内部名称小写>`；
+4. 是否错误修改了持久化内部名称来解决显示问题。
+
+修复后必须分别打开简体中文、繁体中文和英文的偏好表单检查标题、目标材料行、搜索结果与悬浮说明。
 
 ## 14. 本文维护规则
 
