@@ -109,6 +109,13 @@ public class Configs implements IConfigHandler {
                 "lmlp.config.name.count_display_style"
         );
 
+        public static final ConfigBoolean SHOW_ALLOCATION_DETAILS = new ConfigBoolean(
+                "showAllocationDetails",
+                true,
+                "lmlp.config.comment.show_allocation_details",
+                "lmlp.config.name.show_allocation_details"
+        );
+
         public static final ConfigInteger ORIGIN_MARKER_TIME = new ConfigInteger(
                 "originMarkerTime",
                 120,
@@ -167,6 +174,7 @@ public class Configs implements IConfigHandler {
         public static final List<IConfigBase> OPTIONS = ImmutableList.of(
                 DISABLE_LITEMATICA_HOVER_TOOLTIP,
                 COUNT_DISPLAY_STYLE,
+                SHOW_ALLOCATION_DETAILS,
                 REPLACE_WATER_BUCKET_WITH_ICE,
                 ORIGIN_MARKER_TIME,
                 ORIGIN_MARKER_TEXT_SCALE,
