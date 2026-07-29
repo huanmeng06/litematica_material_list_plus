@@ -1,6 +1,6 @@
 schema = 1
-current_release = "1.9.0"
-next_release = "1.9.1"
+current_release = "1.9.1"
+next_release = "1.9.2"
 
 [repository]
 default_branch = "main"
