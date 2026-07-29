@@ -53,16 +53,28 @@ public class GuiConfigs extends GuiConfigsBase {
         boolean preferredWoodWasEnabled = Configs.ConfigForms.PREFERRED_WOOD_ENABLED.getBooleanValue();
         boolean preferredStoneWasEnabled = Configs.ConfigForms.PREFERRED_STONE_ENABLED.getBooleanValue();
         boolean preferredGlassWasEnabled = Configs.ConfigForms.PREFERRED_GLASS_ENABLED.getBooleanValue();
+        boolean preferredWoolWasEnabled = Configs.ConfigForms.PREFERRED_WOOL_ENABLED.getBooleanValue();
         boolean preferredCarpetWasEnabled = Configs.ConfigForms.PREFERRED_CARPET_ENABLED.getBooleanValue();
         boolean preferredTerracottaWasEnabled = Configs.ConfigForms.PREFERRED_TERRACOTTA_ENABLED.getBooleanValue();
         boolean preferredGlazedTerracottaWasEnabled = Configs.ConfigForms.PREFERRED_GLAZED_TERRACOTTA_ENABLED.getBooleanValue();
+        boolean preferredConcreteWasEnabled = Configs.ConfigForms.PREFERRED_CONCRETE_ENABLED.getBooleanValue();
+        boolean preferredConcretePowderWasEnabled = Configs.ConfigForms.PREFERRED_CONCRETE_POWDER_ENABLED.getBooleanValue();
+        boolean preferredBedWasEnabled = Configs.ConfigForms.PREFERRED_BED_ENABLED.getBooleanValue();
+        boolean preferredCandleWasEnabled = Configs.ConfigForms.PREFERRED_CANDLE_ENABLED.getBooleanValue();
+        boolean preferredShulkerBoxWasEnabled = Configs.ConfigForms.PREFERRED_SHULKER_BOX_ENABLED.getBooleanValue();
         boolean handled = super.onMouseClicked(mouseX, mouseY, mouseButton);
         boolean preferredWoodIsEnabled = Configs.ConfigForms.PREFERRED_WOOD_ENABLED.getBooleanValue();
         boolean preferredStoneIsEnabled = Configs.ConfigForms.PREFERRED_STONE_ENABLED.getBooleanValue();
         boolean preferredGlassIsEnabled = Configs.ConfigForms.PREFERRED_GLASS_ENABLED.getBooleanValue();
+        boolean preferredWoolIsEnabled = Configs.ConfigForms.PREFERRED_WOOL_ENABLED.getBooleanValue();
         boolean preferredCarpetIsEnabled = Configs.ConfigForms.PREFERRED_CARPET_ENABLED.getBooleanValue();
         boolean preferredTerracottaIsEnabled = Configs.ConfigForms.PREFERRED_TERRACOTTA_ENABLED.getBooleanValue();
         boolean preferredGlazedTerracottaIsEnabled = Configs.ConfigForms.PREFERRED_GLAZED_TERRACOTTA_ENABLED.getBooleanValue();
+        boolean preferredConcreteIsEnabled = Configs.ConfigForms.PREFERRED_CONCRETE_ENABLED.getBooleanValue();
+        boolean preferredConcretePowderIsEnabled = Configs.ConfigForms.PREFERRED_CONCRETE_POWDER_ENABLED.getBooleanValue();
+        boolean preferredBedIsEnabled = Configs.ConfigForms.PREFERRED_BED_ENABLED.getBooleanValue();
+        boolean preferredCandleIsEnabled = Configs.ConfigForms.PREFERRED_CANDLE_ENABLED.getBooleanValue();
+        boolean preferredShulkerBoxIsEnabled = Configs.ConfigForms.PREFERRED_SHULKER_BOX_ENABLED.getBooleanValue();
 
         if (currentTab == ConfigGuiTab.PREFERENCE_FORM
                 && this.getListWidget() instanceof PreferenceWidgetListConfigOptions preferenceList) {
@@ -75,6 +87,9 @@ public class GuiConfigs extends GuiConfigsBase {
             if (preferredGlassWasEnabled != preferredGlassIsEnabled) {
                 preferenceList.setGroupExpanded(Configs.ConfigForms.PREFERRED_GLASS_ENABLED, preferredGlassIsEnabled);
             }
+            if (preferredWoolWasEnabled != preferredWoolIsEnabled) {
+                preferenceList.setGroupExpanded(Configs.ConfigForms.PREFERRED_WOOL_ENABLED, preferredWoolIsEnabled);
+            }
             if (preferredCarpetWasEnabled != preferredCarpetIsEnabled) {
                 preferenceList.setGroupExpanded(Configs.ConfigForms.PREFERRED_CARPET_ENABLED, preferredCarpetIsEnabled);
             }
@@ -85,6 +100,27 @@ public class GuiConfigs extends GuiConfigsBase {
                 preferenceList.setGroupExpanded(
                         Configs.ConfigForms.PREFERRED_GLAZED_TERRACOTTA_ENABLED,
                         preferredGlazedTerracottaIsEnabled);
+            }
+            if (preferredConcreteWasEnabled != preferredConcreteIsEnabled) {
+                preferenceList.setGroupExpanded(
+                        Configs.ConfigForms.PREFERRED_CONCRETE_ENABLED,
+                        preferredConcreteIsEnabled);
+            }
+            if (preferredConcretePowderWasEnabled != preferredConcretePowderIsEnabled) {
+                preferenceList.setGroupExpanded(
+                        Configs.ConfigForms.PREFERRED_CONCRETE_POWDER_ENABLED,
+                        preferredConcretePowderIsEnabled);
+            }
+            if (preferredBedWasEnabled != preferredBedIsEnabled) {
+                preferenceList.setGroupExpanded(Configs.ConfigForms.PREFERRED_BED_ENABLED, preferredBedIsEnabled);
+            }
+            if (preferredCandleWasEnabled != preferredCandleIsEnabled) {
+                preferenceList.setGroupExpanded(Configs.ConfigForms.PREFERRED_CANDLE_ENABLED, preferredCandleIsEnabled);
+            }
+            if (preferredShulkerBoxWasEnabled != preferredShulkerBoxIsEnabled) {
+                preferenceList.setGroupExpanded(
+                        Configs.ConfigForms.PREFERRED_SHULKER_BOX_ENABLED,
+                        preferredShulkerBoxIsEnabled);
             }
         }
         this.updateKeybindButtons();
