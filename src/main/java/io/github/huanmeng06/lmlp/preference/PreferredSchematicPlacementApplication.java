@@ -28,14 +28,31 @@ public final class PreferredSchematicPlacementApplication {
             return false;
         }
 
-        SchematicPlacement replacement = copyPlacement(source, savedSchematic);
-        if (replacement == null) {
+        LitematicaSchematic sourceSchematic = source.getSchematic();
+        LitematicaSchematic reloadedSourceSchematic = reloadFromOriginalPath(sourceSchematic);
+        if (reloadedSourceSchematic == null) {
             return false;
         }
 
+        SchematicPlacement replacement = copyPlacement(
+                source,
+                savedSchematic,
+                preferredPlacementName(source.getName()),
+                source.isEnabled());
+        SchematicPlacement restoredSource = copyPlacement(
+                source,
+                reloadedSourceSchematic,
+                source.getName(),
+                false);
+        if (replacement == null || restoredSource == null) {
+            return false;
+        }
+
+        manager.removeSchematicPlacement(source, true);
+        replaceOrAddReloadedSource(sourceSchematic, reloadedSourceSchematic, manager);
+        manager.addSchematicPlacement(restoredSource, false);
         replaceLoadedSchematic(savedSchematic);
         manager.addSchematicPlacement(replacement, false);
-        source.setEnabled(false);
         manager.setSelectedSchematicPlacement(replacement);
         return true;
     }
@@ -48,7 +65,9 @@ public final class PreferredSchematicPlacementApplication {
      */
     private static SchematicPlacement copyPlacement(
             SchematicPlacement source,
-            LitematicaSchematic savedSchematic) {
+            LitematicaSchematic savedSchematic,
+            String name,
+            boolean enabled) {
         class_2487 placementNbt = source.toNbt(false);
         placementNbt.method_10551("HashCode");
         SchematicPlacement replacement = SchematicPlacement.createFromNbt(savedSchematic, placementNbt);
@@ -56,8 +75,8 @@ public final class PreferredSchematicPlacementApplication {
             return null;
         }
 
-        replacement.setName(preferredPlacementName(source.getName()));
-        replacement.setEnabled(source.isEnabled());
+        replacement.setName(name);
+        replacement.setEnabled(enabled);
         replacement.setRenderSchematic(source.isRenderingEnabled());
         replacement.setShouldBeSaved(source.shouldBeSaved());
         replacement.setSchematicVerifierType(source.getSchematicVerifierType());
@@ -94,6 +113,32 @@ public final class PreferredSchematicPlacementApplication {
             replacement.toggleLocked();
         }
         return replacement;
+    }
+
+    private static LitematicaSchematic reloadFromOriginalPath(LitematicaSchematic sourceSchematic) {
+        Path sourceFile = sourceSchematic == null || sourceSchematic.getFile() == null
+                ? null
+                : normalize(sourceSchematic.getFile().toPath());
+        if (sourceFile == null || sourceFile.getParent() == null || sourceFile.getFileName() == null) {
+            return null;
+        }
+        return LitematicaSchematic.createFromFile(
+                sourceFile.getParent(),
+                sourceFile.getFileName().toString(),
+                FileType.LITEMATICA_SCHEMATIC);
+    }
+
+    private static void replaceOrAddReloadedSource(
+            LitematicaSchematic oldSchematic,
+            LitematicaSchematic reloadedSchematic,
+            SchematicPlacementManager manager) {
+        SchematicHolder holder = SchematicHolder.getInstance();
+        if (oldSchematic != null && manager.getAllPlacementsOfSchematic(oldSchematic).isEmpty()) {
+            holder.removeSchematic(oldSchematic);
+            holder.addSchematic(reloadedSchematic, false);
+        } else {
+            holder.addSchematic(reloadedSchematic, true);
+        }
     }
 
     private static String preferredPlacementName(String sourceName) {

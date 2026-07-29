@@ -298,7 +298,6 @@ public abstract class WidgetListBaseMixin implements WidgetListBoundsAccess {
         }
 
         ((GuiBaseHoverAccess) this).lmlp$setHoveredWidget(hovered);
-        this.lmlp$renderPanelTooltipAfterList(drawContext, mouseX, mouseY);
         RenderUtils.color(1.0F, 1.0F, 1.0F, 1.0F);
     }
 

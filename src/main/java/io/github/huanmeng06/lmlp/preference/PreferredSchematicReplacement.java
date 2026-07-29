@@ -23,6 +23,7 @@ import net.minecraft.class_2960;
 import net.minecraft.class_6760;
 import net.minecraft.class_7923;
 
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
@@ -94,7 +95,13 @@ public final class PreferredSchematicReplacement {
     }
 
     public static LitematicaSchematic createCopy(LitematicaSchematic original, Collection<ReplacementChoice> choices) {
-        LitematicaSchematic copy = new LitematicaSchematic(null, original.writeToNBT(), FileType.LITEMATICA_SCHEMATIC);
+        Path sourcePath = original.getFile() == null
+                ? Path.of("preferred-copy.litematic").toAbsolutePath()
+                : original.getFile().toPath();
+        LitematicaSchematic copy = new LitematicaSchematic(
+                sourcePath,
+                original.writeToNBT(),
+                FileType.LITEMATICA_SCHEMATIC);
         Map<String, ReplacementChoice> bySourceId = new LinkedHashMap<>();
         for (ReplacementChoice choice : choices) {
             if (choice.mode() != ReplacementMode.SKIP && choice.targetBlock() != null) {
