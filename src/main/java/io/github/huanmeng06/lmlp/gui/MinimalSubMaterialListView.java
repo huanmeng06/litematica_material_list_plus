@@ -511,6 +511,7 @@ public final class MinimalSubMaterialListView {
                 Math.max(0, display.allocatedInventory()),
                 Math.max(0, display.intermediatePreparedCount()),
                 Math.max(0, display.preparedCount()),
+                display.preparedSources(),
                 Math.max(0, total - credited),
                 display.candidates().size() > 1,
                 display.allocatedCandidates());
@@ -1369,7 +1370,7 @@ public final class MinimalSubMaterialListView {
                 }
             }
             this.sources.computeIfAbsent(source.id(), ignored -> new SourceAccumulator(source))
-                    .add(count, prepared);
+                    .add(count, prepared, intermediatePrepared);
         }
 
         private void mergeFrom(Accumulator other) {
@@ -1461,20 +1462,43 @@ public final class MinimalSubMaterialListView {
                     .thenComparing(SourceContribution::name));
             return List.copyOf(contributions);
         }
+
+        private List<AllocatedCandidate> preparedSources(AllocationResult reservation) {
+            int remainingReservation = Math.max(0, reservation.count());
+            List<AllocatedCandidate> preparedSources = new ArrayList<>();
+            for (SourceAccumulator source : this.sources.values()) {
+                long prepared = Math.max(0L, source.preparedCount - source.intermediatePreparedCount);
+                if (remainingReservation > 0 && this.candidates.containsKey(source.origin.id())) {
+                    int reserved = clampToInt(Math.min(prepared, remainingReservation));
+                    prepared -= reserved;
+                    remainingReservation -= reserved;
+                }
+                if (prepared > 0L) {
+                    preparedSources.add(new AllocatedCandidate(
+                            source.origin.name(),
+                            clampToInt(prepared)));
+                }
+            }
+            return List.copyOf(preparedSources);
+        }
     }
 
     private static final class SourceAccumulator {
         private final SourceOrigin origin;
         private long totalCount;
         private long preparedCount;
+        private long intermediatePreparedCount;
 
         private SourceAccumulator(SourceOrigin origin) {
             this.origin = origin;
         }
 
-        private void add(int count, boolean prepared) {
+        private void add(int count, boolean prepared, boolean intermediatePrepared) {
             if (prepared) {
                 this.preparedCount += count;
+                if (intermediatePrepared) {
+                    this.intermediatePreparedCount += count;
+                }
             } else {
                 this.totalCount += count;
             }
@@ -1483,6 +1507,7 @@ public final class MinimalSubMaterialListView {
         private void mergeFrom(SourceAccumulator other) {
             this.totalCount += other.totalCount;
             this.preparedCount += other.preparedCount;
+            this.intermediatePreparedCount += other.intermediatePreparedCount;
         }
 
         private SourceContribution toContribution(int maxStackSize) {
@@ -1636,6 +1661,7 @@ public final class MinimalSubMaterialListView {
                                 material.preparedCount
                                         - material.intermediatePreparedCount
                                         - reservation.count())),
+                        material.preparedSources(reservation),
                         inventoryCredit.candidates(),
                         ambiguousMaterials.contains(material));
                 displays.put(entry, display);
@@ -1677,6 +1703,7 @@ public final class MinimalSubMaterialListView {
             int allocatedInventory,
             int intermediatePreparedCount,
             int preparedCount,
+            List<AllocatedCandidate> preparedSources,
             List<AllocatedCandidate> allocatedCandidates,
             boolean ambiguousAllocation) {
         private String displayName() {
@@ -1784,6 +1811,7 @@ public final class MinimalSubMaterialListView {
             int inventory,
             int intermediate,
             int prepared,
+            List<AllocatedCandidate> preparedSources,
             int missing,
             boolean choiceGroup,
             List<AllocatedCandidate> allocatedCandidates) {
