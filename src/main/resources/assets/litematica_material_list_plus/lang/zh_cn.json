@@ -200,7 +200,7 @@
   "lmlp.gui.known_placement.header.origin": "原点位置",
   "lmlp.gui.known_placement.header.actions": "操作",
   "lmlp.gui.known_placement.status.live": "实时",
-  "lmlp.gui.known_placement.status.disabled": "已关闭",
+  "lmlp.gui.known_placement.status.disabled": "关闭",
   "lmlp.gui.known_placement.status.cache": "缓存",
   "lmlp.gui.known_placement.status.chunk_cache": "区块缓存",
   "lmlp.gui.known_placement.status.dimension_cache": "维度缓存",
