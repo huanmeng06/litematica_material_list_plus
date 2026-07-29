@@ -6,12 +6,14 @@ import com.google.gson.JsonObject;
 import fi.dy.masa.malilib.config.ConfigUtils;
 import fi.dy.masa.malilib.config.IConfigBase;
 import fi.dy.masa.malilib.config.IConfigHandler;
+import fi.dy.masa.malilib.config.IConfigOptionListEntry;
 import fi.dy.masa.malilib.config.options.ConfigBoolean;
 import fi.dy.masa.malilib.config.options.ConfigInteger;
 import fi.dy.masa.malilib.config.options.ConfigOptionList;
 import fi.dy.masa.malilib.config.options.ConfigStringList;
 import fi.dy.masa.malilib.util.FileUtils;
 import fi.dy.masa.malilib.util.JsonUtils;
+import fi.dy.masa.malilib.util.StringUtils;
 import io.github.huanmeng06.lmlp.LitematicaMaterialListPlus;
 import io.github.huanmeng06.lmlp.gui.MaterialListPlusState;
 import io.github.huanmeng06.lmlp.material.CountFormatter;
@@ -177,168 +179,204 @@ public class Configs implements IConfigHandler {
     }
 
     public static final class ConfigForms {
-        public static final ConfigBoolean PREFERRED_WOOD_ENABLED = new ConfigBoolean(
+        private static ConfigBoolean translatedBoolean(
+                String name,
+                boolean defaultValue,
+                String commentKey,
+                String displayNameKey) {
+            return new ConfigBoolean(name, defaultValue, commentKey, displayNameKey) {
+                @Override
+                public String getConfigGuiDisplayName() {
+                    return StringUtils.translate(displayNameKey);
+                }
+
+                @Override
+                public String getComment() {
+                    return StringUtils.translate(commentKey);
+                }
+            };
+        }
+
+        private static ConfigOptionList translatedOptionList(
+                String name,
+                IConfigOptionListEntry defaultValue,
+                String commentKey,
+                String displayNameKey) {
+            return new ConfigOptionList(name, defaultValue, commentKey, displayNameKey) {
+                @Override
+                public String getConfigGuiDisplayName() {
+                    return StringUtils.translate(displayNameKey);
+                }
+
+                @Override
+                public String getComment() {
+                    return StringUtils.translate(commentKey);
+                }
+            };
+        }
+
+        public static final ConfigBoolean PREFERRED_WOOD_ENABLED = translatedBoolean(
                 "preferredWoodEnabled",
                 false,
                 "lmlp.config.comment.preferred_wood_enabled",
                 "lmlp.config.name.preferred_wood_enabled"
         );
 
-        public static final ConfigOptionList PREFERRED_WOOD_FAMILY = new ConfigOptionList(
+        public static final ConfigOptionList PREFERRED_WOOD_FAMILY = translatedOptionList(
                 "preferredWoodFamily",
                 WoodFamily.OAK,
                 "lmlp.config.comment.preferred_wood_family",
                 "lmlp.config.name.preferred_wood_family"
         );
 
-        public static final ConfigBoolean PREFERRED_STONE_ENABLED = new ConfigBoolean(
+        public static final ConfigBoolean PREFERRED_STONE_ENABLED = translatedBoolean(
                 "preferredStoneEnabled",
                 false,
                 "lmlp.config.comment.preferred_stone_enabled",
                 "lmlp.config.name.preferred_stone_enabled"
         );
 
-        public static final ConfigOptionList PREFERRED_STONE_FAMILY = new ConfigOptionList(
+        public static final ConfigOptionList PREFERRED_STONE_FAMILY = translatedOptionList(
                 "preferredStoneFamily",
                 StoneMaterialFamily.SMOOTH_STONE,
                 "lmlp.config.comment.preferred_stone_family",
                 "lmlp.config.name.preferred_stone_family"
         );
 
-        public static final ConfigBoolean PREFERRED_GLASS_ENABLED = new ConfigBoolean(
+        public static final ConfigBoolean PREFERRED_GLASS_ENABLED = translatedBoolean(
                 "preferredGlassEnabled",
                 false,
                 "lmlp.config.comment.preferred_glass_enabled",
                 "lmlp.config.name.preferred_glass_enabled"
         );
 
-        public static final ConfigOptionList PREFERRED_GLASS_MATERIAL = new ConfigOptionList(
+        public static final ConfigOptionList PREFERRED_GLASS_MATERIAL = translatedOptionList(
                 "preferredGlassMaterial",
                 GlassMaterial.CLEAR,
                 "lmlp.config.comment.preferred_glass_material",
                 "lmlp.config.name.preferred_glass_material"
         );
 
-        public static final ConfigBoolean PREFERRED_WOOL_ENABLED = new ConfigBoolean(
+        public static final ConfigBoolean PREFERRED_WOOL_ENABLED = translatedBoolean(
                 "preferredWoolEnabled",
                 false,
                 "lmlp.config.comment.preferred_wool_enabled",
                 "lmlp.config.name.preferred_wool_enabled"
         );
 
-        public static final ConfigOptionList PREFERRED_WOOL_MATERIAL = new ConfigOptionList(
+        public static final ConfigOptionList PREFERRED_WOOL_MATERIAL = translatedOptionList(
                 "preferredWoolMaterial",
                 WoolMaterial.WHITE,
                 "lmlp.config.comment.preferred_wool_material",
                 "lmlp.config.name.preferred_wool_material"
         );
 
-        public static final ConfigBoolean PREFERRED_CARPET_ENABLED = new ConfigBoolean(
+        public static final ConfigBoolean PREFERRED_CARPET_ENABLED = translatedBoolean(
                 "preferredCarpetEnabled",
                 false,
                 "lmlp.config.comment.preferred_carpet_enabled",
                 "lmlp.config.name.preferred_carpet_enabled"
         );
 
-        public static final ConfigOptionList PREFERRED_CARPET_MATERIAL = new ConfigOptionList(
+        public static final ConfigOptionList PREFERRED_CARPET_MATERIAL = translatedOptionList(
                 "preferredCarpetMaterial",
                 CarpetMaterial.WHITE,
                 "lmlp.config.comment.preferred_carpet_material",
                 "lmlp.config.name.preferred_carpet_material"
         );
 
-        public static final ConfigBoolean PREFERRED_TERRACOTTA_ENABLED = new ConfigBoolean(
+        public static final ConfigBoolean PREFERRED_TERRACOTTA_ENABLED = translatedBoolean(
                 "preferredTerracottaEnabled",
                 false,
                 "lmlp.config.comment.preferred_terracotta_enabled",
                 "lmlp.config.name.preferred_terracotta_enabled"
         );
 
-        public static final ConfigOptionList PREFERRED_TERRACOTTA_MATERIAL = new ConfigOptionList(
+        public static final ConfigOptionList PREFERRED_TERRACOTTA_MATERIAL = translatedOptionList(
                 "preferredTerracottaMaterial",
                 TerracottaMaterial.PLAIN,
                 "lmlp.config.comment.preferred_terracotta_material",
                 "lmlp.config.name.preferred_terracotta_material"
         );
 
-        public static final ConfigBoolean PREFERRED_GLAZED_TERRACOTTA_ENABLED = new ConfigBoolean(
+        public static final ConfigBoolean PREFERRED_GLAZED_TERRACOTTA_ENABLED = translatedBoolean(
                 "preferredGlazedTerracottaEnabled",
                 false,
                 "lmlp.config.comment.preferred_glazed_terracotta_enabled",
                 "lmlp.config.name.preferred_glazed_terracotta_enabled"
         );
 
-        public static final ConfigOptionList PREFERRED_GLAZED_TERRACOTTA_MATERIAL = new ConfigOptionList(
+        public static final ConfigOptionList PREFERRED_GLAZED_TERRACOTTA_MATERIAL = translatedOptionList(
                 "preferredGlazedTerracottaMaterial",
                 GlazedTerracottaMaterial.WHITE,
                 "lmlp.config.comment.preferred_glazed_terracotta_material",
                 "lmlp.config.name.preferred_glazed_terracotta_material"
         );
 
-        public static final ConfigBoolean PREFERRED_CONCRETE_ENABLED = new ConfigBoolean(
+        public static final ConfigBoolean PREFERRED_CONCRETE_ENABLED = translatedBoolean(
                 "preferredConcreteEnabled",
                 false,
                 "lmlp.config.comment.preferred_concrete_enabled",
                 "lmlp.config.name.preferred_concrete_enabled"
         );
 
-        public static final ConfigOptionList PREFERRED_CONCRETE_MATERIAL = new ConfigOptionList(
+        public static final ConfigOptionList PREFERRED_CONCRETE_MATERIAL = translatedOptionList(
                 "preferredConcreteMaterial",
                 ConcreteMaterial.WHITE,
                 "lmlp.config.comment.preferred_concrete_material",
                 "lmlp.config.name.preferred_concrete_material"
         );
 
-        public static final ConfigBoolean PREFERRED_CONCRETE_POWDER_ENABLED = new ConfigBoolean(
+        public static final ConfigBoolean PREFERRED_CONCRETE_POWDER_ENABLED = translatedBoolean(
                 "preferredConcretePowderEnabled",
                 false,
                 "lmlp.config.comment.preferred_concrete_powder_enabled",
                 "lmlp.config.name.preferred_concrete_powder_enabled"
         );
 
-        public static final ConfigOptionList PREFERRED_CONCRETE_POWDER_MATERIAL = new ConfigOptionList(
+        public static final ConfigOptionList PREFERRED_CONCRETE_POWDER_MATERIAL = translatedOptionList(
                 "preferredConcretePowderMaterial",
                 ConcretePowderMaterial.WHITE,
                 "lmlp.config.comment.preferred_concrete_powder_material",
                 "lmlp.config.name.preferred_concrete_powder_material"
         );
 
-        public static final ConfigBoolean PREFERRED_BED_ENABLED = new ConfigBoolean(
+        public static final ConfigBoolean PREFERRED_BED_ENABLED = translatedBoolean(
                 "preferredBedEnabled",
                 false,
                 "lmlp.config.comment.preferred_bed_enabled",
                 "lmlp.config.name.preferred_bed_enabled"
         );
 
-        public static final ConfigOptionList PREFERRED_BED_MATERIAL = new ConfigOptionList(
+        public static final ConfigOptionList PREFERRED_BED_MATERIAL = translatedOptionList(
                 "preferredBedMaterial",
                 BedMaterial.WHITE,
                 "lmlp.config.comment.preferred_bed_material",
                 "lmlp.config.name.preferred_bed_material"
         );
 
-        public static final ConfigBoolean PREFERRED_CANDLE_ENABLED = new ConfigBoolean(
+        public static final ConfigBoolean PREFERRED_CANDLE_ENABLED = translatedBoolean(
                 "preferredCandleEnabled",
                 false,
                 "lmlp.config.comment.preferred_candle_enabled",
                 "lmlp.config.name.preferred_candle_enabled"
         );
 
-        public static final ConfigOptionList PREFERRED_CANDLE_MATERIAL = new ConfigOptionList(
+        public static final ConfigOptionList PREFERRED_CANDLE_MATERIAL = translatedOptionList(
                 "preferredCandleMaterial",
                 CandleMaterial.PLAIN,
                 "lmlp.config.comment.preferred_candle_material",
                 "lmlp.config.name.preferred_candle_material"
         );
 
-        public static final ConfigBoolean PREFERRED_SHULKER_BOX_ENABLED = new ConfigBoolean(
+        public static final ConfigBoolean PREFERRED_SHULKER_BOX_ENABLED = translatedBoolean(
                 "preferredShulkerBoxEnabled",
                 false,
                 "lmlp.config.comment.preferred_shulker_box_enabled",
                 "lmlp.config.name.preferred_shulker_box_enabled"
         );
 
-        public static final ConfigOptionList PREFERRED_SHULKER_BOX_MATERIAL = new ConfigOptionList(
+        public static final ConfigOptionList PREFERRED_SHULKER_BOX_MATERIAL = translatedOptionList(
                 "preferredShulkerBoxMaterial",
                 ShulkerBoxMaterial.PLAIN,
                 "lmlp.config.comment.preferred_shulker_box_material",
