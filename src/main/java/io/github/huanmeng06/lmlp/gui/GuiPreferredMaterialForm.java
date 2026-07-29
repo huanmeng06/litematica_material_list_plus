@@ -15,13 +15,19 @@ import fi.dy.masa.malilib.util.StringUtils;
 import io.github.huanmeng06.lmlp.LitematicaMaterialListPlus;
 import io.github.huanmeng06.lmlp.access.MaterialListPlacementAccess;
 import io.github.huanmeng06.lmlp.cache.ChunkMissingMaterialList;
+import io.github.huanmeng06.lmlp.config.BedMaterial;
+import io.github.huanmeng06.lmlp.config.CandleMaterial;
 import io.github.huanmeng06.lmlp.config.CarpetMaterial;
+import io.github.huanmeng06.lmlp.config.ConcreteMaterial;
+import io.github.huanmeng06.lmlp.config.ConcretePowderMaterial;
 import io.github.huanmeng06.lmlp.config.Configs;
 import io.github.huanmeng06.lmlp.config.GlassMaterial;
 import io.github.huanmeng06.lmlp.config.GlazedTerracottaMaterial;
+import io.github.huanmeng06.lmlp.config.ShulkerBoxMaterial;
 import io.github.huanmeng06.lmlp.config.StoneMaterialFamily;
 import io.github.huanmeng06.lmlp.config.TerracottaMaterial;
 import io.github.huanmeng06.lmlp.config.WoodFamily;
+import io.github.huanmeng06.lmlp.config.WoolMaterial;
 import io.github.huanmeng06.lmlp.preference.PreferredSchematicReplacement;
 import io.github.huanmeng06.lmlp.preference.PreferredSchematicReplacement.PreferredMaterialCategory;
 import io.github.huanmeng06.lmlp.preference.PreferredSchematicReplacement.ReplacementCandidate;
@@ -60,11 +66,11 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
     private static final int CONFIG_WIDTH = 140;
     private static final int ACTION_WIDTH = 90;
     private static final int ACTION_GAP = 4;
+    private static final int BULK_ACTION_GAP = 2;
     private static final int BOTTOM_ACTION_SPACE = 34;
     private static final int DETAIL_MARGIN = 10;
     private static final int DETAIL_ROW_HEIGHT = 22;
     private static final int DETAIL_ROW_GAP = 0;
-    private static final int DETAIL_ACTION_WIDTH = 92;
     private static final int DETAIL_ROW_ODD = 0xA0101010;
     private static final int DETAIL_ROW_EVEN = 0xA0303030;
     private static final int DETAIL_ROW_HOVERED = 0xA0707070;
@@ -85,6 +91,9 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
     private final Map<PreferredMaterialCategory, ArrowBounds> arrowBounds =
             new EnumMap<>(PreferredMaterialCategory.class);
     private final Set<RowState> renderedRows = Collections.newSetFromMap(new IdentityHashMap<>());
+    private ButtonGeneric enableAllButton;
+    private ButtonGeneric disableAllButton;
+    private ButtonGeneric resetAllTargetsButton;
     private PreferenceSnapshot rowsSnapshot;
     private boolean closingConfirmed;
 
@@ -123,6 +132,24 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
         this.clearOptions();
         super.initGui();
 
+        int bulkX = 10;
+        this.enableAllButton = this.createBulkActionButton(
+                bulkX,
+                "lmlp.gui.preferred_replacement.enable_all",
+                () -> this.setAllPreferencesEnabled(true));
+        bulkX += this.enableAllButton.getWidth();
+        bulkX += BULK_ACTION_GAP;
+        this.disableAllButton = this.createBulkActionButton(
+                bulkX,
+                "lmlp.gui.preferred_replacement.disable_all",
+                () -> this.setAllPreferencesEnabled(false));
+        bulkX += this.disableAllButton.getWidth();
+        bulkX += BULK_ACTION_GAP;
+        this.resetAllTargetsButton = this.createBulkActionButton(
+                bulkX,
+                "lmlp.gui.preferred_replacement.reset_all_targets",
+                this::resetAllTargets);
+
         int y = this.field_22790 - 30;
         int cancelX = this.field_22789 - 10 - ACTION_WIDTH;
         int confirmX = cancelX - ACTION_GAP - ACTION_WIDTH;
@@ -148,6 +175,91 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
         this.addButton(cancel, (button, mouseButton) -> this.cancel());
         this.updateKeybindButtons();
         this.rebuildRowsIfNeeded();
+        this.updateBulkActionButtons();
+    }
+
+    private ButtonGeneric createBulkActionButton(int x, String translationKey, Runnable action) {
+        ButtonGeneric button = new ButtonGeneric(
+                x,
+                26,
+                -1,
+                20,
+                StringUtils.translate(translationKey)
+        );
+        button.setTextCentered(true);
+        this.addButton(button, (clickedButton, mouseButton) -> action.run());
+        return button;
+    }
+
+    private void setAllPreferencesEnabled(boolean enabled) {
+        for (PreferredMaterialCategory category : PreferredMaterialCategory.values()) {
+            this.preferenceToggle(category).setBooleanValue(enabled);
+        }
+    }
+
+    private void resetAllTargets() {
+        Configs.ConfigForms.PREFERRED_WOOD_FAMILY.resetToDefault();
+        Configs.ConfigForms.PREFERRED_STONE_FAMILY.resetToDefault();
+        Configs.ConfigForms.PREFERRED_GLASS_MATERIAL.resetToDefault();
+        Configs.ConfigForms.PREFERRED_WOOL_MATERIAL.resetToDefault();
+        Configs.ConfigForms.PREFERRED_CARPET_MATERIAL.resetToDefault();
+        Configs.ConfigForms.PREFERRED_TERRACOTTA_MATERIAL.resetToDefault();
+        Configs.ConfigForms.PREFERRED_GLAZED_TERRACOTTA_MATERIAL.resetToDefault();
+        Configs.ConfigForms.PREFERRED_CONCRETE_MATERIAL.resetToDefault();
+        Configs.ConfigForms.PREFERRED_CONCRETE_POWDER_MATERIAL.resetToDefault();
+        Configs.ConfigForms.PREFERRED_BED_MATERIAL.resetToDefault();
+        Configs.ConfigForms.PREFERRED_CANDLE_MATERIAL.resetToDefault();
+        Configs.ConfigForms.PREFERRED_SHULKER_BOX_MATERIAL.resetToDefault();
+        this.rows.forEach(RowState::resetTarget);
+    }
+
+    private void updateBulkActionButtons() {
+        PreferenceSnapshot preferences = PreferenceSnapshot.current();
+        boolean allEnabled = true;
+        boolean anyEnabled = false;
+        for (PreferredMaterialCategory category : PreferredMaterialCategory.values()) {
+            boolean enabled = preferences.enabled(category);
+            allEnabled &= enabled;
+            anyEnabled |= enabled;
+        }
+
+        if (this.enableAllButton != null) {
+            this.enableAllButton.setEnabled(!allEnabled);
+        }
+        if (this.disableAllButton != null) {
+            this.disableAllButton.setEnabled(anyEnabled);
+        }
+        if (this.resetAllTargetsButton != null) {
+            this.resetAllTargetsButton.setEnabled(!this.areAllTargetsDefault());
+        }
+    }
+
+    private boolean areAllTargetsDefault() {
+        return Configs.ConfigForms.PREFERRED_WOOD_FAMILY.getOptionListValue()
+                        == Configs.ConfigForms.PREFERRED_WOOD_FAMILY.getDefaultOptionListValue()
+                && Configs.ConfigForms.PREFERRED_STONE_FAMILY.getOptionListValue()
+                        == Configs.ConfigForms.PREFERRED_STONE_FAMILY.getDefaultOptionListValue()
+                && Configs.ConfigForms.PREFERRED_GLASS_MATERIAL.getOptionListValue()
+                        == Configs.ConfigForms.PREFERRED_GLASS_MATERIAL.getDefaultOptionListValue()
+                && Configs.ConfigForms.PREFERRED_WOOL_MATERIAL.getOptionListValue()
+                        == Configs.ConfigForms.PREFERRED_WOOL_MATERIAL.getDefaultOptionListValue()
+                && Configs.ConfigForms.PREFERRED_CARPET_MATERIAL.getOptionListValue()
+                        == Configs.ConfigForms.PREFERRED_CARPET_MATERIAL.getDefaultOptionListValue()
+                && Configs.ConfigForms.PREFERRED_TERRACOTTA_MATERIAL.getOptionListValue()
+                        == Configs.ConfigForms.PREFERRED_TERRACOTTA_MATERIAL.getDefaultOptionListValue()
+                && Configs.ConfigForms.PREFERRED_GLAZED_TERRACOTTA_MATERIAL.getOptionListValue()
+                        == Configs.ConfigForms.PREFERRED_GLAZED_TERRACOTTA_MATERIAL.getDefaultOptionListValue()
+                && Configs.ConfigForms.PREFERRED_CONCRETE_MATERIAL.getOptionListValue()
+                        == Configs.ConfigForms.PREFERRED_CONCRETE_MATERIAL.getDefaultOptionListValue()
+                && Configs.ConfigForms.PREFERRED_CONCRETE_POWDER_MATERIAL.getOptionListValue()
+                        == Configs.ConfigForms.PREFERRED_CONCRETE_POWDER_MATERIAL.getDefaultOptionListValue()
+                && Configs.ConfigForms.PREFERRED_BED_MATERIAL.getOptionListValue()
+                        == Configs.ConfigForms.PREFERRED_BED_MATERIAL.getDefaultOptionListValue()
+                && Configs.ConfigForms.PREFERRED_CANDLE_MATERIAL.getOptionListValue()
+                        == Configs.ConfigForms.PREFERRED_CANDLE_MATERIAL.getDefaultOptionListValue()
+                && Configs.ConfigForms.PREFERRED_SHULKER_BOX_MATERIAL.getOptionListValue()
+                        == Configs.ConfigForms.PREFERRED_SHULKER_BOX_MATERIAL.getDefaultOptionListValue()
+                && this.rows.stream().noneMatch(row -> row.customTarget);
     }
 
     @Override
@@ -202,6 +314,7 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
         }
 
         this.updateKeybindButtons();
+        this.updateBulkActionButtons();
         return handled;
     }
 
@@ -256,6 +369,7 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
 
     @Override
     public void drawContents(GuiContext context, int mouseX, int mouseY, float partialTicks) {
+        this.updateBulkActionButtons();
         if (this.detailAnimations.isActive() && this.getListWidget() != null) {
             this.getListWidget().refreshEntries();
         }
@@ -313,10 +427,12 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
         context.method_44379(DETAIL_MARGIN, detailTop, this.field_22789 - DETAIL_MARGIN, visibleBottom);
         List<RowState> categoryRows = this.rowsFor(category);
         if (categoryRows.isEmpty()) {
-            this.renderCenteredDetailMessage(
+            this.renderEmptyDetailRow(
                     context,
                     StringUtils.translate("lmlp.gui.preferred_replacement.none"),
-                    detailTop + 7);
+                    detailTop,
+                    mouseX,
+                    mouseY);
         } else {
             int rowY = detailTop;
             for (int index = 0; index < categoryRows.size(); index++) {
@@ -352,7 +468,8 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
             context.method_51427(new class_1799(row.row.sourceBlock()), sourceIconX, iconY);
         }
 
-        int buttonX = rowRight - DETAIL_ACTION_WIDTH - 4;
+        int actionWidth = Math.max(this.resetButtonWidth(), row.buttonWidth());
+        int buttonX = rowRight - actionWidth - 4;
         int countX = rowLeft + Math.round((buttonX - rowLeft) * 0.57F);
         int statusX = rowLeft + Math.round((buttonX - rowLeft) * 0.78F);
         int sourceNameX = sourceIconX + 20;
@@ -424,6 +541,7 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
         );
 
         row.button.setPosition(buttonX, y + 1);
+        row.button.setWidth(actionWidth);
         row.button.render(context, mouseX, mouseY, row.button.isMouseOver());
         this.renderedRows.add(row);
     }
@@ -453,9 +571,25 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
         return Math.max(0, Math.min(maxWidth, contentWidth));
     }
 
-    private void renderCenteredDetailMessage(GuiContext context, String message, int y) {
-        int x = Math.max(DETAIL_MARGIN, (this.field_22789 - this.field_22793.method_1727(message)) / 2);
-        context.method_51433(this.field_22793, message, x, y, 0xFFFFCC66, false);
+    private void renderEmptyDetailRow(GuiContext context, String message, int y, int mouseX, int mouseY) {
+        int rowLeft = DETAIL_MARGIN;
+        int rowRight = this.field_22789 - DETAIL_MARGIN - 12;
+        int rowWidth = rowRight - rowLeft;
+        boolean hovered = mouseX >= rowLeft
+                && mouseX < rowRight
+                && mouseY >= y
+                && mouseY < y + DETAIL_ROW_HEIGHT;
+        RenderUtils.drawRect(
+                context,
+                rowLeft,
+                y,
+                rowWidth,
+                DETAIL_ROW_HEIGHT,
+                hovered ? DETAIL_ROW_HOVERED : DETAIL_ROW_EVEN);
+
+        String text = this.truncateDetailText(message, Math.max(0, rowWidth - 8));
+        int textX = rowLeft + Math.max(4, (rowWidth - this.field_22793.method_1727(text)) / 2);
+        context.method_51433(this.field_22793, text, textX, y + 7, 0xFFFFCC66, false);
     }
 
     private boolean clickDetailRowButton(class_11909 event, boolean doubleClick) {
@@ -489,7 +623,7 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
         boolean expanded = !this.detailsExpanded.getOrDefault(category, false);
         this.detailsExpanded.put(category, expanded);
         if (expanded
-                && category == PreferredMaterialCategory.GLAZED_TERRACOTTA
+                && category == PreferredMaterialCategory.SHULKER_BOX
                 && this.getListWidget() instanceof PreferenceWidgetListConfigOptions preferenceList) {
             preferenceList.pinScrollToBottom();
         }
@@ -521,11 +655,14 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
                 .mapToInt(wrapper -> this.field_22793.method_1727(wrapper.getConfig().getConfigGuiDisplayName()))
                 .max()
                 .orElse(0);
-        String reset = StringUtils.translate("malilib.gui.button.reset.caps");
-        int resetWidth = this.field_22793.method_1727(reset) + 10;
         int rowX = 12;
         int valueX = rowX + maxLabelWidth + 10;
-        return valueX + CONFIG_WIDTH + 2 + resetWidth + 2;
+        return valueX + CONFIG_WIDTH + 2 + this.resetButtonWidth() + 2;
+    }
+
+    private int resetButtonWidth() {
+        String reset = StringUtils.translate("malilib.gui.button.reset.caps");
+        return this.field_22793.method_1727(reset) + 10;
     }
 
     private void rebuildRowsIfNeeded() {
@@ -614,9 +751,15 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
             case WOOD -> Configs.ConfigForms.PREFERRED_WOOD_ENABLED;
             case STONE -> Configs.ConfigForms.PREFERRED_STONE_ENABLED;
             case GLASS -> Configs.ConfigForms.PREFERRED_GLASS_ENABLED;
+            case WOOL -> Configs.ConfigForms.PREFERRED_WOOL_ENABLED;
             case CARPET -> Configs.ConfigForms.PREFERRED_CARPET_ENABLED;
             case TERRACOTTA -> Configs.ConfigForms.PREFERRED_TERRACOTTA_ENABLED;
             case GLAZED_TERRACOTTA -> Configs.ConfigForms.PREFERRED_GLAZED_TERRACOTTA_ENABLED;
+            case CONCRETE -> Configs.ConfigForms.PREFERRED_CONCRETE_ENABLED;
+            case CONCRETE_POWDER -> Configs.ConfigForms.PREFERRED_CONCRETE_POWDER_ENABLED;
+            case BED -> Configs.ConfigForms.PREFERRED_BED_ENABLED;
+            case CANDLE -> Configs.ConfigForms.PREFERRED_CANDLE_ENABLED;
+            case SHULKER_BOX -> Configs.ConfigForms.PREFERRED_SHULKER_BOX_ENABLED;
         };
     }
 
@@ -639,6 +782,9 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
         if (config == Configs.ConfigForms.PREFERRED_GLASS_MATERIAL) {
             return PreferredMaterialCategory.GLASS;
         }
+        if (config == Configs.ConfigForms.PREFERRED_WOOL_MATERIAL) {
+            return PreferredMaterialCategory.WOOL;
+        }
         if (config == Configs.ConfigForms.PREFERRED_CARPET_MATERIAL) {
             return PreferredMaterialCategory.CARPET;
         }
@@ -647,6 +793,21 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
         }
         if (config == Configs.ConfigForms.PREFERRED_GLAZED_TERRACOTTA_MATERIAL) {
             return PreferredMaterialCategory.GLAZED_TERRACOTTA;
+        }
+        if (config == Configs.ConfigForms.PREFERRED_CONCRETE_MATERIAL) {
+            return PreferredMaterialCategory.CONCRETE;
+        }
+        if (config == Configs.ConfigForms.PREFERRED_CONCRETE_POWDER_MATERIAL) {
+            return PreferredMaterialCategory.CONCRETE_POWDER;
+        }
+        if (config == Configs.ConfigForms.PREFERRED_BED_MATERIAL) {
+            return PreferredMaterialCategory.BED;
+        }
+        if (config == Configs.ConfigForms.PREFERRED_CANDLE_MATERIAL) {
+            return PreferredMaterialCategory.CANDLE;
+        }
+        if (config == Configs.ConfigForms.PREFERRED_SHULKER_BOX_MATERIAL) {
+            return PreferredMaterialCategory.SHULKER_BOX;
         }
         return null;
     }
@@ -688,12 +849,24 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
             StoneMaterialFamily stone,
             boolean glassEnabled,
             GlassMaterial glass,
+            boolean woolEnabled,
+            WoolMaterial wool,
             boolean carpetEnabled,
             CarpetMaterial carpet,
             boolean terracottaEnabled,
             TerracottaMaterial terracotta,
             boolean glazedTerracottaEnabled,
-            GlazedTerracottaMaterial glazedTerracotta) {
+            GlazedTerracottaMaterial glazedTerracotta,
+            boolean concreteEnabled,
+            ConcreteMaterial concrete,
+            boolean concretePowderEnabled,
+            ConcretePowderMaterial concretePowder,
+            boolean bedEnabled,
+            BedMaterial bed,
+            boolean candleEnabled,
+            CandleMaterial candle,
+            boolean shulkerBoxEnabled,
+            ShulkerBoxMaterial shulkerBox) {
 
         private static PreferenceSnapshot current() {
             return new PreferenceSnapshot(
@@ -703,12 +876,24 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
                     (StoneMaterialFamily) Configs.ConfigForms.PREFERRED_STONE_FAMILY.getOptionListValue(),
                     Configs.ConfigForms.PREFERRED_GLASS_ENABLED.getBooleanValue(),
                     (GlassMaterial) Configs.ConfigForms.PREFERRED_GLASS_MATERIAL.getOptionListValue(),
+                    Configs.ConfigForms.PREFERRED_WOOL_ENABLED.getBooleanValue(),
+                    (WoolMaterial) Configs.ConfigForms.PREFERRED_WOOL_MATERIAL.getOptionListValue(),
                     Configs.ConfigForms.PREFERRED_CARPET_ENABLED.getBooleanValue(),
                     (CarpetMaterial) Configs.ConfigForms.PREFERRED_CARPET_MATERIAL.getOptionListValue(),
                     Configs.ConfigForms.PREFERRED_TERRACOTTA_ENABLED.getBooleanValue(),
                     (TerracottaMaterial) Configs.ConfigForms.PREFERRED_TERRACOTTA_MATERIAL.getOptionListValue(),
                     Configs.ConfigForms.PREFERRED_GLAZED_TERRACOTTA_ENABLED.getBooleanValue(),
-                    (GlazedTerracottaMaterial) Configs.ConfigForms.PREFERRED_GLAZED_TERRACOTTA_MATERIAL.getOptionListValue());
+                    (GlazedTerracottaMaterial) Configs.ConfigForms.PREFERRED_GLAZED_TERRACOTTA_MATERIAL.getOptionListValue(),
+                    Configs.ConfigForms.PREFERRED_CONCRETE_ENABLED.getBooleanValue(),
+                    (ConcreteMaterial) Configs.ConfigForms.PREFERRED_CONCRETE_MATERIAL.getOptionListValue(),
+                    Configs.ConfigForms.PREFERRED_CONCRETE_POWDER_ENABLED.getBooleanValue(),
+                    (ConcretePowderMaterial) Configs.ConfigForms.PREFERRED_CONCRETE_POWDER_MATERIAL.getOptionListValue(),
+                    Configs.ConfigForms.PREFERRED_BED_ENABLED.getBooleanValue(),
+                    (BedMaterial) Configs.ConfigForms.PREFERRED_BED_MATERIAL.getOptionListValue(),
+                    Configs.ConfigForms.PREFERRED_CANDLE_ENABLED.getBooleanValue(),
+                    (CandleMaterial) Configs.ConfigForms.PREFERRED_CANDLE_MATERIAL.getOptionListValue(),
+                    Configs.ConfigForms.PREFERRED_SHULKER_BOX_ENABLED.getBooleanValue(),
+                    (ShulkerBoxMaterial) Configs.ConfigForms.PREFERRED_SHULKER_BOX_MATERIAL.getOptionListValue());
         }
 
         private boolean enabled(PreferredMaterialCategory category) {
@@ -716,9 +901,15 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
                 case WOOD -> this.woodEnabled;
                 case STONE -> this.stoneEnabled;
                 case GLASS -> this.glassEnabled;
+                case WOOL -> this.woolEnabled;
                 case CARPET -> this.carpetEnabled;
                 case TERRACOTTA -> this.terracottaEnabled;
                 case GLAZED_TERRACOTTA -> this.glazedTerracottaEnabled;
+                case CONCRETE -> this.concreteEnabled;
+                case CONCRETE_POWDER -> this.concretePowderEnabled;
+                case BED -> this.bedEnabled;
+                case CANDLE -> this.candleEnabled;
+                case SHULKER_BOX -> this.shulkerBoxEnabled;
             };
         }
 
@@ -726,9 +917,15 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
             return this.woodEnabled
                     || this.stoneEnabled
                     || this.glassEnabled
+                    || this.woolEnabled
                     || this.carpetEnabled
                     || this.terracottaEnabled
-                    || this.glazedTerracottaEnabled;
+                    || this.glazedTerracottaEnabled
+                    || this.concreteEnabled
+                    || this.concretePowderEnabled
+                    || this.bedEnabled
+                    || this.candleEnabled
+                    || this.shulkerBoxEnabled;
         }
 
         private Targets targets() {
@@ -736,9 +933,15 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
                     this.woodEnabled ? this.wood : null,
                     this.stoneEnabled ? this.stone : null,
                     this.glassEnabled ? this.glass : null,
+                    this.woolEnabled ? this.wool : null,
                     this.carpetEnabled ? this.carpet : null,
                     this.terracottaEnabled ? this.terracotta : null,
-                    this.glazedTerracottaEnabled ? this.glazedTerracotta : null);
+                    this.glazedTerracottaEnabled ? this.glazedTerracotta : null,
+                    this.concreteEnabled ? this.concrete : null,
+                    this.concretePowderEnabled ? this.concretePowder : null,
+                    this.bedEnabled ? this.bed : null,
+                    this.candleEnabled ? this.candle : null,
+                    this.shulkerBoxEnabled ? this.shulkerBox : null);
         }
 
         private void restore() {
@@ -748,12 +951,24 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
             Configs.ConfigForms.PREFERRED_STONE_FAMILY.setOptionListValue(this.stone);
             Configs.ConfigForms.PREFERRED_GLASS_ENABLED.setBooleanValue(this.glassEnabled);
             Configs.ConfigForms.PREFERRED_GLASS_MATERIAL.setOptionListValue(this.glass);
+            Configs.ConfigForms.PREFERRED_WOOL_ENABLED.setBooleanValue(this.woolEnabled);
+            Configs.ConfigForms.PREFERRED_WOOL_MATERIAL.setOptionListValue(this.wool);
             Configs.ConfigForms.PREFERRED_CARPET_ENABLED.setBooleanValue(this.carpetEnabled);
             Configs.ConfigForms.PREFERRED_CARPET_MATERIAL.setOptionListValue(this.carpet);
             Configs.ConfigForms.PREFERRED_TERRACOTTA_ENABLED.setBooleanValue(this.terracottaEnabled);
             Configs.ConfigForms.PREFERRED_TERRACOTTA_MATERIAL.setOptionListValue(this.terracotta);
             Configs.ConfigForms.PREFERRED_GLAZED_TERRACOTTA_ENABLED.setBooleanValue(this.glazedTerracottaEnabled);
             Configs.ConfigForms.PREFERRED_GLAZED_TERRACOTTA_MATERIAL.setOptionListValue(this.glazedTerracotta);
+            Configs.ConfigForms.PREFERRED_CONCRETE_ENABLED.setBooleanValue(this.concreteEnabled);
+            Configs.ConfigForms.PREFERRED_CONCRETE_MATERIAL.setOptionListValue(this.concrete);
+            Configs.ConfigForms.PREFERRED_CONCRETE_POWDER_ENABLED.setBooleanValue(this.concretePowderEnabled);
+            Configs.ConfigForms.PREFERRED_CONCRETE_POWDER_MATERIAL.setOptionListValue(this.concretePowder);
+            Configs.ConfigForms.PREFERRED_BED_ENABLED.setBooleanValue(this.bedEnabled);
+            Configs.ConfigForms.PREFERRED_BED_MATERIAL.setOptionListValue(this.bed);
+            Configs.ConfigForms.PREFERRED_CANDLE_ENABLED.setBooleanValue(this.candleEnabled);
+            Configs.ConfigForms.PREFERRED_CANDLE_MATERIAL.setOptionListValue(this.candle);
+            Configs.ConfigForms.PREFERRED_SHULKER_BOX_ENABLED.setBooleanValue(this.shulkerBoxEnabled);
+            Configs.ConfigForms.PREFERRED_SHULKER_BOX_MATERIAL.setOptionListValue(this.shulkerBox);
         }
     }
 
@@ -768,7 +983,7 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
 
     private final class RowState {
         private final ReplacementRow row;
-        private final ButtonGeneric button = new ButtonGeneric(0, 0, DETAIL_ACTION_WIDTH, 20, "");
+        private final ButtonGeneric button = new ButtonGeneric(0, 0, 1, 20, "");
         private final String automaticTargetId;
         private final class_2248 automaticTargetBlock;
         private final String automaticTargetName;
@@ -895,12 +1110,20 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
         }
 
         private void updateButton() {
-            String key = switch (this.mode) {
+            this.button.setDisplayString(StringUtils.translate(this.modeTranslationKey()));
+        }
+
+        private int buttonWidth() {
+            return GuiPreferredMaterialForm.this.field_22793.method_1727(
+                    StringUtils.translate(this.modeTranslationKey())) + 10;
+        }
+
+        private String modeTranslationKey() {
+            return switch (this.mode) {
                 case REPLACE -> "lmlp.gui.preferred_replacement.mode.replace";
                 case SKIP -> "lmlp.gui.preferred_replacement.mode.skip";
                 case FORCE -> "lmlp.gui.preferred_replacement.mode.force";
             };
-            this.button.setDisplayString(StringUtils.translate(key));
         }
     }
 }

@@ -119,7 +119,15 @@ public final class KnownPlacementRows {
     }
 
     public static ReadStatus readStatus(KnownPlacementContext context) {
-        return context == null ? null : readStatus(context.key());
+        if (context == null) {
+            return null;
+        }
+
+        if (context.placement() != null && !context.placement().isEnabled()) {
+            return ReadStatus.DISABLED;
+        }
+
+        return readStatus(context.key());
     }
 
     public static ReadStatus readStatus(String contextKey) {
@@ -1051,9 +1059,10 @@ public final class KnownPlacementRows {
 
     public enum ReadStatus {
         LIVE("lmlp.gui.known_placement.status.live", "lmlp.gui.known_placement.status.live_hint", 0xFF33FF33, 0),
-        CHUNK_CACHE("lmlp.gui.known_placement.status.chunk_cache", "lmlp.gui.known_placement.status.chunk_cache_hint", 0xFFFFCC66, 1),
-        DIMENSION_CACHE("lmlp.gui.known_placement.status.dimension_cache", "lmlp.gui.known_placement.status.dimension_cache_hint", 0xFF66CCFF, 2),
-        OFFLINE("lmlp.gui.known_placement.status.offline_cache", "lmlp.gui.known_placement.status.offline_cache_hint", 0xFFFF9900, 3);
+        DISABLED("lmlp.gui.known_placement.status.disabled", "lmlp.gui.known_placement.status.disabled_hint", 0xFFFF5555, 1),
+        CHUNK_CACHE("lmlp.gui.known_placement.status.chunk_cache", "lmlp.gui.known_placement.status.chunk_cache_hint", 0xFFFFCC66, 2),
+        DIMENSION_CACHE("lmlp.gui.known_placement.status.dimension_cache", "lmlp.gui.known_placement.status.dimension_cache_hint", 0xFF66CCFF, 3),
+        OFFLINE("lmlp.gui.known_placement.status.offline_cache", "lmlp.gui.known_placement.status.offline_cache_hint", 0xFFFF9900, 4);
 
         private final String translationKey;
         private final String tooltipKey;
