@@ -61,11 +61,14 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
     private static final int VANILLA_TOOLTIP_LINE_HEIGHT = 16;
     private static final int VANILLA_TOOLTIP_HEADER_GAP = 8;
     private static final int COUNT_COLUMN_SAFETY_PADDING = 32;
+    private static final int ALLOCATION_TOOLTIP_VALUE_GAP = 28;
+    private static final int ALLOCATION_TOOLTIP_INDENT = 12;
+    private static final int ALLOCATION_TOOLTIP_DEEP_INDENT = 24;
+    private static final String ALLOCATION_DETAIL_MARKER = GuiBase.TXT_GOLD
+            + GuiBase.TXT_BOLD + " *" + GuiBase.TXT_RST;
     private static int lmlpMaxTotalDigits;
     private static int lmlpMaxMissingDigits;
-    private static int lmlpMaxCompatibleDigits;
     private static int lmlpMaxAvailableDigits;
-    private static int lmlpMaxCompatibleLength;
     @Shadow
     private static int maxNameLength;
     @Shadow
@@ -116,7 +119,7 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
             int listIndex,
             WidgetListMaterialList listWidget,
             CallbackInfo ci) {
-        this.columnCount = MinimalSubMaterialListView.isActive(materialList) ? 5 : 4;
+        this.columnCount = MinimalSubMaterialListView.isActive(materialList) ? 3 : 4;
     }
 
     /**
@@ -129,25 +132,20 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         maxNameLength = StringUtils.getStringWidth(GuiBase.TXT_BOLD + StringUtils.translate("litematica.gui.label.material_list.title.item") + GuiBase.TXT_RST);
         maxCountLength1 = StringUtils.getStringWidth(GuiBase.TXT_BOLD + StringUtils.translate("litematica.gui.label.material_list.title.total") + GuiBase.TXT_RST);
         maxCountLength2 = StringUtils.getStringWidth(GuiBase.TXT_BOLD + StringUtils.translate("litematica.gui.label.material_list.title.missing") + GuiBase.TXT_RST);
-        lmlpMaxCompatibleLength = minimalView
-                ? StringUtils.getStringWidth(GuiBase.TXT_BOLD + StringUtils.translate("lmlp.gui.material_list.title.compatible") + GuiBase.TXT_RST)
-                : 0;
-        maxCountLength3 = StringUtils.getStringWidth(GuiBase.TXT_BOLD + StringUtils.translate(
-                minimalView ? "lmlp.gui.material_list.title.allocated" : "litematica.gui.label.material_list.title.available") + GuiBase.TXT_RST);
+        maxCountLength3 = StringUtils.getStringWidth(GuiBase.TXT_BOLD
+                + StringUtils.translate("litematica.gui.label.material_list.title.available")
+                + GuiBase.TXT_RST);
         lmlpMaxTotalDigits = 1;
         lmlpMaxMissingDigits = 1;
-        lmlpMaxCompatibleDigits = 1;
         lmlpMaxAvailableDigits = 1;
 
         for (MaterialListEntry entry : entries) {
             int entryMultiplier = MinimalSubMaterialListView.isMinimalEntry(entry) ? 1 : multiplier;
             int total = entry.getCountTotal() * entryMultiplier;
             int missing = MinimalSubMaterialListView.netMissing(entry, multiplier);
-            int compatible = MinimalSubMaterialListView.compatibleCount(entry);
             int available = entry.getCountAvailable();
             lmlpMaxTotalDigits = Math.max(lmlpMaxTotalDigits, Integer.toString(total).length());
             lmlpMaxMissingDigits = Math.max(lmlpMaxMissingDigits, Integer.toString(missing).length());
-            lmlpMaxCompatibleDigits = Math.max(lmlpMaxCompatibleDigits, Integer.toString(compatible).length());
             lmlpMaxAvailableDigits = Math.max(lmlpMaxAvailableDigits, Integer.toString(available).length());
         }
 
@@ -155,15 +153,13 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
             int entryMultiplier = MinimalSubMaterialListView.isMinimalEntry(entry) ? 1 : multiplier;
             int total = entry.getCountTotal() * entryMultiplier;
             int missing = MinimalSubMaterialListView.netMissing(entry, multiplier);
-            int compatible = MinimalSubMaterialListView.compatibleCount(entry);
             int available = entry.getCountAvailable();
             String name = MinimalSubMaterialListView.widestDisplayName(entry);
 
             maxNameLength = Math.max(maxNameLength, StringUtils.getStringWidth(name));
             for (class_1799 stack : MinimalSubMaterialListView.displayStacks(entry)) {
                 maxCountLength1 = Math.max(maxCountLength1, StringUtils.getStringWidth(CountFormatter.formatAligned(stack, total, lmlpMaxTotalDigits)));
-                maxCountLength2 = Math.max(maxCountLength2, StringUtils.getStringWidth(CountFormatter.formatAligned(stack, missing, lmlpMaxMissingDigits)));
-                lmlpMaxCompatibleLength = Math.max(lmlpMaxCompatibleLength, StringUtils.getStringWidth(CountFormatter.formatAligned(stack, compatible, lmlpMaxCompatibleDigits)));
+                maxCountLength2 = Math.max(maxCountLength2, StringUtils.getStringWidth(lmlp$missingText(entry, stack, missing)));
                 maxCountLength3 = Math.max(maxCountLength3, StringUtils.getStringWidth(CountFormatter.formatAligned(stack, available, lmlpMaxAvailableDigits)));
             }
         }
@@ -172,20 +168,20 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
                 maxNameLength,
                 maxCountLength1 + COUNT_COLUMN_SAFETY_PADDING,
                 maxCountLength2 + COUNT_COLUMN_SAFETY_PADDING,
-                minimalView ? lmlpMaxCompatibleLength + COUNT_COLUMN_SAFETY_PADDING : 0,
-                maxCountLength3 + COUNT_COLUMN_SAFETY_PADDING);
+                0,
+                minimalView ? 0 : maxCountLength3 + COUNT_COLUMN_SAFETY_PADDING);
     }
 
     @Overwrite
     protected int getCurrentSortColumn() {
-        if (MaterialListSortState.isCompatibleSort(this.materialList)) {
+        if (!MinimalSubMaterialListView.isActive(this.materialList)
+                && MaterialListSortState.isCompatibleSort(this.materialList)) {
             return 3;
         }
 
         int column = this.materialList.getSortCriteria().ordinal();
         return MinimalSubMaterialListView.isActive(this.materialList)
-                && column == MaterialListBase.SortCriteria.COUNT_AVAILABLE.ordinal()
-                ? 4
+                ? Math.min(column, 2)
                 : column;
     }
 
@@ -262,9 +258,8 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
             case 0 -> xItem;
             case 1 -> xTotal;
             case 2 -> xMissing;
-            case 3 -> minimalView ? xCompatible : xAvailable;
-            case 4 -> minimalView ? xAvailable : xEnd;
-            case 5 -> xEnd;
+            case 3 -> minimalView ? xEnd : xAvailable;
+            case 4, 5 -> xEnd;
             default -> xItem;
         };
     }
@@ -299,20 +294,12 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
                     this.materialList.setSortCriteria(MaterialListBase.SortCriteria.COUNT_MISSING);
                 }
                 case 3 -> {
-                    if (minimalView) {
-                        MaterialListSortState.setCompatibleSort(this.materialList, true);
-                        this.materialList.setSortCriteria(MaterialListBase.SortCriteria.COUNT_AVAILABLE);
-                    } else {
+                    if (!minimalView) {
                         MaterialListSortState.setCompatibleSort(this.materialList, false);
                         this.materialList.setSortCriteria(MaterialListBase.SortCriteria.COUNT_AVAILABLE);
-                    }
-                }
-                case 4 -> {
-                    if (!minimalView) {
+                    } else {
                         return false;
                     }
-                    MaterialListSortState.setCompatibleSort(this.materialList, false);
-                    this.materialList.setSortCriteria(MaterialListBase.SortCriteria.COUNT_AVAILABLE);
                 }
                 default -> {
                     return false;
@@ -426,19 +413,8 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
                 if (MaterialListColumnLayout.isMissingVisible()) {
                     this.drawString(drawContext, xMissing, yText, -1, this.header3);
                 }
-                if (minimalSubMaterialView && MaterialListColumnLayout.isCompatibleVisible()) {
-                    this.drawString(
-                            drawContext,
-                            xCompatible,
-                            yText,
-                            -1,
-                            GuiBase.TXT_BOLD + StringUtils.translate("lmlp.gui.material_list.title.compatible") + GuiBase.TXT_RST);
-                }
                 if (MaterialListColumnLayout.isAvailableVisible()) {
-                    String availableHeader = minimalSubMaterialView
-                            ? GuiBase.TXT_BOLD + StringUtils.translate("lmlp.gui.material_list.title.allocated") + GuiBase.TXT_RST
-                            : this.header4;
-                    this.drawString(drawContext, xAvailable, yText, -1, availableHeader);
+                    this.drawString(drawContext, xAvailable, yText, -1, this.header4);
                 }
                 this.renderColumnHeader(drawContext, mouseX, mouseY, Icons.ARROW_DOWN, Icons.ARROW_UP);
             }
@@ -455,7 +431,6 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         int total = MinimalSubMaterialListView.total(this.entry, this.materialList);
         int rawMissing = MinimalSubMaterialListView.missing(this.entry, this.materialList);
         int missing = MinimalSubMaterialListView.netMissing(this.entry, this.materialList);
-        int compatible = MinimalSubMaterialListView.compatibleCount(this.entry);
         int available = this.entry.getCountAvailable();
 
         int iconX = xItem;
@@ -469,10 +444,7 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
             this.drawString(drawContext, xTotal, yText, -1, CountFormatter.formatAligned(stack, total, lmlpMaxTotalDigits));
         }
         if (MaterialListColumnLayout.isMissingVisible()) {
-            this.drawString(drawContext, xMissing, yText, -1, netMissingColor(missing) + CountFormatter.formatAligned(stack, missing, lmlpMaxMissingDigits));
-        }
-        if (minimalSubMaterialView && MaterialListColumnLayout.isCompatibleVisible()) {
-            this.drawString(drawContext, xCompatible, yText, -1, CountFormatter.formatAligned(stack, compatible, lmlpMaxCompatibleDigits));
+            this.drawString(drawContext, xMissing, yText, -1, netMissingColor(missing) + lmlp$missingText(this.entry, stack, missing));
         }
         if (MaterialListColumnLayout.isAvailableVisible()) {
             this.drawString(drawContext, xAvailable, yText, -1, availableColor(available, rawMissing) + CountFormatter.formatAligned(stack, available, lmlpMaxAvailableDigits));
@@ -537,7 +509,9 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
             return;
         }
 
-        if (MinimalSubMaterialListView.isActive(this.materialList) && this.minimalChoiceTooltipTarget(mouseX, mouseY) != null) {
+        if (MinimalSubMaterialListView.isActive(this.materialList)
+                && (this.lmlp$isAllocationTooltipHovered(mouseX, mouseY)
+                || this.minimalChoiceTooltipTarget(mouseX, mouseY) != null)) {
             return;
         }
 
@@ -651,6 +625,9 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         if (this.entry == null || !MinimalSubMaterialListView.isActive(this.materialList)) {
             return false;
         }
+        if (this.lmlp$renderAllocationTooltip(drawContext, mouseX, mouseY)) {
+            return true;
+        }
         ChoiceTooltipTarget target = this.minimalChoiceTooltipTarget(mouseX, mouseY);
         if (target == null) {
             return false;
@@ -662,6 +639,98 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         }
 
         return this.lmlp$renderChoiceGrid(drawContext, mouseX, mouseY, target.icon(), target.name(), candidates);
+    }
+
+    private boolean lmlp$isAllocationTooltipHovered(int mouseX, int mouseY) {
+        if (!MinimalSubMaterialListView.hasAllocationTooltip(this.entry)
+                || !MaterialListColumnLayout.isMissingVisible()) {
+            return false;
+        }
+
+        class_1799 stack = MinimalSubMaterialListView.displayStack(this.entry);
+        int missing = MinimalSubMaterialListView.netMissing(this.entry, this.materialList);
+        String text = lmlp$missingText(this.entry, stack, missing);
+        int x = this.getColumnPosX(2);
+        return mouseX >= x
+                && mouseX < x + this.getStringWidth(text)
+                && mouseY >= this.y + 2
+                && mouseY < this.y + Math.min(this.height, 22);
+    }
+
+    private static String lmlp$missingText(MaterialListEntry entry, class_1799 stack, int missing) {
+        String text = CountFormatter.formatAligned(stack, missing, lmlpMaxMissingDigits);
+        return MinimalSubMaterialListView.hasAllocationTooltip(entry) ? text + ALLOCATION_DETAIL_MARKER : text;
+    }
+
+    private boolean lmlp$renderAllocationTooltip(class_332 drawContext, int mouseX, int mouseY) {
+        if (!this.lmlp$isAllocationTooltipHovered(mouseX, mouseY)) {
+            return false;
+        }
+
+        MinimalSubMaterialListView.AllocationTooltip data = MinimalSubMaterialListView.allocationTooltip(this.entry);
+        if (data == null) {
+            return false;
+        }
+
+        List<AllocationTooltipLine> lines = new java.util.ArrayList<>();
+        class_1799 stack = MinimalSubMaterialListView.displayStack(this.entry);
+        lines.add(new AllocationTooltipLine(StringUtils.translate("lmlp.gui.material_list.tooltip.total"), CountFormatter.format(stack, data.total()), 0));
+        lines.add(new AllocationTooltipLine(StringUtils.translate("lmlp.gui.material_list.tooltip.credited"), CountFormatter.format(stack, data.credited()), 0));
+        lines.add(new AllocationTooltipLine(StringUtils.translate(data.choiceGroup()
+                ? "lmlp.gui.material_list.tooltip.inventory_candidates"
+                : "lmlp.gui.material_list.tooltip.inventory_owned"), CountFormatter.format(stack, data.inventory()), 1));
+        if (data.choiceGroup()) {
+            for (MinimalSubMaterialListView.AllocatedCandidate candidate : data.allocatedCandidates()) {
+                lines.add(new AllocationTooltipLine(candidate.name(), CountFormatter.format(stack, candidate.count()), 2));
+            }
+        }
+        lines.add(new AllocationTooltipLine(StringUtils.translate("lmlp.gui.material_list.tooltip.prepared"), CountFormatter.format(stack, data.prepared()), 1));
+        lines.add(new AllocationTooltipLine(StringUtils.translate("lmlp.gui.material_list.tooltip.missing"), CountFormatter.format(stack, data.missing()), 0));
+
+        int labelWidth = 0;
+        int valueWidth = 0;
+        for (AllocationTooltipLine line : lines) {
+            int indent = line.depth() == 0 ? 0 : line.depth() == 1 ? ALLOCATION_TOOLTIP_INDENT : ALLOCATION_TOOLTIP_DEEP_INDENT;
+            labelWidth = Math.max(labelWidth, indent + this.getStringWidth(line.label()));
+            valueWidth = Math.max(valueWidth, this.getStringWidth(line.value()));
+        }
+
+        int maxPanelWidth = Math.max(120, this.mc.method_22683().method_4486() - HOVER_TOOLTIP_MARGIN * 2);
+        int maxContentWidth = Math.max(80, maxPanelWidth - HOVER_TOOLTIP_PADDING * 2);
+        int titleWidth = HOVER_TOOLTIP_ICON_SIZE + HOVER_TOOLTIP_ICON_GAP + this.getStringWidth(data.name());
+        int contentWidth = Math.min(maxContentWidth, Math.max(
+                labelWidth + ALLOCATION_TOOLTIP_VALUE_GAP + valueWidth,
+                titleWidth));
+        int labelRegionWidth = Math.max(20, contentWidth - ALLOCATION_TOOLTIP_VALUE_GAP - valueWidth);
+        int panelWidth = contentWidth + HOVER_TOOLTIP_PADDING * 2;
+        int headerHeight = Math.max(HOVER_TOOLTIP_ICON_SIZE, HOVER_TOOLTIP_LINE_HEIGHT);
+        int panelHeight = HOVER_TOOLTIP_PADDING * 2 + headerHeight
+                + HOVER_TOOLTIP_HEADER_GAP + lines.size() * HOVER_TOOLTIP_LINE_HEIGHT;
+        PanelBounds bounds = this.hoverTooltipBounds(mouseX, mouseY, panelWidth, panelHeight);
+        int contentX = bounds.x() + HOVER_TOOLTIP_PADDING;
+        int valueRight = contentX + contentWidth;
+        int headerY = bounds.y() + HOVER_TOOLTIP_PADDING + 4;
+        int y = headerY + headerHeight + HOVER_TOOLTIP_HEADER_GAP;
+
+        drawContext.method_51448().pushMatrix();
+        lmlp$drawTooltipBox(drawContext, bounds.x(), bounds.y(), panelWidth, panelHeight, 0xF0000000, 0xFF999999);
+        String title = this.truncateToWidth(data.name(), Math.max(20, contentWidth - HOVER_TOOLTIP_ICON_SIZE - HOVER_TOOLTIP_ICON_GAP));
+        drawContext.method_25294(contentX, headerY - 4, contentX + HOVER_TOOLTIP_ICON_SIZE,
+                headerY - 4 + HOVER_TOOLTIP_ICON_SIZE, 0x20FFFFFF);
+        drawContext.method_51427(stack, contentX, headerY - 4);
+        this.drawString(drawContext, contentX + HOVER_TOOLTIP_ICON_SIZE + HOVER_TOOLTIP_ICON_GAP,
+                headerY, 0xFFFFFFFF, GuiBase.TXT_BOLD + title + GuiBase.TXT_RST);
+        for (AllocationTooltipLine line : lines) {
+            int indent = line.depth() == 0 ? 0 : line.depth() == 1 ? ALLOCATION_TOOLTIP_INDENT : ALLOCATION_TOOLTIP_DEEP_INDENT;
+            String label = this.truncateToWidth(line.label(), Math.max(20, labelRegionWidth - indent));
+            String value = line.value();
+            int color = line.depth() == 0 ? 0xFFFFFFFF : 0xFFB0B0B0;
+            this.drawString(drawContext, contentX + indent, y, color, label);
+            this.drawString(drawContext, valueRight - this.getStringWidth(value), y, color, value);
+            y += HOVER_TOOLTIP_LINE_HEIGHT;
+        }
+        drawContext.method_51448().popMatrix();
+        return true;
     }
 
     // Shared rich choice-group grid (icon + name, up to four columns) used by both
@@ -1249,5 +1318,8 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
     }
 
     private record ChoiceTooltipTarget(class_1799 icon, String name, List<MinimalSubMaterialListView.TooltipCandidate> candidates) {
+    }
+
+    private record AllocationTooltipLine(String label, String value, int depth) {
     }
 }

@@ -13,7 +13,6 @@ import io.github.huanmeng06.lmlp.preference.PreferredSchematicReplacement.Replac
 import io.github.huanmeng06.lmlp.preference.PreferredSchematicPlacementApplication;
 import net.minecraft.class_437;
 
-import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -90,10 +89,6 @@ public class GuiPreferredSchematicSave extends GuiSchematicSave {
                 : name + LitematicaSchematic.FILE_EXTENSION;
         Path destination = directory.resolve(fileName);
         boolean destinationExists = Files.exists(destination);
-        if (destinationExists && this.isSourceFile(destination)) {
-            this.addMessage(MessageType.ERROR, "lmlp.error.preferred_replacement.source_file", fileName);
-            return;
-        }
         boolean overwrite = destinationExists && GuiBase.isShiftDown();
         if (destinationExists && !overwrite) {
             this.addMessage(MessageType.ERROR, "lmlp.error.preferred_replacement.file_exists", fileName);
@@ -115,18 +110,4 @@ public class GuiPreferredSchematicSave extends GuiSchematicSave {
         }
     }
 
-    private boolean isSourceFile(Path destination) {
-        if (this.sourceFile == null) {
-            return false;
-        }
-        try {
-            if (Files.exists(this.sourceFile) && Files.exists(destination)) {
-                return Files.isSameFile(this.sourceFile, destination);
-            }
-        } catch (IOException ignored) {
-            // Fall back to normalized absolute paths below.
-        }
-        return this.sourceFile.toAbsolutePath().normalize()
-                .equals(destination.toAbsolutePath().normalize());
-    }
 }

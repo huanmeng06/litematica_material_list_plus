@@ -34,6 +34,7 @@ public final class MaterialListColumnLayout {
     private static boolean missingVisible = true;
     private static boolean compatibleEnabled;
     private static boolean compatibleVisible;
+    private static boolean availableEnabled = true;
     private static boolean availableVisible = true;
     private static int nameClamp;
 
@@ -51,6 +52,7 @@ public final class MaterialListColumnLayout {
     public static void updateRequiredEntryWidth(int requiredNameWidth, int requiredTotalWidth, int requiredMissingWidth,
             int requiredCompatibleWidth, int requiredAvailableWidth, boolean animateShrink) {
         compatibleEnabled = requiredCompatibleWidth > 0;
+        availableEnabled = requiredAvailableWidth > 0;
         if (!initialized) {
             setImmediate(requiredNameWidth, requiredTotalWidth, requiredMissingWidth,
                     Math.max(1, requiredCompatibleWidth), requiredAvailableWidth);
@@ -173,7 +175,7 @@ public final class MaterialListColumnLayout {
             totalVisible = true;
             missingVisible = true;
             compatibleVisible = compatibleEnabled;
-            availableVisible = true;
+            availableVisible = availableEnabled;
             nameClamp = 0;
             return;
         }
@@ -185,7 +187,7 @@ public final class MaterialListColumnLayout {
         missingVisible = true;
         totalVisible = true;
         compatibleVisible = compatibleEnabled;
-        availableVisible = true;
+        availableVisible = availableEnabled;
         if (rowWidth(nameWidth) <= availableEntryWidth) {
             nameClamp = 0;
             return;
