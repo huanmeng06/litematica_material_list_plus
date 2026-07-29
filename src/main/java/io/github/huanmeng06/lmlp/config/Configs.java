@@ -219,6 +219,20 @@ public class Configs implements IConfigHandler {
                 "lmlp.config.name.preferred_glass_material"
         );
 
+        public static final ConfigBoolean PREFERRED_WOOL_ENABLED = new ConfigBoolean(
+                "preferredWoolEnabled",
+                false,
+                "lmlp.config.comment.preferred_wool_enabled",
+                "lmlp.config.name.preferred_wool_enabled"
+        );
+
+        public static final ConfigOptionList PREFERRED_WOOL_MATERIAL = new ConfigOptionList(
+                "preferredWoolMaterial",
+                WoolMaterial.WHITE,
+                "lmlp.config.comment.preferred_wool_material",
+                "lmlp.config.name.preferred_wool_material"
+        );
+
         public static final ConfigBoolean PREFERRED_CARPET_ENABLED = new ConfigBoolean(
                 "preferredCarpetEnabled",
                 false,
@@ -261,6 +275,76 @@ public class Configs implements IConfigHandler {
                 "lmlp.config.name.preferred_glazed_terracotta_material"
         );
 
+        public static final ConfigBoolean PREFERRED_CONCRETE_ENABLED = new ConfigBoolean(
+                "preferredConcreteEnabled",
+                false,
+                "lmlp.config.comment.preferred_concrete_enabled",
+                "lmlp.config.name.preferred_concrete_enabled"
+        );
+
+        public static final ConfigOptionList PREFERRED_CONCRETE_MATERIAL = new ConfigOptionList(
+                "preferredConcreteMaterial",
+                ConcreteMaterial.WHITE,
+                "lmlp.config.comment.preferred_concrete_material",
+                "lmlp.config.name.preferred_concrete_material"
+        );
+
+        public static final ConfigBoolean PREFERRED_CONCRETE_POWDER_ENABLED = new ConfigBoolean(
+                "preferredConcretePowderEnabled",
+                false,
+                "lmlp.config.comment.preferred_concrete_powder_enabled",
+                "lmlp.config.name.preferred_concrete_powder_enabled"
+        );
+
+        public static final ConfigOptionList PREFERRED_CONCRETE_POWDER_MATERIAL = new ConfigOptionList(
+                "preferredConcretePowderMaterial",
+                ConcretePowderMaterial.WHITE,
+                "lmlp.config.comment.preferred_concrete_powder_material",
+                "lmlp.config.name.preferred_concrete_powder_material"
+        );
+
+        public static final ConfigBoolean PREFERRED_BED_ENABLED = new ConfigBoolean(
+                "preferredBedEnabled",
+                false,
+                "lmlp.config.comment.preferred_bed_enabled",
+                "lmlp.config.name.preferred_bed_enabled"
+        );
+
+        public static final ConfigOptionList PREFERRED_BED_MATERIAL = new ConfigOptionList(
+                "preferredBedMaterial",
+                BedMaterial.WHITE,
+                "lmlp.config.comment.preferred_bed_material",
+                "lmlp.config.name.preferred_bed_material"
+        );
+
+        public static final ConfigBoolean PREFERRED_CANDLE_ENABLED = new ConfigBoolean(
+                "preferredCandleEnabled",
+                false,
+                "lmlp.config.comment.preferred_candle_enabled",
+                "lmlp.config.name.preferred_candle_enabled"
+        );
+
+        public static final ConfigOptionList PREFERRED_CANDLE_MATERIAL = new ConfigOptionList(
+                "preferredCandleMaterial",
+                CandleMaterial.PLAIN,
+                "lmlp.config.comment.preferred_candle_material",
+                "lmlp.config.name.preferred_candle_material"
+        );
+
+        public static final ConfigBoolean PREFERRED_SHULKER_BOX_ENABLED = new ConfigBoolean(
+                "preferredShulkerBoxEnabled",
+                false,
+                "lmlp.config.comment.preferred_shulker_box_enabled",
+                "lmlp.config.name.preferred_shulker_box_enabled"
+        );
+
+        public static final ConfigOptionList PREFERRED_SHULKER_BOX_MATERIAL = new ConfigOptionList(
+                "preferredShulkerBoxMaterial",
+                ShulkerBoxMaterial.PLAIN,
+                "lmlp.config.comment.preferred_shulker_box_material",
+                "lmlp.config.name.preferred_shulker_box_material"
+        );
+
         public static final List<IConfigBase> OPTIONS = ImmutableList.of(
                 Generic.RECIPE_STOP_ITEMS,
                 Generic.KEEP_AS_LEAF_ITEMS
@@ -273,12 +357,24 @@ public class Configs implements IConfigHandler {
                 PREFERRED_STONE_FAMILY,
                 PREFERRED_GLASS_ENABLED,
                 PREFERRED_GLASS_MATERIAL,
+                PREFERRED_WOOL_ENABLED,
+                PREFERRED_WOOL_MATERIAL,
                 PREFERRED_CARPET_ENABLED,
                 PREFERRED_CARPET_MATERIAL,
                 PREFERRED_TERRACOTTA_ENABLED,
                 PREFERRED_TERRACOTTA_MATERIAL,
                 PREFERRED_GLAZED_TERRACOTTA_ENABLED,
-                PREFERRED_GLAZED_TERRACOTTA_MATERIAL
+                PREFERRED_GLAZED_TERRACOTTA_MATERIAL,
+                PREFERRED_CONCRETE_ENABLED,
+                PREFERRED_CONCRETE_MATERIAL,
+                PREFERRED_CONCRETE_POWDER_ENABLED,
+                PREFERRED_CONCRETE_POWDER_MATERIAL,
+                PREFERRED_BED_ENABLED,
+                PREFERRED_BED_MATERIAL,
+                PREFERRED_CANDLE_ENABLED,
+                PREFERRED_CANDLE_MATERIAL,
+                PREFERRED_SHULKER_BOX_ENABLED,
+                PREFERRED_SHULKER_BOX_MATERIAL
         );
 
         public static final List<IConfigBase> PERSISTED_OPTIONS = ImmutableList.of(
@@ -288,12 +384,24 @@ public class Configs implements IConfigHandler {
                 PREFERRED_STONE_FAMILY,
                 PREFERRED_GLASS_ENABLED,
                 PREFERRED_GLASS_MATERIAL,
+                PREFERRED_WOOL_ENABLED,
+                PREFERRED_WOOL_MATERIAL,
                 PREFERRED_CARPET_ENABLED,
                 PREFERRED_CARPET_MATERIAL,
                 PREFERRED_TERRACOTTA_ENABLED,
                 PREFERRED_TERRACOTTA_MATERIAL,
                 PREFERRED_GLAZED_TERRACOTTA_ENABLED,
                 PREFERRED_GLAZED_TERRACOTTA_MATERIAL,
+                PREFERRED_CONCRETE_ENABLED,
+                PREFERRED_CONCRETE_MATERIAL,
+                PREFERRED_CONCRETE_POWDER_ENABLED,
+                PREFERRED_CONCRETE_POWDER_MATERIAL,
+                PREFERRED_BED_ENABLED,
+                PREFERRED_BED_MATERIAL,
+                PREFERRED_CANDLE_ENABLED,
+                PREFERRED_CANDLE_MATERIAL,
+                PREFERRED_SHULKER_BOX_ENABLED,
+                PREFERRED_SHULKER_BOX_MATERIAL,
                 Generic.RECIPE_STOP_ITEMS,
                 Generic.KEEP_AS_LEAF_ITEMS
         );
