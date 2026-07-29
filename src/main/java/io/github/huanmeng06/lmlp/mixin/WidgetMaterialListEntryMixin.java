@@ -708,15 +708,17 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         lines.add(new AllocationTooltipLine(StringUtils.translate(data.choiceGroup()
                 ? "lmlp.gui.material_list.tooltip.inventory_candidates"
                 : "lmlp.gui.material_list.tooltip.inventory_owned"), CountFormatter.format(stack, data.inventory()), 1));
-        if (data.choiceGroup()) {
+        if (Configs.Generic.SHOW_ALLOCATION_DETAILS.getBooleanValue() && data.choiceGroup()) {
             for (MinimalSubMaterialListView.AllocatedCandidate candidate : data.allocatedCandidates()) {
                 lines.add(new AllocationTooltipLine(candidate.name(), CountFormatter.format(stack, candidate.count()), 2));
             }
         }
         lines.add(new AllocationTooltipLine(StringUtils.translate("lmlp.gui.material_list.tooltip.intermediate"), CountFormatter.format(stack, data.intermediate()), 1));
         lines.add(new AllocationTooltipLine(StringUtils.translate("lmlp.gui.material_list.tooltip.prepared"), CountFormatter.format(stack, data.prepared()), 1));
-        for (MinimalSubMaterialListView.AllocatedCandidate source : data.preparedSources()) {
-            lines.add(new AllocationTooltipLine(source.name(), CountFormatter.format(stack, source.count()), 2));
+        if (Configs.Generic.SHOW_ALLOCATION_DETAILS.getBooleanValue()) {
+            for (MinimalSubMaterialListView.AllocatedCandidate source : data.preparedSources()) {
+                lines.add(new AllocationTooltipLine(source.name(), CountFormatter.format(stack, source.count()), 2));
+            }
         }
         lines.add(new AllocationTooltipLine(StringUtils.translate("lmlp.gui.material_list.tooltip.missing"), CountFormatter.format(stack, data.missing()), 0));
 
