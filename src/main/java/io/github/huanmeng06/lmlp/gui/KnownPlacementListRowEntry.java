@@ -96,7 +96,7 @@ public class KnownPlacementListRowEntry extends WidgetListEntryBase<KnownPlaceme
                 "litematica.gui.button.schematic_placements.placement_enabled",
                 placement.isEnabled());
         this.addButton(button, (clickedButton, mouseButton) -> {
-            KnownPlacementRows.togglePlacementEnabled(placement);
+            placement.toggleEnabled();
             ChunkMissingMaterialListCache.rememberPlacementContext(placement, "known_placement.toggle_enabled");
             this.parent.refreshEntries();
         });
