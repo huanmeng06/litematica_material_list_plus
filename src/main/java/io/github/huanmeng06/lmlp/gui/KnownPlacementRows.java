@@ -5,8 +5,11 @@ import fi.dy.masa.malilib.gui.button.ButtonGeneric;
 import fi.dy.masa.malilib.gui.button.ButtonOnOff;
 import fi.dy.masa.malilib.gui.widgets.WidgetListEntrySortable;
 import fi.dy.masa.malilib.gui.widgets.WidgetBase;
+import fi.dy.masa.litematica.data.DataManager;
 import fi.dy.masa.litematica.gui.Icons;
 import fi.dy.masa.litematica.materials.MaterialListBase;
+import fi.dy.masa.litematica.schematic.placement.SchematicPlacement;
+import fi.dy.masa.litematica.schematic.placement.SchematicPlacementManager;
 import fi.dy.masa.malilib.render.RenderUtils;
 import fi.dy.masa.malilib.util.StringUtils;
 import io.github.huanmeng06.lmlp.LitematicaMaterialListPlus;
@@ -68,6 +71,24 @@ public final class KnownPlacementRows {
     private static final class_2960 DIM_ICON = class_2960.method_60655(LitematicaMaterialListPlus.MOD_ID, "textures/gui/dimensions/dim.png");
     private static final Map<String, Boolean> COLLAPSED_GROUPS = new LinkedHashMap<>();
     private static final Map<String, SortState> SORT_STATES = new LinkedHashMap<>();
+
+    public static void togglePlacementEnabled(SchematicPlacement placement) {
+        if (placement == null) {
+            return;
+        }
+
+        placement.toggleEnabled();
+        if (placement.isEnabled()) {
+            SchematicPlacementManager manager = DataManager.getSchematicPlacementManager();
+            if (manager != null) {
+                // Re-enabling the first placement after its overlapping counterpart was
+                // disabled can leave Litematica's schematic-world chunks unloaded.
+                manager.markChunksForRebuild(placement);
+                manager.setVisibleSubChunksNeedsUpdate();
+            }
+        }
+    }
+
     private static final ExpandAnimationTracker GROUP_ANIMATIONS = new ExpandAnimationTracker();
 
     private KnownPlacementRows() {
