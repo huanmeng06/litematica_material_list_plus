@@ -645,7 +645,7 @@ public final class KnownPlacementRows {
     public static boolean shouldShowOfflineMissingButton(KnownPlacementContext context) {
         String currentDimension = currentDimensionId();
         if (context == null
-                || !context.offlineCache()
+                || ChunkMissingMaterialListCache.resolveReadMode(context) != ReadMode.OFFLINE_CACHE
                 || currentDimension == null
                 || !normalizedDimension(context.dimension()).equals(normalizedDimension(currentDimension))) {
             return false;
