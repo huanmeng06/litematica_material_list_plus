@@ -40,7 +40,7 @@ public final class PlacementOriginMarker {
     private static final float BEAM_INNER_RADIUS = 0.2F;
     private static final float BEAM_OUTER_RADIUS = 0.25F;
     private static final SubmitNodeStorage BEAM_COMMANDS = new SubmitNodeStorage();
-    private static final float LABEL_SCALE_BASE = 0.0265F;
+    private static final float LABEL_SCALE_BASE = 0.0266F;
     private static final int TARGET_HALF_SIZE = 10;
     static final int LABEL_ELEVATE_BY = -28;
     static final int LABEL_PADDING_X = 2;
@@ -282,7 +282,7 @@ public final class PlacementOriginMarker {
         double baseX = pos.getX() + 0.5D - cameraPos.x;
         double baseY = pos.getY() + 0.5D - cameraPos.y;
         double baseZ = pos.getZ() + 0.5D - cameraPos.z;
-        double maxDistance = client.options.renderDistance().get() * 16.0D;
+        double maxDistance = client.options.renderDistance().get();
         double adjustedDistance = distance;
         if (distance > maxDistance) {
             baseX = baseX / distance * maxDistance;
@@ -294,7 +294,7 @@ public final class PlacementOriginMarker {
         PoseStack matrices = new PoseStack();
         matrices.translate(baseX, baseY, baseZ);
         matrices.mulPose(new Matrix4f().rotation(camera.rotation()));
-        float scale = (float) ((adjustedDistance > 8.0D ? adjustedDistance - 8.0D : 0.0D) * 0.2D + 1.0D) * LABEL_SCALE_BASE;
+        float scale = (float) (adjustedDistance * 0.1F + 1.0F) * LABEL_SCALE_BASE;
         matrices.scale(scale, -scale, -scale);
 
         float alpha = fade(distance);

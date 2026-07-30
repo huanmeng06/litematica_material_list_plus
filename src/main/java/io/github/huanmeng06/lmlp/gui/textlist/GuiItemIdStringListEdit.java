@@ -31,6 +31,7 @@ import java.util.Set;
 import java.util.function.Consumer;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
 
 public class GuiItemIdStringListEdit extends GuiListBase<String, WidgetItemIdStringListEditEntry, WidgetListItemIdStringListEdit> {
@@ -66,6 +67,7 @@ public class GuiItemIdStringListEdit extends GuiListBase<String, WidgetItemIdStr
     private GuiTextFieldGeneric pickerSearchField;
     private ItemStack hoveredStack = ItemStack.EMPTY;
     private String hoveredText = "";
+    private Component dragTooltip;
     private List<String> titleInfoTooltip = List.of();
     private String pickerQuery = "";
     private int pickerSearchFieldWidth;
@@ -149,6 +151,10 @@ public class GuiItemIdStringListEdit extends GuiListBase<String, WidgetItemIdStr
         this.hoveredText = text == null ? "" : text;
     }
 
+    void setDragTooltip(Component tooltip) {
+        this.dragTooltip = tooltip;
+    }
+
     public void openItemPicker(WidgetItemIdStringListEditEntry target) {
         if (this.allCandidates.isEmpty()) {
             this.reloadCandidates();
@@ -209,6 +215,7 @@ public class GuiItemIdStringListEdit extends GuiListBase<String, WidgetItemIdStr
         GuiContext context = GuiContext.fromGuiGraphics(drawContext);
         this.hoveredStack = ItemStack.EMPTY;
         this.hoveredText = "";
+        this.dragTooltip = null;
         this.titleInfoTooltip = List.of();
 
         if (this.pickerOpen) {
@@ -229,7 +236,9 @@ public class GuiItemIdStringListEdit extends GuiListBase<String, WidgetItemIdStr
     }
 
     private void renderActiveTooltip(GuiContext context, int mouseX, int mouseY) {
-        if (!this.hoveredStack.isEmpty()) {
+        if (this.dragTooltip != null) {
+            context.getGuiGraphics().setComponentTooltipForNextFrame(this.font, List.of(this.dragTooltip), mouseX, mouseY);
+        } else if (!this.hoveredStack.isEmpty()) {
             ItemTooltipRenderer.render(context, this.font, this.hoveredStack, mouseX, mouseY);
         } else if (!this.hoveredText.isEmpty()) {
             RenderUtils.drawHoverText(context, mouseX, mouseY, List.of(this.hoveredText));

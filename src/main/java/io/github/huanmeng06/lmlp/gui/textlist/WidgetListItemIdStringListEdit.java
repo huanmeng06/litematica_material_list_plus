@@ -11,7 +11,6 @@ import fi.dy.masa.malilib.render.GuiContext;
 import java.util.Collection;
 import java.util.List;
 import net.minecraft.ChatFormatting;
-import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 
 public class WidgetListItemIdStringListEdit extends WidgetListConfigOptionsBase<String, WidgetItemIdStringListEditEntry> {
@@ -180,7 +179,7 @@ public class WidgetListItemIdStringListEdit extends WidgetListConfigOptionsBase<
         String shown = name.isEmpty() ? StringUtils.translate("lmlp.gui.label.text_list.empty_entry") : name;
         String prefixed = StringUtils.translate("lmlp.gui.label.text_list.dragging", shown);
         Component text = Component.literal(prefixed).withStyle(ChatFormatting.GOLD);
-        context.setComponentTooltipForNextFrame(Minecraft.getInstance().font, List.of(text), mouseX, mouseY);
+        this.editor.setDragTooltip(text);
     }
 
     List<String> getEntries() {
