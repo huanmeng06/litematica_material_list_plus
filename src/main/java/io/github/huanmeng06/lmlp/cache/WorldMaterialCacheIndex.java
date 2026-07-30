@@ -5,7 +5,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import fi.dy.masa.litematica.materials.MaterialListEntry;
 import fi.dy.masa.litematica.util.BlockInfoListType;
-import fi.dy.masa.malilib.util.JsonUtils;
+import fi.dy.masa.malilib.util.data.json.JsonUtils;
 import io.github.huanmeng06.lmlp.LitematicaMaterialListPlus;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.Minecraft;

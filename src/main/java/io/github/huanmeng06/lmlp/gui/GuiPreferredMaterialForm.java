@@ -692,7 +692,7 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
         if (!this.closingConfirmed) {
             this.restoreInitialPreferences();
         }
-        this.minecraft.setScreen(this.materialListParent);
+        this.minecraft.setScreenAndShow(this.materialListParent);
     }
 
     private void confirm() {
@@ -701,7 +701,7 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
 
         if (this.schematic == null || !PreferenceSnapshot.current().anyEnabled()) {
             this.closingConfirmed = true;
-            this.minecraft.setScreen(this.materialListParent);
+            this.minecraft.setScreenAndShow(this.materialListParent);
             return;
         }
 
@@ -728,7 +728,7 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
             this.restoreInitialPreferences();
         }
         this.closingConfirmed = true;
-        this.minecraft.setScreen(this.materialListParent);
+        this.minecraft.setScreenAndShow(this.materialListParent);
     }
 
     private void restoreInitialPreferences() {

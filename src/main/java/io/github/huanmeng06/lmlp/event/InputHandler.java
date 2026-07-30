@@ -4,6 +4,7 @@ import fi.dy.masa.malilib.hotkeys.IKeybindManager;
 import fi.dy.masa.malilib.hotkeys.IKeybindProvider;
 import fi.dy.masa.malilib.hotkeys.IKeyboardInputHandler;
 import fi.dy.masa.malilib.hotkeys.KeybindMulti;
+import fi.dy.masa.malilib.util.GuiUtils;
 import io.github.huanmeng06.lmlp.LitematicaMaterialListPlus;
 import io.github.huanmeng06.lmlp.config.Hotkeys;
 import java.util.List;
@@ -65,7 +66,7 @@ public class InputHandler implements IKeybindProvider, IKeyboardInputHandler {
             return false;
         }
 
-        boolean inGame = mc.level != null && mc.player != null && mc.screen == null;
+        boolean inGame = mc.level != null && mc.player != null && GuiUtils.getCurrentScreen() == null;
         if (state) {
             if (inGame) {
                 this.comboFirstKeyHeld = true;
@@ -79,7 +80,7 @@ public class InputHandler implements IKeybindProvider, IKeyboardInputHandler {
             // Any screen open at release means the combo (or something else)
             // already took over; only then skip the deferred vanilla action.
             if (inGame) {
-                mc.setScreen(new AdvancementsScreen(mc.player.connection.getAdvancements()));
+                mc.setScreenAndShow(new AdvancementsScreen(mc.player.connection.getAdvancements()));
             }
         }
         return false;

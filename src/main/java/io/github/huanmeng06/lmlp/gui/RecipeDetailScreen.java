@@ -175,7 +175,7 @@ public class RecipeDetailScreen extends Screen {
     @Override
     public void onClose() {
         MaterialListOpener.forgetHandledScreenOverlay(this);
-        this.minecraft.setScreen(this.parent);
+        this.minecraft.setScreenAndShow(this.parent);
     }
 
     @Override
@@ -200,7 +200,7 @@ public class RecipeDetailScreen extends Screen {
         int keyCode = event.key();
         if (MaterialListHotkeyMatcher.matches(keyCode) && this.transferContainerScreen != null) {
             MaterialListOpener.rememberHandledScreenOverlay(this);
-            this.minecraft.setScreen(this.transferContainerScreen);
+            this.minecraft.setScreenAndShow(this.transferContainerScreen);
             return true;
         }
 
@@ -692,7 +692,7 @@ public class RecipeDetailScreen extends Screen {
             if (entry.contains(mouseX, mouseY) && entry.state().enabled()) {
                 if (this.transferBridge.transfer(entry.summary(), this.transferContainerScreen,
                         GuiBase.isShiftDown())) {
-                    this.minecraft.setScreen(this.transferContainerScreen);
+                    this.minecraft.setScreenAndShow(this.transferContainerScreen);
                 }
                 return true;
             }

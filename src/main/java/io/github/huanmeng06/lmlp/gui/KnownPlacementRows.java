@@ -29,6 +29,7 @@ import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.phys.Vec3;
 
 public final class KnownPlacementRows {
     public static final int ROW_HEIGHT = 24;
@@ -666,7 +667,7 @@ public final class KnownPlacementRows {
         // recorded coordinate, small enough to filter out "same dimension, but
         // nowhere near the site" false triggers.
         double range = Configs.Generic.MISSING_PLACEMENT_BUTTON_RANGE.getIntegerValue();
-        return player.distanceToSqr(origin.getCenter()) <= range * range;
+        return player.distanceToSqr(Vec3.atCenterOf(origin)) <= range * range;
     }
 
     private static int[] headerColumnPositions(WidgetBase widget, KnownPlacementRow row) {

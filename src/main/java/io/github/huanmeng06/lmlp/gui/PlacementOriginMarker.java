@@ -1,14 +1,21 @@
 package io.github.huanmeng06.lmlp.gui;
 
+import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.vertex.BufferBuilder;
+import com.mojang.blaze3d.vertex.MeshData;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
 import fi.dy.masa.malilib.gui.Message.MessageType;
 import fi.dy.masa.malilib.gui.widgets.WidgetBase;
+import fi.dy.masa.malilib.render.MaLiLibPipelines;
+import fi.dy.masa.malilib.render.RenderContext;
+import fi.dy.masa.malilib.render.text.MaLiLibWorldTextRenderer;
 import fi.dy.masa.malilib.util.InfoUtils;
 import io.github.huanmeng06.lmlp.cache.ChunkMissingMaterialListCache.KnownPlacementContext;
 import io.github.huanmeng06.lmlp.config.Configs;
 import org.joml.Matrix4f;
+import org.joml.Matrix4fStack;
 import org.joml.Vector3fc;
 
 import java.util.Objects;
@@ -18,11 +25,12 @@ import java.util.regex.Pattern;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.multiplayer.ClientLevel;
-import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.SubmitNodeStorage;
-import net.minecraft.client.renderer.feature.CustomFeatureRenderer;
+import net.minecraft.client.renderer.OrderedSubmitNodeCollector;
+import net.minecraft.client.renderer.SubmitNodeCollector;
+import net.minecraft.client.renderer.state.level.CameraRenderState;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.core.BlockPos;
+import net.minecraft.network.chat.Component;
 import net.minecraft.util.ARGB;
 import net.minecraft.util.Mth;
 import net.minecraft.world.phys.AABB;
@@ -39,8 +47,7 @@ public final class PlacementOriginMarker {
     private static final int BEAM_HEIGHT = 2048;
     private static final float BEAM_INNER_RADIUS = 0.2F;
     private static final float BEAM_OUTER_RADIUS = 0.25F;
-    private static final SubmitNodeStorage BEAM_COMMANDS = new SubmitNodeStorage();
-    private static final float LABEL_SCALE_BASE = 0.0265F;
+    private static final float LABEL_SCALE_BASE = 0.0266F;
     private static final int TARGET_HALF_SIZE = 10;
     static final int LABEL_ELEVATE_BY = -28;
     static final int LABEL_PADDING_X = 2;
@@ -49,12 +56,16 @@ public final class PlacementOriginMarker {
     private static final int LABEL_LIGHT = 0x00F000F0;
 
     private static Marker marker;
+    private static WorldLabelSnapshot worldLabelSnapshot;
+    private static RenderContext iconRenderContext;
+    private static RenderContext fillRenderContext;
 
     private PlacementOriginMarker() {
     }
 
     public static void clear() {
         marker = null;
+        worldLabelSnapshot = null;
     }
 
     public static boolean handleOriginClick(KnownPlacementContext context) {
@@ -94,10 +105,10 @@ public final class PlacementOriginMarker {
         return hasActiveMarker(context);
     }
 
-    public static void render(net.minecraft.client.Camera camera) {
+    public static void submit(net.minecraft.client.Camera camera, SubmitNodeCollector collector) {
         Marker current = activeMarker();
         Minecraft client = Minecraft.getInstance();
-        if (current == null || camera == null || client.level == null) {
+        if (current == null || camera == null || collector == null || client.level == null) {
             return;
         }
 
@@ -106,15 +117,88 @@ public final class PlacementOriginMarker {
             return;
         }
 
-        if (client.player != null && client.player.distanceToSqr(target.pos.getCenter()) <= ARRIVAL_DISTANCE_SQUARED) {
+        if (client.player != null && client.player.distanceToSqr(Vec3.atCenterOf(target.pos)) <= ARRIVAL_DISTANCE_SQUARED) {
             clear();
             return;
         }
 
         Vec3 cameraPos = camera.position();
-        drawBeam(client.level, target.pos, cameraPos);
-        if (target.sameDimension) {
-            drawTargetInfo(camera, client, current, target.pos, cameraPos);
+        OrderedSubmitNodeCollector nodes = collector.order(0);
+        drawBeam(client.level, target.pos, cameraPos, nodes);
+    }
+
+    static void extractWorldLabel(net.minecraft.client.Camera camera) {
+        Marker current = activeMarker();
+        Minecraft client = Minecraft.getInstance();
+        worldLabelSnapshot = null;
+        if (current == null || camera == null || client.level == null) {
+            return;
+        }
+
+        RenderTarget target = resolveRenderTarget(
+                current.sourceDimension,
+                current.sourcePos,
+                currentDimensionId(client.level));
+        if (target == null || !target.sameDimension) {
+            return;
+        }
+
+        Vec3 cameraPos = camera.position();
+        double distance = distanceToCamera(cameraPos, target.pos);
+        if (distance <= 2.0D) {
+            return;
+        }
+
+        boolean showLabel = isPointedAt(target.pos, cameraPos, distance, camera.forwardVector());
+        worldLabelSnapshot = new WorldLabelSnapshot(
+                current.name,
+                target.pos,
+                distance,
+                client.options.renderDistance().get(),
+                showLabel);
+    }
+
+    static void renderWorldLabel(CameraRenderState cameraState) {
+        WorldLabelSnapshot snapshot = worldLabelSnapshot;
+        if (snapshot == null || cameraState == null || cameraState.pos == null || cameraState.orientation == null) {
+            return;
+        }
+
+        BlockPos pos = snapshot.pos;
+        Vec3 cameraPos = cameraState.pos;
+        double baseX = pos.getX() + 0.5D - cameraPos.x;
+        double baseY = pos.getY() + 0.5D - cameraPos.y;
+        double baseZ = pos.getZ() + 0.5D - cameraPos.z;
+        double adjustedDistance = snapshot.distance;
+        if (snapshot.distance > snapshot.maxDistance) {
+            baseX = baseX / snapshot.distance * snapshot.maxDistance;
+            baseY = baseY / snapshot.distance * snapshot.maxDistance;
+            baseZ = baseZ / snapshot.distance * snapshot.maxDistance;
+            adjustedDistance = snapshot.maxDistance;
+        }
+
+        Matrix4fStack matrices = RenderSystem.getModelViewStack();
+        matrices.pushMatrix();
+        try {
+            matrices.translate((float) baseX, (float) baseY, (float) baseZ);
+            matrices.rotate(cameraState.orientation);
+            float scale = (float) (adjustedDistance * 0.1F + 1.0F) * LABEL_SCALE_BASE;
+            matrices.scale(scale, -scale, -scale);
+
+            float alpha = fade(snapshot.distance);
+            drawTargetTexture(alpha);
+            if (snapshot.showLabel) {
+                matrices.pushMatrix();
+                try {
+                    float configuredScale = originMarkerTextScale();
+                    matrices.scale(configuredScale, configuredScale, 1.0F);
+                    drawLabel(snapshot, cameraPos, alpha);
+                } finally {
+                    matrices.popMatrix();
+                }
+            }
+        } finally {
+            matrices.popMatrix();
         }
     }
 
@@ -136,7 +220,10 @@ public final class PlacementOriginMarker {
         return marker;
     }
 
-    private static void drawBeam(ClientLevel world, BlockPos pos, Vec3 cameraPos) {
+    private static void drawBeam(ClientLevel world,
+                                 BlockPos pos,
+                                 Vec3 cameraPos,
+                                 OrderedSubmitNodeCollector nodes) {
         PoseStack matrices = new PoseStack();
         matrices.translate(
                 pos.getX() + 0.5D - cameraPos.x,
@@ -153,14 +240,9 @@ public final class PlacementOriginMarker {
                 BEAM_HEIGHT,
                 BEAM_COLOR,
                 BEAM_INNER_RADIUS,
-                BEAM_OUTER_RADIUS);
+                BEAM_OUTER_RADIUS,
+                nodes);
 
-        MultiBufferSource.BufferSource consumers = Minecraft.getInstance().renderBuffers().bufferSource();
-        CustomFeatureRenderer renderer = new CustomFeatureRenderer();
-        renderer.renderSolid(BEAM_COMMANDS.order(0), consumers);
-        renderer.renderTranslucent(BEAM_COMMANDS.order(0), consumers);
-        BEAM_COMMANDS.endFrame();
-        consumers.endBatch();
     }
 
     private static void renderOmmcBeam(PoseStack matrices,
@@ -169,7 +251,8 @@ public final class PlacementOriginMarker {
                                        int height,
                                        int color,
                                        float innerRadius,
-                                       float outerRadius) {
+                                       float outerRadius,
+                                       OrderedSubmitNodeCollector nodes) {
         int maxY = yOffset + height;
         matrices.pushPose();
         matrices.translate(0.5D, 0.0D, 0.5D);
@@ -180,7 +263,7 @@ public final class PlacementOriginMarker {
         matrices.mulPose(Axis.YP.rotationDegrees(animationTime * 2.25F - 45.0F));
         float innerV1 = -1.0F + scroll;
         float innerV2 = height * (0.5F / innerRadius) + innerV1;
-        BEAM_COMMANDS.submitCustomGeometry(
+        nodes.submitCustomGeometry(
                 matrices,
                 OriginMarkerRenderLayers.BEAM_OPAQUE,
                 (entry, buffer) -> drawBeamFaces(
@@ -200,7 +283,7 @@ public final class PlacementOriginMarker {
         float outerV1 = -1.0F + scroll;
         float outerV2 = height + outerV1;
         int translucentColor = ARGB.color(32, color);
-        BEAM_COMMANDS.submitCustomGeometry(
+        nodes.submitCustomGeometry(
                 matrices,
                 OriginMarkerRenderLayers.BEAM_TRANSLUCENT,
                 (entry, buffer) -> drawBeamFaces(
@@ -264,84 +347,39 @@ public final class PlacementOriginMarker {
                 .setNormal(entry, 0.0F, 1.0F, 0.0F);
     }
 
-    private static void drawTargetInfo(net.minecraft.client.Camera camera,
-                                       Minecraft client,
-                                       Marker current,
-                                       BlockPos pos,
-                                       Vec3 cameraPos) {
-        Font textRenderer = client.font;
-        if (textRenderer == null) {
-            return;
-        }
-
-        double distance = distanceToCamera(cameraPos, pos);
-        if (distance <= 2.0D) {
-            return;
-        }
-
-        double baseX = pos.getX() + 0.5D - cameraPos.x;
-        double baseY = pos.getY() + 0.5D - cameraPos.y;
-        double baseZ = pos.getZ() + 0.5D - cameraPos.z;
-        double maxDistance = client.options.renderDistance().get() * 16.0D;
-        double adjustedDistance = distance;
-        if (distance > maxDistance) {
-            baseX = baseX / distance * maxDistance;
-            baseY = baseY / distance * maxDistance;
-            baseZ = baseZ / distance * maxDistance;
-            adjustedDistance = maxDistance;
-        }
-
-        PoseStack matrices = new PoseStack();
-        matrices.translate(baseX, baseY, baseZ);
-        matrices.mulPose(new Matrix4f().rotation(camera.rotation()));
-        float scale = (float) ((adjustedDistance > 8.0D ? adjustedDistance - 8.0D : 0.0D) * 0.2D + 1.0D) * LABEL_SCALE_BASE;
-        matrices.scale(scale, -scale, -scale);
-
-        float alpha = fade(distance);
-        drawTargetTexture(matrices.last().pose(), alpha);
-
-        if (isPointedAt(pos, cameraPos, distance, camera.forwardVector())) {
-            matrices.pushPose();
-            float configuredScale = originMarkerTextScale();
-            matrices.scale(configuredScale, configuredScale, 1.0F);
-
-            String title = current.name == null || current.name.isEmpty() ? "Placement" : current.name;
-            String coordinate = String.format("[%d, %d, %d]",
-                    pos.getX(),
-                    pos.getY(),
-                    pos.getZ());
-            String distanceText = String.format("%dm", (int) distance);
-            drawLabel(matrices.last().pose(), textRenderer, title, coordinate, distanceText, alpha);
-            matrices.popPose();
-        }
-    }
-
-    private static void drawTargetTexture(Matrix4f matrix, float alpha) {
-        MultiBufferSource.BufferSource consumers = Minecraft.getInstance().renderBuffers().bufferSource();
-        VertexConsumer buffer = consumers.getBuffer(OriginMarkerRenderLayers.ICON);
-        iconVertex(buffer, matrix, -TARGET_HALF_SIZE, -TARGET_HALF_SIZE, 0.0F, 0.0F, alpha);
-        iconVertex(buffer, matrix, -TARGET_HALF_SIZE, TARGET_HALF_SIZE, 0.0F, 1.0F, alpha);
-        iconVertex(buffer, matrix, TARGET_HALF_SIZE, TARGET_HALF_SIZE, 1.0F, 1.0F, alpha);
-        iconVertex(buffer, matrix, TARGET_HALF_SIZE, -TARGET_HALF_SIZE, 1.0F, 0.0F, alpha);
-        consumers.endBatch();
+    private static void drawTargetTexture(float alpha) {
+        RenderContext context = iconRenderContext();
+        BufferBuilder buffer = context.start(
+                () -> "lmlp:origin_marker_icon",
+                MaLiLibPipelines.POSITION_TEX_COLOR_MASA_NO_DEPTH,
+                0);
+        context.bindTexture(OriginMarkerRenderLayers.TARGET_TEXTURE, 0, 32, 32);
+        iconVertex(buffer, -TARGET_HALF_SIZE, -TARGET_HALF_SIZE, 0.0F, 0.0F, alpha);
+        iconVertex(buffer, -TARGET_HALF_SIZE, TARGET_HALF_SIZE, 0.0F, 1.0F, alpha);
+        iconVertex(buffer, TARGET_HALF_SIZE, TARGET_HALF_SIZE, 1.0F, 1.0F, alpha);
+        iconVertex(buffer, TARGET_HALF_SIZE, -TARGET_HALF_SIZE, 1.0F, 0.0F, alpha);
+        drawAndReset(context, buffer);
     }
 
     private static void iconVertex(VertexConsumer buffer,
-                                   Matrix4f matrix,
                                    float x, float y,
                                    float u, float v,
                                    float alpha) {
-        buffer.addVertex(matrix, x, y, 0.0F)
+        buffer.addVertex(x, y, 0.0F)
                 .setUv(u, v)
                 .setColor(1.0F, 0.0F, 0.0F, alpha);
     }
 
-    private static void drawLabel(Matrix4f matrix,
-                                  Font textRenderer,
-                                  String title,
-                                  String coordinate,
-                                  String distanceText,
-                                  float alpha) {
+    private static void drawLabel(WorldLabelSnapshot snapshot, Vec3 cameraPos, float alpha) {
+        Font textRenderer = Minecraft.getInstance().font;
+        if (textRenderer == null) {
+            return;
+        }
+
+        BlockPos pos = snapshot.pos;
+        String title = snapshot.name == null || snapshot.name.isEmpty() ? "Placement" : snapshot.name;
+        String coordinate = String.format("[%d, %d, %d]", pos.getX(), pos.getY(), pos.getZ());
+        String distanceText = String.format("%dm", (int) snapshot.distance);
         int titleWidth = textRenderer.width(title);
         int coordinateWidth = textRenderer.width(coordinate);
         int distanceWidth = textRenderer.width(distanceText);
@@ -351,50 +389,90 @@ public final class PlacementOriginMarker {
         int y1 = LABEL_ELEVATE_BY - 2;
         int y2 = LABEL_ELEVATE_BY + LABEL_LINE_HEIGHT * 3;
 
-        MultiBufferSource.BufferSource consumers = Minecraft.getInstance().renderBuffers().bufferSource();
-        VertexConsumer background = consumers.getBuffer(OriginMarkerRenderLayers.FILL);
-        Matrix4f backgroundMatrix = new Matrix4f(matrix).translate(0.0F, 0.0F, 0.02F);
-        rectangle(background, backgroundMatrix, x1, y1, x2, y2, 1.0F, 0.0F, 0.0F, 0.6F * alpha);
-        rectangle(background, new Matrix4f(backgroundMatrix).translate(0.0F, 0.0F, 0.005F),
-                x1 + 1, y1 + 1, x2 - 1, y2 - 1, 0.0F, 0.0F, 0.0F, 0.15F * alpha);
-        consumers.endBatch();
+        RenderContext context = fillRenderContext();
+        BufferBuilder background = context.start(
+                () -> "lmlp:origin_marker_label",
+                MaLiLibPipelines.POSITION_COLOR_MASA_NO_DEPTH,
+                0);
+        rectangle(background, x1, y1, x2, y2, 0.02F, ARGB.color((int) (153.0F * alpha), 0xFF0000));
+        rectangle(background, x1 + 1, y1 + 1, x2 - 1, y2 - 1, 0.025F,
+                ARGB.color((int) (38.0F * alpha), 0x000000));
+        drawAndReset(context, background);
 
-        Matrix4f textMatrix = new Matrix4f(matrix).translate(0.0F, 0.0F, 0.03F);
         int color = (((int) (255.0F * alpha)) << 24) | (LABEL_TEXT_COLOR & 0x00FFFFFF);
-        drawTextLine(textRenderer, consumers, textMatrix, title, -titleWidth / 2.0F, LABEL_ELEVATE_BY, color);
-        drawTextLine(textRenderer, consumers, textMatrix, coordinate, -coordinateWidth / 2.0F, LABEL_ELEVATE_BY + LABEL_LINE_HEIGHT, color);
-        drawTextLine(textRenderer, consumers, textMatrix, distanceText, -distanceWidth / 2.0F, LABEL_ELEVATE_BY + LABEL_LINE_HEIGHT * 2, color);
-        consumers.endBatch();
+        try (MaLiLibWorldTextRenderer renderer = new MaLiLibWorldTextRenderer()) {
+            Matrix4f textMatrix = new Matrix4f().translate(0.0F, 0.0F, 0.03F);
+            renderer.prepare(textMatrix, cameraPos, LABEL_LIGHT, Font.DisplayMode.SEE_THROUGH);
+            drawTextLine(textRenderer, renderer, title, -titleWidth / 2.0F, LABEL_ELEVATE_BY, color);
+            drawTextLine(textRenderer, renderer, coordinate, -coordinateWidth / 2.0F,
+                    LABEL_ELEVATE_BY + LABEL_LINE_HEIGHT, color);
+            drawTextLine(textRenderer, renderer, distanceText, -distanceWidth / 2.0F,
+                    LABEL_ELEVATE_BY + LABEL_LINE_HEIGHT * 2, color);
+            renderer.draw(cameraPos);
+        } catch (Exception ignored) {
+        }
     }
 
     private static void drawTextLine(Font textRenderer,
-                                     MultiBufferSource.BufferSource consumers,
-                                     Matrix4f matrix,
+                                     MaLiLibWorldTextRenderer renderer,
                                      String text,
                                      float x,
                                      int y,
                                      int color) {
-        textRenderer.drawInBatch(
-                text,
+        Font.PreparedText prepared = textRenderer.prepareText(
+                Component.literal(text).getVisualOrderText(),
                 x,
                 y,
                 color,
                 false,
-                matrix,
-                consumers,
-                Font.DisplayMode.SEE_THROUGH,
-                0,
-                LABEL_LIGHT);
+                false,
+                0);
+        prepared.visit(renderer);
     }
 
     private static void rectangle(VertexConsumer buffer,
-                                  Matrix4f matrix,
                                   int x1, int y1, int x2, int y2,
-                                  float r, float g, float b, float a) {
-        buffer.addVertex(matrix, x1, y1, 0.0F).setColor(r, g, b, a);
-        buffer.addVertex(matrix, x1, y2, 0.0F).setColor(r, g, b, a);
-        buffer.addVertex(matrix, x2, y2, 0.0F).setColor(r, g, b, a);
-        buffer.addVertex(matrix, x2, y1, 0.0F).setColor(r, g, b, a);
+                                  float z,
+                                  int color) {
+        buffer.addVertex(x1, y1, z).setColor(color);
+        buffer.addVertex(x1, y2, z).setColor(color);
+        buffer.addVertex(x2, y2, z).setColor(color);
+        buffer.addVertex(x2, y1, z).setColor(color);
+    }
+
+    private static void drawAndReset(RenderContext context, BufferBuilder buffer) {
+        MeshData mesh = null;
+        try {
+            mesh = buffer.build();
+            if (mesh != null) {
+                context.draw(mesh, false);
+            }
+        } finally {
+            if (mesh != null) {
+                mesh.close();
+            }
+            context.reset();
+        }
+    }
+
+    private static RenderContext iconRenderContext() {
+        if (iconRenderContext == null) {
+            iconRenderContext = new RenderContext(
+                    () -> "lmlp:origin_marker_icon",
+                    MaLiLibPipelines.POSITION_TEX_COLOR_MASA_NO_DEPTH,
+                    0);
+        }
+        return iconRenderContext;
+    }
+
+    private static RenderContext fillRenderContext() {
+        if (fillRenderContext == null) {
+            fillRenderContext = new RenderContext(
+                    () -> "lmlp:origin_marker_label",
+                    MaLiLibPipelines.POSITION_COLOR_MASA_NO_DEPTH,
+                    0);
+        }
+        return fillRenderContext;
     }
 
     private static double distanceToCamera(Vec3 cameraPos, BlockPos pos) {
@@ -516,6 +594,14 @@ public final class PlacementOriginMarker {
     }
 
     private record RenderTarget(BlockPos pos, boolean sameDimension) {
+    }
+
+    private record WorldLabelSnapshot(
+            String name,
+            BlockPos pos,
+            double distance,
+            double maxDistance,
+            boolean showLabel) {
     }
 
     private record Marker(

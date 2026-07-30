@@ -1,10 +1,12 @@
 package io.github.huanmeng06.lmlp;
 
 import fi.dy.masa.malilib.config.ConfigManager;
+import fi.dy.masa.malilib.event.RenderEventHandler;
 import fi.dy.masa.malilib.event.InputEventHandler;
 import fi.dy.masa.malilib.gui.GuiBase;
 import fi.dy.masa.malilib.hotkeys.KeybindMulti;
 import fi.dy.masa.malilib.interfaces.IInitializationHandler;
+import fi.dy.masa.malilib.util.GuiUtils;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
@@ -14,6 +16,7 @@ import io.github.huanmeng06.lmlp.config.Hotkeys;
 import io.github.huanmeng06.lmlp.event.InputHandler;
 import io.github.huanmeng06.lmlp.gui.GuiConfigs;
 import io.github.huanmeng06.lmlp.gui.PlacementOriginMarker;
+import io.github.huanmeng06.lmlp.gui.PlacementOriginMarkerWorldRenderer;
 import io.github.huanmeng06.lmlp.material.InventoryCounts;
 
 import java.util.List;
@@ -38,6 +41,7 @@ public class InitHandler implements IInitializationHandler {
         ClientTickEvents.END_CLIENT_TICK.register(InitHandler::handleHotkeyFallback);
         ClientTickEvents.END_CLIENT_TICK.register(client -> InventoryCounts.refresh());
         ClientTickEvents.END_CLIENT_TICK.register(client -> ChunkMissingMaterialListCache.flushPendingPersistence());
+        RenderEventHandler.getInstance().registerWorldLastRenderer(PlacementOriginMarkerWorldRenderer.INSTANCE);
         ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> {
             InventoryCounts.clear();
             ChunkMissingMaterialListCache.onWorldJoined(client, "client_play.join");
@@ -56,7 +60,7 @@ public class InitHandler implements IInitializationHandler {
     private static void handleHotkeyFallback(net.minecraft.client.Minecraft client) {
         // The raw key polling below ignores malilib's keybind contexts, so it
         // must not fire on the title screen or inside other GUIs.
-        if (client == null || client.level == null || client.screen != null) {
+        if (client == null || client.level == null || GuiUtils.getCurrentScreen() != null) {
             openConfigHotkeyWasDown = false;
             clearOriginMarkerHotkeyWasDown = false;
             return;

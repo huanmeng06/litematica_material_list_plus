@@ -6,14 +6,14 @@
 
 当前最新开发版：`v1.9.2-beta2`
 
-适配目标：Minecraft `26.1.2` / Fabric / Litematica / MaLiLib / JEI
+适配目标：Minecraft `26.2` / Fabric / Litematica / MaLiLib / JEI
 
 ## 版本说明
 
 ### v1.9.2-beta2
 
 - “全部”显示类型不再显示分配明细星号；星号及其悬浮明细仅在“最小子材料”视图显示。
-- 构建产物版本更新为 `1.9.2-beta2+mc26.1.2`。
+- 构建产物版本更新为 `1.9.2+mc26.2`。
 
 ### v1.8.0
 

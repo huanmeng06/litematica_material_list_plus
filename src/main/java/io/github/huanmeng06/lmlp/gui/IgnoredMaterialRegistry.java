@@ -4,7 +4,7 @@ import fi.dy.masa.litematica.materials.MaterialListBase;
 import fi.dy.masa.litematica.materials.MaterialListEntry;
 import fi.dy.masa.litematica.util.BlockInfoListType;
 import fi.dy.masa.litematica.data.DataManager;
-import fi.dy.masa.malilib.util.LayerRange;
+import fi.dy.masa.malilib.util.position.LayerRange;
 import io.github.huanmeng06.lmlp.cache.ChunkMissingMaterialListCache;
 import io.github.huanmeng06.lmlp.material.ItemStackTexts;
 import org.slf4j.Logger;
@@ -236,9 +236,9 @@ public final class IgnoredMaterialRegistry {
                 + ':'
                 + range.getLayerSingle()
                 + ':'
-                + range.getLayerMin()
+                + range.getLayerRangeMin()
                 + ':'
-                + range.getLayerMax()
+                + range.getLayerRangeMax()
                 + '|';
     }
 

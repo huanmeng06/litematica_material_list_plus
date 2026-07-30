@@ -340,7 +340,7 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         if (mouseButton == 0 && this.isMouseOver(mouseX, mouseY)) {
             if (this.lmlp$isMaterialNameHovered(mouseX, mouseY)) {
                 List<RecipeSummary> summaries = MaterialListPlusState.resolveFor(this.entry, this.materialList);
-                this.mc.setScreen(new RecipeDetailScreen(
+                this.mc.setScreenAndShow(new RecipeDetailScreen(
                         GuiUtils.getCurrentScreen(),
                         this.entry.getStack(),
                         MaterialCounts.total(this.entry, this.materialList),
@@ -1235,9 +1235,9 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         int missing = MaterialCounts.netMissing(this.entry, this.materialList);
         Screen parent = GuiUtils.getCurrentScreen();
         if (target.title()) {
-            this.mc.setScreen(new RecipeDetailScreen(parent, this.entry.getStack(), total, missing, summaries));
+            this.mc.setScreenAndShow(new RecipeDetailScreen(parent, this.entry.getStack(), total, missing, summaries));
         } else {
-            this.mc.setScreen(new RecipeDetailScreen(parent, this.entry.getStack(), total, missing, summaries,
+            this.mc.setScreenAndShow(new RecipeDetailScreen(parent, this.entry.getStack(), total, missing, summaries,
                     target.recipeId(), target.itemId()));
         }
         return true;
@@ -1264,7 +1264,7 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         }
 
         List<RecipeSummary> summaries = RecipeResolvers.findRecipes(source.icon(), source.sourceTotalCount(), source.sourceMissingCount());
-        this.mc.setScreen(new RecipeDetailScreen(GuiUtils.getCurrentScreen(), source.icon(), source.sourceTotalCount(), source.sourceMissingCount(), summaries));
+        this.mc.setScreenAndShow(new RecipeDetailScreen(GuiUtils.getCurrentScreen(), source.icon(), source.sourceTotalCount(), source.sourceMissingCount(), summaries));
         return true;
     }
 

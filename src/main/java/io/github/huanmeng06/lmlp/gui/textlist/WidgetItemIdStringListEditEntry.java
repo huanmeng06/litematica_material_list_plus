@@ -165,6 +165,11 @@ public class WidgetItemIdStringListEditEntry extends WidgetConfigOptionBase<Stri
         field.setMaxLength(this.maxTextfieldTextLength);
         field.setValue(value);
         this.addTextField(field, new EntryChangeListener(NO_OP_STRING_REPRESENTABLE, field, toggleButton, this));
+        // MaLiLib's TextFieldWrapper can shrink the shared STRING type and, in
+        // turn, this field. Reapply the per-field limit and original value only
+        // after wrapping so opening the editor can never truncate an item ID.
+        field.setMaxLength(this.maxTextfieldTextLength);
+        field.setValue(value);
     }
 
     private void addSelectButton(int x, int y) {
