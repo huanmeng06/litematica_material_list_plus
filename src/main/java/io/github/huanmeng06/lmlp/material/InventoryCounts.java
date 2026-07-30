@@ -28,7 +28,9 @@ public final class InventoryCounts {
     }
 
     public static void refresh() {
-        cachedSnapshot = capture();
+        Snapshot snapshot = capture();
+        cachedSnapshot = snapshot;
+        WaterBucketIceSubstitution.refreshAvailableCounts(snapshot);
     }
 
     public static void clear() {

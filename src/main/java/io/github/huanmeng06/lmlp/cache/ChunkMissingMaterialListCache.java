@@ -321,18 +321,6 @@ public final class ChunkMissingMaterialListCache {
         }
     }
 
-    public static void selectCurrentPlacementForMaterialListOpen(String reason) {
-        SchematicPlacementManager manager = DataManager.getSchematicPlacementManager();
-        if (manager == null) {
-            return;
-        }
-
-        SchematicPlacement selected = manager.getSelectedSchematicPlacement();
-        if (selected != null) {
-            selectMaterialListPlacement(selected, reason);
-        }
-    }
-
     public static void selectEditablePlacement(SchematicPlacement placement, String reason) {
         if (placement == null) {
             return;
