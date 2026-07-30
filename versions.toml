@@ -103,6 +103,21 @@ instance = "~/Documents/Minecraft/versions/26.1.2-Fabric 0.19.3-Mod_Dev"
 supported = true
 release = true
 
+[versions."26.2"]
+branch = "mc26.2"
+java = 26
+bytecode = 25
+local_dependencies = true
+loader = "0.19.3"
+fabric_api = "0.156.0+26.2"
+litematica = "0.28.4"
+malilib = "0.29.3"
+jei = "30.15.0.106"
+modmenu = "20.0.1"
+instance = "~/Documents/Minecraft/versions/26.2-Fabric 0.19.3-Mod_Dev"
+supported = true
+release = true
+
 [versions."1.21.4"]
 branch = "mc1.21.4"
 supported = false
