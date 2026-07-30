@@ -569,25 +569,35 @@ public final class ChunkMissingMaterialListCache {
     }
 
     private static ReadMode resolveReadMode(PlacementKey key, KnownPlacementContext snapshot) {
-        ReadMode activeMaterialListMode = activeMaterialListReadMode(key, snapshot == null ? null : snapshot.placement());
-        if (activeMaterialListMode != null && activeMaterialListMode != ReadMode.LIVE) {
-            return activeMaterialListMode;
-        }
-
         PlacementContext runtimeContext = PLACEMENT_CONTEXTS_BY_KEY.get(key);
         if (runtimeContext == null && snapshot != null && snapshot.placement() != null) {
             runtimeContext = PLACEMENT_CONTEXTS.get(snapshot.placement());
         }
 
-        if (runtimeContext != null) {
-            return resolveReadMode(runtimeContext);
+        ReadMode contextMode = runtimeContext != null
+                ? resolveReadMode(runtimeContext)
+                : snapshot == null
+                        ? ReadMode.OFFLINE_CACHE
+                        : resolveReadMode(snapshot.sourceState(), snapshot.placement(), snapshot.dimension());
+        ReadMode activeMaterialListMode = activeMaterialListReadMode(key, snapshot == null ? null : snapshot.placement());
+        if (activeMaterialListMode != null
+                && activeMaterialListMode != ReadMode.LIVE
+                && isCompatibleActiveReadMode(activeMaterialListMode, contextMode)) {
+            return activeMaterialListMode;
         }
 
-        if (snapshot != null) {
-            return resolveReadMode(snapshot.sourceState(), snapshot.placement(), snapshot.dimension());
-        }
+        return contextMode;
+    }
 
-        return ReadMode.OFFLINE_CACHE;
+    private static boolean isCompatibleActiveReadMode(ReadMode activeMode, ReadMode contextMode) {
+        return switch (activeMode) {
+            // A cached material list can remain authoritative after its chunks
+            // load, until a new world scan replaces it.
+            case CHUNK_CACHE -> contextMode == ReadMode.CHUNK_CACHE || contextMode == ReadMode.LIVE;
+            case DIMENSION_CACHE -> contextMode == ReadMode.DIMENSION_CACHE;
+            case OFFLINE_CACHE -> contextMode == ReadMode.OFFLINE_CACHE;
+            case LIVE -> contextMode == ReadMode.LIVE;
+        };
     }
 
     public static ReadMode resolveReadMode(MaterialListBase materialList) {
