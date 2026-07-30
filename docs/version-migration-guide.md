@@ -1,8 +1,8 @@
 # LMLP 多版本移植总指南
 
-最后更新：2026-07-29
+最后更新：2026-07-30
 当前开发基线：`dev-newFeature` / Minecraft `1.21.11`
-适用范围：Minecraft `1.20.1`～`26.1.2`，以及后续新增版本
+适用范围：Minecraft `1.20.1`～`26.2`，以及后续新增版本
 
 本文是 Litematica Material List Plus（LMLP）唯一的版本移植参考。以后新增版本、回移功能或记录跨版本踩坑时，只更新本文，不再为单个功能另建移植文档。
 
@@ -45,6 +45,7 @@
 | `1.21.10` | `mc1.21.10` | 21 | Java 21 / major 65 | `0.138.4+1.21.10` | `0.24.9` | `0.26.8` | `26.3.0.31` |
 | `1.21.11` | `mc1.21.11` | 21 | Java 21 / major 65 | `0.141.4+1.21.11` | `0.26.12` | `0.27.16` | `27.17.0.50` |
 | `26.1.2` | `mc26.1.2` | 26 | Java 25 / major 69 | `0.154.2+26.1.2` | `0.27.10` | `0.28.9` | `29.16.0.47` |
+| `26.2` | `mc26.2` | 26 | Java 25 / major 69 | `0.156.0+26.2` | `0.28.4` | `0.29.3` | `30.15.0.106` |
 
 停止参与当前发布的版本：
 
@@ -132,7 +133,7 @@
 | --- | --- |
 | `1.20.1` / `1.20.4` | Loom 使用 Java 21，成品使用 `--release 17` |
 | `1.20.6`～`1.21.11` | Java 21，成品 class major 65 |
-| `26.1.2` | Java 26 构建、Java 25 字节码；使用 Mojang 官方名称 |
+| `26.1.2` / `26.2` | Java 26 构建、Java 25 字节码；使用 Mojang 官方名称 |
 
 1.20.1～1.21.11 源码主要使用 Fabric intermediary 名称（`class_`、`method_`、`field_`）。26.1+ 不再沿用这套名称，不能通过机械替换类名完成移植。
 
@@ -315,13 +316,23 @@ javap -classpath <malilib.jar> -p fi.dy.masa.malilib.config.options.ConfigOption
 - 使用 `RenderPipeline`、no-depth RenderLayer 和目标版本 Buffer API。
 - 当前功能开发基线是 1.21.11，向其他版本迁移时保留行为，不保留 intermediary 写法。
 
-### 5.7 Minecraft 26.1.2
+### 5.7 Minecraft 26.1.2 / 26.2
 
 - Java 26 构建，成品目标 Java 25 / major 69。
 - 使用 Mojang 官方名称，GUI、渲染和 Mixin 需要按目标名称重新适配。
 - GUI 使用新的提取阶段；旧 `render` / `GuiGraphics` 入口不能只靠改名猜测。
 - RenderPipeline、DepthStencilState 和渲染回调描述符与 1.21.11 不同。
 - 依赖由管理工具下载到 `.lmlp/dependencies`，再交给 Gradle 使用，避免 CDN/TLS 不稳定。
+
+26.2 相对 26.1.2 的已验证变化：
+
+- MaLiLib `JsonUtils` 移到 `fi.dy.masa.malilib.util.data.json`。
+- Litematica 返回的渲染层范围使用 `fi.dy.masa.malilib.util.position.LayerRange`；范围边界方法是 `getLayerRangeMin()` / `getLayerRangeMax()`。
+- `Minecraft.setScreen(...)` 改为 `setScreenAndShow(...)`，公开的 `screen` 字段被移除；读取当前页面统一使用 `GuiUtils.getCurrentScreen()`。
+- `BlockPos.getCenter()` 被移除，方块中心坐标改用 `Vec3.atCenterOf(pos)`。
+- `GameRenderer.getMainCamera()` 改为 `mainCamera()`；`LevelRenderer.renderLevel(...)` 改为 `render(...)`，FrameGraph 后置 Mixin 必须同步方法名和描述符。
+- 世界自定义几何不再使用 `MultiBufferSource.BufferSource` 手动批处理。通过 `SubmitNodeStorage` 提交几何和文字，再由 `FeatureRenderDispatcher.renderAllFeatures(...)` 执行各阶段。
+- 26.2 实机测试依赖为 Fabric API `0.156.0+26.2`、Litematica `0.28.4`、MaLiLib `0.29.3`、JEI `30.15.0.106` 和 Mod Menu `20.0.1`。
 
 ## 6. JEI 集成移植
 

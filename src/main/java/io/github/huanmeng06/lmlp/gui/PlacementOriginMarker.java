@@ -40,7 +40,7 @@ public final class PlacementOriginMarker {
     private static final float BEAM_INNER_RADIUS = 0.2F;
     private static final float BEAM_OUTER_RADIUS = 0.25F;
     private static final class_11661 BEAM_COMMANDS = new class_11661();
-    private static final float LABEL_SCALE_BASE = 0.0265F;
+    private static final float LABEL_SCALE_BASE = 0.0266F;
     private static final int TARGET_HALF_SIZE = 10;
     static final int LABEL_ELEVATE_BY = -28;
     static final int LABEL_PADDING_X = 2;
@@ -292,7 +292,7 @@ public final class PlacementOriginMarker {
         class_4587 matrices = new class_4587();
         matrices.method_22904(baseX, baseY, baseZ);
         matrices.method_34425(new Matrix4f().rotation(camera.method_23767()));
-        float scale = (float) ((adjustedDistance > 8.0D ? adjustedDistance - 8.0D : 0.0D) * 0.2D + 1.0D) * LABEL_SCALE_BASE;
+        float scale = (float) (adjustedDistance * 0.1F + 1.0F) * LABEL_SCALE_BASE;
         matrices.method_22905(scale, -scale, -scale);
 
         float alpha = fade(distance);

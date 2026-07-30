@@ -165,3 +165,109 @@ Litematica 0.19.60 的该构造器不接受空路径，会立即对传入的 `Pa
 2. 未参与替换的方块、方块状态、方块实体及计划刻保持不变。
 3. 保存前容器回读和保存后文件回读的目标方块数量一致。
 4. 重新进入世界或重新载入 preferred 后，替换结果仍然存在。
+
+## BUG-20260730-06：26.2 点击原点时渲染崩溃
+
+- 状态：已修复，等待实例验证
+- 已确认版本：26.2
+- 修复版本：1.9.2+mc26.2
+- 崩溃报告：`crash-2026-07-30_03.38.44-client.txt`
+
+### 现象
+
+在投影列表中点击原点后，客户端立即崩溃。
+
+### 已确认原因
+
+26.2 的 `FeatureRenderDispatcher` 在一帧内复用同一个 `PreparedFrame`。LMLP 的原点标记渲染位于 `LevelRenderer.render(...)` 的当前渲染生命周期内，却再次调用：
+
+```java
+client.gameRenderer.featureRenderDispatcher().renderAllFeatures(BEAM_COMMANDS);
+```
+
+此时 Minecraft 当前帧的 `PreparedFrame` 仍处于使用状态，重复进入 `renderAllFeatures(...)` 会再次申请同一个对象，因此抛出：
+
+```text
+java.lang.IllegalStateException: PreparedFrame already in use
+```
+
+这不是 Mixin 注入失败，也不是光柱顶点或 Metal/Sodium 渲染数据错误，而是 26.2 渲染生命周期发生了嵌套冲突。
+
+### 修复方式
+
+不再从当前帧内部重新调用 `FeatureRenderDispatcher.renderAllFeatures(...)`。现在于 `LevelRenderer.submitBlockEntities(PoseStack, LevelRenderState, SubmitNodeCollector)` 尾部注入，只把原点光柱提交到已有的 `SubmitNodeCollector`，由当前 `PreparedFrame` 统一执行。准星、名称、坐标和距离改为 Fabric HUD 最终覆盖层绘制。
+
+### 预期效果
+
+1. 点击原点后正常显示原点标记，不再导致客户端崩溃。
+2. 原点光柱进入 Minecraft 当前帧的正常提交与绘制流程；准星和文字固定显示在世界投影位置对应的 HUD 坐标。
+3. 连续选择不同投影原点或重复点击时不会重复占用 `PreparedFrame`。
+4. 不影响普通投影渲染以及 Sodium/Metal 环境下的其他渲染内容。
+
+## BUG-20260730-07：26.2 物品 ID 列表被截断并写坏配置
+
+- 状态：已修复，等待实例验证
+- 已确认版本：26.2
+- 修复版本：1.9.2+mc26.2
+- 受影响配置：`recipeStopItems`、`keepAsLeafItems`
+
+### 现象
+
+打开物品 ID 文本列表后，完整条目会变成最多 12 个字符的残缺内容，例如：
+
+```text
+minecraft:iron_ingot -> minecraft:ir
+minecraft:gold_ingot -> minecraft:go
+minecraft:{color}_dye -> minecraft:{c
+```
+
+被截断的 ID 无法解析为物品，因此条目前方图标消失。退出页面后，残缺内容还会写回配置文件，并非单纯的显示裁剪。
+
+当前 26.2 实例的配置已经受到影响：`recipeStopItems` 中原来的 14 项被截断；下次载入时，默认项迁移逻辑发现这些完整默认值不存在，又追加了一套默认项；再次进入编辑器后，新追加的默认项也被截断，最终形成 28 条残缺和重复记录。`keepAsLeafItems` 也有同样的截断。
+
+### 已确认原因
+
+`WidgetItemIdStringListEditEntry.addEntryTextField(...)` 先把文本框最大长度设为较大值并填入完整 ID，随后再通过 MaLiLib 的 `TextFieldWrapper` 注册文本框。
+
+MaLiLib 的包装器使用全局共享且可变的 `TextFieldType.STRING`。当此前某个字符串文本框把这个共享类型的最大长度收缩到 12 后，后续物品 ID 文本框在包装时也会被强制改成 12。Minecraft 的 `EditBox.setMaxLength(12)` 会立即截断已有文本；退出页面时，LMLP 又从文本框读取截断值并通过 `config.setStrings(...)` 保存，导致磁盘配置永久受损。
+
+### 修复方式
+
+1. 物品 ID 文本框完成 `TextFieldWrapper` 注册后，再独立恢复足够的最大长度并重新写入完整原值，避免受到全局 `TextFieldType.STRING` 状态污染。
+2. 保存前比较编辑结果和当前配置，页面没有实际变化时不再触发写入。
+3. 当前 26.2 测试实例中可以明确识别的截断默认项和重复项已经恢复；修复前配置保留为 `litematica_material_list_plus.pre-list-fix.json`。
+
+### 预期效果
+
+1. 所有完整物品 ID 和通配符条目均能完整显示、编辑和保存。
+2. 打开并直接关闭列表不会改变任何配置值。
+3. 条目图标能根据完整 ID 正常解析和显示。
+4. 已损坏的内置默认项恢复且不再重复，用户自定义项不被错误覆盖。
+5. 重新启动游戏并多次进入列表后，配置仍保持一致。
+
+## BUG-20260730-08：拖动物品 ID 条目时提示在部分版本消失
+
+- 状态：已修复，等待实例验证
+- 已同步版本：1.20.1、1.20.4、1.20.6、1.21.1、1.21.10、1.21.11、26.1.2、26.2
+
+### 现象与原因
+
+拖动物品 ID 列表条目时，部分 Minecraft 版本不显示“移动：物品名”提示。拖动提示原本在列表的 scissor 裁剪区内登记；不同版本对延迟 Tooltip 的提取时机不同，提示可能继承列表裁剪范围并被裁掉。
+
+### 修复方式
+
+列表只计算拖动提示内容，不再立即登记 Tooltip。页面完成列表绘制并关闭 scissor 后，在最终悬浮层统一登记 Tooltip，保证其位于条目图标之上且不受列表裁剪影响。
+
+## BUG-20260730-09：26.2 原点信息框层级错误且视觉尺寸变化
+
+- 状态：已修复，等待实例验证
+- 已确认版本：26.2
+- 修复版本：1.9.2+mc26.2
+
+### 现象与原因
+
+光柱恢复后，原点准星和信息框仍在世界渲染层绘制，会被 Litematica 后绘制的投影线覆盖。原实现使用近似距离补偿缩放世界空间面板，因此玩家移动时面板的屏幕视觉尺寸也会变化。
+
+### 修复方式
+
+光柱继续留在世界渲染中；准星和三行信息使用 `GameRenderer.projectPointToScreen(...)` 投影到 GUI 坐标，并通过 Fabric HUD 最后一层绘制。准星固定为 20 x 20 GUI 像素，信息框只受用户配置的文字缩放控制，不再随距离变化，同时始终位于投影线之上。
