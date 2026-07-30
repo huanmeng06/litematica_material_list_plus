@@ -8,7 +8,6 @@ import io.github.huanmeng06.lmlp.config.Configs;
 import io.github.huanmeng06.lmlp.material.ItemStackTexts;
 import net.minecraft.class_124;
 import net.minecraft.class_2561;
-import net.minecraft.class_310;
 import net.minecraft.class_332;
 
 import java.util.Collection;
@@ -166,7 +165,7 @@ public class WidgetListItemIdStringListEdit extends WidgetListConfigOptionsBase<
         String shown = name.isEmpty() ? StringUtils.translate("lmlp.gui.label.text_list.empty_entry") : name;
         String prefixed = StringUtils.translate("lmlp.gui.label.text_list.dragging", shown);
         class_2561 text = class_2561.method_43470(prefixed).method_27692(class_124.field_1065);
-        context.method_51434(class_310.method_1551().field_1772, List.of(text), mouseX, mouseY);
+        this.editor.setDragTooltip(text);
     }
 
     List<String> getEntries() {
