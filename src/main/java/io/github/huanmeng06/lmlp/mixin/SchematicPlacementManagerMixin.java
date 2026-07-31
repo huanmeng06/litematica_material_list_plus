@@ -33,6 +33,6 @@ public abstract class SchematicPlacementManagerMixin {
 
     @Inject(method = "loadFromJson", at = @At("TAIL"))
     private void lmlp$rememberLoadedPlacements(JsonObject obj, CallbackInfo ci) {
-        ChunkMissingMaterialListCache.rememberCurrentPlacements("placement_manager.load");
+        ChunkMissingMaterialListCache.reconcileNativePlacementContexts("placement_manager.load");
     }
 }

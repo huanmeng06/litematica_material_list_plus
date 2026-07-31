@@ -97,6 +97,11 @@ public class GuiPreferredSchematicSave extends GuiSchematicSave {
             copy.getMetadata().clearModifiedSinceSaved();
             this.getListWidget().refreshEntries();
             this.addMessage(MessageType.SUCCESS, "litematica.message.schematic_saved_as", name);
+            if (this.sourcePlacement == null) {
+                GuiBase.openGui(this.returnGui);
+                return;
+            }
+
             LitematicaSchematic savedSchematic = PreferredSchematicPlacementApplication.savedSchematic(destination, copy);
             GuiBase.openGui(new GuiApplyPreferredSchematicConfirm(
                     this.sourcePlacement,
