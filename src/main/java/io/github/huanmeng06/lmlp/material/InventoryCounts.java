@@ -12,26 +12,37 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.world.item.ItemStack;
 
 public final class InventoryCounts {
+    private static final long SNAPSHOT_MAX_AGE_NANOS = 50_000_000L;
     private static Snapshot cachedSnapshot;
+    private static long lastCaptureNanos;
 
     private InventoryCounts() {
     }
 
     public static Snapshot current() {
         Snapshot snapshot = cachedSnapshot;
-        if (snapshot == null) {
-            snapshot = capture();
-            cachedSnapshot = snapshot;
+        long now = System.nanoTime();
+        if (snapshot == null || now - lastCaptureNanos >= SNAPSHOT_MAX_AGE_NANOS) {
+            snapshot = captureAndPublish(now);
         }
         return snapshot;
     }
 
     public static void refresh() {
-        cachedSnapshot = capture();
+        captureAndPublish(System.nanoTime());
     }
 
     public static void clear() {
         cachedSnapshot = null;
+        lastCaptureNanos = 0L;
+    }
+
+    private static Snapshot captureAndPublish(long capturedAtNanos) {
+        Snapshot snapshot = capture();
+        cachedSnapshot = snapshot;
+        lastCaptureNanos = capturedAtNanos;
+        WaterBucketIceSubstitution.refreshAvailableCounts(snapshot);
+        return snapshot;
     }
 
     private static Snapshot capture() {

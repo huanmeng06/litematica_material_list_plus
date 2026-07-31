@@ -4,10 +4,8 @@ import fi.dy.masa.litematica.gui.GuiPlacementConfiguration;
 import fi.dy.masa.litematica.gui.widgets.WidgetListSchematicPlacements;
 import fi.dy.masa.litematica.schematic.placement.SchematicPlacement;
 import fi.dy.masa.malilib.gui.GuiBase;
-import fi.dy.masa.malilib.gui.GuiConfirmAction;
 import fi.dy.masa.malilib.gui.button.ButtonGeneric;
 import fi.dy.masa.malilib.gui.button.ButtonOnOff;
-import fi.dy.masa.malilib.interfaces.IConfirmationListener;
 import fi.dy.masa.malilib.render.RenderUtils;
 import fi.dy.masa.malilib.util.StringUtils;
 import fi.dy.masa.malilib.gui.widgets.WidgetListEntryBase;
@@ -20,7 +18,6 @@ import fi.dy.masa.malilib.render.GuiContext;
 
 import java.util.ArrayList;
 import java.util.List;
-import net.minecraft.client.gui.screens.Screen;
 
 public class KnownPlacementListRowEntry extends WidgetListEntryBase<KnownPlacementRow> {
     private final KnownPlacementRow row;
@@ -50,13 +47,6 @@ public class KnownPlacementListRowEntry extends WidgetListEntryBase<KnownPlaceme
         }
 
         KnownPlacementContext context = this.row.context();
-        if (KnownPlacementRows.shouldShowOfflineMissingButton(context)) {
-            ColumnLayout columns = KnownPlacementRows.computeColumns(this, this.row.pageId());
-            this.addOfflineMissingButton(columns, KnownPlacementRows.buttonY(this.y), context);
-            this.buttonsStartX = columns.actionX();
-            return;
-        }
-
         if (!canModifyPlacement(context)) {
             return;
         }
@@ -117,34 +107,6 @@ public class KnownPlacementListRowEntry extends WidgetListEntryBase<KnownPlaceme
             }
         });
         return button.getX() - KnownPlacementRows.buttonGap();
-    }
-
-    private void addOfflineMissingButton(ColumnLayout columns, int buttonY, KnownPlacementContext context) {
-        ButtonGeneric button = new ButtonGeneric(
-                columns.actionX(),
-                buttonY,
-                columns.actionWidth(),
-                false,
-                "lmlp.gui.button.offline_cache_not_found");
-        this.addButton(button, (clickedButton, mouseButton) -> this.openOfflineMissingConfirm(context));
-    }
-
-    private void openOfflineMissingConfirm(KnownPlacementContext context) {
-        OfflineCacheMissingConfirmGui gui = new OfflineCacheMissingConfirmGui(context, new IConfirmationListener() {
-            @Override
-            public boolean onActionConfirmed() {
-                if (ChunkMissingMaterialListCache.removeKnownPlacementContext(context.key(), false, "known_placement.offline_cache_not_found")) {
-                    KnownPlacementListRowEntry.this.parent.refreshEntries();
-                }
-                return true;
-            }
-
-            @Override
-            public boolean onActionCancelled() {
-                return true;
-            }
-        }, this.parent.getParentGui());
-        GuiBase.openGui(gui);
     }
 
     @Override
@@ -304,66 +266,5 @@ public class KnownPlacementListRowEntry extends WidgetListEntryBase<KnownPlaceme
         KnownPlacementContext context = this.row.context();
         PlacementLine line = KnownPlacementRows.placementLine(this, context, context.name(), this.row.pageId());
         return line.nameHovered(this, mouseX, mouseY);
-    }
-}
-
-class OfflineCacheMissingConfirmGui extends GuiConfirmAction {
-    private static final int INITIAL_DIALOG_WIDTH = 260;
-    private static final int MIN_DIALOG_WIDTH = 200;
-    private static final int MAX_DIALOG_WIDTH = 320;
-
-    OfflineCacheMissingConfirmGui(KnownPlacementContext context, IConfirmationListener listener, Screen parent) {
-        super(
-                INITIAL_DIALOG_WIDTH,
-                "lmlp.gui.title.offline_cache_not_found",
-                listener,
-                parent,
-                "lmlp.gui.confirm.offline_cache_not_found",
-                KnownPlacementRows.displayName(context.dimension()),
-                originText(context));
-        this.messageLines.clear();
-        this.messageLines.add(StringUtils.translate("lmlp.gui.confirm.offline_cache_not_found.line1"));
-        this.messageLines.add(StringUtils.translate(
-                "lmlp.gui.confirm.offline_cache_not_found.line2",
-                KnownPlacementRows.displayName(context.dimension()),
-                originText(context)));
-        this.messageLines.add(StringUtils.translate("lmlp.gui.confirm.offline_cache_not_found.line3"));
-        this.setWidthAndHeight(this.fittedDialogWidth(), this.getMessageHeight() + 50);
-        this.centerOnScreen();
-    }
-
-    @Override
-    protected int getButtonWidth() {
-        int confirmWidth = this.getStringWidth(StringUtils.translate("lmlp.gui.button.confirm_offline_cache_not_found")) + 10;
-        int cancelWidth = this.getStringWidth(StringUtils.translate("lmlp.gui.button.keep_looking")) + 10;
-        return Math.max(confirmWidth, cancelWidth);
-    }
-
-    @Override
-    protected void createButton(int x, int y, int width, ButtonType type) {
-        String labelKey = type == ButtonType.OK
-                ? "lmlp.gui.button.confirm_offline_cache_not_found"
-                : "lmlp.gui.button.keep_looking";
-        String color = type == ButtonType.OK ? GuiBase.TXT_GREEN : GuiBase.TXT_RED;
-        ButtonGeneric button = new ButtonGeneric(x, y, width, 20, color + StringUtils.translate(labelKey) + GuiBase.TXT_RST);
-        this.addButton(button, this.createActionListener(type));
-    }
-
-    private static String originText(KnownPlacementContext context) {
-        if (context == null || context.originPosition() == null || context.originPosition().isEmpty()) {
-            return StringUtils.translate("lmlp.gui.known_placement.origin_unknown");
-        }
-
-        return context.originPosition();
-    }
-
-    private int fittedDialogWidth() {
-        int width = this.getStringWidth(this.getTitleString()) + 20;
-        for (String line : this.messageLines) {
-            width = Math.max(width, this.getStringWidth(line) + 20);
-        }
-
-        width = Math.max(width, this.getButtonWidth() * 2 + 30);
-        return Math.max(MIN_DIALOG_WIDTH, Math.min(MAX_DIALOG_WIDTH, width));
     }
 }
