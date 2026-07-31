@@ -106,7 +106,7 @@ final class NativePlacementStorageIndex {
     }
 
     private static String safeDimension(String dimension) {
-        return FileNameUtils.generateSafeFileName(dimension);
+        return FileNameUtils.generateSafeFileName(dimension.replace(':', '_'));
     }
 
     record Snapshot(
