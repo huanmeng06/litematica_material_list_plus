@@ -27,4 +27,4 @@
 
 ---
 
-Full Changelog: [dev：v1.9.3 → v1.9.4](https://github.com/huanmeng06/litematica_material_list_plus/compare/65b812a76e7056d09aa0f601b6d3783b80c48d40...dev-newFeature)
+Full Changelog: [dev：v1.9.3 → v1.9.4](https://github.com/huanmeng06/litematica_material_list_plus/compare/65b812a76e7056d09aa0f601b6d3783b80c48d40...4c2cc475175e)
