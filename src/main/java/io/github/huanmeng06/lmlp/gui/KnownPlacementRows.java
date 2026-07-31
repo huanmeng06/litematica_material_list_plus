@@ -14,7 +14,6 @@ import io.github.huanmeng06.lmlp.cache.ChunkMissingMaterialListCache;
 import io.github.huanmeng06.lmlp.cache.ChunkMissingMaterialListCache.KnownPlacementContext;
 import io.github.huanmeng06.lmlp.cache.ChunkMissingMaterialListCache.ReadMode;
 import io.github.huanmeng06.lmlp.cache.MaterialListDataSource;
-import io.github.huanmeng06.lmlp.config.Configs;
 import fi.dy.masa.malilib.render.GuiContext;
 import java.io.File;
 import java.util.ArrayList;
@@ -26,10 +25,7 @@ import java.util.Locale;
 import java.util.Map;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
-import net.minecraft.core.BlockPos;
 import net.minecraft.resources.Identifier;
-import net.minecraft.world.entity.Entity;
-import net.minecraft.world.phys.Vec3;
 
 public final class KnownPlacementRows {
     public static final int ROW_HEIGHT = 24;
@@ -578,15 +574,6 @@ public final class KnownPlacementRows {
         ReadStatus readStatus = readStatus(context);
         List<String> lines = new ArrayList<>();
         addTranslatedTooltipLines(lines, readStatus.tooltipKey());
-        if (readStatus == ReadStatus.OFFLINE) {
-            if (context.schematicMissing()) {
-                lines.add(StringUtils.translate("lmlp.gui.known_placement.schematic_missing"));
-            }
-            if (!context.hasMaterialCache()) {
-                lines.add(StringUtils.translate("lmlp.gui.known_placement.offline_cache_empty"));
-            }
-        }
-
         return new PlacementStatus(readStatus.label(), readStatus.color(), lines);
     }
 
@@ -641,33 +628,6 @@ public final class KnownPlacementRows {
     public static int removeButtonWidth(WidgetBase widget) {
         String label = StringUtils.translate("litematica.gui.button.schematic_placements.remove");
         return new ButtonGeneric(0, 0, -1, true, label).getWidth();
-    }
-
-    public static boolean shouldShowOfflineMissingButton(KnownPlacementContext context) {
-        String currentDimension = currentDimensionId();
-        if (context == null
-                || !context.offlineCache()
-                || currentDimension == null
-                || !normalizedDimension(context.dimension()).equals(normalizedDimension(currentDimension))) {
-            return false;
-        }
-
-        return isNearOrigin(context);
-    }
-
-    private static boolean isNearOrigin(KnownPlacementContext context) {
-        BlockPos origin = PlacementOriginMarker.parseOrigin(context.originPosition());
-        Entity player = Minecraft.getInstance().player;
-        if (origin == null || player == null) {
-            return false;
-        }
-
-        // Range is configurable (see Configs.Generic.MISSING_PLACEMENT_BUTTON_RANGE):
-        // large enough that the player doesn't need to stand exactly on the
-        // recorded coordinate, small enough to filter out "same dimension, but
-        // nowhere near the site" false triggers.
-        double range = Configs.Generic.MISSING_PLACEMENT_BUTTON_RANGE.getIntegerValue();
-        return player.distanceToSqr(Vec3.atCenterOf(origin)) <= range * range;
     }
 
     private static int[] headerColumnPositions(WidgetBase widget, KnownPlacementRow row) {
@@ -1060,8 +1020,7 @@ public final class KnownPlacementRows {
         LIVE("lmlp.gui.known_placement.status.live", "lmlp.gui.known_placement.status.live_hint", 0xFF33FF33, 0),
         DISABLED("lmlp.gui.known_placement.status.disabled", "lmlp.gui.known_placement.status.disabled_hint", 0xFFFF5555, 1),
         CHUNK_CACHE("lmlp.gui.known_placement.status.chunk_cache", "lmlp.gui.known_placement.status.chunk_cache_hint", 0xFFFFCC66, 2),
-        DIMENSION_CACHE("lmlp.gui.known_placement.status.dimension_cache", "lmlp.gui.known_placement.status.dimension_cache_hint", 0xFF66CCFF, 3),
-        OFFLINE("lmlp.gui.known_placement.status.offline_cache", "lmlp.gui.known_placement.status.offline_cache_hint", 0xFFFF9900, 4);
+        DIMENSION_CACHE("lmlp.gui.known_placement.status.dimension_cache", "lmlp.gui.known_placement.status.dimension_cache_hint", 0xFF66CCFF, 3);
 
         private final String translationKey;
         private final String tooltipKey;
@@ -1077,7 +1036,6 @@ public final class KnownPlacementRows {
                 case LIVE -> LIVE;
                 case CHUNK_CACHE -> CHUNK_CACHE;
                 case DIMENSION_CACHE -> DIMENSION_CACHE;
-                case OFFLINE_CACHE -> OFFLINE;
             };
         }
 

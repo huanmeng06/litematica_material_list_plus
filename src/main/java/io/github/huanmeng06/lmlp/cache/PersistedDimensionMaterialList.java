@@ -7,11 +7,11 @@ import fi.dy.masa.malilib.util.StringUtils;
 
 import java.util.List;
 
-public class OfflineCachedMaterialList extends MaterialListBase {
+public class PersistedDimensionMaterialList extends MaterialListBase {
     private final String contextKey;
     private final String name;
 
-    OfflineCachedMaterialList(String contextKey, String name) {
+    PersistedDimensionMaterialList(String contextKey, String name) {
         this.contextKey = contextKey;
         this.name = name;
         this.reCreateMaterialList();
@@ -43,6 +43,6 @@ public class OfflineCachedMaterialList extends MaterialListBase {
 
     @Override
     public void reCreateMaterialList() {
-        ChunkMissingMaterialListCache.refreshOfflineMaterialList(this.contextKey, this);
+        ChunkMissingMaterialListCache.refreshPersistedDimensionMaterialList(this.contextKey, this);
     }
 }
