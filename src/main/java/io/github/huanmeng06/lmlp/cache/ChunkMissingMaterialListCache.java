@@ -476,6 +476,8 @@ public final class ChunkMissingMaterialListCache {
 
             PlacementRecord record = context.toRecord(currentWorldId);
             if (nativeSnapshot.contains(record) && nativeSnapshot.isOtherDimension(record)) {
+                SchematicPlacement cacheSource = placement != null ? placement : nativeSnapshot.restorePlacement(record);
+                context.ensureMaterialCache(cacheSource, reason + ".dimension_snapshot");
                 detachAsPersistedDimension(context, reason + ".other_dimension");
                 retainedDimensionCaches++;
             } else {
@@ -1333,8 +1335,11 @@ public final class ChunkMissingMaterialListCache {
             int rejectedContexts = 0;
             for (PlacementRecord record : result.records()) {
                 if (nativeSnapshot.contains(record) && nativeSnapshot.isOtherDimension(record)) {
-                    restorePersistedDimensionContext(record);
-                    restoredDimensionContexts++;
+                    PlacementContext context = restorePersistedDimensionContext(record);
+                    if (context != null) {
+                        context.ensureMaterialCache(nativeSnapshot.restorePlacement(record), reason + ".restore_dimension_snapshot");
+                        restoredDimensionContexts++;
+                    }
                 } else {
                     rejectedContexts++;
                 }
@@ -1366,7 +1371,7 @@ public final class ChunkMissingMaterialListCache {
         clearRuntimeState(reason, true);
     }
 
-    private static void restorePersistedDimensionContext(PlacementRecord record) {
+    private static PlacementContext restorePersistedDimensionContext(PlacementRecord record) {
         PlacementKey key = PlacementKey.ofIdentity(record.dimension(), record.schematicPath(), record.placementName(), record.placementIdentity());
         PlacementContext existing = PLACEMENT_CONTEXTS_BY_KEY.get(key);
         if (existing != null) {
@@ -1377,8 +1382,9 @@ public final class ChunkMissingMaterialListCache {
                     selectContextWithoutPersist(replacement);
                 }
                 lastKnownContext = latestKnownContext();
+                return replacement;
             }
-            return;
+            return existing;
         }
 
         PlacementContext context = new PlacementContext(record);
@@ -1389,6 +1395,7 @@ public final class ChunkMissingMaterialListCache {
         lastKnownContext = latestKnownContext();
         LOGGER.info("[LMLP cache-index] restored persisted dimension context key={} name={} dimension={} entries={} schematicMissing={}",
                 context.key(), context.name(), context.dimension(), context.materialEntries().size(), context.schematicMissing());
+        return context;
     }
 
     private static void clearRuntimeState(String reason, boolean clearWorldId) {
@@ -1674,6 +1681,36 @@ public final class ChunkMissingMaterialListCache {
             this.lastMaterialCacheUpdateTime = System.currentTimeMillis();
             LOGGER.info("[LMLP cache-index] material cache updated key={} name={} sourceState={} type={} entries={}",
                     this.key, this.name, this.sourceState, this.materialListType.getStringValue(), this.materialEntries.size());
+        }
+
+        private boolean ensureMaterialCache(SchematicPlacement cacheSource, String reason) {
+            if (this.hasMaterialCache()) {
+                return true;
+            }
+            if (cacheSource == null) {
+                LOGGER.warn("[LMLP cache-index] dimension material snapshot unavailable reason={} key={} name={} dimension={} cause=missing_placement",
+                        reason, this.key, this.name, this.dimension);
+                return false;
+            }
+
+            try {
+                List<MaterialListEntry> entries = createEntries(cacheSource, this.materialListType);
+                if (entries.isEmpty()) {
+                    LOGGER.warn("[LMLP cache-index] dimension material snapshot unavailable reason={} key={} name={} dimension={} cause=empty_entries",
+                            reason, this.key, this.name, this.dimension);
+                    return false;
+                }
+
+                this.updateMaterialCache(this.materialListType, entries);
+                this.lastReason = reason;
+                LOGGER.info("[LMLP cache-index] dimension material snapshot generated reason={} key={} name={} dimension={} entries={}",
+                        reason, this.key, this.name, this.dimension, entries.size());
+                return true;
+            } catch (RuntimeException exception) {
+                LOGGER.warn("[LMLP cache-index] dimension material snapshot failed reason={} key={} name={} dimension={}",
+                        reason, this.key, this.name, this.dimension, exception);
+                return false;
+            }
         }
 
         private void clearMaterialCache(String reason) {

@@ -4,6 +4,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import fi.dy.masa.litematica.data.DataManager;
+import fi.dy.masa.litematica.schematic.placement.SchematicPlacement;
 import fi.dy.masa.malilib.util.FileNameUtils;
 import fi.dy.masa.malilib.util.JsonUtils;
 import fi.dy.masa.malilib.util.StringUtils;
@@ -18,10 +19,8 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.stream.Stream;
 
 final class NativePlacementStorageIndex {
@@ -48,7 +47,7 @@ final class NativePlacementStorageIndex {
         }
 
         String worldPrefix = currentFileName.substring(0, currentFileName.length() - currentSuffix.length());
-        Map<String, Set<PlacementIdentity>> placementsByFile = new HashMap<>();
+        Map<String, Map<PlacementIdentity, JsonObject>> placementsByFile = new HashMap<>();
         try (Stream<Path> files = Files.list(configDirectory)) {
             files.filter(Files::isRegularFile)
                     .filter(path -> isDimensionFile(path.getFileName().toString(), worldPrefix))
@@ -64,7 +63,7 @@ final class NativePlacementStorageIndex {
                 currentDimension,
                 worldPrefix,
                 placementsByFile.size(),
-                placementsByFile.values().stream().mapToInt(Set::size).sum());
+                placementsByFile.values().stream().mapToInt(Map::size).sum());
         return new Snapshot(worldPrefix, currentDimension, Map.copyOf(placementsByFile), true);
     }
 
@@ -72,36 +71,37 @@ final class NativePlacementStorageIndex {
         return fileName.startsWith(worldPrefix + DIMENSION_SEPARATOR) && fileName.endsWith(FILE_SUFFIX);
     }
 
-    private static Set<PlacementIdentity> readPlacements(Path path) {
+    private static Map<PlacementIdentity, JsonObject> readPlacements(Path path) {
         try {
             JsonElement rootElement = JsonUtils.parseJsonFileAsPath(path);
             if (rootElement == null || !rootElement.isJsonObject()) {
-                return Set.of();
+                return Map.of();
             }
 
             JsonObject root = rootElement.getAsJsonObject();
             if (!JsonUtils.hasObject(root, "placements")) {
-                return Set.of();
+                return Map.of();
             }
 
             JsonObject placementsObject = root.getAsJsonObject("placements");
             if (!JsonUtils.hasArray(placementsObject, "placements")) {
-                return Set.of();
+                return Map.of();
             }
 
-            Set<PlacementIdentity> placements = new HashSet<>();
+            Map<PlacementIdentity, JsonObject> placements = new HashMap<>();
             for (JsonElement element : placementsObject.getAsJsonArray("placements")) {
                 if (element.isJsonObject()) {
-                    PlacementIdentity identity = PlacementIdentity.fromJson(element.getAsJsonObject());
+                    JsonObject placementObject = element.getAsJsonObject();
+                    PlacementIdentity identity = PlacementIdentity.fromJson(placementObject);
                     if (identity != null) {
-                        placements.add(identity);
+                        placements.put(identity, placementObject.deepCopy());
                     }
                 }
             }
-            return Set.copyOf(placements);
+            return Map.copyOf(placements);
         } catch (RuntimeException exception) {
             LOGGER.warn("[LMLP native-placement] placement file read failed path={}", path, exception);
-            return Set.of();
+            return Map.of();
         }
     }
 
@@ -112,7 +112,7 @@ final class NativePlacementStorageIndex {
     record Snapshot(
             String worldPrefix,
             String currentDimension,
-            Map<String, Set<PlacementIdentity>> placementsByFile,
+            Map<String, Map<PlacementIdentity, JsonObject>> placementsByFile,
             boolean available) {
         private static Snapshot unavailable() {
             return new Snapshot("", "", Map.of(), false);
@@ -124,8 +124,29 @@ final class NativePlacementStorageIndex {
             }
 
             String fileName = this.worldPrefix + DIMENSION_SEPARATOR + safeDimension(record.dimension()) + FILE_SUFFIX;
-            Set<PlacementIdentity> placements = this.placementsByFile.get(fileName);
-            return placements != null && placements.contains(PlacementIdentity.fromRecord(record));
+            Map<PlacementIdentity, JsonObject> placements = this.placementsByFile.get(fileName);
+            return placements != null && placements.containsKey(PlacementIdentity.fromRecord(record));
+        }
+
+        SchematicPlacement restorePlacement(PlacementRecord record) {
+            if (!this.available || record == null || record.dimension() == null || record.dimension().isBlank()) {
+                return null;
+            }
+
+            String fileName = this.worldPrefix + DIMENSION_SEPARATOR + safeDimension(record.dimension()) + FILE_SUFFIX;
+            Map<PlacementIdentity, JsonObject> placements = this.placementsByFile.get(fileName);
+            JsonObject placementObject = placements == null ? null : placements.get(PlacementIdentity.fromRecord(record));
+            if (placementObject == null) {
+                return null;
+            }
+
+            try {
+                return SchematicPlacement.fromJson(placementObject.deepCopy());
+            } catch (RuntimeException exception) {
+                LOGGER.warn("[LMLP native-placement] placement restore failed dimension={} name={} schematic={}",
+                        record.dimension(), record.placementName(), record.schematicPath(), exception);
+                return null;
+            }
         }
 
         boolean isOtherDimension(PlacementRecord record) {
