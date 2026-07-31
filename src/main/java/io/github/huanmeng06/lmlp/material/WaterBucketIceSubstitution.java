@@ -97,13 +97,30 @@ public final class WaterBucketIceSubstitution {
         }
     }
 
+    /**
+     * Returns the live inventory count for an ice row. Ice is a normal inventory item;
+     * water-bucket substitution must not cap its visible count at the schematic demand.
+     */
+    public static int availableForDisplay(MaterialListEntry entry) {
+        if (entry == null || !ICE_ID.equals(ItemStackTexts.id(entry.getStack()))) {
+            return entry == null ? 0 : entry.getCountAvailable();
+        }
+
+        ItemStack iceStack = iceStack();
+        return iceStack == null ? entry.getCountAvailable() : InventoryCounts.current().count(iceStack);
+    }
+
     private static void track(MaterialListEntry entry) {
         SUBSTITUTED_ICE_ENTRIES.removeIf(reference -> reference.get() == null);
         SUBSTITUTED_ICE_ENTRIES.add(new WeakReference<>(entry));
     }
 
     private static ItemStack iceStack() {
-        Item item = BuiltInRegistries.ITEM.getOptional(Identifier.parse(ICE_ID)).orElse(null);
-        return item == null ? null : new ItemStack(item, 1);
+        try {
+            Item item = BuiltInRegistries.ITEM.getOptional(Identifier.parse(ICE_ID)).orElse(null);
+            return item == null ? null : new ItemStack(item, 1);
+        } catch (RuntimeException exception) {
+            return null;
+        }
     }
 }

@@ -32,8 +32,7 @@ public abstract class GuiSchematicLoadMixin extends GuiSchematicBrowserBase {
     @Inject(method = "createButtons", at = @At("TAIL"))
     private void lmlp$addPreferredReplacementButton(CallbackInfo ci) {
         WidgetSchematicBrowser browser = this.getListWidget();
-        DirectoryEntry entry = browser != null ? browser.getLastSelectedEntry() : null;
-        if (entry == null || FileType.fromFile(entry.getFullPath()) != FileType.LITEMATICA_SCHEMATIC) {
+        if (browser == null) {
             return;
         }
 
@@ -83,6 +82,13 @@ public abstract class GuiSchematicLoadMixin extends GuiSchematicBrowserBase {
         }
 
         Path source = entry.getFullPath();
+        if (FileType.fromFile(source) != FileType.LITEMATICA_SCHEMATIC) {
+            this.addMessage(
+                    MessageType.ERROR,
+                    "litematica.error.schematic_read_from_file_failed.cant_read",
+                    source.getFileName());
+            return;
+        }
         if (!Files.isReadable(source)) {
             this.addMessage(
                     MessageType.ERROR,
@@ -91,9 +97,14 @@ public abstract class GuiSchematicLoadMixin extends GuiSchematicBrowserBase {
             return;
         }
 
-        LitematicaSchematic schematic = LitematicaSchematic.createFromFile(
-                entry.getDirectory(),
-                entry.name());
+        LitematicaSchematic schematic;
+        try {
+            schematic = LitematicaSchematic.createFromFile(
+                    entry.getDirectory(),
+                    entry.name());
+        } catch (RuntimeException exception) {
+            schematic = null;
+        }
         if (schematic == null) {
             this.addMessage(
                     MessageType.ERROR,
