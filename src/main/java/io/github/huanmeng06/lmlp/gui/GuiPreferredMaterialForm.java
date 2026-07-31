@@ -4,6 +4,7 @@ import fi.dy.masa.litematica.materials.MaterialListBase;
 import fi.dy.masa.litematica.materials.MaterialListPlacement;
 import fi.dy.masa.litematica.schematic.LitematicaSchematic;
 import fi.dy.masa.litematica.schematic.placement.SchematicPlacement;
+import fi.dy.masa.litematica.util.FileType;
 import fi.dy.masa.malilib.config.IConfigBoolean;
 import fi.dy.masa.malilib.gui.GuiBase;
 import fi.dy.masa.malilib.gui.GuiConfigsBase;
@@ -14,6 +15,7 @@ import fi.dy.masa.malilib.util.StringUtils;
 import io.github.huanmeng06.lmlp.LitematicaMaterialListPlus;
 import io.github.huanmeng06.lmlp.access.MaterialListPlacementAccess;
 import io.github.huanmeng06.lmlp.cache.ChunkMissingMaterialList;
+import io.github.huanmeng06.lmlp.cache.ChunkMissingMaterialListCache;
 import io.github.huanmeng06.lmlp.config.BedMaterial;
 import io.github.huanmeng06.lmlp.config.CandleMaterial;
 import io.github.huanmeng06.lmlp.config.CarpetMaterial;
@@ -125,6 +127,14 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
 
     public static GuiPreferredMaterialForm forMaterialList(class_437 parent, MaterialListBase materialList) {
         SchematicPlacement placement = resolvePlacement(materialList);
+        if (placement == null) {
+            Path sourceFile = ChunkMissingMaterialListCache.preferredSchematicPath(
+                    materialList,
+                    "preferred_replacement.material_list");
+            LitematicaSchematic schematic = loadSchematic(sourceFile);
+            return new GuiPreferredMaterialForm(parent, null, schematic, sourceFile);
+        }
+
         return new GuiPreferredMaterialForm(
                 parent,
                 placement,
@@ -143,6 +153,21 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
 
     public boolean hasSchematic() {
         return this.schematic != null;
+    }
+
+    private static LitematicaSchematic loadSchematic(Path sourceFile) {
+        if (sourceFile == null || sourceFile.getParent() == null || sourceFile.getFileName() == null) {
+            return null;
+        }
+
+        try {
+            return LitematicaSchematic.createFromFile(
+                    sourceFile.toFile().getParentFile(),
+                    sourceFile.getFileName().toString(),
+                    FileType.LITEMATICA_SCHEMATIC);
+        } catch (RuntimeException exception) {
+            return null;
+        }
     }
 
     @Override
