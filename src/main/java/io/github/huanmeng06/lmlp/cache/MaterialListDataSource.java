@@ -4,6 +4,5 @@ public enum MaterialListDataSource {
     UNKNOWN,
     WORLD_SCAN,
     SCHEMATIC_CACHE,
-    CROSS_DIMENSION_CACHE,
-    OFFLINE_CACHE
+    CROSS_DIMENSION_CACHE
 }
