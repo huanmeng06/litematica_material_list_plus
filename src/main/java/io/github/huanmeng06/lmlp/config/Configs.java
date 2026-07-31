@@ -116,6 +116,13 @@ public class Configs implements IConfigHandler {
                 "lmlp.config.name.show_allocation_details"
         );
 
+        public static final ConfigBoolean SHOW_PREFERRED_REPLACEMENT_BUTTON_IN_MATERIAL_LIST = new ConfigBoolean(
+                "showPreferredReplacementButtonInMaterialList",
+                true,
+                "lmlp.config.comment.show_preferred_replacement_button_in_material_list",
+                "lmlp.config.name.show_preferred_replacement_button_in_material_list"
+        );
+
         public static final ConfigInteger ORIGIN_MARKER_TIME = new ConfigInteger(
                 "originMarkerTime",
                 120,
@@ -132,15 +139,6 @@ public class Configs implements IConfigHandler {
                 5,
                 true,
                 "Text scale for the placement origin marker label. 1 is smallest, 5 is largest."
-        );
-
-        public static final ConfigInteger MISSING_PLACEMENT_BUTTON_RANGE = new ConfigInteger(
-                "missingPlacementButtonRange",
-                256,
-                8,
-                1024,
-                true,
-                "How close (in blocks) the player must be to an offline-cached placement's recorded origin for the \"I can't find it\" button to appear on that row."
         );
 
         public static final ConfigInteger HOVER_PANEL_MAX_ROWS = new ConfigInteger(
@@ -175,10 +173,10 @@ public class Configs implements IConfigHandler {
                 DISABLE_LITEMATICA_HOVER_TOOLTIP,
                 COUNT_DISPLAY_STYLE,
                 SHOW_ALLOCATION_DETAILS,
+                SHOW_PREFERRED_REPLACEMENT_BUTTON_IN_MATERIAL_LIST,
                 REPLACE_WATER_BUCKET_WITH_ICE,
                 ORIGIN_MARKER_TIME,
                 ORIGIN_MARKER_TEXT_SCALE,
-                MISSING_PLACEMENT_BUTTON_RANGE,
                 HOVER_PANEL_MAX_ROWS
         );
 
