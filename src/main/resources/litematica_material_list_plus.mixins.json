@@ -13,6 +13,7 @@
     "ConfigButtonOptionListMixin",
     "ConfigButtonStringListMixin",
     "GuiListBaseMixin",
+    "GuiSchematicLoadMixin",
     "GuiSchematicLoadedListMixin",
     "GuiSchematicPlacementsListMixin",
     "HandledScreenMixin",
