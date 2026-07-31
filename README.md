@@ -10,7 +10,7 @@
 
 </div>
 
-Litematica Material List Plus（简称 **LMLP**）是一个面向 Minecraft Fabric 客户端的 Litematica 扩展模组。它保留 Litematica 原有的投影材料列表，并补充数量格式化、配方递归、库存抵扣、材料偏好替换和 XLSX 导出。
+这是一个面向 Litematica 扩展模组。它保留 Litematica 原有的投影材料列表，并补充数量格式化、配方递归、库存抵扣、材料偏好替换和 XLSX 导出等功能。
 
 如果您喜欢我的模组，不妨点击右上角 ⭐️Stars 支持一下！您的支持就是我更新的最大动力！🥰
 
