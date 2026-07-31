@@ -48,6 +48,7 @@ public abstract class GuiSchematicLoadMixin extends GuiSchematicBrowserBase {
             return;
         }
 
+        int materialListX = materialListButton.getX();
         int y = materialListButton.getY();
         ButtonBase rightAlignedButton = buttons.get(buttons.size() - 1);
         String label = StringUtils.translate("lmlp.gui.button.material_list.preferred_replacement");
@@ -57,13 +58,13 @@ public abstract class GuiSchematicLoadMixin extends GuiSchematicBrowserBase {
         for (ButtonBase button : buttons) {
             if (button != rightAlignedButton
                     && button.getY() == y
-                    && button.getX() > materialListButton.getX()) {
+                    && button.getX() >= materialListX) {
                 button.setX(button.getX() + shift);
             }
         }
 
         ButtonGeneric button = new ButtonGeneric(
-                materialListButton.getX() + materialListButton.getWidth() + BUTTON_SPACING,
+                materialListX,
                 y,
                 width,
                 20,
