@@ -714,6 +714,18 @@ public final class ChunkMissingMaterialListCache {
     private static PlacementResolution resolvePlacementForMaterialList(MaterialListBase materialList, String caller) {
         reconcileNativePlacementContexts(caller + ".resolve");
 
+        if (selectedMaterialListContext != null) {
+            selectedMaterialListContext.refresh(caller + ".selected_context_validate", currentDimensionId());
+            if (selectedMaterialListContext.canOpenMaterialList()) {
+                return PlacementResolution.resolved(caller, selectedMaterialListContext, PlacementSource.EXPLICIT_SELECTED, currentResolveSnapshot(caller));
+            }
+
+            LOGGER.warn("[LMLP material-list] explicit selection invalid key={} reason={} sourceState={} fallback=current_dimension",
+                    selectedMaterialListContext.key(), caller, selectedMaterialListContext.sourceState());
+            selectedMaterialListContext.setSelected(false);
+            selectedMaterialListContext = null;
+        }
+
         if (materialList instanceof PersistedDimensionMaterialList dimensionList) {
             PlacementContext context = PLACEMENT_CONTEXTS_BY_KEY.get(PlacementKey.fromString(dimensionList.contextKey()));
             if (context != null) {
@@ -735,18 +747,6 @@ public final class ChunkMissingMaterialListCache {
             rememberPlacement(placement, caller + ".available");
         }
         rememberPlacement(selected, caller + ".selected");
-
-        if (selectedMaterialListContext != null) {
-            selectedMaterialListContext.refresh(caller + ".selected_context_validate", currentDimensionId());
-            if (selectedMaterialListContext.canOpenMaterialList()) {
-                return PlacementResolution.resolved(caller, selectedMaterialListContext, PlacementSource.EXPLICIT_SELECTED, currentResolveSnapshot(caller));
-            }
-
-            LOGGER.warn("[LMLP material-list] explicit selection invalid key={} reason={} sourceState={} fallback=current_dimension",
-                    selectedMaterialListContext.key(), caller, selectedMaterialListContext.sourceState());
-            selectedMaterialListContext.setSelected(false);
-            selectedMaterialListContext = null;
-        }
 
         ResolveSnapshot snapshot = currentResolveSnapshot(caller);
         if (selected != null) {
