@@ -81,6 +81,7 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
     private final class_437 materialListParent;
     private final SchematicPlacement placement;
     private final LitematicaSchematic schematic;
+    private final Path sourceFile;
     private final PreferenceSnapshot initialPreferences;
     private final ExpandAnimationTracker detailAnimations = new ExpandAnimationTracker();
     private final List<RowState> rows = new ArrayList<>();
@@ -95,7 +96,11 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
     private PreferenceSnapshot rowsSnapshot;
     private boolean closingConfirmed;
 
-    private GuiPreferredMaterialForm(class_437 parent, SchematicPlacement placement) {
+    private GuiPreferredMaterialForm(
+            class_437 parent,
+            SchematicPlacement placement,
+            LitematicaSchematic schematic,
+            Path sourceFile) {
         super(
                 10,
                 50,
@@ -105,7 +110,8 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
         );
         this.materialListParent = parent;
         this.placement = placement;
-        this.schematic = placement == null ? null : placement.getSchematic();
+        this.schematic = schematic;
+        this.sourceFile = sourceFile;
         this.initialPreferences = PreferenceSnapshot.current();
         this.rebuildRows();
         for (PreferredMaterialCategory category : PreferredMaterialCategory.values()) {
@@ -118,7 +124,21 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
     }
 
     public static GuiPreferredMaterialForm forMaterialList(class_437 parent, MaterialListBase materialList) {
-        return new GuiPreferredMaterialForm(parent, resolvePlacement(materialList));
+        SchematicPlacement placement = resolvePlacement(materialList);
+        return new GuiPreferredMaterialForm(
+                parent,
+                placement,
+                placement != null ? placement.getSchematic() : null,
+                placement != null && placement.getSchematicFile() != null
+                        ? placement.getSchematicFile().toPath()
+                        : null);
+    }
+
+    public static GuiPreferredMaterialForm forSchematicFile(
+            class_437 parent,
+            LitematicaSchematic schematic,
+            Path sourceFile) {
+        return new GuiPreferredMaterialForm(parent, null, schematic, sourceFile);
     }
 
     public boolean hasSchematic() {
@@ -703,9 +723,7 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
                 .map(RowState::choice)
                 .toList();
 
-        Path source = this.placement.getSchematicFile() == null
-                ? null
-                : this.placement.getSchematicFile().toPath();
+        Path source = this.sourceFile;
         GuiPreferredSchematicSave saveGui = new GuiPreferredSchematicSave(
                 this.schematic,
                 choices,

@@ -16,13 +16,14 @@ import fi.dy.masa.malilib.gui.button.IButtonActionListener;
 import fi.dy.masa.malilib.gui.widgets.WidgetLabel;
 import fi.dy.masa.malilib.util.StringUtils;
 import io.github.huanmeng06.lmlp.cache.ChunkMissingMaterialListCache;
+import io.github.huanmeng06.lmlp.config.Configs;
 import io.github.huanmeng06.lmlp.gui.GuiConfigs;
+import io.github.huanmeng06.lmlp.gui.GuiPreferredMaterialForm;
 import io.github.huanmeng06.lmlp.gui.KnownPlacementRows;
 import io.github.huanmeng06.lmlp.gui.KnownPlacementRows.ReadStatus;
 import io.github.huanmeng06.lmlp.gui.MaterialListDefaultSort;
 import io.github.huanmeng06.lmlp.export.SubMaterialExporter;
 import io.github.huanmeng06.lmlp.gui.MinimalSubMaterialListView;
-import io.github.huanmeng06.lmlp.gui.GuiPreferredMaterialForm;
 import io.github.huanmeng06.lmlp.material.CountFormatter;
 import net.minecraft.class_437;
 import org.spongepowered.asm.mixin.Final;
@@ -144,7 +145,7 @@ public abstract class GuiMaterialListMixin extends GuiListBase {
 
         // The buttons that vanilla + this mod drop onto the bottom rows in
         // narrow mode, in the same order as lmlp$reflowWrappedBottomButtons:
-        // any moved top toggles, Replace with preference, clear buttons,
+        // any moved top toggles, optional preference action, clear buttons,
         // write_to_file, and the sub-material export button.
         List<Integer> widths = new ArrayList<>();
         int movedToggles = this.lmlp$movedTopToggleCount();
@@ -154,7 +155,9 @@ public abstract class GuiMaterialListMixin extends GuiListBase {
         if (movedToggles >= 1) {
             widths.add(this.lmlp$onOffButtonWidth("litematica.gui.button.material_list.toggle_info_hud", this.materialList.getHudRenderer().getShouldRenderCustom()));
         }
-        widths.add(this.lmlp$genericButtonWidth(StringUtils.translate("lmlp.gui.button.material_list.preferred_replacement")));
+        if (this.lmlp$showPreferredReplacementButton()) {
+            widths.add(this.lmlp$genericButtonWidth(StringUtils.translate("lmlp.gui.button.material_list.preferred_replacement")));
+        }
         widths.add(this.lmlp$genericButtonWidth(StringUtils.translate("litematica.gui.button.material_list.clear_ignored")));
         widths.add(this.lmlp$genericButtonWidth(StringUtils.translate("litematica.gui.button.material_list.clear_cache")));
         widths.add(this.lmlp$genericButtonWidth(StringUtils.translate("litematica.gui.button.material_list.write_to_file")));
@@ -350,12 +353,15 @@ public abstract class GuiMaterialListMixin extends GuiListBase {
         cir.setReturnValue(Math.max(cir.getReturnValue(), this.lmlp$fullTopRowWidth()));
     }
 
-    // Insert the permanent action immediately after the HUD toggle. In wide
-    // mode, shift vanilla's clear/save actions right to make room. In narrow
-    // mode those actions have already wrapped to the bottom; a negative
-    // sentinel X places this button before them during the later reflow.
+    // Keep this entry optional because the same action is always available in
+    // the schematic browser. Every layout calculation uses the same setting so
+    // disabling it removes both the button and its reserved space.
     @Inject(method = "initGui", at = @At("TAIL"))
     private void lmlp$addPreferredReplacementButton(CallbackInfo ci) {
+        if (!this.lmlp$showPreferredReplacementButton()) {
+            return;
+        }
+
         String label = StringUtils.translate("lmlp.gui.button.material_list.preferred_replacement");
         int width = this.lmlp$genericButtonWidth(label);
         boolean narrow = this.field_22789 < this.lmlp$fullTopRowWidth();
@@ -538,7 +544,9 @@ public abstract class GuiMaterialListMixin extends GuiListBase {
         }
         x += this.lmlp$onOffButtonWidth("litematica.gui.button.material_list.hide_available", this.materialList.getHideAvailable()) + BUTTON_SPACING;
         x += this.lmlp$onOffButtonWidth("litematica.gui.button.material_list.toggle_info_hud", this.materialList.getHudRenderer().getShouldRenderCustom()) + BUTTON_SPACING;
-        x += this.lmlp$genericButtonWidth(StringUtils.translate("lmlp.gui.button.material_list.preferred_replacement")) + BUTTON_SPACING;
+        if (this.lmlp$showPreferredReplacementButton()) {
+            x += this.lmlp$genericButtonWidth(StringUtils.translate("lmlp.gui.button.material_list.preferred_replacement")) + BUTTON_SPACING;
+        }
         if (this.field_22789 < this.lmlp$fullTopRowWidth()) {
             x = 12;
         }
@@ -561,7 +569,9 @@ public abstract class GuiMaterialListMixin extends GuiListBase {
         }
         width += this.lmlp$onOffButtonWidth("litematica.gui.button.material_list.hide_available", this.materialList.getHideAvailable()) + BUTTON_SPACING;
         width += this.lmlp$onOffButtonWidth("litematica.gui.button.material_list.toggle_info_hud", this.materialList.getHudRenderer().getShouldRenderCustom()) + BUTTON_SPACING;
-        width += this.lmlp$genericButtonWidth(StringUtils.translate("lmlp.gui.button.material_list.preferred_replacement")) + BUTTON_SPACING;
+        if (this.lmlp$showPreferredReplacementButton()) {
+            width += this.lmlp$genericButtonWidth(StringUtils.translate("lmlp.gui.button.material_list.preferred_replacement")) + BUTTON_SPACING;
+        }
         width += this.lmlp$genericButtonWidth(StringUtils.translate("litematica.gui.button.material_list.clear_ignored")) + BUTTON_SPACING;
         width += this.lmlp$genericButtonWidth(StringUtils.translate("litematica.gui.button.material_list.clear_cache")) + BUTTON_SPACING;
         width += this.lmlp$genericButtonWidth(StringUtils.translate("litematica.gui.button.material_list.write_to_file")) + BUTTON_SPACING;
@@ -572,6 +582,10 @@ public abstract class GuiMaterialListMixin extends GuiListBase {
 
     private int lmlp$genericButtonWidth(String label) {
         return new ButtonGeneric(0, 0, -1, 20, label, new String[0]).getWidth();
+    }
+
+    private boolean lmlp$showPreferredReplacementButton() {
+        return Configs.Generic.SHOW_PREFERRED_REPLACEMENT_BUTTON_IN_MATERIAL_LIST.getBooleanValue();
     }
 
     private int lmlp$preferredReplacementButtonX() {

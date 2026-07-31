@@ -86,7 +86,6 @@ public final class MaterialListOpener {
     }
 
     public static MaterialListBase getOrCreateMaterialList() {
-        ChunkMissingMaterialListCache.selectCurrentPlacementForMaterialListOpen("MaterialListOpener.current_selection");
         MaterialListBase materialList = DataManager.getMaterialList();
         return ChunkMissingMaterialListCache.getOrCreateMaterialListForOpen(materialList, "MaterialListOpener");
     }
