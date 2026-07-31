@@ -139,17 +139,6 @@ public class Configs implements IConfigHandler {
                 "lmlp.config.name.origin_marker_text_scale"
         );
 
-        public static final ConfigInteger MISSING_PLACEMENT_BUTTON_RANGE = new ConfigInteger(
-                "missingPlacementButtonRange",
-                256,
-                8,
-                1024,
-                true,
-                "lmlp.config.comment.missing_placement_button_range",
-                "lmlp.config.name.missing_placement_button_range",
-                "lmlp.config.name.missing_placement_button_range"
-        );
-
         public static final ConfigInteger HOVER_PANEL_MAX_ROWS = new ConfigInteger(
                 "hoverPanelMaxRows",
                 12,
@@ -192,7 +181,6 @@ public class Configs implements IConfigHandler {
                 REPLACE_WATER_BUCKET_WITH_ICE,
                 ORIGIN_MARKER_TIME,
                 ORIGIN_MARKER_TEXT_SCALE,
-                MISSING_PLACEMENT_BUTTON_RANGE,
                 HOVER_PANEL_MAX_ROWS
         );
 

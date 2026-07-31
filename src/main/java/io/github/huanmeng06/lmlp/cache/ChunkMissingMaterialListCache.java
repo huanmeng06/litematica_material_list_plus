@@ -57,7 +57,7 @@ import java.util.Objects;
 public final class ChunkMissingMaterialListCache {
     private static final Logger LOGGER = LoggerFactory.getLogger(LitematicaMaterialListPlus.MOD_ID);
     private static final Map<SchematicPlacement, ChunkMissingMaterialList> LISTS = new IdentityHashMap<>();
-    private static final Map<String, OfflineCachedMaterialList> OFFLINE_LISTS = new LinkedHashMap<>();
+    private static final Map<String, PersistedDimensionMaterialList> DIMENSION_LISTS = new LinkedHashMap<>();
     private static final Map<SchematicPlacement, LiveScanState> LIVE_SCANS = new IdentityHashMap<>();
     private static final Map<SchematicPlacement, PlacementContext> PLACEMENT_CONTEXTS = new IdentityHashMap<>();
     private static final Map<PlacementKey, PlacementContext> PLACEMENT_CONTEXTS_BY_KEY = new LinkedHashMap<>();
@@ -82,8 +82,7 @@ public final class ChunkMissingMaterialListCache {
         }
 
         startWorldSession(worldId, reason);
-        rememberCurrentPlacements(reason + ".online_scan");
-        persistKnownContexts(reason + ".post_join_scan");
+        reconcileNativePlacementContexts(reason + ".native_reconcile");
     }
 
     public static void onWorldDisconnected(String reason) {
@@ -131,8 +130,8 @@ public final class ChunkMissingMaterialListCache {
             return "";
         }
 
-        if (materialList instanceof OfflineCachedMaterialList offlineList) {
-            return offlineList.contextKey();
+        if (materialList instanceof PersistedDimensionMaterialList dimensionList) {
+            return dimensionList.contextKey();
         }
 
         SchematicPlacement placement = placementFor(materialList);
@@ -159,7 +158,7 @@ public final class ChunkMissingMaterialListCache {
         setSchematicEntries(list, list.placement(), list.getMaterialListType());
     }
 
-    static void refreshOfflineMaterialList(String contextKey, OfflineCachedMaterialList materialList) {
+    static void refreshPersistedDimensionMaterialList(String contextKey, PersistedDimensionMaterialList materialList) {
         PlacementContext context = PLACEMENT_CONTEXTS_BY_KEY.get(PlacementKey.fromString(contextKey));
         List<MaterialListEntry> entries = context == null ? List.of() : context.materialEntries().stream()
                 .map(EntryRecord::toEntry)
@@ -170,7 +169,7 @@ public final class ChunkMissingMaterialListCache {
                 : materialList.getMaterialsAll().isEmpty() ? context.materialListType() : materialList.getMaterialListType();
 
         APPLYING_SCHEMATIC_CACHE.set(true);
-        APPLYING_CACHE_SOURCE.set(MaterialListDataSource.OFFLINE_CACHE);
+        APPLYING_CACHE_SOURCE.set(MaterialListDataSource.CROSS_DIMENSION_CACHE);
         try {
             materialList.applyCachedEntries(entries, listType);
         } finally {
@@ -179,10 +178,10 @@ public final class ChunkMissingMaterialListCache {
         }
 
         if (materialList instanceof MaterialListSourceAccess access) {
-            access.lmlp$setDataSource(MaterialListDataSource.OFFLINE_CACHE);
+            access.lmlp$setDataSource(MaterialListDataSource.CROSS_DIMENSION_CACHE);
         }
 
-        LOGGER.info("[LMLP material-list] offline cache material list refreshed key={} entries={} type={} currentDimension={}",
+        LOGGER.info("[LMLP material-list] persisted dimension material list refreshed key={} entries={} type={} currentDimension={}",
                 contextKey, entries.size(), listType.getStringValue(), currentDimensionId());
     }
 
@@ -199,13 +198,10 @@ public final class ChunkMissingMaterialListCache {
 
     // A context can point at a stale SchematicPlacement instance (Litematica
     // rebuilds its placement list on dimension change, handing out new objects)
-    // or be a disk-restored OFFLINE_CACHE with no placement, while a live
+    // or be a disk-restored dimension context with no placement, while a live
     // placement of the same identity is actually loaded right now. Before
-    // opening or treating a context as offline, re-link the current live
-    // in-manager placement of the same identity so it opens live instead of
-    // showing "离线缓存". No-op when the context is already backed by a live
-    // in-manager placement, and a genuine offline context (no live match) is
-    // left untouched.
+    // opening it, re-link the current live in-manager placement of the same
+    // dimension and identity.
     private static PlacementContext relinkLivePlacement(PlacementContext context) {
         if (context == null) {
             return null;
@@ -220,7 +216,7 @@ public final class ChunkMissingMaterialListCache {
         }
 
         for (SchematicPlacement placement : manager.getAllSchematicsPlacements()) {
-            if (PlacementKey.of(placement).equals(context.key())) {
+            if (PlacementKey.of(currentDimensionId(), placement).equals(context.key())) {
                 PlacementContext relinked = rememberPlacement(placement, "relink.live_by_identity");
                 LOGGER.info("[LMLP cache-index] relinked live placement by identity key={} name={} sourceState={} placementDimension={} currentDimension={}",
                         context.key(), context.name(), relinked == null ? null : relinked.sourceState(), context.dimension(), currentDimensionId());
@@ -239,16 +235,16 @@ public final class ChunkMissingMaterialListCache {
         }
 
         PlacementContext context = relinkLivePlacement(resolution.context());
-        if (context.isOfflineCache()) {
-            logRoute(resolution, context, ReadMode.OFFLINE_CACHE);
-            return getOrCreateOffline(context, caller);
+        if (context.isPersistedDimensionCache()) {
+            logRoute(resolution, context, ReadMode.DIMENSION_CACHE);
+            return getOrCreatePersistedDimension(context, caller);
         }
 
         return refreshForPlacementState(resolution, materialList, false);
     }
 
     public static MaterialListBase getOrCreateMaterialListForExplicitContext(String contextKey, MaterialListBase materialList, String caller) {
-        ensureWorldSession(caller + ".explicit_context");
+        reconcileNativePlacementContexts(caller + ".explicit_context");
         PlacementContext context = PLACEMENT_CONTEXTS_BY_KEY.get(PlacementKey.fromString(contextKey));
         if (context == null) {
             LOGGER.warn("[LMLP material-list] explicit context open failed reason=missing_context caller={} key={} currentDimension={} knownContexts={}",
@@ -260,8 +256,8 @@ public final class ChunkMissingMaterialListCache {
         context = relinkLivePlacement(context);
         selectContext(context, caller + ".explicit_context");
         PlacementResolution resolution = PlacementResolution.direct(context, caller + ".explicit_context");
-        if (context.isOfflineCache()) {
-            logRoute(resolution, context, ReadMode.OFFLINE_CACHE);
+        if (context.isPersistedDimensionCache()) {
+            logRoute(resolution, context, ReadMode.DIMENSION_CACHE);
             if (!context.hasMaterialCache()) {
                 LOGGER.warn("[LMLP material-list] explicit context open failed reason=missing_entries caller={} key={} name={} dimension={} sourceState={}",
                         caller, context.key(), context.name(), context.dimension(), context.sourceState());
@@ -269,7 +265,7 @@ public final class ChunkMissingMaterialListCache {
                 return null;
             }
 
-            return getOrCreateOffline(context, caller + ".explicit_context");
+            return getOrCreatePersistedDimension(context, caller + ".explicit_context");
         }
 
         return refreshForPlacementState(resolution, materialList, false);
@@ -281,16 +277,16 @@ public final class ChunkMissingMaterialListCache {
             return null;
         }
 
-        if (resolution.context().isOfflineCache()) {
-            return getOrCreateOffline(resolution.context(), "refreshLastKnownPlacement");
+        if (resolution.context().isPersistedDimensionCache()) {
+            return getOrCreatePersistedDimension(resolution.context(), "refreshLastKnownPlacement");
         }
 
         return refreshForPlacementState(resolution, materialList, false);
     }
 
     public static boolean refreshForCurrentState(MaterialListBase materialList, boolean showLiveMessage) {
-        if (materialList instanceof OfflineCachedMaterialList offlineList) {
-            offlineList.reCreateMaterialList();
+        if (materialList instanceof PersistedDimensionMaterialList dimensionList) {
+            dimensionList.reCreateMaterialList();
             return true;
         }
 
@@ -335,7 +331,7 @@ public final class ChunkMissingMaterialListCache {
     }
 
     public static void selectMaterialListContext(String contextKey, String reason) {
-        ensureWorldSession(reason + ".select_context");
+        reconcileNativePlacementContexts(reason + ".select_context");
         PlacementContext context = PLACEMENT_CONTEXTS_BY_KEY.get(PlacementKey.fromString(contextKey));
         if (context == null) {
             LOGGER.warn("[LMLP material-list] explicit context selection failed reason={} key={} currentDimension={} knownContexts={}",
@@ -347,8 +343,7 @@ public final class ChunkMissingMaterialListCache {
     }
 
     public static List<KnownPlacementContext> knownPlacementContexts() {
-        ensureWorldSession("known_contexts.snapshot");
-        rememberCurrentPlacements("known_contexts.snapshot");
+        reconcileNativePlacementContexts("known_contexts.snapshot");
         SchematicPlacementManager manager = DataManager.getSchematicPlacementManager();
         SchematicPlacement selected = manager == null ? null : manager.getSelectedSchematicPlacement();
         int placementCount = manager == null ? 0 : manager.getAllSchematicsPlacements().size();
@@ -427,28 +422,23 @@ public final class ChunkMissingMaterialListCache {
         }
 
         String key = context.key().value();
-        boolean removeOfflineContext = context.isOfflineCache();
-        LOGGER.info("[LMLP cache-clear] requested caller={} key={} name={} sourceState={} placementDimension={} currentDimension={} placementRef={} materialEntries={} removeOfflineContext={}",
+        LOGGER.info("[LMLP cache-clear] requested caller={} key={} name={} sourceState={} placementDimension={} currentDimension={} placementRef={} materialEntries={}",
                 reason, context.key(), context.name(), context.sourceState(), context.dimension(), currentDimensionId(),
-                context.placement() != null, context.materialEntries().size(), removeOfflineContext);
+                context.placement() != null, context.materialEntries().size());
 
         if (context.placement() != null) {
             LISTS.remove(context.placement());
             LIVE_SCANS.remove(context.placement());
         }
-        OFFLINE_LISTS.remove(key);
+        DIMENSION_LISTS.remove(key);
         IgnoredMaterialRegistry.clearPlacement(key);
         MaterialListPlusState.clearRecipeCaches();
 
-        if (removeOfflineContext) {
-            forgetContext(context, reason + ".clear_offline_cache", true);
-        } else {
-            context.clearMaterialCache(reason + ".clear_online_cache");
-            persistKnownContexts(reason + ".cache_cleared");
-        }
+        context.clearMaterialCache(reason + ".clear_material_cache");
+        persistKnownContexts(reason + ".cache_cleared");
 
-        LOGGER.info("[LMLP cache-clear] completed caller={} key={} removedOfflineContext={} remainingKnownContexts={}",
-                reason, key, removeOfflineContext, PLACEMENT_CONTEXTS_BY_KEY.size());
+        LOGGER.info("[LMLP cache-clear] completed caller={} key={} remainingKnownContexts={}",
+                reason, key, PLACEMENT_CONTEXTS_BY_KEY.size());
         InfoUtils.showGuiOrInGameMessage(MessageType.INFO, "lmlp.message.cache_cleared");
         return true;
     }
@@ -460,20 +450,43 @@ public final class ChunkMissingMaterialListCache {
         }
     }
 
-    public static void rememberCurrentPlacements(String reason) {
+    public static void reconcileNativePlacementContexts(String reason) {
+        ensureWorldSession(reason + ".world_session");
+        String currentDimension = currentDimensionId();
         SchematicPlacementManager manager = DataManager.getSchematicPlacementManager();
-        if (manager == null) {
+        if (currentWorldId == null || currentDimension == null || manager == null) {
             return;
         }
 
-        int count = 0;
-        for (SchematicPlacement placement : manager.getAllSchematicsPlacements()) {
-            rememberPlacement(placement, reason + ".available");
-            count++;
+        NativePlacementStorageIndex.Snapshot nativeSnapshot = NativePlacementStorageIndex.load(currentDimension, reason);
+        List<SchematicPlacement> currentPlacements = List.copyOf(manager.getAllSchematicsPlacements());
+        for (SchematicPlacement placement : currentPlacements) {
+            rememberPlacement(placement, reason + ".current");
         }
         rememberPlacement(manager.getSelectedSchematicPlacement(), reason + ".selected");
-        LOGGER.debug("[LMLP cache-index] current dimension online placement scan reason={} worldId={} currentDimension={} onlinePlacements={}",
-                reason, currentWorldId, currentDimensionId(), count);
+
+        int retainedDimensionCaches = 0;
+        int removedContexts = 0;
+        for (PlacementContext context : List.copyOf(PLACEMENT_CONTEXTS_BY_KEY.values())) {
+            SchematicPlacement placement = context.placement();
+            if (placement != null && currentPlacements.contains(placement)) {
+                context.refreshOnline(placement, reason + ".current_confirmed", currentDimension);
+                continue;
+            }
+
+            PlacementRecord record = context.toRecord(currentWorldId);
+            if (nativeSnapshot.contains(record) && nativeSnapshot.isOtherDimension(record)) {
+                detachAsPersistedDimension(context, reason + ".other_dimension");
+                retainedDimensionCaches++;
+            } else {
+                forgetContext(context, reason + ".not_in_native_dimension_storage", false);
+                removedContexts++;
+            }
+        }
+
+        persistKnownContexts(reason + ".reconciled");
+        LOGGER.info("[LMLP native-placement] reconciliation completed reason={} worldId={} currentDimension={} currentPlacements={} retainedDimensionCaches={} removedContexts={} indexAvailable={}",
+                reason, currentWorldId, currentDimension, currentPlacements.size(), retainedDimensionCaches, removedContexts, nativeSnapshot.available());
     }
 
     public static MaterialListDataSource applyingCacheSource() {
@@ -488,7 +501,7 @@ public final class ChunkMissingMaterialListCache {
             return null;
         }
 
-        context.refreshOnline(placement, resolution.caller() + ".use", null);
+        context.refreshOnline(placement, resolution.caller() + ".use", currentDimensionId());
         ReadMode readMode = resolveReadMode(context);
         boolean useCache = readMode != ReadMode.LIVE;
         logRoute(resolution, context, readMode);
@@ -507,24 +520,24 @@ public final class ChunkMissingMaterialListCache {
         return materialList;
     }
 
-    private static MaterialListBase getOrCreateOffline(PlacementContext context, String caller) {
+    private static MaterialListBase getOrCreatePersistedDimension(PlacementContext context, String caller) {
         if (!context.hasMaterialCache()) {
-            LOGGER.warn("[LMLP material-list] offline cache open failed reason=missing_entries caller={} key={} name={} dimension={}",
+            LOGGER.warn("[LMLP material-list] dimension cache open failed reason=missing_entries caller={} key={} name={} dimension={}",
                     caller, context.key(), context.name(), context.dimension());
-            InfoUtils.showGuiOrInGameMessage(MessageType.ERROR, "lmlp.message.offline_cache_missing");
+            InfoUtils.showGuiOrInGameMessage(MessageType.ERROR, "lmlp.message.dimension_cache_missing");
             return null;
         }
 
-        OfflineCachedMaterialList list = OFFLINE_LISTS.get(context.key().value());
+        PersistedDimensionMaterialList list = DIMENSION_LISTS.get(context.key().value());
         if (list == null) {
-            list = new OfflineCachedMaterialList(context.key().value(), context.name());
-            OFFLINE_LISTS.put(context.key().value(), list);
+            list = new PersistedDimensionMaterialList(context.key().value(), context.name());
+            DIMENSION_LISTS.put(context.key().value(), list);
         } else {
             list.reCreateMaterialList();
         }
 
         DataManager.setMaterialList(list);
-        LOGGER.info("[LMLP material-list] opened offline cache caller={} key={} name={} dimension={} entries={} currentDimension={}",
+        LOGGER.info("[LMLP material-list] opened persisted dimension cache caller={} key={} name={} dimension={} entries={} currentDimension={}",
                 caller, context.key(), context.name(), context.dimension(), context.materialEntries().size(), currentDimensionId());
         return list;
     }
@@ -546,7 +559,7 @@ public final class ChunkMissingMaterialListCache {
 
     public static ReadMode resolveReadMode(KnownPlacementContext context) {
         if (context == null) {
-            return ReadMode.OFFLINE_CACHE;
+            return null;
         }
 
         return resolveReadMode(PlacementKey.fromString(context.key()), context);
@@ -565,7 +578,7 @@ public final class ChunkMissingMaterialListCache {
         ReadMode contextMode = runtimeContext != null
                 ? resolveReadMode(runtimeContext)
                 : snapshot == null
-                        ? ReadMode.OFFLINE_CACHE
+                        ? null
                         : resolveReadMode(snapshot.sourceState(), snapshot.placement(), snapshot.dimension());
         ReadMode activeMaterialListMode = activeMaterialListReadMode(key, snapshot == null ? null : snapshot.placement());
         if (activeMaterialListMode != null
@@ -583,7 +596,6 @@ public final class ChunkMissingMaterialListCache {
             // load, until a new world scan replaces it.
             case CHUNK_CACHE -> contextMode == ReadMode.CHUNK_CACHE || contextMode == ReadMode.LIVE;
             case DIMENSION_CACHE -> contextMode == ReadMode.DIMENSION_CACHE;
-            case OFFLINE_CACHE -> contextMode == ReadMode.OFFLINE_CACHE;
             case LIVE -> contextMode == ReadMode.LIVE;
         };
     }
@@ -607,7 +619,6 @@ public final class ChunkMissingMaterialListCache {
             case WORLD_SCAN -> ReadMode.LIVE;
             case SCHEMATIC_CACHE -> ReadMode.CHUNK_CACHE;
             case CROSS_DIMENSION_CACHE -> ReadMode.DIMENSION_CACHE;
-            case OFFLINE_CACHE -> ReadMode.OFFLINE_CACHE;
             default -> null;
         };
     }
@@ -633,8 +644,8 @@ public final class ChunkMissingMaterialListCache {
     }
 
     private static PlacementKey materialListKey(MaterialListBase materialList) {
-        if (materialList instanceof OfflineCachedMaterialList offlineList) {
-            return PlacementKey.fromString(offlineList.contextKey());
+        if (materialList instanceof PersistedDimensionMaterialList dimensionList) {
+            return PlacementKey.fromString(dimensionList.contextKey());
         }
 
         SchematicPlacement placement = placementFor(materialList);
@@ -649,8 +660,7 @@ public final class ChunkMissingMaterialListCache {
     public static boolean isSchematicCacheSource(MaterialListBase materialList) {
         MaterialListDataSource dataSource = dataSource(materialList);
         return dataSource == MaterialListDataSource.SCHEMATIC_CACHE
-                || dataSource == MaterialListDataSource.CROSS_DIMENSION_CACHE
-                || dataSource == MaterialListDataSource.OFFLINE_CACHE;
+                || dataSource == MaterialListDataSource.CROSS_DIMENSION_CACHE;
     }
 
     public static boolean isWorldScanSource(MaterialListBase materialList) {
@@ -700,10 +710,10 @@ public final class ChunkMissingMaterialListCache {
     }
 
     private static PlacementResolution resolvePlacementForMaterialList(MaterialListBase materialList, String caller) {
-        ensureWorldSession(caller + ".resolve");
+        reconcileNativePlacementContexts(caller + ".resolve");
 
-        if (materialList instanceof OfflineCachedMaterialList offlineList) {
-            PlacementContext context = PLACEMENT_CONTEXTS_BY_KEY.get(PlacementKey.fromString(offlineList.contextKey()));
+        if (materialList instanceof PersistedDimensionMaterialList dimensionList) {
+            PlacementContext context = PLACEMENT_CONTEXTS_BY_KEY.get(PlacementKey.fromString(dimensionList.contextKey()));
             if (context != null) {
                 ResolveSnapshot snapshot = currentResolveSnapshot(caller);
                 return PlacementResolution.resolved(caller, context, PlacementSource.EXPLICIT_SELECTED, snapshot);
@@ -725,7 +735,7 @@ public final class ChunkMissingMaterialListCache {
         rememberPlacement(selected, caller + ".selected");
 
         if (selectedMaterialListContext != null) {
-            selectedMaterialListContext.refresh(caller + ".selected_context_validate", null);
+            selectedMaterialListContext.refresh(caller + ".selected_context_validate", currentDimensionId());
             if (selectedMaterialListContext.canOpenMaterialList()) {
                 return PlacementResolution.resolved(caller, selectedMaterialListContext, PlacementSource.EXPLICIT_SELECTED, currentResolveSnapshot(caller));
             }
@@ -768,25 +778,30 @@ public final class ChunkMissingMaterialListCache {
 
         boolean inCurrentManager = isPlacementInCurrentManager(placement);
         String currentDimension = currentDimensionId();
-        String dimension = inCurrentManager ? currentDimension : null;
+        if (!inCurrentManager || currentDimension == null) {
+            LOGGER.debug("[LMLP cache-index] placement ignored reason={} name={} inCurrentManager={} currentDimension={}",
+                    reason, placementDebugName(placement), inCurrentManager, currentDimension);
+            return null;
+        }
+
         PlacementContext context = PLACEMENT_CONTEXTS.get(placement);
         if (context == null) {
-            PlacementKey key = PlacementKey.of(placement);
+            PlacementKey key = PlacementKey.of(currentDimension, placement);
             context = PLACEMENT_CONTEXTS_BY_KEY.get(key);
             if (context != null) {
-                context.upgradeOnline(placement, dimension, reason);
+                context.upgradeOnline(placement, currentDimension, reason);
                 PLACEMENT_CONTEXTS.put(placement, context);
-                LOGGER.debug("[LMLP cache-index] offline context upgraded to online reason={} key={} name={} dimension={} currentDimension={}",
+                LOGGER.debug("[LMLP cache-index] dimension context upgraded to online reason={} key={} name={} dimension={} currentDimension={}",
                         reason, context.key(), context.name(), context.dimension(), currentDimensionId());
             } else {
-                context = new PlacementContext(placement, dimension, reason);
+                context = new PlacementContext(placement, currentDimension, reason);
                 PLACEMENT_CONTEXTS.put(placement, context);
                 PLACEMENT_CONTEXTS_BY_KEY.put(context.key(), context);
                 LOGGER.debug("[LMLP material-list] remember placement reason={} key={} name={} dimension={} inCurrentManager={} schematic={} signature={}",
                         reason, context.key(), context.name(), context.dimension(), inCurrentManager, context.schematicPath(), context.signature());
             }
         } else {
-            context.refreshOnline(placement, reason, dimension);
+            context.refreshOnline(placement, reason, currentDimension);
         }
 
         lastKnownContext = context;
@@ -823,10 +838,8 @@ public final class ChunkMissingMaterialListCache {
             return removed;
         }
 
-        forgetContext(context, context.isOfflineCache() ? "remove.offline_cache_only" : "remove.known_context_only", true);
-        InfoUtils.showGuiOrInGameMessage(MessageType.INFO, context.isOfflineCache()
-                ? "lmlp.message.offline_cache_removed"
-                : "lmlp.message.known_placement_removed_return_to_dimension");
+        forgetContext(context, "remove.known_context_only", true);
+        InfoUtils.showGuiOrInGameMessage(MessageType.INFO, "lmlp.message.known_placement_removed_return_to_dimension");
         return true;
     }
 
@@ -874,7 +887,7 @@ public final class ChunkMissingMaterialListCache {
             LIVE_SCANS.remove(context.placement());
         }
         PLACEMENT_CONTEXTS_BY_KEY.remove(context.key());
-        OFFLINE_LISTS.remove(context.key().value());
+        DIMENSION_LISTS.remove(context.key().value());
         if (lastKnownContext == context) {
             lastKnownContext = latestKnownContext();
         }
@@ -886,6 +899,17 @@ public final class ChunkMissingMaterialListCache {
         if (persist) {
             persistKnownContexts(reason + ".forgotten");
         }
+    }
+
+    private static void detachAsPersistedDimension(PlacementContext context, String reason) {
+        SchematicPlacement placement = context.placement();
+        if (placement != null) {
+            PLACEMENT_CONTEXTS.remove(placement);
+            LISTS.remove(placement);
+            LIVE_SCANS.remove(placement);
+        }
+        DIMENSION_LISTS.remove(context.key().value());
+        context.detachAsPersistedDimension(reason);
     }
 
     private static void rekeyContext(PlacementContext context, PlacementKey oldKey) {
@@ -918,15 +942,20 @@ public final class ChunkMissingMaterialListCache {
 
     private static ReadMode resolveReadMode(PlacementContext context) {
         if (context == null) {
-            return ReadMode.OFFLINE_CACHE;
+            return null;
         }
 
         return resolveReadMode(context.sourceState(), context.placement(), context.dimension());
     }
 
     private static ReadMode resolveReadMode(SourceState sourceState, SchematicPlacement placement, String dimension) {
+        if (sourceState == SourceState.PERSISTED_DIMENSION) {
+            return !Objects.equals(normalizedDimension(dimension), normalizedDimension(currentDimensionId()))
+                    ? ReadMode.DIMENSION_CACHE
+                    : null;
+        }
         if (sourceState != SourceState.ONLINE || placement == null) {
-            return ReadMode.OFFLINE_CACHE;
+            return null;
         }
 
         String currentDimension = currentDimensionId();
@@ -935,7 +964,7 @@ public final class ChunkMissingMaterialListCache {
         }
 
         if (!isPlacementInCurrentManager(placement)) {
-            return ReadMode.OFFLINE_CACHE;
+            return null;
         }
 
         return arePlacementChunksLoaded(placement) ? ReadMode.LIVE : ReadMode.CHUNK_CACHE;
@@ -950,7 +979,6 @@ public final class ChunkMissingMaterialListCache {
             case LIVE -> MaterialListDataSource.WORLD_SCAN;
             case CHUNK_CACHE -> MaterialListDataSource.SCHEMATIC_CACHE;
             case DIMENSION_CACHE -> MaterialListDataSource.CROSS_DIMENSION_CACHE;
-            case OFFLINE_CACHE -> MaterialListDataSource.OFFLINE_CACHE;
         };
     }
 
@@ -960,7 +988,7 @@ public final class ChunkMissingMaterialListCache {
     }
 
     private static String placementDebugName(SchematicPlacement placement) {
-        return placement == null ? "<offline-cache>" : placement.getName() + "@" + schematicPath(placement);
+        return placement == null ? "<dimension-cache>" : placement.getName() + "@" + schematicPath(placement);
     }
 
     private static boolean isPlacementInCurrentDimension(SchematicPlacement placement) {
@@ -1009,7 +1037,7 @@ public final class ChunkMissingMaterialListCache {
         return colon >= 0 ? normalized.substring(colon + 1) : normalized;
     }
 
-    private static String normalizedDimension(String dimension) {
+    static String normalizedDimension(String dimension) {
         if (dimension == null) {
             return "";
         }
@@ -1300,19 +1328,34 @@ public final class ChunkMissingMaterialListCache {
         loadingWorldIndex = true;
         try {
             LoadResult result = WorldMaterialCacheIndex.load(worldId);
+            NativePlacementStorageIndex.Snapshot nativeSnapshot = NativePlacementStorageIndex.load(currentDimensionId(), reason + ".restore");
+            int restoredDimensionContexts = 0;
+            int rejectedContexts = 0;
             for (PlacementRecord record : result.records()) {
-                restoreOfflineContext(record);
+                if (nativeSnapshot.contains(record) && nativeSnapshot.isOtherDimension(record)) {
+                    restorePersistedDimensionContext(record);
+                    restoredDimensionContexts++;
+                } else {
+                    rejectedContexts++;
+                }
             }
 
             if (result.selectedKey() != null) {
-                PlacementContext selected = PLACEMENT_CONTEXTS_BY_KEY.get(PlacementKey.fromString(result.selectedKey()));
+                PlacementContext selected = result.records().stream()
+                        .filter(record -> result.selectedKey().equals(record.key()))
+                        .map(record -> PlacementKey.ofIdentity(record.dimension(), record.schematicPath(), record.placementName(), record.placementIdentity()))
+                        .map(PLACEMENT_CONTEXTS_BY_KEY::get)
+                        .filter(Objects::nonNull)
+                        .findFirst()
+                        .orElse(null);
                 if (selected != null) {
                     selectContextWithoutPersist(selected);
                 }
             }
 
-            LOGGER.info("[LMLP cache-index] world session loaded reason={} worldId={} path={} restoredOfflineContexts={} selectedKey={}",
-                    reason, worldId, result.file().getAbsolutePath(), result.records().size(), result.selectedKey());
+            LOGGER.info("[LMLP cache-index] world session loaded reason={} worldId={} path={} restoredDimensionContexts={} rejectedContexts={} selectedKey={} nativeIndexAvailable={}",
+                    reason, worldId, result.file().getAbsolutePath(), restoredDimensionContexts, rejectedContexts,
+                    result.selectedKey(), nativeSnapshot.available());
         } finally {
             loadingWorldIndex = false;
         }
@@ -1323,14 +1366,10 @@ public final class ChunkMissingMaterialListCache {
         clearRuntimeState(reason, true);
     }
 
-    private static void restoreOfflineContext(PlacementRecord record) {
-        PlacementKey key = PlacementKey.ofIdentity(record.schematicPath(), record.placementName(), record.placementIdentity());
+    private static void restorePersistedDimensionContext(PlacementRecord record) {
+        PlacementKey key = PlacementKey.ofIdentity(record.dimension(), record.schematicPath(), record.placementName(), record.placementIdentity());
         PlacementContext existing = PLACEMENT_CONTEXTS_BY_KEY.get(key);
         if (existing != null) {
-            // A pre-fix disk file can hold several records for the same physical
-            // placement under different dimensions; they now collapse onto one
-            // key. Keep whichever restored record carries the richer material
-            // cache so the migration doesn't drop cached entries.
             if (record.entries().size() > existing.materialEntries().size()) {
                 PlacementContext replacement = new PlacementContext(record);
                 PLACEMENT_CONTEXTS_BY_KEY.put(replacement.key(), replacement);
@@ -1348,13 +1387,13 @@ public final class ChunkMissingMaterialListCache {
             selectContextWithoutPersist(context);
         }
         lastKnownContext = latestKnownContext();
-        LOGGER.info("[LMLP cache-index] restored offline context key={} name={} dimension={} entries={} schematicMissing={}",
+        LOGGER.info("[LMLP cache-index] restored persisted dimension context key={} name={} dimension={} entries={} schematicMissing={}",
                 context.key(), context.name(), context.dimension(), context.materialEntries().size(), context.schematicMissing());
     }
 
     private static void clearRuntimeState(String reason, boolean clearWorldId) {
         LISTS.clear();
-        OFFLINE_LISTS.clear();
+        DIMENSION_LISTS.clear();
         LIVE_SCANS.clear();
         PLACEMENT_CONTEXTS.clear();
         PLACEMENT_CONTEXTS_BY_KEY.clear();
@@ -1367,10 +1406,8 @@ public final class ChunkMissingMaterialListCache {
     }
 
     // Marks the world cache dirty instead of writing immediately. The actual
-    // write is coalesced to at most once per client tick (flushPendingPersistence),
-    // because rememberCurrentPlacements calls rememberPlacement -> persist in a
-    // loop over every placement, which otherwise rewrote the whole JSON N times
-    // per GUI open. Critical persist-then-clear paths flush synchronously.
+    // write is coalesced to at most once per client tick because placement
+    // reconciliation can touch every placement in one pass.
     private static void persistKnownContexts(String reason) {
         pendingPersist = true;
         pendingPersistReason = reason;
@@ -1421,14 +1458,13 @@ public final class ChunkMissingMaterialListCache {
 
     public enum SourceState {
         ONLINE,
-        OFFLINE_CACHE
+        PERSISTED_DIMENSION
     }
 
     public enum ReadMode {
         LIVE,
         CHUNK_CACHE,
-        DIMENSION_CACHE,
-        OFFLINE_CACHE
+        DIMENSION_CACHE
     }
 
     private enum PlacementSource {
@@ -1510,25 +1546,18 @@ public final class ChunkMissingMaterialListCache {
             boolean schematicMissing,
             boolean hasMaterialCache,
             String materialListType) {
-        public boolean offlineCache() {
-            return this.sourceState == SourceState.OFFLINE_CACHE;
+        public boolean dimensionCache() {
+            return this.sourceState == SourceState.PERSISTED_DIMENSION;
         }
     }
 
     private record PlacementKey(String value) {
-        // The identity key is deliberately dimension-independent. Litematica
-        // placements are not dimension-scoped (getAllSchematicsPlacements()
-        // returns them all regardless of the player's dimension), and the
-        // dimension LMLP records is only the heuristic "where the player was
-        // when this placement was first remembered". Embedding it here used to
-        // let the same physical placement key differently across dimensions,
-        // orphaning its persisted record into a ghost OFFLINE_CACHE row.
-        private static PlacementKey of(SchematicPlacement placement) {
-            return ofIdentity(schematicPath(placement), placement.getName(), identitySignature(placement));
+        private static PlacementKey of(String dimension, SchematicPlacement placement) {
+            return ofIdentity(dimension, schematicPath(placement), placement.getName(), identitySignature(placement));
         }
 
-        private static PlacementKey ofIdentity(String schematicPath, String name, String identitySignature) {
-            return new PlacementKey(nz(schematicPath) + '|' + nz(name) + '|' + nz(identitySignature));
+        private static PlacementKey ofIdentity(String dimension, String schematicPath, String name, String identitySignature) {
+            return new PlacementKey(nz(dimension) + '|' + nz(schematicPath) + '|' + nz(name) + '|' + nz(identitySignature));
         }
 
         private static String nz(String value) {
@@ -1572,7 +1601,7 @@ public final class ChunkMissingMaterialListCache {
             this.schematicPath = ChunkMissingMaterialListCache.schematicPath(placement);
             this.schematicName = ChunkMissingMaterialListCache.schematicName(this.schematicPath);
             this.originPosition = ChunkMissingMaterialListCache.originPosition(placement);
-            this.key = PlacementKey.of(placement);
+            this.key = PlacementKey.of(dimension, placement);
             this.name = placement.getName();
             this.dimension = dimension;
             this.lastReason = reason;
@@ -1581,12 +1610,8 @@ public final class ChunkMissingMaterialListCache {
 
         private PlacementContext(PlacementRecord record) {
             this.placement = null;
-            this.sourceState = SourceState.OFFLINE_CACHE;
-            // Recompute the key from the record's stable identity fields rather
-            // than trusting record.key(): old records carry a dimension prefix,
-            // and rebuilding here migrates them to the dimension-independent
-            // format (and collapses per-dimension duplicates on load).
-            this.key = PlacementKey.ofIdentity(record.schematicPath(), record.placementName(), record.placementIdentity());
+            this.sourceState = SourceState.PERSISTED_DIMENSION;
+            this.key = PlacementKey.ofIdentity(record.dimension(), record.schematicPath(), record.placementName(), record.placementIdentity());
             this.dimension = record.dimension();
             this.name = record.placementName();
             this.schematicName = record.schematicName();
@@ -1629,15 +1654,17 @@ public final class ChunkMissingMaterialListCache {
             this.schematicPath = ChunkMissingMaterialListCache.schematicPath(placement);
             this.schematicName = ChunkMissingMaterialListCache.schematicName(this.schematicPath);
             this.originPosition = ChunkMissingMaterialListCache.originPosition(placement);
-            if (this.dimension == null && currentDimension != null) {
-                this.dimension = currentDimension;
-                LOGGER.info("[LMLP material-list] placement dimension learned reason={} name={} dimension={} schematic={} signature={}",
-                        reason, this.name, this.dimension, this.schematicPath, this.signature);
-            }
+            this.dimension = currentDimension;
 
             PlacementKey oldKey = this.key;
-            this.key = PlacementKey.of(placement);
+            this.key = PlacementKey.of(currentDimension, placement);
             rekeyContext(this, oldKey);
+        }
+
+        private void detachAsPersistedDimension(String reason) {
+            this.placement = null;
+            this.sourceState = SourceState.PERSISTED_DIMENSION;
+            this.lastReason = reason;
         }
 
         private void updateMaterialCache(BlockInfoListType type, List<MaterialListEntry> entries) {
@@ -1709,11 +1736,12 @@ public final class ChunkMissingMaterialListCache {
         }
 
         private boolean canOpenMaterialList() {
-            return this.placement != null || this.hasMaterialCache();
+            return this.sourceState == SourceState.ONLINE && this.placement != null
+                    || this.sourceState == SourceState.PERSISTED_DIMENSION && this.hasMaterialCache();
         }
 
-        private boolean isOfflineCache() {
-            return this.sourceState == SourceState.OFFLINE_CACHE || this.placement == null;
+        private boolean isPersistedDimensionCache() {
+            return this.sourceState == SourceState.PERSISTED_DIMENSION && this.placement == null;
         }
 
         private boolean schematicMissing() {
