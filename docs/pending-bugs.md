@@ -271,3 +271,249 @@ MaLiLib 的包装器使用全局共享且可变的 `TextFieldType.STRING`。当�
 ### 修复方式
 
 光柱继续留在世界渲染中；准星和三行信息使用 `GameRenderer.projectPointToScreen(...)` 投影到 GUI 坐标，并通过 Fabric HUD 最后一层绘制。准星固定为 20 x 20 GUI 像素，信息框只受用户配置的文字缩放控制，不再随距离变化，同时始终位于投影线之上。
+
+## BUG-20260731-01：跨维度缓存材料列表无法打开材料偏好
+
+- 状态：已修复，待 RC2 实例验证
+- 已确认版本：1.20.1
+- 发现版本：1.9.4-RC1
+- 修复版本：1.9.4-RC2
+- 已同步版本：1.20.1、1.20.4、1.20.6、1.21.1、1.21.10、1.21.11、26.1.2、26.2
+
+### 现象
+
+跨维度选择投影并打开材料列表后，列表能够以“维度缓存”状态正常显示；但点击“替换为偏好”会提示：
+
+```text
+当前材料列表没有可编辑的已加载原理图。
+```
+
+### 已确认的代码原因
+
+问题发生在材料列表按钮与偏好表单之间，不是维度缓存丢失：
+
+1. `GuiMaterialListMixin.PreferredReplacementButtonListener` 点击后调用 `GuiPreferredMaterialForm.forMaterialList(...)`，随后只通过 `form.hasSchematic()` 判断能否打开；失败时统一显示“没有可编辑的已加载原理图”。
+2. `GuiPreferredMaterialForm.resolvePlacement(...)` 只识别 `ChunkMissingMaterialList` 和带 `MaterialListPlacementAccess` 的实时 `MaterialListPlacement`。
+3. 跨维度列表实际类型是 `PersistedDimensionMaterialList`。它只保存 `contextKey`，没有实时 `SchematicPlacement`，因此 `resolvePlacement(...)` 必然返回 `null`。
+4. `forMaterialList(...)` 随后同时把 `placement`、`schematic` 和 `sourceFile` 设为空，最终触发上述通用错误。
+
+因此，材料列表能够正确读取“维度缓存”，但材料偏好入口仍错误地把“存在实时投影”当成唯一可用条件。
+
+### 现有数据是否足够
+
+足够。`PersistedDimensionMaterialList.contextKey()` 可以定位 `ChunkMissingMaterialListCache` 中对应的 `PlacementContext`，而持久化记录已经包含：
+
+- `schematicPath`：原始 `.litematic` 文件的绝对路径。
+- `schematicName`、投影名称和所属维度。
+- `placementIdentity` 与 `placementSignature`。
+- 材料缓存条目及其更新时间。
+
+世界缓存恢复时还会通过 `NativePlacementStorageIndex` 对照 Litematica 自己保存的各维度投影文件；只有仍被原生维度文件确认、且属于其他维度的记录才会恢复为 `PERSISTED_DIMENSION`。因此修复无需新增第二份“离线投影”数据，也不应放宽现有原生文件校验。
+
+点击按钮时仍需重新检查路径，因为原理图文件可能在缓存恢复后被移动或删除。现有 `PlacementContext.schematicMissing()` 只检查 `File.isFile()`，实际打开前还应检查路径非空、文件可读，并让 Litematica 验证文件类型和内容。
+
+### 建议修复方案
+
+1. 为材料偏好入口增加一个明确的源解析结果，例如 `PreferredSchematicSource`，包含可选的实时 `SchematicPlacement`、必需的 `LitematicaSchematic` 和规范化的源文件路径；不要继续用 `placement != null` 同时代表“可读取原理图”和“可立即应用投影”。
+2. 实时材料列表继续走现有路径，保留 `placement`，从而在保存 preferred 副本后继续显示“应用到当前投影”的确认界面。
+3. `PersistedDimensionMaterialList` 应通过其 `contextKey` 查询缓存内部的 `PlacementContext`，读取经过校验的 `schematicPath`。不要从 `contextKey` 字符串中拆路径，因为键还包含维度、名称和投影身份，且分隔符可能与路径内容冲突。
+4. 对有效路径复用“加载原理图”页面已经使用的 `LitematicaSchematic.createFromFile(...)` 读取逻辑，并显式要求 `LITEMATICA_SCHEMATIC`。各 Minecraft 分支的 `Path`/`File` 和方法重载不同，移植时保留各分支现有适配。
+5. 缓存入口应以 `placement = null` 调用现有 `GuiPreferredMaterialForm.forSchematicFile(...)`。`GuiPreferredSchematicSave` 已有安全分支：当 `sourcePlacement == null` 时只保存 preferred 副本并返回，不进入投影替换确认。
+6. 为“缓存上下文不存在”“路径为空”“文件不存在或不可读”“Litematica 解析失败”提供不同错误提示和日志字段，避免继续全部显示成“没有已加载原理图”。
+
+### 安全边界
+
+- 不自动切换玩家维度。
+- 不把其他维度的投影注入当前维度的 `SchematicPlacementManager`。
+- 不尝试从材料缓存条目重建原理图；材料列表不包含方块坐标、方块状态和方块实体等完整数据。
+- 不在异维度缓存入口保存后自动替换原投影。此入口只能生成 preferred 原理图副本；回到对应维度后再由用户加载或应用。
+- 不绕过 `NativePlacementStorageIndex` 的原生维度文件身份校验，也不因为源文件仍存在就恢复一个已被 Litematica 删除的投影记录。
+
+### 预计涉及文件
+
+- `ChunkMissingMaterialListCache.java`：按材料列表/`contextKey` 提供只读且经过校验的偏好源信息。
+- `GuiPreferredMaterialForm.java`：把“实时投影源”和“仅文件源”统一为明确的解析结果。
+- `GuiMaterialListMixin.java`：根据解析失败原因显示准确提示。
+- 三个语言文件：补充路径缺失、不可读和解析失败提示。
+- 各版本分支的原理图文件读取兼容代码，尤其是 1.20.x、1.21.1 的 `File`/`Path` 差异。
+
+### 主要风险
+
+1. 把缓存源误当成实时投影，会在当前维度应用错误的投影状态；必须保证缓存路径的 `sourcePlacement` 始终为空。
+2. 直接信任过期路径可能编辑错误文件；应先用上下文键定位记录，再执行文件存在性、可读性和 Litematica 类型校验。
+3. 若只修改 `resolvePlacement(...)`，仍无法得到缓存原理图，因为该方法返回类型只有 `SchematicPlacement`；修复需要把“源文件可编辑”从“投影可编辑”中拆开。
+4. 不同 Litematica 版本的 `createFromFile(...)` 参数和目录条目 API 不一致，必须逐版本编译，并重点检查旧版 Mixin remap 警告。
+
+### 预期效果
+
+1. 跨维度缓存记录包含有效且可读的原理图路径时，“替换为偏好”应直接打开对应原理图的材料偏好界面。
+2. 原理图文件不存在、不可读或与缓存身份不一致时，应明确提示具体原因，不能误称为没有已加载原理图。
+3. 当前维度的实时投影材料列表保持现有编辑行为不变。
+4. 在所有支持版本中验证跨维度缓存和实时投影两条入口。
+
+### 补充验收场景
+
+1. 在主世界加载投影并形成材料缓存，进入末地，从跨维度列表打开其材料列表，再点击“替换为偏好”；应看到与源原理图对应的可替换材料行。
+2. 从缓存入口保存 preferred 副本后，当前维度的投影列表和选中项不得发生变化，也不得出现“应用到当前投影”确认界面。
+3. 回到原维度后，原投影位置、启用状态和选择状态保持不变。
+4. 删除或移动源 `.litematic` 后重复点击，应显示文件缺失/不可读提示，不崩溃、不生成空副本。
+5. 手工制造缓存键存在但上下文已被原生维度索引拒绝的情况时，不得仅凭磁盘路径重新启用入口。
+6. 重启游戏后重复有效路径场景，确认持久化恢复的上下文仍能打开偏好界面。
+7. 实时投影材料列表保存 preferred 后，原有“确认应用到当前投影”流程仍正常。
+8. 配置关闭“在材料列表中显示材料偏好按钮”后，实时与缓存材料列表都不显示该按钮，加载原理图页面入口仍保留。
+
+## BUG-20260731-02：1.21.1 配置项 `hoverPanelMaxRows` 没有翻译
+
+- 状态：已修复，待 RC2 实例验证
+- 已确认版本：1.21.1
+- 发现版本：1.9.4-RC1
+- 可能受影响版本：使用同一旧版配置构造器的 1.20.1、1.20.4、1.20.6
+- 修复版本：1.9.4-RC2
+- 已同步版本：1.20.1、1.20.4、1.20.6、1.21.1
+
+### 现象
+
+在配置界面中，“悬浮面板最大行数”显示成原始键名 `hoverPanelMaxRows`，没有显示中文翻译（截图已确认）。
+
+### 初步分析
+
+1.21.1 分支的 `Configs.Generic.HOVER_PANEL_MAX_ROWS` 使用旧版 `ConfigInteger` 六参数构造器，最后一个参数是普通注释文本，而不是显示名称翻译键。
+
+当前语言文件虽然包含：
+
+```text
+lmlp.config.name.hover_panel_max_rows
+```
+
+但该配置实例没有把这个键传给 MaLiLib 的显示名称字段，配置表格因此回退到内部配置名 `hoverPanelMaxRows`。开发分支和较新 MaLiLib 已支持带显示名称键的更长构造器，所以同一代码在 1.21.11 等版本表现不同。
+
+### 建议修复方向
+
+1. 在支持多参数构造器的版本中，补充 `lmlp.config.comment.hover_panel_max_rows` 和 `lmlp.config.name.hover_panel_max_rows` 的正确参数位置。
+2. 对只提供旧构造器的版本，沿用项目已有的翻译配置包装/匿名子类模式覆盖显示名称，不要把翻译键当作普通说明文字。
+3. 三份语言文件都保留并校验 `lmlp.config.name.hover_panel_max_rows`，同时检查其他新增配置项是否也使用了错误的旧构造器参数。
+4. 不修改配置文件中的持久化键 `hoverPanelMaxRows`，只修复界面显示名称。
+
+### 验收场景
+
+1. 1.21.1 中文界面显示“悬浮面板最大行数”，不再显示 `hoverPanelMaxRows`。
+2. 英文和繁体中文界面分别显示对应翻译。
+3. 修改数值、重启游戏后配置仍读写 `hoverPanelMaxRows`，旧配置不迁移、不丢失。
+4. 检查 1.20.1、1.20.4、1.20.6 及其他支持版本的同一配置项，确认没有同类原始键名泄漏。
+
+## BUG-20260731-03：低版本加载原理图页面缺少“替换为偏好”按钮
+
+- 状态：已修复，待 RC2 实例验证
+- 已确认版本：1.20.1、1.20.4、1.20.6、1.21.1、1.21.10、1.21.11、26.1.2、26.2
+- 发现版本：1.9.4-RC1
+- 修复版本：1.9.4-RC2
+- 已同步版本：1.20.1、1.20.4、1.20.6、1.21.1、1.21.10、1.21.11、26.1.2、26.2
+
+### 现象
+
+在低版本的“加载原理图”页面中，没有出现“替换为偏好”按钮。无论配置文件中“在材料列表中显示材料偏好按钮”开启还是关闭，现象都一样。
+
+### 已确认的代码原因
+
+低版本 Litematica 的 `GuiSchematicLoad` 没有可注入的 `createButtons()`，RC1 兼容代码改为在 `initGui()` 尾部注入。当前 `GuiSchematicLoadMixin.lmlp$addPreferredReplacementButton(...)` 一开始就执行：
+
+```java
+DirectoryEntry entry = browser != null ? browser.getLastSelectedEntry() : null;
+if (entry == null || FileType.fromFile(entry.getFullPath()) != FileType.LITEMATICA_SCHEMATIC) {
+    return;
+}
+```
+
+页面首次初始化时，文件浏览器通常还没有选中条目，因此 `entry == null`，方法提前返回，按钮不会被添加。之后用户选中原理图时，低版本页面不会再次调用 LMLP 的 `initGui()` 注入逻辑，所以按钮仍然不存在。
+
+这与材料列表配置无关：按当前产品设计，加载原理图页面的入口应始终保留；配置只控制材料列表页面中的入口。
+
+### 建议修复方案
+
+1. 创建按钮时不要要求存在已选文件；只要浏览器和原版“材料列表”按钮已经创建，就始终添加“替换为偏好”按钮。
+2. 把 `DirectoryEntry` 存在性、文件类型、可读性和 Litematica 解析检查全部留在按钮点击回调 `lmlp$openPreferredReplacement()` 中。
+3. 未选文件时显示“未选择原理图”；选中了非 `.litematic` 文件、文件不可读或解析失败时显示对应错误，不要让初始化阶段静默隐藏入口。
+4. 1.20.1、1.20.4、1.20.6 使用 `initGui()` 注入；较新版本保留其实际可用的 `createButtons()` 注入点，但共用“创建时不依赖选中条目”的逻辑。
+5. 不读取材料缓存来决定该按钮是否显示，也不受 `showPreferredReplacementButtonInMaterialList` 配置影响。
+
+### 预计涉及文件
+
+- 各版本分支的 `GuiSchematicLoadMixin.java`：拆分按钮创建条件与点击时文件校验。
+- 各版本语言文件：确认未选择、文件类型不支持、不可读和解析失败提示完整。
+- 如需共用逻辑，抽取到 GUI 辅助类时必须保留旧版 `File`/新版 `Path` 适配，不改变原版加载按钮行为。
+
+### 主要风险
+
+1. 如果按钮在每次 `initGui()` 重建时没有随页面控件一起清理，可能产生重复按钮；应确认先由原版重置按钮列表，再添加一次。
+2. 如果把选中文件检查完全删除而不放入点击回调，可能在空选择时抛出空指针；点击路径必须保留完整校验。
+3. 如果错误地读取该配置，会违背“加载原理图页面始终保留入口”的需求。
+4. 低版本和高版本的按钮列表类型、文件路径类型、原理图读取重载不同，需逐版本编译并检查 remap 日志。
+
+### 验收场景
+
+1. 在 1.20.1、1.20.4、1.20.6 打开“加载原理图”页面，尚未选择文件时也能看到“替换为偏好”按钮。
+2. 选择 `.litematic` 文件后点击按钮，正常进入材料偏好界面。
+3. 未选择文件点击按钮，显示明确提示且不崩溃。
+4. 选择非原理图文件、损坏文件或删除后的路径，显示对应错误且不崩溃。
+5. 开关“在材料列表中显示材料偏好按钮”不会改变加载原理图页面按钮的显示。
+6. 实时材料列表和跨维度缓存材料列表的既有入口行为不回归。
+
+## BUG-20260731-04：26.x 启动阶段创建冰 ItemStack 导致客户端崩溃
+
+- 状态：已修复，待 RC2 实例验证
+- 已确认版本：26.1.2、26.2
+- 发现版本：1.9.4-RC1
+- 修复版本：1.9.4-RC2
+- 26.1.2 崩溃报告：`26.1.2-Fabric 0.19.3-Mod_Dev/crash-reports/crash-2026-07-31_17.38.52-client.txt`、`crash-2026-07-31_17.39.23-client.txt`
+- 26.2 崩溃报告：`26.2-Fabric 0.19.3-Mod_Dev/crash-reports/crash-2026-07-31_17.40.42-client.txt`
+
+### 现象
+
+26.1.2 和 26.2 启动后在资源加载阶段立即崩溃，无法进入游戏；重复启动会重复生成崩溃报告。
+
+### 日志证据
+
+两版本的首个致命异常均为：
+
+```text
+java.lang.NullPointerException: Components not bound yet
+    at net.minecraft.core.Holder$Reference.components(...)
+    at net.minecraft.world.item.ItemStack.<init>(...)
+    at io.github.huanmeng06.lmlp.material.WaterBucketIceSubstitution.iceStack(WaterBucketIceSubstitution.java:107)
+    at io.github.huanmeng06.lmlp.material.WaterBucketIceSubstitution.refreshAvailableCounts(WaterBucketIceSubstitution.java:83)
+    at io.github.huanmeng06.lmlp.material.InventoryCounts.captureAndPublish(InventoryCounts.java:44)
+    at io.github.huanmeng06.lmlp.material.InventoryCounts.refresh(InventoryCounts.java:32)
+    at io.github.huanmeng06.lmlp.InitHandler.lambda$registerModHandlers$2(InitHandler.java:39)
+    at ...ClientTickEvents...onEndTick(...)
+```
+
+26.1.2 报告显示客户端只运行了 1 个 tick，且 `Last reload: Finished: No`；26.2 日志同样在资源重载未完成时报告相同堆栈。LMLP 本身已加载到 `1.9.4-RC1`，前面的可选 JEI、Carpet、Sodium 类缺失警告不是该崩溃的直接原因。
+
+### 已确认的代码原因
+
+`InitHandler` 无条件注册 `ClientTickEvents.END_CLIENT_TICK` 调用 `InventoryCounts.refresh()`。第一次 tick 可能发生在标题界面或初始资源重载期间，此时 `InventoryCounts.capture()` 因 `client.player == null` 返回空快照，但 `captureAndPublish()` 仍继续调用 `WaterBucketIceSubstitution.refreshAvailableCounts(...)`。
+
+`refreshAvailableCounts()` 无条件调用 `iceStack()`；`iceStack()` 从 `BuiltInRegistries.ITEM` 取得冰物品后立即执行 `new ItemStack(item, 1)`。26.x 的 `ItemStack` 构造会读取物品 Holder 的 data components，而此时 Holder 尚未完成绑定，于是抛出 `Components not bound yet`，异常没有被捕获并终止客户端。
+
+26.1.2 与 26.2 的 `WaterBucketIceSubstitution` 和 `InitHandler` 代码路径相同，因此应视为同一个跨版本启动时序 Bug，而不是两个独立崩溃。
+
+### 建议修复方向
+
+1. 启动阶段没有 `client.player` 或有效世界时，不运行库存计数刷新及冰替换可用数量回写；首次进入世界后再执行初始化刷新。
+2. 在 `WaterBucketIceSubstitution.iceStack()` 增加版本兼容的失败保护，遇到组件尚未绑定时返回空结果并等待下一 tick，不能让生命周期回调把异常抛到 Minecraft 主循环。
+3. 保持进入世界后的正常语义：库存为空也应能把已替换条目的可用数更新为 0，因此不能简单永久跳过所有空快照刷新；应区分“启动前无玩家”和“已进入世界但确实没有物品”。
+4. 检查 `InventoryCounts.current()`、材料列表打开路径和断开/重连回调，确保它们在玩家尚未建立时也不会间接创建冰 `ItemStack`。
+5. 同步修复并验证 26.1.2、26.2，再检查其他支持版本的库存刷新没有回归。
+
+### 不应采用的修复
+
+- 不要删除水桶替换为冰功能。
+- 不要通过吞掉所有 `Throwable` 隐藏真实问题；保护应只覆盖组件尚未绑定/启动时机，日志仍需保留一次可诊断信息。
+- 不要用未经注册的临时 `ItemStack` 或空堆栈参与 `InventoryCounts.countAny(...)`，否则可能把启动保护变成错误库存数据。
+
+### 验收场景
+
+1. 26.1.2 和 26.2 冷启动至少三次，均能到达主菜单并进入世界，日志不再出现 `Components not bound yet`。
+2. 进入世界后开启“水桶替换为冰”，确认冰的可用数量和 6 个冰的统计仍正确。
+3. 断开世界回到标题界面，再次进入另一个世界，不发生同类崩溃。
+4. 随后检查 1.20.1、1.20.4、1.20.6、1.21.1、1.21.10、1.21.11 的库存刷新没有回归。
