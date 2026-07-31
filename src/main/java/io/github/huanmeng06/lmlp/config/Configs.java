@@ -12,6 +12,7 @@ import fi.dy.masa.malilib.config.options.ConfigOptionList;
 import fi.dy.masa.malilib.config.options.ConfigStringList;
 import fi.dy.masa.malilib.util.FileUtils;
 import fi.dy.masa.malilib.util.JsonUtils;
+import fi.dy.masa.malilib.util.StringUtils;
 import io.github.huanmeng06.lmlp.LitematicaMaterialListPlus;
 import io.github.huanmeng06.lmlp.gui.MaterialListPlusState;
 import io.github.huanmeng06.lmlp.material.CountFormatter;
@@ -35,6 +36,27 @@ public class Configs implements IConfigHandler {
     private static final String OPEN_CONFIG_HOTKEY_CURRENT_DEFAULT = "L,C";
     private static final Set<String> OPEN_CONFIG_HOTKEY_OLD_DEFAULTS = Set.of("M,L,C", "EQUAL,C", "RIGHT_SHIFT,O");
     private static final Map<String, String> preferredRecipes = new HashMap<>();
+
+    private static ConfigInteger translatedInteger(
+            String name,
+            int defaultValue,
+            int minValue,
+            int maxValue,
+            boolean slider,
+            String commentKey,
+            String displayNameKey) {
+        return new ConfigInteger(name, defaultValue, minValue, maxValue, slider, commentKey) {
+            @Override
+            public String getConfigGuiDisplayName() {
+                return StringUtils.translate(displayNameKey);
+            }
+
+            @Override
+            public String getComment() {
+                return StringUtils.translate(commentKey);
+            }
+        };
+    }
     private static final List<String> COLOR_NAMES = List.of(
             "white",
             "orange",
@@ -147,13 +169,14 @@ public class Configs implements IConfigHandler {
                 "lmlp.config.name.origin_marker_text_scale"
         );
 
-        public static final ConfigInteger HOVER_PANEL_MAX_ROWS = new ConfigInteger(
+        public static final ConfigInteger HOVER_PANEL_MAX_ROWS = translatedInteger(
                 "hoverPanelMaxRows",
                 10,
                 1,
                 40,
                 true,
-                "Maximum number of item rows in each column of a choice-group hover panel. Extra items flow into additional columns as screen width allows."
+                "lmlp.config.comment.hover_panel_max_rows",
+                "lmlp.config.name.hover_panel_max_rows"
         );
 
         public static final ConfigStringList RECIPE_STOP_ITEMS = new ConfigStringList(
