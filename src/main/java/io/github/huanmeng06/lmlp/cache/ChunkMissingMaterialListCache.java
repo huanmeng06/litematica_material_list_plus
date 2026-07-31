@@ -475,10 +475,20 @@ public final class ChunkMissingMaterialListCache {
             }
 
             PlacementRecord record = context.toRecord(currentWorldId);
-            if (nativeSnapshot.contains(record) && nativeSnapshot.isOtherDimension(record)) {
+            boolean otherDimension = !normalizedDimension(context.dimension()).equals(normalizedDimension(currentDimension));
+            boolean nativeDimensionPlacement = nativeSnapshot.contains(record) && nativeSnapshot.isOtherDimension(record);
+            boolean runtimeDimensionPlacement = otherDimension
+                    && ((context.sourceState() == SourceState.ONLINE && placement != null)
+                    || context.runtimeDimensionPlacement());
+            if (nativeDimensionPlacement || runtimeDimensionPlacement) {
                 SchematicPlacement cacheSource = placement != null ? placement : nativeSnapshot.restorePlacement(record);
                 context.ensureMaterialCache(cacheSource, reason + ".dimension_snapshot");
+                context.setRuntimeDimensionPlacement(runtimeDimensionPlacement && !nativeDimensionPlacement);
                 detachAsPersistedDimension(context, reason + ".other_dimension");
+                if (runtimeDimensionPlacement && !nativeDimensionPlacement) {
+                    LOGGER.info("[LMLP native-placement] retained outgoing runtime placement before native storage caught up key={} name={} dimension={} currentDimension={} entries={}",
+                            context.key(), context.name(), context.dimension(), currentDimension, context.materialEntries().size());
+                }
                 retainedDimensionCaches++;
             } else {
                 forgetContext(context, reason + ".not_in_native_dimension_storage", false);
@@ -1596,6 +1606,7 @@ public final class ChunkMissingMaterialListCache {
         private long lastMaterialCacheUpdateTime;
         private boolean selected;
         private boolean cacheGenerated;
+        private boolean runtimeDimensionPlacement;
         private SourceState sourceState;
         private BlockInfoListType materialListType = BlockInfoListType.ALL;
         private List<EntryRecord> materialEntries = List.of();
@@ -1653,6 +1664,7 @@ public final class ChunkMissingMaterialListCache {
         private void refreshOnline(SchematicPlacement placement, String reason, String currentDimension) {
             this.placement = placement;
             this.sourceState = SourceState.ONLINE;
+            this.runtimeDimensionPlacement = false;
             this.name = placement.getName();
             this.lastReason = reason;
             this.lastSeen = System.currentTimeMillis();
@@ -1672,6 +1684,14 @@ public final class ChunkMissingMaterialListCache {
             this.placement = null;
             this.sourceState = SourceState.PERSISTED_DIMENSION;
             this.lastReason = reason;
+        }
+
+        private boolean runtimeDimensionPlacement() {
+            return this.runtimeDimensionPlacement;
+        }
+
+        private void setRuntimeDimensionPlacement(boolean runtimeDimensionPlacement) {
+            this.runtimeDimensionPlacement = runtimeDimensionPlacement;
         }
 
         private void updateMaterialCache(BlockInfoListType type, List<MaterialListEntry> entries) {
