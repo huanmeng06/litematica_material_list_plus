@@ -25,6 +25,7 @@ import io.github.huanmeng06.lmlp.gui.RecipeDetailScreen;
 import io.github.huanmeng06.lmlp.gui.RecipeInlineRenderer;
 import io.github.huanmeng06.lmlp.material.CountFormatter;
 import io.github.huanmeng06.lmlp.material.MaterialCounts;
+import io.github.huanmeng06.lmlp.material.WaterBucketIceSubstitution;
 import io.github.huanmeng06.lmlp.recipe.RecipeResolvers;
 import io.github.huanmeng06.lmlp.recipe.RecipeSummary;
 import net.minecraft.class_1799;
@@ -143,7 +144,7 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
             int entryMultiplier = MinimalSubMaterialListView.isMinimalEntry(entry) ? 1 : multiplier;
             int total = entry.getCountTotal() * entryMultiplier;
             int missing = MinimalSubMaterialListView.netMissing(entry, multiplier);
-            int available = entry.getCountAvailable();
+            int available = WaterBucketIceSubstitution.availableForDisplay(entry);
             lmlpMaxTotalDigits = Math.max(lmlpMaxTotalDigits, Integer.toString(total).length());
             lmlpMaxMissingDigits = Math.max(lmlpMaxMissingDigits, Integer.toString(missing).length());
             lmlpMaxAvailableDigits = Math.max(lmlpMaxAvailableDigits, Integer.toString(available).length());
@@ -153,7 +154,7 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
             int entryMultiplier = MinimalSubMaterialListView.isMinimalEntry(entry) ? 1 : multiplier;
             int total = entry.getCountTotal() * entryMultiplier;
             int missing = MinimalSubMaterialListView.netMissing(entry, multiplier);
-            int available = entry.getCountAvailable();
+            int available = WaterBucketIceSubstitution.availableForDisplay(entry);
             String name = MinimalSubMaterialListView.widestDisplayName(entry);
 
             maxNameLength = Math.max(maxNameLength, StringUtils.getStringWidth(name));
@@ -441,7 +442,7 @@ public abstract class WidgetMaterialListEntryMixin extends WidgetListEntrySortab
         int total = MinimalSubMaterialListView.total(this.entry, this.materialList);
         int rawMissing = MinimalSubMaterialListView.missing(this.entry, this.materialList);
         int missing = MinimalSubMaterialListView.netMissing(this.entry, this.materialList);
-        int available = this.entry.getCountAvailable();
+        int available = WaterBucketIceSubstitution.availableForDisplay(this.entry);
 
         int iconX = xItem;
         String renderedName = this.truncateToWidth(name, this.lmlp$nameTextLimit());

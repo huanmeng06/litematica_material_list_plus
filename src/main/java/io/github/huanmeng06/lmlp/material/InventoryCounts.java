@@ -30,6 +30,10 @@ public final class InventoryCounts {
     }
 
     public static void refresh() {
+        class_310 client = class_310.method_1551();
+        if (client == null || client.field_1724 == null || client.field_1687 == null) {
+            return;
+        }
         captureAndPublish(System.nanoTime());
     }
 
