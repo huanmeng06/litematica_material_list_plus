@@ -34,6 +34,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -152,6 +153,46 @@ public final class ChunkMissingMaterialListCache {
                 currentDimensionId(),
                 selectedMaterialListContext == null ? null : selectedMaterialListContext.key());
         return "";
+    }
+
+    /**
+     * Resolves the source schematic for a persisted cross-dimension material list.
+     * The returned path is validated against the restored native placement context and the
+     * current filesystem; it must never be treated as a live placement in the current dimension.
+     */
+    public static Path preferredSchematicPath(MaterialListBase materialList, String caller) {
+        if (!(materialList instanceof PersistedDimensionMaterialList dimensionList)) {
+            return null;
+        }
+
+        reconcileNativePlacementContexts(caller + ".native_reconcile");
+        PlacementContext context = PLACEMENT_CONTEXTS_BY_KEY.get(PlacementKey.fromString(dimensionList.contextKey()));
+        if (context == null || !context.isPersistedDimensionCache()) {
+            LOGGER.warn("[LMLP material-list] preferred source unavailable reason=missing_persisted_context caller={} key={}",
+                    caller, dimensionList.contextKey());
+            return null;
+        }
+
+        String rawPath = context.schematicPath();
+        if (rawPath == null || rawPath.isBlank()) {
+            LOGGER.warn("[LMLP material-list] preferred source unavailable reason=empty_schematic_path caller={} key={}",
+                    caller, context.key());
+            return null;
+        }
+
+        try {
+            Path source = Path.of(rawPath).toAbsolutePath().normalize();
+            if (!Files.isRegularFile(source) || !Files.isReadable(source)) {
+                LOGGER.warn("[LMLP material-list] preferred source unavailable reason=missing_or_unreadable_file caller={} key={} path={}",
+                        caller, context.key(), source);
+                return null;
+            }
+            return source;
+        } catch (RuntimeException exception) {
+            LOGGER.warn("[LMLP material-list] preferred source unavailable reason=invalid_schematic_path caller={} key={} path={}",
+                    caller, context.key(), rawPath, exception);
+            return null;
+        }
     }
 
     static void refresh(ChunkMissingMaterialList list) {

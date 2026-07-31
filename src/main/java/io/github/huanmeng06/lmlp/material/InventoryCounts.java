@@ -29,6 +29,10 @@ public final class InventoryCounts {
     }
 
     public static void refresh() {
+        Minecraft client = Minecraft.getInstance();
+        if (client == null || client.player == null || client.level == null) {
+            return;
+        }
         captureAndPublish(System.nanoTime());
     }
 
