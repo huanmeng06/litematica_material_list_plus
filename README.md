@@ -127,7 +127,7 @@ Litematica Material List Plus（简称 **LMLP**）是一个面向 Minecraft Fabr
 | 26.1.2 | `mc26.1.2` | 25 | v1.9.3 | ✅ |
 | 26.2 | `mc26.2` | 25 | v1.9.3 | ✅ |
 
-由于 JEI 适配问题， Minecraft `1.21.4` 和 `1.21.5` 暂不支持。它们最后兼容的 LMLP 版本是 `v1.7.0`，使用 REI 作为前置。
+⚠️ 由于 JEI 适配问题， Minecraft `1.21.4` 和 `1.21.5` 暂不支持。它们最后兼容的 LMLP 版本是 `v1.7.0`，使用 REI 作为前置。
 
 ## 使用入口
 
