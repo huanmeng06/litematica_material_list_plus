@@ -211,6 +211,7 @@ public final class WorldMaterialCacheIndex {
             String materialListType,
             boolean cacheGenerated,
             boolean selected,
+            boolean runtimeDimensionPlacement,
             List<EntryRecord> entries) {
         private static PlacementRecord fromJson(JsonObject object, String expectedWorldId) {
             String key = JsonUtils.getStringOrDefault(object, "key", "");
@@ -246,6 +247,7 @@ public final class WorldMaterialCacheIndex {
                     JsonUtils.getStringOrDefault(object, "materialListType", BlockInfoListType.ALL.getStringValue()),
                     JsonUtils.getBooleanOrDefault(object, "cacheGenerated", !entries.isEmpty()),
                     JsonUtils.getBooleanOrDefault(object, "selected", false),
+                    JsonUtils.getBooleanOrDefault(object, "runtimeDimensionPlacement", false),
                     List.copyOf(entries));
         }
 
@@ -265,6 +267,7 @@ public final class WorldMaterialCacheIndex {
             object.addProperty("materialListType", this.materialListType);
             object.addProperty("cacheGenerated", this.cacheGenerated);
             object.addProperty("selected", this.selected);
+            object.addProperty("runtimeDimensionPlacement", this.runtimeDimensionPlacement);
 
             JsonArray entries = new JsonArray();
             for (EntryRecord entry : this.entries) {

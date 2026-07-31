@@ -1383,13 +1383,26 @@ public final class ChunkMissingMaterialListCache {
             LoadResult result = WorldMaterialCacheIndex.load(worldId);
             NativePlacementStorageIndex.Snapshot nativeSnapshot = NativePlacementStorageIndex.load(currentDimensionId(), reason + ".restore");
             int restoredDimensionContexts = 0;
+            int restoredRuntimeFallbackContexts = 0;
             int rejectedContexts = 0;
             for (PlacementRecord record : result.records()) {
-                if (nativeSnapshot.contains(record) && nativeSnapshot.isOtherDimension(record)) {
+                boolean nativeDimensionPlacement = nativeSnapshot.contains(record) && nativeSnapshot.isOtherDimension(record);
+                boolean runtimeFallback = !nativeDimensionPlacement
+                        && isPersistedDimensionFallbackCandidate(record, currentDimensionId());
+                if (nativeDimensionPlacement || runtimeFallback) {
                     PlacementContext context = restorePersistedDimensionContext(record);
                     if (context != null) {
-                        context.ensureMaterialCache(nativeSnapshot.restorePlacement(record), reason + ".restore_dimension_snapshot");
+                        context.setRuntimeDimensionPlacement(runtimeFallback);
+                        SchematicPlacement nativePlacement = nativeDimensionPlacement
+                                ? nativeSnapshot.restorePlacement(record)
+                                : null;
+                        context.ensureMaterialCache(nativePlacement, reason + ".restore_dimension_snapshot");
                         restoredDimensionContexts++;
+                        if (runtimeFallback) {
+                            restoredRuntimeFallbackContexts++;
+                            LOGGER.info("[LMLP native-placement] restored persisted dimension cache before native storage matched key={} name={} dimension={} currentDimension={} entries={}",
+                                    context.key(), context.name(), context.dimension(), currentDimensionId(), context.materialEntries().size());
+                        }
                     }
                 } else {
                     rejectedContexts++;
@@ -1409,12 +1422,26 @@ public final class ChunkMissingMaterialListCache {
                 }
             }
 
-            LOGGER.info("[LMLP cache-index] world session loaded reason={} worldId={} path={} restoredDimensionContexts={} rejectedContexts={} selectedKey={} nativeIndexAvailable={}",
-                    reason, worldId, result.file().getAbsolutePath(), restoredDimensionContexts, rejectedContexts,
-                    result.selectedKey(), nativeSnapshot.available());
+            LOGGER.info("[LMLP cache-index] world session loaded reason={} worldId={} path={} restoredDimensionContexts={} restoredRuntimeFallbackContexts={} rejectedContexts={} selectedKey={} nativeIndexAvailable={}",
+                    reason, worldId, result.file().getAbsolutePath(), restoredDimensionContexts,
+                    restoredRuntimeFallbackContexts, rejectedContexts, result.selectedKey(), nativeSnapshot.available());
         } finally {
             loadingWorldIndex = false;
         }
+    }
+
+    private static boolean isPersistedDimensionFallbackCandidate(PlacementRecord record, String currentDimension) {
+        if (record == null || record.dimension() == null || currentDimension == null
+                || normalizedDimension(record.dimension()).equals(normalizedDimension(currentDimension))) {
+            return false;
+        }
+
+        // A runtime marker covers snapshots created while Litematica's native
+        // dimension file was still catching up. Non-empty legacy records are
+        // also safe to migrate: they already represent a persisted material
+        // snapshot, while explicit removal still deletes the record through
+        // the placement manager callback.
+        return record.runtimeDimensionPlacement() || !record.entries().isEmpty();
     }
 
     private static void abandonWorldSession(String reason) {
@@ -1682,6 +1709,7 @@ public final class ChunkMissingMaterialListCache {
             this.lastMaterialCacheUpdateTime = record.lastMaterialCacheUpdateTime();
             this.cacheGenerated = record.cacheGenerated();
             this.selected = record.selected();
+            this.runtimeDimensionPlacement = record.runtimeDimensionPlacement();
             this.materialListType = BlockInfoListType.fromStringStatic(record.materialListType());
             this.materialEntries = List.copyOf(record.entries());
             this.lastReason = "cache_index.restore";
@@ -1830,6 +1858,7 @@ public final class ChunkMissingMaterialListCache {
                     this.materialListType.getStringValue(),
                     this.cacheGenerated,
                     this.selected,
+                    this.runtimeDimensionPlacement,
                     this.materialEntries);
         }
 
