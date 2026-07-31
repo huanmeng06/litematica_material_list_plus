@@ -16,7 +16,9 @@ import fi.dy.masa.malilib.gui.button.IButtonActionListener;
 import fi.dy.masa.malilib.gui.widgets.WidgetLabel;
 import fi.dy.masa.malilib.util.StringUtils;
 import io.github.huanmeng06.lmlp.cache.ChunkMissingMaterialListCache;
+import io.github.huanmeng06.lmlp.config.Configs;
 import io.github.huanmeng06.lmlp.gui.GuiConfigs;
+import io.github.huanmeng06.lmlp.gui.GuiPreferredMaterialForm;
 import io.github.huanmeng06.lmlp.gui.KnownPlacementRows;
 import io.github.huanmeng06.lmlp.gui.KnownPlacementRows.ReadStatus;
 import io.github.huanmeng06.lmlp.gui.MaterialListDefaultSort;
@@ -143,7 +145,7 @@ public abstract class GuiMaterialListMixin extends GuiListBase {
 
         // The buttons that vanilla + this mod drop onto the bottom rows in
         // narrow mode, in the same order as lmlp$reflowWrappedBottomButtons:
-        // any moved top toggles, clear buttons,
+        // any moved top toggles, optional preference action, clear buttons,
         // write_to_file, and the sub-material export button.
         List<Integer> widths = new ArrayList<>();
         int movedToggles = this.lmlp$movedTopToggleCount();
@@ -152,6 +154,9 @@ public abstract class GuiMaterialListMixin extends GuiListBase {
         }
         if (movedToggles >= 1) {
             widths.add(this.lmlp$onOffButtonWidth("litematica.gui.button.material_list.toggle_info_hud", this.materialList.getHudRenderer().getShouldRenderCustom()));
+        }
+        if (this.lmlp$showPreferredReplacementButton()) {
+            widths.add(this.lmlp$genericButtonWidth(StringUtils.translate("lmlp.gui.button.material_list.preferred_replacement")));
         }
         widths.add(this.lmlp$genericButtonWidth(StringUtils.translate("litematica.gui.button.material_list.clear_ignored")));
         widths.add(this.lmlp$genericButtonWidth(StringUtils.translate("litematica.gui.button.material_list.clear_cache")));
@@ -348,6 +353,34 @@ public abstract class GuiMaterialListMixin extends GuiListBase {
         cir.setReturnValue(Math.max(cir.getReturnValue(), this.lmlp$fullTopRowWidth()));
     }
 
+    // Keep this entry optional because the same action is always available in
+    // the schematic browser. Every layout calculation uses the same setting so
+    // disabling it removes both the button and its reserved space.
+    @Inject(method = "initGui", at = @At("TAIL"))
+    private void lmlp$addPreferredReplacementButton(CallbackInfo ci) {
+        if (!this.lmlp$showPreferredReplacementButton()) {
+            return;
+        }
+
+        String label = StringUtils.translate("lmlp.gui.button.material_list.preferred_replacement");
+        int width = this.lmlp$genericButtonWidth(label);
+        boolean narrow = this.field_22789 < this.lmlp$fullTopRowWidth();
+        int x = narrow ? -1 : this.lmlp$preferredReplacementButtonX();
+        int y = narrow ? this.field_22790 - WRAPPED_BUTTON_Y_OFFSET : BUTTON_Y;
+
+        if (!narrow) {
+            for (ButtonBase existing : ((GuiBaseHoverAccess) (Object) this).lmlp$getButtons()) {
+                if (existing.getY() == BUTTON_Y && existing.getX() >= x) {
+                    existing.setPosition(existing.getX() + width + BUTTON_SPACING, existing.getY());
+                }
+            }
+        }
+
+        ButtonGeneric button = new ButtonGeneric(x, y, width, 20, label, new String[0]);
+        button.setHoverStrings("lmlp.gui.button.hover.material_list.preferred_replacement");
+        this.addButton(button, new PreferredReplacementButtonListener((GuiMaterialList) (Object) this));
+    }
+
     @Inject(method = "initGui", at = @At("TAIL"))
     private void lmlp$addSubMaterialExportButton(CallbackInfo ci) {
         this.lmlp$removeVanillaRecipeExportButtons();
@@ -535,6 +568,9 @@ public abstract class GuiMaterialListMixin extends GuiListBase {
         }
         x += this.lmlp$onOffButtonWidth("litematica.gui.button.material_list.hide_available", this.materialList.getHideAvailable()) + BUTTON_SPACING;
         x += this.lmlp$onOffButtonWidth("litematica.gui.button.material_list.toggle_info_hud", this.materialList.getHudRenderer().getShouldRenderCustom()) + BUTTON_SPACING;
+        if (this.lmlp$showPreferredReplacementButton()) {
+            x += this.lmlp$genericButtonWidth(StringUtils.translate("lmlp.gui.button.material_list.preferred_replacement")) + BUTTON_SPACING;
+        }
         if (this.field_22789 < this.lmlp$fullTopRowWidth()) {
             x = 12;
         }
@@ -557,6 +593,9 @@ public abstract class GuiMaterialListMixin extends GuiListBase {
         }
         width += this.lmlp$onOffButtonWidth("litematica.gui.button.material_list.hide_available", this.materialList.getHideAvailable()) + BUTTON_SPACING;
         width += this.lmlp$onOffButtonWidth("litematica.gui.button.material_list.toggle_info_hud", this.materialList.getHudRenderer().getShouldRenderCustom()) + BUTTON_SPACING;
+        if (this.lmlp$showPreferredReplacementButton()) {
+            width += this.lmlp$genericButtonWidth(StringUtils.translate("lmlp.gui.button.material_list.preferred_replacement")) + BUTTON_SPACING;
+        }
         width += this.lmlp$genericButtonWidth(StringUtils.translate("litematica.gui.button.material_list.clear_ignored")) + BUTTON_SPACING;
         width += this.lmlp$genericButtonWidth(StringUtils.translate("litematica.gui.button.material_list.clear_cache")) + BUTTON_SPACING;
         width += this.lmlp$genericButtonWidth(StringUtils.translate("litematica.gui.button.material_list.write_to_file")) + BUTTON_SPACING;
@@ -567,6 +606,21 @@ public abstract class GuiMaterialListMixin extends GuiListBase {
 
     private int lmlp$genericButtonWidth(String label) {
         return new ButtonGeneric(0, 0, -1, 20, label, new String[0]).getWidth();
+    }
+
+    private boolean lmlp$showPreferredReplacementButton() {
+        return Configs.Generic.SHOW_PREFERRED_REPLACEMENT_BUTTON_IN_MATERIAL_LIST.getBooleanValue();
+    }
+
+    private int lmlp$preferredReplacementButtonX() {
+        int x = 12;
+        x += this.lmlp$genericButtonWidth(StringUtils.translate("litematica.gui.button.material_list.refresh_list")) + BUTTON_SPACING;
+        if (this.materialList.supportsRenderLayers()) {
+            x += this.lmlp$genericButtonWidth(this.lmlp$listTypeDisplayName()) + BUTTON_SPACING;
+        }
+        x += this.lmlp$onOffButtonWidth("litematica.gui.button.material_list.hide_available", this.materialList.getHideAvailable()) + BUTTON_SPACING;
+        x += this.lmlp$onOffButtonWidth("litematica.gui.button.material_list.toggle_info_hud", this.materialList.getHudRenderer().getShouldRenderCustom()) + BUTTON_SPACING;
+        return x;
     }
 
     private String lmlp$listTypeDisplayName() {
@@ -598,6 +652,24 @@ public abstract class GuiMaterialListMixin extends GuiListBase {
             }
 
             this.parent.initGui();
+        }
+    }
+
+    private static final class PreferredReplacementButtonListener implements IButtonActionListener {
+        private final GuiMaterialList parent;
+
+        private PreferredReplacementButtonListener(GuiMaterialList parent) {
+            this.parent = parent;
+        }
+
+        @Override
+        public void actionPerformedWithButton(ButtonBase button, int mouseButton) {
+            GuiPreferredMaterialForm form = GuiPreferredMaterialForm.forMaterialList(this.parent, this.parent.getMaterialList());
+            if (!form.hasSchematic()) {
+                this.parent.addMessage(MessageType.ERROR, "lmlp.error.preferred_replacement.no_schematic");
+                return;
+            }
+            GuiBase.openGui(form);
         }
     }
 
