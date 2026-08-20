@@ -186,9 +186,8 @@ final class PreferenceWidgetListConfigOptions extends WidgetListConfigOptions {
             GuiConfigsBase.ConfigOptionWrapper wrapper) {
         PreferenceGroup owner = findGroupByChild(wrapper.getConfig());
         PreferenceGroup toggleGroup = findGroupByToggle(wrapper.getConfig());
-        boolean materialFormEntry = this.parent instanceof GuiPreferredMaterialForm
-                && (owner != null || toggleGroup != null);
-        if (owner == null && !materialFormEntry) {
+        boolean preferenceEntry = owner != null || toggleGroup != null;
+        if (!preferenceEntry) {
             return super.createListEntryWidget(x, y, listIndex, isOdd, wrapper);
         }
 
