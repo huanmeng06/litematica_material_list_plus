@@ -542,11 +542,6 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
                 false
         );
         context.method_51433(this.field_22793, arrow, arrowX, y + 7, 0xFFFFFFFF, false);
-        boolean targetHovered = !row.row.allowedTargets().isEmpty()
-                && mouseX >= targetIconX - 2
-                && mouseX < mappingRight
-                && mouseY >= y
-                && mouseY < y + DETAIL_ROW_HEIGHT;
         row.targetBounds = new ArrowBounds(
                 targetIconX - 2,
                 y,
@@ -559,7 +554,7 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
                     iconY,
                     16,
                     16,
-                    targetHovered ? 0x60FFFF88 : DETAIL_ICON_BACKGROUND);
+                    DETAIL_ICON_BACKGROUND);
             context.method_51427(new class_1799(row.targetBlock()), targetIconX, iconY);
         }
         context.method_51433(
@@ -567,7 +562,7 @@ public final class GuiPreferredMaterialForm extends GuiConfigsBase {
                 targetName,
                 targetNameX,
                 y + 7,
-                targetHovered ? 0xFFFFFF88 : 0xFFFFFFFF,
+                0xFFFFFFFF,
                 false);
 
         String count = StringUtils.translate("lmlp.gui.preferred_replacement.count", row.row.count());
